@@ -28,15 +28,17 @@
         </picture>
         <div class="brand-copy">
           <h1 class="brand-name"><span class="brand-name-strong">Discourse</span>Copilot</h1>
-          <label class="sr-only" for="favoriteModelSelect">Quick switch favorite model</label>
-          <select id="favoriteModelSelect" class="favorite-model-select" aria-label="Quick switch favorite model" disabled>
-            <option>Loading favorite models…</option>
+          <select id="favoriteModelSelect" class="model-switcher hidden" aria-label="AI model">
+            <option>Loading…</option>
           </select>
-          <p id="providerContext" class="provider-context" title="Current AI provider and model">
-            <span id="currentProvider">Loading provider…</span>
-            <span aria-hidden="true">·</span>
-            <span id="currentModel">Loading model…</span>
-          </p>
+          <button id="modelChipBtn" class="model-switcher model-chip hidden" type="button" aria-label="AI model">
+            <span id="modelChipLabel" class="model-chip-label">Loading…</span>
+            <svg class="model-chip-icon" aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M4 7h10M18 7h2M4 17h4M12 17h8"/>
+              <circle cx="16" cy="7" r="2"/>
+              <circle cx="10" cy="17" r="2"/>
+            </svg>
+          </button>
           <button id="setupJumpBtn" class="setup-jump-btn hidden" type="button" aria-controls="setupCard">
             <span class="setup-jump-dot" aria-hidden="true"></span>
             Not set up

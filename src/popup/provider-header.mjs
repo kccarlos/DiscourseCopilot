@@ -1,10 +1,69 @@
-// The header's provider line ("OpenAI · gpt-4o-mini" or "Not set up"), the
-// favorite-model quick switcher, and which parts of the topic view the
-// configuration status shows (setup card vs. welcome panel).
+// The header's model switcher (the active "Provider · model", as a favorite
+// quick switcher or a chip that opens Settings; "Not set up" before setup) and
+// which parts of the topic view the configuration status shows (setup card vs.
+// welcome panel).
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { favoriteModelKey } from '../shared/favorite-models.mjs';
 
 const $ = id => document.getElementById(id);
+
+export const MODEL_SWITCHER_HINT = 'Add favorite models in Settings to switch quickly';
+
+/**
+ * What the header's model switcher shows. Pure: derived from the config.
+ *
+ * - `select`: favorites exist; the select lists them with the active model
+ *   selected (prepended when it isn't a favorite).
+ * - `chip`: no favorites; a static chip names the active model and opens
+ *   Settings.
+ * - `setup`: no usable provider; "Not set up" replaces the chip, and the
+ *   select still shows when favorites exist so one can be picked.
+ *
+ * @param {object} input
+ * @param {boolean} input.ready
+ * @param {string} input.provider active provider id
+ * @param {string} input.model active model ('' when none)
+ * @param {{provider: string, model: string}[]} input.favorites
+ * @param {(provider: string) => string} input.providerName
+ */
+export function deriveModelSwitcher({ ready, provider, model, favorites, providerName }) {
+  const labelOf = (id, name) => `${providerName(id)} · ${name || 'No model selected'}`;
+  const label = labelOf(provider, model);
+  const currentKey = favoriteModelKey(provider, model || '');
+  const hasFavorites = favorites.length > 0;
+  const mode = !ready ? 'setup' : hasFavorites ? 'select' : 'chip';
+
+  let options = favorites.map(favorite => {
+    const value = favoriteModelKey(favorite.provider, favorite.model);
+    return { value, label: labelOf(favorite.provider, favorite.model), selected: value === currentKey };
+  });
+  let selectedValue = options.find(option => option.selected)?.value || '';
+  if (hasFavorites && !selectedValue) {
+    if (ready) {
+      // The active model isn't a favorite: still name it, as the selection.
+      options = [{ value: currentKey, label, selected: true }, ...options];
+      selectedValue = currentKey;
+    } else {
+      options = [{ value: '', label: 'Choose a favorite model…', selected: true, disabled: true }, ...options];
+    }
+  }
+
+  return {
+    mode,
+    showSetupJump: mode === 'setup',
+    showSelect: hasFavorites,
+    showChip: mode === 'chip',
+    label,
+    options,
+    selectedValue,
+    selectTitle: mode === 'select' ? `${label}\nSwitch to another favorite model` : 'Switch to a favorite model',
+    selectAriaLabel: mode === 'select'
+      ? `AI model: ${label}. Switch favorite model`
+      : 'Switch to a favorite model',
+    chipTitle: `${label}\n${MODEL_SWITCHER_HINT}`,
+    chipAriaLabel: `AI model: ${label}. Open AI provider settings`
+  };
+}
 
 export class ProviderHeader {
   /**
@@ -13,17 +72,23 @@ export class ProviderHeader {
    * @param {object} deps.status StatusLine
    * @param {object} deps.setupCard SetupCard
    * @param {() => void} deps.onSetupJump "Not set up" was pressed
+   * @param {() => void} deps.openSettings open the settings page
    */
-  constructor({ config, status, setupCard, onSetupJump }) {
+  constructor({ config, status, setupCard, onSetupJump, openSettings }) {
     this.config = config;
     this.status = status;
     this.setupCard = setupCard;
     this.onSetupJump = onSetupJump;
+    this.openSettings = openSettings;
   }
 
   mount() {
     $('settingsBtn').addEventListener('click', () => {
-      chrome.runtime.openOptionsPage();
+      this.openSettings();
+    });
+    $('modelChipBtn').addEventListener('click', () => {
+      // The AI provider section is the top of the settings page.
+      this.openSettings();
     });
     $('setupJumpBtn').addEventListener('click', () => {
       this.onSetupJump();
@@ -34,10 +99,46 @@ export class ProviderHeader {
   }
 
   render() {
-    const { status } = this.config;
-    $('currentProvider').textContent = status.providerName;
-    $('currentModel').textContent = this.config.activeSettings.model || 'No model selected';
-    this.renderFavorites();
+    this.renderSwitcher();
+  }
+
+  switcherState() {
+    return deriveModelSwitcher({
+      ready: this.config.isReady(),
+      provider: this.config.config.provider,
+      model: this.config.activeSettings.model || '',
+      favorites: this.config.config.favorites,
+      providerName: provider => this.config.providerName(provider)
+    });
+  }
+
+  // The one writer of the switcher's controls and their visibility.
+  renderSwitcher() {
+    const view = this.switcherState();
+    const select = $('favoriteModelSelect');
+    const chip = $('modelChipBtn');
+
+    const options = view.options.map(item => {
+      const option = document.createElement('option');
+      option.value = item.value;
+      option.textContent = item.label;
+      option.selected = item.selected;
+      option.disabled = Boolean(item.disabled);
+      return option;
+    });
+    select.replaceChildren(...options);
+    select.value = view.selectedValue;
+    select.disabled = false;
+    select.title = view.selectTitle;
+    select.setAttribute('aria-label', view.selectAriaLabel);
+    select.classList.toggle('hidden', !view.showSelect);
+
+    $('modelChipLabel').textContent = view.label;
+    chip.title = view.chipTitle;
+    chip.setAttribute('aria-label', view.chipAriaLabel);
+    chip.classList.toggle('hidden', !view.showChip);
+
+    $('setupJumpBtn').classList.toggle('hidden', !view.showSetupJump);
   }
 
   // While no provider is usable, the setup card replaces the welcome panel and
@@ -54,46 +155,7 @@ export class ProviderHeader {
     const showCard = needsSetup || card.showsSuccess;
     $('topicView').classList.toggle('needs-setup', needsSetup);
     $('setupCard').classList.toggle('hidden', !showCard);
-    $('providerContext').classList.toggle('hidden', needsSetup);
-    $('setupJumpBtn').classList.toggle('hidden', !needsSetup);
-    $('favoriteModelSelect').classList.toggle(
-      'hidden',
-      needsSetup && this.config.config.favorites.length === 0
-    );
-  }
-
-  renderFavorites() {
-    const select = $('favoriteModelSelect');
-    if (!select) return;
-
-    const favorites = this.config.config.favorites;
-    const currentKey = favoriteModelKey(
-      this.config.config.provider,
-      this.config.activeSettings.model || ''
-    );
-    const hasCurrentFavorite = favorites.some(
-      favorite => favoriteModelKey(favorite.provider, favorite.model) === currentKey
-    );
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = favorites.length
-      ? 'Switch favorite model…'
-      : 'No favorite models yet';
-    placeholder.disabled = favorites.length > 0;
-    placeholder.selected = !hasCurrentFavorite;
-
-    const options = favorites.map(favorite => {
-      const option = document.createElement('option');
-      option.value = favoriteModelKey(favorite.provider, favorite.model);
-      option.textContent = `${this.config.providerName(favorite.provider)} · ${favorite.model}`;
-      option.selected = option.value === currentKey;
-      return option;
-    });
-    select.replaceChildren(placeholder, ...options);
-    select.disabled = favorites.length === 0;
-    select.title = favorites.length
-      ? 'Switch the AI provider and model'
-      : 'Add favorite models in Settings';
+    this.renderSwitcher();
   }
 
   async switchFavoriteModel(key) {
@@ -101,7 +163,7 @@ export class ProviderHeader {
       item => favoriteModelKey(item.provider, item.model) === key
     );
     if (!favorite) {
-      this.renderFavorites();
+      this.renderSwitcher();
       return;
     }
 
@@ -112,7 +174,7 @@ export class ProviderHeader {
       this.status.show(`Using ${this.config.providerName(favorite.provider)} · ${favorite.model}`, 'success');
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Unable to switch favorite model:', error);
-      this.renderFavorites();
+      this.renderSwitcher();
       this.status.show(`Unable to switch model: ${error.message}`, 'error');
     }
   }

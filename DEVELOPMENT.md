@@ -69,7 +69,7 @@ src/
     agent-answer-view.mjs Renders one Agent run (shared by the inline panel and the detail view)
     activity-view.mjs     Activity screen: Tasks/Saved tabs, forum groups and filter, Agent detail
     activity-cards.mjs    Task and saved-item cards
-    provider-header.mjs   Provider/model line, favorite-model switcher, setup state
+    provider-header.mjs   Model switcher (active provider · model, favorites), setup state
     setup-card.mjs        First-run setup (uses the shared ConfigStore)
     forum-ui.mjs          Forum names, forum bar, forum accents
     task-registry.mjs     The panel's copy of the task queue and requests to it

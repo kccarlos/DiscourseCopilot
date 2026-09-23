@@ -244,46 +244,70 @@ textarea:focus-visible {
     font-weight: 800;
 }
 
-.favorite-model-select {
+/* The active "Provider · model": a favorite switcher (select) or, without
+   favorites, a chip that opens Settings. Both look the same. */
+.model-switcher {
     display: block;
     width: min(46vw, 360px);
     max-width: 100%;
     min-height: 30px;
     height: 30px;
-    margin: 0.22rem 0 0.18rem;
+    margin: 0.22rem 0 0;
     padding: 0.2rem 1.75rem 0.2rem 0.5rem;
-    border-color: var(--uc-line-strong);
+    overflow: hidden;
+    border: 1px solid var(--uc-line-strong);
     border-radius: 8px;
     background-color: var(--uc-surface-raised);
+    box-shadow: none;
     color: var(--uc-ink-soft);
     font-size: 0.68rem;
+    font-weight: 500;
     line-height: 1.2;
+    text-align: left;
     text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.favorite-model-select:hover:not(:disabled) {
+.model-switcher:hover:not(:disabled) {
     border-color: var(--uc-accent-line-strong);
+    background-color: var(--uc-surface-raised);
+    color: var(--uc-ink);
 }
 
-.favorite-model-select:disabled {
+.model-switcher:disabled {
     color: var(--uc-muted);
     opacity: 0.75;
 }
 
-.provider-context {
+.model-chip {
     display: flex;
-    max-width: min(48vw, 390px);
-    gap: 0.3rem;
-    margin: 0;
-    overflow: hidden;
-    color: var(--uc-muted);
-    font-size: 0.7rem;
-    white-space: nowrap;
+    align-items: center;
+    gap: 0.4rem;
+    padding-right: 0.55rem;
 }
 
-.provider-context span {
+.model-chip-icon {
+    width: 0.85rem;
+    height: 0.85rem;
+    flex: 0 0 auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 2;
+    opacity: 0.6;
+}
+
+.model-chip:focus-visible {
+    border-color: var(--uc-accent-line-strong);
+}
+
+.model-chip-label {
+    display: block;
+    min-width: 0;
+    flex: 1 1 auto;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .header-actions {
@@ -2786,11 +2810,7 @@ details[open] > summary .chevron {
         height: 2.25rem;
     }
 
-    .provider-context {
-        max-width: 42vw;
-    }
-
-    .favorite-model-select {
+    .model-switcher {
         width: 42vw;
     }
 

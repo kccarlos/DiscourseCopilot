@@ -5,123 +5,180 @@
   </picture>
 </h1>
 
-AI summaries, follow-up chat, and a forum-wide research copilot for **any Discourse forum** — [community.openai.com](https://community.openai.com), [meta.discourse.org](https://meta.discourse.org), or your own community.
+<p align="center">
+  <strong>Catch up on any Discourse forum in seconds.</strong><br>
+  Summarize long topics, ask follow-up questions, and let AI search the whole forum for you, with links to the posts it used.
+</p>
 
-![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
-![Version](https://img.shields.io/badge/version-2.0.0-green.svg)
-![Chrome Extension](https://img.shields.io/badge/platform-Chrome%20Extension-yellow.svg)
+<p align="center">
+  <img src="https://img.shields.io/badge/Chrome-extension-4285F4.svg" alt="Chrome extension">
+  <img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="Apache-2.0 license">
+</p>
 
-![DiscourseCopilot side panel showing a topic summary, an agent answer with citations, and dark mode](docs/screenshots/hero.png)
+![DiscourseCopilot in the Chrome side panel: a topic summary, an answer with sources, and dark mode](docs/screenshots/hero.png)
 
-## What it does
+DiscourseCopilot is a free Chrome extension. It opens in your browser's side panel next to any forum built on Discourse, like [meta.discourse.org](https://meta.discourse.org), [community.openai.com](https://community.openai.com), or your own community.
 
-- **Works on any Discourse forum** — detected automatically (via the `generator` meta tag and Discourse's own page markers), no per-site setup.
-- **Topic summaries** of the original post, the community response, and key takeaways, including long, multi-page topics (up to 2,000 posts by default; adjustable in Settings).
-- **Follow-up chat** — ask questions about a topic using the full discussion and its summary as context.
-- **Ask the forum (Agent mode)** — searches the current forum, reads the most relevant discussions, and answers with cited, clickable sources.
-- **Per-forum history** — saved summaries, chats, and Agent answers are grouped by forum, so different communities never mix. Subfolder installs (e.g. `https://example.com/forum`) are supported too.
-- **Bring your own AI provider** — OpenRouter, OpenAI, Anthropic, Groq, Google Gemini, xAI, DeepSeek, or a local Ollama / LM Studio server. Your key stays in your browser.
-- **Response language** — matches the discussion by default, or pin one of 12 languages.
-- **Background tasks** — keep browsing while summaries, chats, and Agent research run; track, reopen, or cancel work from **Activity**.
-- **Dark mode** — follows your OS/browser theme.
+## Why you'll like it
 
-<img src="docs/screenshots/feature-summary-chat.png" alt="Topic summary with a follow-up chat conversation" width="420">
+- **Skip the scroll.** Get the main points of a 500-reply topic without reading every post.
+- **Ask questions.** Chat about the topic: "What did people decide?" or "Is there a workaround?"
+- **Search the whole forum.** Ask a question and it looks through the forum for you, then answers with numbered sources you can click.
+- **Works on any Discourse forum.** Nothing to set up per site.
+- **Use the AI you like.** OpenAI, Anthropic (Claude), Google Gemini, and more, or a free model running on your own computer.
+- **Private by design.** Your key and your history stay in your browser. No accounts and no tracking.
+- **Keep browsing.** Work runs in the background, and you can come back to it later.
 
-## Install
+## Get started in 3 steps
 
-A Chrome Web Store listing is coming soon. Until then, install from a GitHub Release:
+**1. Install the extension.**
+A Chrome Web Store listing is coming soon. For now, install it from GitHub:
+
+<details>
+<summary>Show install steps (takes about a minute)</summary>
 
 1. Go to the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases) and download the latest `discourse-copilot-<version>.zip`.
 2. Unzip it.
-3. Open `chrome://extensions`, enable **Developer mode** (top right).
-4. Click **Load unpacked** and select the unzipped folder.
-5. Pin DiscourseCopilot and click its icon to open the side panel.
+3. Open `chrome://extensions` in Chrome and turn on **Developer mode** (top right).
+4. Click **Load unpacked** and choose the unzipped folder.
+5. Click the puzzle-piece icon in the toolbar and pin **DiscourseCopilot**.
 
-Building from source instead? See [DEVELOPMENT.md](DEVELOPMENT.md).
+</details>
 
-## Quick start
+**2. Connect an AI provider.**
+Click the DiscourseCopilot icon to open the side panel. A short setup card asks you to pick a provider, paste your API key, and pick a model (a good one is filled in for you). See [Choosing an AI provider](#choosing-an-ai-provider) if you're not sure which to pick.
 
-1. Open the side panel (click the DiscourseCopilot icon, or the floating launcher button on a Discourse page).
-2. On first run, the setup card walks you through connecting an AI provider — choose one, add an API key (or a local server URL), and pick a model.
-3. Open a topic on any Discourse forum and click **Create summary**.
+**3. Open a topic and click Create summary.**
+Open any topic on a Discourse forum and click **Create summary**. That's it.
 
-From there, ask follow-up questions under **Ask about this post**, or click **Ask the forum** to research across the whole forum with cited sources.
+## What you can do
 
-<img src="docs/screenshots/feature-setup.png" alt="First-run setup card: choose a provider, add a key, pick a model" width="420">
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/feature-summary-chat.png" alt="A topic summary followed by a short chat about the topic">
+      <p><strong>Summaries and chat</strong><br>
+      See the original post, how people responded, and the key takeaways, even on huge topics (it tells you if it only read the first 2,000 posts). Then ask follow-up questions.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/feature-agent-answer.png" alt="An answer from Ask the forum with numbered sources">
+      <p><strong>Ask the forum</strong><br>
+      Ask a question and it searches the forum, reads the best matches, and answers with sources like [S1] that link to the posts.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/feature-activity.png" alt="The Activity screen with saved summaries and answers grouped by forum">
+      <p><strong>Activity, grouped by forum</strong><br>
+      Find your saved summaries, chats, and answers, sorted by forum so different communities never mix. Keep the ones you want to hold on to.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/feature-setup.png" alt="The first-time setup card for connecting an AI provider">
+      <p><strong>Quick setup</strong><br>
+      Pick a provider, paste a key, and click <strong>Test &amp; save</strong>. The side panel tells you right away if something needs fixing.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/feature-dark-mode.png" alt="The side panel in dark mode">
+      <p><strong>Dark mode</strong><br>
+      Follows your computer's light or dark theme automatically.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/feature-settings.png" alt="Settings for research depth, reading topics, and history">
+      <p><strong>Settings you control</strong><br>
+      Choose how deep the forum search goes, how much of a long topic is read, and how long your history is kept.</p>
+    </td>
+  </tr>
+</table>
 
-## Using Ask the forum
+The top of the side panel always shows which AI provider and model you're using. If you save favorite models in Settings, you can switch between them right there.
 
-**Ask the forum** searches the current forum's `/search.json`, reads the most relevant topics, and answers with `[S1]`-style citations that link to the cited posts. It runs as a background task, so you can keep browsing while it works; reopen it from the pill that appears, or from **Activity**.
+## Choosing an AI provider
 
-<img src="docs/screenshots/feature-agent-answer.png" alt="Ask the forum answer with numbered citations and linked sources" width="420">
+DiscourseCopilot doesn't come with its own AI. You connect one you already use, or sign up for one.
 
-How much research it does is up to you: **Settings → Ask the forum** offers **Quick** (1 search, 3 discussions), **Balanced** (the default: 3 searches, 6 discussions), **Thorough** (4 searches × 2 result pages, 10 discussions), or **Custom** limits. Deeper research finds more sources but takes longer, costs more tokens, and makes more (paced) requests to the forum. A changed setting applies to questions asked afterwards; research already queued or running keeps the depth it started with.
-
-Everything you run — summaries, chats, and Agent research — shows up in **Activity**, grouped by forum:
-
-<img src="docs/screenshots/feature-activity.png" alt="Activity view with saved summaries grouped by forum" width="420">
-
-## Supported AI providers
-
-| Provider | Type | Notes |
+| Provider | What you need | Good to know |
 | --- | --- | --- |
-| OpenRouter | Hosted | Many models behind one key |
-| OpenAI | Hosted | GPT models |
-| Anthropic | Hosted | Claude models |
-| Groq | Hosted | |
-| Google Gemini | Hosted | |
-| xAI | Hosted | Grok models |
-| DeepSeek | Hosted | |
-| Ollama | Local | Runs on your computer, no API key |
-| LM Studio | Local | Runs on your computer, no API key |
+| OpenRouter | An API key | One key gives you many different models |
+| OpenAI | An API key | GPT models |
+| Anthropic | An API key | Claude models |
+| Google Gemini | An API key | Gemini models |
+| Groq | An API key | Fast open models |
+| xAI | An API key | Grok models |
+| DeepSeek | An API key | DeepSeek models |
+| Ollama | Ollama installed on your computer | Runs on your computer. No key and no usage bill |
+| LM Studio | LM Studio installed on your computer | Runs on your computer. No key and no usage bill |
 
-For a local provider, start it with an origin allowlist so the extension (a `chrome-extension://` origin) can reach it, for example:
+**Not sure?** If you already pay for one of these, use that one. If you want to try many models with one key, OpenRouter is an easy start.
+
+<details>
+<summary>Using Ollama on your computer</summary>
+
+Start Ollama so the extension is allowed to reach it:
 
 ```bash
 OLLAMA_ORIGINS=chrome-extension://* ollama serve
 ```
 
-Switch providers or models any time from **Settings** (right-click the extension icon → **Options**, or the **Settings** button in the side panel), where you can also set a custom system prompt and add favorite models for quick switching from the side-panel header. Settings also covers **Ask the forum** research depth, **Reading topics** (how many pages of 100 posts are read per topic, and how much of the topic is sent with each chat question), and **History & privacy** (how long unkept history is kept, and how many saved topics are remembered).
+Then choose **Local (Ollama)** in setup. The address `http://localhost:11434` is filled in for you. LM Studio uses `http://localhost:1234` by default.
 
-The side panel follows your OS/browser theme automatically:
+</details>
 
-<img src="docs/screenshots/feature-dark-mode.png" alt="DiscourseCopilot in dark mode" width="420">
+## Customize
 
-## Privacy
+Open **Settings** from the side panel (or right-click the extension icon and choose **Options**).
 
-DiscourseCopilot reads only the forum you're currently on (or the forum an Agent task started on), using your existing browser session for it. Everything — settings, API keys, saved summaries, chat, and Agent answers — is stored locally in your browser. Forum content is sent only to the AI provider you configure; there are no developer servers, accounts, or analytics.
+- **AI provider and favorites.** Switch providers or models, and save favorite models to switch quickly from the top of the side panel.
+- **Response language.** By default, answers match the language of the discussion (and questions are answered in the language you ask in). You can also pick one of 12 languages.
+- **Custom instructions.** Write your own instructions for how summaries should look, in place of the built-in ones. Leave it empty to use the defaults.
+- **How deep Ask the forum searches.** Choose **Quick**, **Balanced** (the default), **Thorough**, or set your own limits. Deeper searches find more sources but take longer and cost more.
+- **Pages read per topic.** Long topics are read from the start, up to 20 pages (2,000 posts) by default. A longer topic is summarized from those first posts, and the summary tells you so. You can raise or lower this.
+- **Chat context.** How much of the topic is sent with each follow-up question. You can also change this in the side panel.
+- **History.** Chats and answers you haven't kept are removed after 1 day by default. You can choose 3, 7, or 30 days, or keep them until you delete them. Anything you **Keep** stays.
+- **Saved topics.** Up to 40 topic summaries are remembered by default (10 to 200). Past that, the oldest ones you haven't kept are removed.
 
-Follow-up conversations and Agent answers you haven't kept are removed after **1 day** by default; choose 3, 7 or 30 days, or no time limit, under **Settings → History & privacy**. Kept items never expire, and shortening the period removes older unkept items as soon as you save.
+## Privacy in plain words
 
-See [PRIVACY.md](PRIVACY.md) for the full policy.
+- **Your key and history stay in your browser.** Settings, API keys, summaries, chats, and answers are saved on your computer only.
+- **Forum posts go only to the AI you chose.** When you summarize or ask something, the topic and your question are sent straight from your browser to your AI provider.
+- **No middleman.** There are no DiscourseCopilot servers, no accounts, and no analytics.
+- **It only reads the forum you're on.** On other websites, it does nothing.
 
-## FAQ / Troubleshooting
+Read the full [privacy policy](PRIVACY.md).
 
-**The side panel says to open a Discourse forum topic**
-Make sure the page is a Discourse forum (most show "Powered by Discourse") and that you're on a topic URL (`/t/…`).
+## FAQ
 
-**Nothing happens on a tab that was already open before I installed or reloaded the extension**
-Chrome only injects the content script into tabs opened (or reloaded) after install. Refresh the tab.
+**Does it work on forums where I have to log in, or on private forums?**
+Yes. It reads the forum the same way your browser does, using your login. If you're logged in, it can read what you can read. If the forum asks you to log in or pass a check, log in on that forum in a normal tab. For **Ask the forum**, the search pauses and waits: click **Continue** when you're done. For a summary, just click **Create summary** again.
 
-**A summary or Agent task pauses asking me to log in or verify**
-DiscourseCopilot uses your browser session for that forum. Log in (or complete the verification challenge) in a tab on that forum, then choose **Continue** in **Activity**.
+**I see a "rate limit" message. What now?**
+There are two kinds. If the *forum* asks DiscourseCopilot to slow down, the side panel shows "Forum asked us to slow down" and tries again on its own after a short wait, so you don't need to do anything. If your *AI provider* is limiting you, wait a minute and try again, and check your plan and usage with your provider.
 
-**Requests are failing or slow with a rate-limit error**
-The extension retries automatically using the provider's `Retry-After` header. If it keeps failing, check your provider account's plan and usage.
+**"Ask the forum" is greyed out, or the side panel doesn't recognize the forum.**
+If the tab was already open before you installed the extension, reload the tab. Also make sure you're on a Discourse forum (most say "Powered by Discourse" at the bottom).
 
-**A summary says "first 1,999 of 4,799 replies"**
-Topics longer than **Pages read per topic** (default 20 pages = 2,000 posts) are summarized from their first pages, and the summary says so. Raise the limit under **Settings → Reading topics** and choose **Check for new replies** to include more — at the cost of a slower, more expensive summary and more requests to the forum.
+**My summary says "Page limit reached" or "first 1,999 of 2,430 replies".**
+Very long topics are summarized from their first pages (2,000 posts by default). To include more, raise **Pages read per topic** in Settings, then click **Check for new replies**. It will take longer and cost a bit more.
 
-**How do I keep an answer or a conversation longer?**
-Use **Keep** on it (kept items never expire), or lengthen the period under **Settings → History & privacy**.
+**What gets sent, and to whom?**
+Only the forum content needed for your request and your question, sent to the AI provider you set up. Nothing is sent to us. The forum itself only sees normal page requests from your browser, like when you browse it.
 
-**API errors**
-Verify your API key and model, check your provider account's credits, and use **Test Connection** in Settings.
+**Does it cost anything?**
+The extension is free. Your AI provider may charge for usage, usually a small amount per summary. Local models (Ollama, LM Studio) cost nothing to use.
 
-## Contributing
+**How do I keep an answer or a conversation?**
+Click **Keep** on it. Kept items never expire. You can also make history last longer in Settings.
 
-Bug reports, ideas, and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Building the extension, running tests, project structure, and the release process are in [DEVELOPMENT.md](DEVELOPMENT.md). Please report security issues privately as described in [SECURITY.md](SECURITY.md).
+**Something went wrong with my API key.**
+Open Settings, check the key and model, and click **Test Connection**. Also check that your provider account has credit.
+
+## For developers
+
+- Building, testing, and how the code is organized: [DEVELOPMENT.md](DEVELOPMENT.md)
+- Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Reporting a security issue: [SECURITY.md](SECURITY.md)
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE). Author: [kccarlos](https://github.com/kccarlos).
+Apache License 2.0. See [LICENSE](LICENSE). Made by [kccarlos](https://github.com/kccarlos).

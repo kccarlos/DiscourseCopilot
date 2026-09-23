@@ -6,7 +6,7 @@
 //   page-context      active tab → page context
 //   topic-controller  the topic session: switch, restore, reload, render
 //   forum-ui          forum names, forum bar, forum accents
-//   provider-header   provider/model line, favorite switcher, setup state
+//   provider-header   model switcher (active provider · model), setup state
 //   setup-card        first-run setup (draft/test/save through ConfigStore)
 //   summary-view      summary card, reading progress, topic task status
 //   chat-view         follow-up chat and the forum context limit
@@ -124,6 +124,7 @@ class DiscourseCopilotPopup {
       config: this.config,
       status: this.status,
       setupCard: this.setupCard,
+      openSettings: () => chrome.runtime.openOptionsPage(),
       onSetupJump: () => {
         if (state.savedViewOpen) {
           this.activity.hide();
