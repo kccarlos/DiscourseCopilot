@@ -58,7 +58,7 @@ Open any topic on a Discourse forum and click **Create summary**. That's it.
     <td width="50%" valign="top">
       <img src="docs/screenshots/feature-summary-chat.png" alt="A topic summary followed by a short chat about the topic">
       <p><strong>Summaries and chat</strong><br>
-      See the original post, how people responded, and the key takeaways, even on huge topics (it tells you if it only read the first 2,000 posts). Then ask follow-up questions.</p>
+      See the original post, how people responded, and the key takeaways, even on huge topics (every page is read, unless you set a limit). Then ask follow-up questions.</p>
     </td>
     <td width="50%" valign="top">
       <img src="docs/screenshots/feature-agent-answer.png" alt="An answer from Ask the forum with numbered sources">
@@ -133,7 +133,7 @@ Open **Settings** from the side panel (or right-click the extension icon and cho
 - **Response language.** By default, answers match the language of the discussion (and questions are answered in the language you ask in). You can also pick one of 12 languages.
 - **Custom instructions.** Write your own instructions for how summaries should look, in place of the built-in ones. Leave it empty to use the defaults.
 - **How deep Ask the forum searches.** Choose **Quick**, **Balanced** (the default), **Thorough**, or set your own limits. Deeper searches find more sources but take longer and cost more.
-- **Pages read per topic.** Long topics are read from the start, up to 20 pages (2,000 posts) by default. A longer topic is summarized from those first posts, and the summary tells you so. You can raise or lower this.
+- **Pages read per topic.** By default, every page of a topic is read, however long it is. To make very long topics faster and cheaper, choose **Read only the first** and pick a number of pages (each page is 100 posts). A topic past your limit is summarized from its first pages, and the summary tells you so.
 - **Chat context.** How much of the topic is sent with each follow-up question. You can also change this in the side panel.
 - **History.** Chats and answers you haven't kept are removed after 1 day by default. You can choose 3, 7, or 30 days, or keep them until you delete them. Anything you **Keep** stays.
 - **Saved topics.** Up to 40 topic summaries are remembered by default (10 to 200). Past that, the oldest ones you haven't kept are removed.
@@ -159,7 +159,7 @@ There are two kinds. If the *forum* asks DiscourseCopilot to slow down, the side
 If the tab was already open before you installed the extension, reload the tab. Also make sure you're on a Discourse forum (most say "Powered by Discourse" at the bottom).
 
 **My summary says "Page limit reached" or "first 1,999 of 2,430 replies".**
-Very long topics are summarized from their first pages (2,000 posts by default). To include more, raise **Pages read per topic** in Settings, then click **Check for new replies**. It will take longer and cost a bit more.
+You've set a limit on **Pages read per topic**, so a longer topic is summarized from its first pages. To include more, choose **Read every page** (or a higher limit) in Settings, then click **Check for new replies**. It will take longer and cost a bit more. By default there is no limit. On the rare forum that doesn't report a topic's length, reading stops after 100 pages (10,000 posts) as a safety net.
 
 **What gets sent, and to whom?**
 Only the forum content needed for your request and your question, sent to the AI provider you set up. Nothing is sent to us. The forum itself only sees normal page requests from your browser, like when you browse it.

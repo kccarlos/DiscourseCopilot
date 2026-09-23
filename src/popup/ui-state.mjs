@@ -49,7 +49,9 @@ function replies(posts) {
 
 /**
  * What a saved summary covers, honest about the page limit: a topic longer
- * than the limit was summarized from its first pages only.
+ * than the limit was summarized from its first pages only. A topic of unknown
+ * size may have hit the built-in safety cap instead of the user's limit, so
+ * its note gives no settings advice.
  * @returns {{ text: string, truncated: boolean, note: string }}
  */
 export function describeSummaryCoverage(session = {}) {
@@ -61,14 +63,14 @@ export function describeSummaryCoverage(session = {}) {
       return {
         truncated: true,
         text: `first ${coveredReplies} of ${replies(total)}`,
-        note: `Page limit reached: summarized from the first ${coveredReplies} of ${replies(total)}. Raise “Pages read per topic” in Settings to include more.`
+        note: `Page limit reached: summarized from the first ${coveredReplies} of ${replies(total)}. To include more, choose “Read every page” (or a higher limit) under “Pages read per topic” in Settings.`
       };
     }
     const pages = session.summaryPagesRead || 0;
     return {
       truncated: true,
       text: `first ${pages} ${pages === 1 ? 'page' : 'pages'} of replies`,
-      note: `Page limit reached: summarized from the first ${pages} ${pages === 1 ? 'page' : 'pages'} of replies; the topic may be longer. Raise “Pages read per topic” in Settings to include more.`
+      note: `Page limit reached: summarized from the first ${pages} ${pages === 1 ? 'page' : 'pages'} of replies; the topic may be longer.`
     };
   }
   return { truncated: false, text: total ? replies(total) : '', note: '' };

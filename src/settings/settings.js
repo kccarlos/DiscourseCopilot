@@ -87,7 +87,7 @@ const RESTORE_SECTIONS = {
   },
   reading: {
     label: 'Reading topics',
-    keys: ['topicPageLimit'],
+    keys: ['topicPageMode', 'topicPageLimit'],
     fields: ['topicPageLimit', 'forumContextLimit'],
     forumContextLimit: true
   },
@@ -374,6 +374,9 @@ class DiscourseCopilotSettings {
     for (const field of CUSTOM_RESEARCH_FIELDS) {
       $(field).value = String(preferences.customResearch[field]);
     }
+    document.querySelectorAll('input[name="topicPageMode"]').forEach(input => {
+      input.checked = input.value === preferences.topicPageMode;
+    });
     $('topicPageLimit').value = String(preferences.topicPageLimit);
     $('maxSavedTopics').value = String(preferences.maxSavedTopics);
     $('forumContextLimit').value = String(this.draftForumContextLimit);
@@ -386,6 +389,16 @@ class DiscourseCopilotSettings {
         if (!input.checked) return;
         this.store.updatePreferences({ researchDepth: input.value });
         this.dispatch({ type: 'edited', clearStatus: true });
+        this.syncPreferenceErrors();
+        this.renderPreferences();
+      });
+    });
+    document.querySelectorAll('input[name="topicPageMode"]').forEach(input => {
+      input.addEventListener('change', () => {
+        if (!input.checked) return;
+        this.store.updatePreferences({ topicPageMode: input.value });
+        this.dispatch({ type: 'edited', clearStatus: true });
+        // Leaving limit mode clears a page-limit error (it is no longer checked).
         this.syncPreferenceErrors();
         this.renderPreferences();
       });
@@ -466,8 +479,12 @@ class DiscourseCopilotSettings {
       setRichText(research, `Each question: **up to ${plural(limits.searchQueries, 'search', 'searches')}${pages}**, reading **up to ${plural(limits.topicsRead, 'discussion')}** — at most ${plural(researchRequestBudget(limits), 'forum request')}.`);
     }
 
+    const limitMode = draft.topicPageMode === 'limit';
+    $('topicPageLimit').disabled = !limitMode;
     const reading = $('topicPageLimitEffective');
-    if (validation.fieldErrors.topicPageLimit) {
+    if (!limitMode) {
+      setRichText(reading, '**Every page** of a topic is read.');
+    } else if (validation.fieldErrors.topicPageLimit) {
       reading.textContent = '';
     } else {
       const posts = (Number(draft.topicPageLimit) * POSTS_PER_RAW_PAGE).toLocaleString('en-US');

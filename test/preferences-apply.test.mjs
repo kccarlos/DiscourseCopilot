@@ -23,6 +23,7 @@ import {
 } from '../src/shared/agent-activity.mjs';
 import { TASK_STATUS, createTaskRecord } from '../src/shared/task-record.mjs';
 import { resolveRetention } from '../src/shared/preferences.mjs';
+import { MAX_UNKNOWN_TOPIC_PAGES } from '../src/shared/forum-response.mjs';
 import {
   agentRecentWindowMs,
   describeSummaryCoverage,
@@ -72,7 +73,7 @@ function serviceFor(db, stored, execute = () => new Promise(() => {})) {
 
 test('queued and running tasks keep the limits they were queued with; new tasks use new values', async () => {
   const db = database();
-  const stored = { preferences: { researchDepth: 'quick', topicPageLimit: 5 } };
+  const stored = { preferences: { researchDepth: 'quick', topicPageMode: 'limit', topicPageLimit: 5 } };
   const service = serviceFor(db, stored);
   await service.ready;
 
@@ -86,7 +87,7 @@ test('queued and running tasks keep the limits they were queued with; new tasks 
   assert.deepEqual(queuedAgent.limits.research, { searchQueries: 1, searchPages: 1, topicsRead: 3, rawFallbacks: 2 });
 
   // The user saves new preferences while those tasks are queued/running.
-  stored.preferences = { researchDepth: 'thorough', topicPageLimit: 50 };
+  stored.preferences = { researchDepth: 'thorough', topicPageMode: 'limit', topicPageLimit: 50 };
 
   assert.deepEqual((await service.getTaskConfiguration(running)).limits, { topicPageLimit: 5 });
   assert.equal((await service.getTaskConfiguration(queuedAgent)).limits.research.topicsRead, 3);
@@ -96,12 +97,25 @@ test('queued and running tasks keep the limits they were queued with; new tasks 
   });
   assert.deepEqual((await service.getTaskConfiguration(later)).limits, { topicPageLimit: 50 });
 
+  // Switching to every page: tasks queued before keep their limit.
+  stored.preferences = { ...stored.preferences, topicPageMode: 'all' };
+  const unlimited = await service.enqueue({
+    taskType: 'summary', siteUrl: SITE, topicId: '3', provider: 'openai', settings: { model: 'm' }
+  });
+  assert.deepEqual(unlimited.limits, { topicPageLimit: null });
+  assert.deepEqual((await service.getTaskConfiguration(unlimited)).limits, { topicPageLimit: null });
+  assert.deepEqual((await service.getTaskConfiguration(later)).limits, { topicPageLimit: 50 });
+
   // The snapshot is persisted with the task and survives a worker restart.
   const restarted = serviceFor(db, stored);
   await restarted.ready;
   const restored = restarted.list().find(task => task.id === queuedAgent.id);
   assert.equal(restored.status, TASK_STATUS.QUEUED);
   assert.equal((await restarted.getTaskConfiguration(restored)).limits.research.searchQueries, 1);
+  // "Every page" survives the restart too (null is not a missing snapshot).
+  const restoredUnlimited = restarted.list().find(task => task.id === unlimited.id);
+  stored.preferences = { ...stored.preferences, topicPageMode: 'limit', topicPageLimit: 4 };
+  assert.deepEqual((await restarted.getTaskConfiguration(restoredUnlimited)).limits, { topicPageLimit: null });
 });
 
 // ---------- retention ----------
@@ -302,7 +316,7 @@ function response(status, body, contentType = 'text/plain') {
   };
 }
 
-function topicFetcher(postsCount, requests) {
+function topicFetcher(postsCount, requests, rawPageCount = 40) {
   return createTopicFetcher({
     wait: async () => {},
     fetchImpl: async url => {
@@ -313,7 +327,7 @@ function topicFetcher(postsCount, requests) {
           : response(200, JSON.stringify({ posts_count: postsCount }), 'application/json');
       }
       const page = Number(new URL(url).searchParams.get('page'));
-      return response(200, page <= 40 ? `page ${page}` : '');
+      return response(200, page <= rawPageCount ? `page ${page}` : '');
     }
   });
 }
@@ -353,6 +367,56 @@ test('a topic within the limit is read in full', async () => {
     { totalPages: 2, truncated: true, coveredPosts: 200 });
 });
 
+test('by default (every page) a long known-size topic is read in full', async () => {
+  const requests = [];
+  const progress = [];
+  // 150 pages of 100 posts.
+  const result = await topicFetcher(14950, requests, 150)(SITE, '7', update => progress.push(update), undefined, { maxPages: null });
+  assert.equal(requests.filter(url => url.includes('/raw/')).length, 150);
+  assert.equal(result.pagesFetched, 150);
+  assert.equal(result.truncated, false);
+  assert.equal(result.coveredPosts, 14950);
+  assert.equal(result.totalPosts, 14950);
+  assert.equal(progress.at(-1).truncatedFromPosts, undefined);
+  assert.equal(formatFetchTaskStatus(progress.at(-1)), 'Read 14949 of 14949 replies');
+  // Omitted (an older caller) also means every page.
+  const omitted = await topicFetcher(14950, [], 150)(SITE, '7', () => {}, undefined, {});
+  assert.equal(omitted.pagesFetched, 150);
+  assert.equal(omitted.truncated, false);
+  assert.deepEqual(limitTopicPagination({ totalPosts: 14950, totalPages: 150, pageSize: 100 }, null),
+    { totalPages: 150, truncated: false, coveredPosts: 14950 });
+});
+
+test('switching from a limit to every page reads the rest of a topic', async () => {
+  const requests = [];
+  const cached = Array.from({ length: 5 }, (_, index) => ({ page: index + 1, content: `page ${index + 1}` }));
+  // Summarized earlier with a 5-page limit; the stored count is the full one.
+  const result = await topicFetcher(1234, requests)(SITE, '7', () => {}, undefined, {
+    maxPages: null, cachedPages: cached, knownTotalPosts: 1234
+  });
+  assert.equal(result.unchanged, false, 'not reported as already up to date');
+  assert.equal(result.pagesFetched, 13);
+  assert.equal(result.truncated, false);
+  assert.equal(result.coveredPosts, 1234);
+});
+
+test('an unknown-size topic keeps the safety cap even when reading every page', async () => {
+  const requests = [];
+  const result = await topicFetcher(null, requests, MAX_UNKNOWN_TOPIC_PAGES + 50)(SITE, '7', () => {}, undefined, { maxPages: null });
+  assert.equal(result.pagesFetched, MAX_UNKNOWN_TOPIC_PAGES);
+  assert.equal(requests.filter(url => url.includes('/raw/')).length, MAX_UNKNOWN_TOPIC_PAGES);
+  assert.equal(result.truncated, true, 'the cap is reported honestly');
+  assert.equal(result.coveredPosts, null);
+  const coverage = describeSummaryCoverage({ summaryTruncated: true, summaryPagesRead: result.pagesFetched });
+  assert.equal(coverage.text, `first ${MAX_UNKNOWN_TOPIC_PAGES} pages of replies`);
+  assert.doesNotMatch(coverage.note, /Settings/, 'no settings advice: the safety cap is not a setting');
+
+  // A shorter unknown-size topic is read to its end and not truncated.
+  const short = await topicFetcher(null, [], 7)(SITE, '7', () => {}, undefined, { maxPages: null });
+  assert.equal(short.pagesFetched, 7);
+  assert.equal(short.truncated, false);
+});
+
 test('an unknown-size topic stops at the page limit', async () => {
   const requests = [];
   const result = await topicFetcher(null, requests)(SITE, '7', () => {}, undefined, { maxPages: 3 });
@@ -389,4 +453,30 @@ test('the summary executor uses the task’s page limit and records the truncati
   const [entry] = await db.list();
   assert.equal(describeSummarizedReplies(entry), 'first 199 of 899 replies summarized');
   assert.equal(describeSummarizedReplies({ summaryPostCount: 11 }), '10 replies summarized');
+});
+
+test('the summary executor passes "every page" through and records no truncation', async () => {
+  const db = database();
+  const fetched = [];
+  const { executeSummaryTask } = createTopicExecutors({
+    aiService: { generateSummary: async () => 'A summary' },
+    db,
+    broadcast: () => {},
+    getTaskConfiguration: async task => ({ provider: 'openai', settings: { model: 'm' }, limits: task.limits }),
+    fetchTopicContent: async (siteUrl, topicId, onProgress, signal, options) => {
+      fetched.push(options.maxPages);
+      return {
+        content: 'c', rawPages: [{ page: 1, content: 'c' }], pagesFetched: 10,
+        totalPosts: 900, truncated: false, coveredPosts: 900, unchanged: false, newPosts: null
+      };
+    }
+  });
+  const task = createTaskRecord({ id: 's2', type: 'summary', topicId: '8', siteUrl: SITE, limits: { topicPageLimit: null } });
+  assert.deepEqual(task.limits, { topicPageLimit: null });
+  await executeSummaryTask(task, { signal: new AbortController().signal, report: async () => {} });
+  assert.deepEqual(fetched, [null]);
+  const session = await db.get(task.topicKey);
+  assert.equal(session.summaryTruncated, false);
+  assert.equal(session.summaryCoveredPosts, null);
+  assert.deepEqual(describeSummaryCoverage(session), { truncated: false, text: '899 replies', note: '' });
 });

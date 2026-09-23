@@ -609,6 +609,7 @@ test('readConfig normalizes the preferences section (migration for missing keys)
   const config = readConfig({ preferences: { researchDepth: 'quick', topicPageLimit: 500 } });
   assert.equal(config.preferences.researchDepth, 'quick');
   assert.equal(config.preferences.topicPageLimit, 100);
+  assert.equal(config.preferences.topicPageMode, 'all', 'a stored limit without a mode reads as every page');
   assert.equal(config.preferences.historyRetention, '1d');
   assert.ok(CONFIG_STORAGE_KEYS.includes('preferences'));
   assert.ok(RESETTABLE_STORAGE_KEYS.includes('preferences'));
@@ -640,7 +641,7 @@ test('save(): invalid preferences → invalid with field errors and nothing is w
   const store = createStore(storage);
   await store.load();
   store.selectProvider('ollama');
-  store.updatePreferences({ topicPageLimit: '0' });
+  store.updatePreferences({ topicPageMode: 'limit', topicPageLimit: '0' });
   store.updateDraft({ forumContextLimit: '12' });
   const result = await store.save();
   assert.equal(result.ok, false);
@@ -651,6 +652,20 @@ test('save(): invalid preferences → invalid with field errors and nothing is w
   assert.equal(storage.writes.length, 0);
   // test() only checks the provider.
   assert.equal(store.validateDraft().valid, true);
+});
+
+test('save(): a bad page limit does not block saving "every page"', async () => {
+  const storage = createFakeStorage({ selectedProvider: 'ollama' });
+  const store = createStore(storage);
+  await store.load();
+  store.selectProvider('ollama');
+  store.updatePreferences({ topicPageMode: 'limit', topicPageLimit: '0' });
+  assert.ok(store.validatePreferencesDraft().fieldErrors.topicPageLimit);
+  store.updatePreferences({ topicPageMode: 'all' });
+  assert.equal(store.validatePreferencesDraft().valid, true);
+  assert.equal((await store.save()).ok, true);
+  assert.equal(storage.values.preferences.topicPageMode, 'all');
+  assert.equal(storage.values.preferences.topicPageLimit, 1, 'the remembered value is clamped into range');
 });
 
 test('save(): a drafted chat context limit is saved normalized', async () => {
@@ -666,10 +681,15 @@ test('save(): a drafted chat context limit is saved normalized', async () => {
 
 test('resetPreferencesDraft restores defaults for all or some keys (draft only)', async () => {
   const storage = createFakeStorage({
-    preferences: { researchDepth: 'thorough', topicPageLimit: 3, historyRetention: '30d', maxSavedTopics: 99 }
+    preferences: { researchDepth: 'thorough', topicPageMode: 'limit', topicPageLimit: 3, historyRetention: '30d', maxSavedTopics: 99 }
   });
   const store = createStore(storage);
   await store.load();
+  // "Reading topics" → Restore defaults: back to every page.
+  store.resetPreferencesDraft(['topicPageMode', 'topicPageLimit']);
+  assert.equal(store.draftPreferences.topicPageMode, 'all');
+  assert.equal(store.draftPreferences.topicPageLimit, 20);
+  assert.equal(store.draftPreferences.historyRetention, '30d', 'other sections untouched');
   store.resetPreferencesDraft(['historyRetention', 'maxSavedTopics']);
   assert.equal(store.draftPreferences.historyRetention, '1d');
   assert.equal(store.draftPreferences.maxSavedTopics, 40);

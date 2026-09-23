@@ -202,8 +202,9 @@ test('after a restart, task configuration falls back to the saved configuration'
     systemPrompt: 'S',
     responseLanguage: 'fr',
     forumName: 'f.example',
-    // A record from before limits existed uses the saved preferences.
-    limits: { topicPageLimit: 20 }
+    // A record from before limits existed uses the saved preferences
+    // (by default every page: null).
+    limits: { topicPageLimit: null }
   });
   const noProvider = await service.getTaskConfiguration({ id: 'old2', siteUrl: 'https://f.example' });
   assert.equal(noProvider.provider, 'anthropic');

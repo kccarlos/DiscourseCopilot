@@ -2,10 +2,13 @@
 // when the post count shows nothing changed, and reporting progress (with
 // rate-limit retries) as it goes.
 //
-// Page limit: at most `maxPages` raw pages (100 posts each) are read, always
-// the first ones. A longer topic is read up to the limit and the result says
-// so (`truncated`, `coveredPosts` of `totalPosts`); the summary and the
-// progress line report it instead of implying every reply was read.
+// Page limit: `maxPages` null (the default) reads every page of a topic
+// whose size is known. A number reads at most that many raw pages (100 posts
+// each), always the first ones. A topic whose size is unknown (no pagination
+// metadata) is always capped at MAX_UNKNOWN_TOPIC_PAGES as a safety net.
+// Whenever a limit cuts the read short the result says so (`truncated`,
+// `coveredPosts` of `totalPosts`); the summary and the progress line report
+// it instead of implying every reply was read.
 import {
   calculateFetchProgress,
   getTopicPagination
@@ -25,7 +28,7 @@ import {
   buildRawPageUrl,
   buildTopicJsonUrl
 } from '../shared/forum-site.mjs';
-import { DEFAULT_PREFERENCES, POSTS_PER_RAW_PAGE } from '../shared/preferences.mjs';
+import { POSTS_PER_RAW_PAGE } from '../shared/preferences.mjs';
 import {
   FORUM_RESPONSE_KIND,
   MAX_UNKNOWN_TOPIC_PAGES,
@@ -91,19 +94,25 @@ export function buildContentResult(rawPages, pagination, extra = {}) {
   };
 }
 
+// A page limit, or null for every page (null, undefined or anything that is
+// not a positive whole number: the task snapshot always carries a valid
+// limit when the user chose one).
 function normalizeMaxPages(value) {
+  if (value === null || value === undefined) return null;
   const number = Number(value);
-  return Number.isInteger(number) && number > 0
-    ? number
-    : DEFAULT_PREFERENCES.topicPageLimit;
+  return Number.isInteger(number) && number > 0 ? number : null;
 }
 
 /**
- * The part of a known-size topic within the page limit.
+ * The part of a known-size topic within the page limit (all of it when
+ * `maxPages` is null).
  * @returns {{ totalPages: number, coveredPosts: number, truncated: boolean }}
  */
 export function limitTopicPagination(pagination, maxPages) {
   const limit = normalizeMaxPages(maxPages);
+  if (limit === null) {
+    return { totalPages: pagination.totalPages, truncated: false, coveredPosts: pagination.totalPosts };
+  }
   const totalPages = Math.min(pagination.totalPages, limit);
   const truncated = pagination.totalPages > limit;
   return {
@@ -294,7 +303,11 @@ export function createTopicFetcher({
   }
 
   async function fetchUnknownTopicPages(siteUrl, postId, onProgress, signal, maxPages) {
-    const pageLimit = Math.min(normalizeMaxPages(maxPages), MAX_UNKNOWN_TOPIC_PAGES);
+    // The safety cap applies even when every page is requested.
+    const limit = normalizeMaxPages(maxPages);
+    const pageLimit = limit === null
+      ? MAX_UNKNOWN_TOPIC_PAGES
+      : Math.min(limit, MAX_UNKNOWN_TOPIC_PAGES);
     let totalRequestMs = 0;
     let pagesRead = 0;
     const progressAt = averageRequestMs => calculateFetchProgress({
@@ -346,7 +359,8 @@ export function createTopicFetcher({
 
   /**
    * @param {object} [options]
-   * @param {number} [options.maxPages] page limit (the task's topicPageLimit)
+   * @param {number|null} [options.maxPages] page limit (the task's
+   *   topicPageLimit); null or omitted reads every page
    * @returns {Promise<{content: string, rawPages: Array, pagesFetched: number,
    *   totalPosts: number|null, truncated: boolean, coveredPosts: number|null,
    *   unchanged: boolean, newPosts: number|null, networkPagesFetched: number}>}

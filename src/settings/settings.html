@@ -819,6 +819,76 @@
       box-shadow: 0 0 0 3px var(--s-accent-ring);
     }
 
+    /* Pages read per topic: "every page" or "only the first N" */
+
+    .page-mode-options {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .page-mode-option {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 10px;
+      min-height: 44px;
+      margin: 0;
+      padding: 8px 12px;
+      border: 1px solid var(--s-line-strong);
+      border-radius: 8px;
+      background: var(--s-surface);
+      font-weight: 400;
+      transition: border-color 0.15s, background-color 0.15s;
+    }
+
+    label.page-mode-option,
+    .page-mode-option > label {
+      cursor: pointer;
+    }
+
+    .page-mode-option > label {
+      margin: 0;
+    }
+
+    .page-mode-option:hover {
+      border-color: var(--s-accent);
+    }
+
+    .page-mode-option input[type="radio"] {
+      flex: 0 0 auto;
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--s-accent);
+    }
+
+    .page-mode-option:has(input[type="radio"]:checked) {
+      border-color: var(--s-accent);
+      background: var(--s-selected-bg);
+      box-shadow: inset 0 0 0 1px var(--s-accent);
+    }
+
+    .page-mode-option:has(input[type="radio"]:focus-visible) {
+      box-shadow: inset 0 0 0 1px var(--s-accent), 0 0 0 3px var(--s-accent-ring);
+    }
+
+    .page-mode-option input[type="number"] {
+      width: 90px;
+      padding: 6px 10px;
+    }
+
+    .page-mode-option input[type="number"]:disabled {
+      border-color: var(--s-line);
+      background: var(--s-btn-soft);
+      color: var(--s-muted);
+      cursor: not-allowed;
+    }
+
+    .page-mode-option input[type="number"]:disabled + .unit {
+      opacity: 0.75;
+    }
+
     /* ---------- Numeric fields ---------- */
 
     .custom-fields {
@@ -1359,19 +1429,30 @@
           <button type="button" class="btn-restore" data-restore="reading" aria-label="Restore Reading topics defaults">Restore defaults</button>
         </div>
 
-        <div class="form-group">
-          <label for="topicPageLimit">Pages read per topic</label>
-          <div class="input-unit">
-            <input type="number" id="topicPageLimit" min="1" max="100" step="1" inputmode="numeric" aria-describedby="topicPageLimitHelp topicPageLimitEffective topicPageLimitError">
-            <span class="unit" aria-hidden="true">pages of 100 posts</span>
+        <fieldset class="choice-group" aria-describedby="topicPageHelp topicPageLimitEffective">
+          <legend>Pages read per topic</legend>
+          <div class="page-mode-options">
+            <label class="page-mode-option">
+              <input type="radio" name="topicPageMode" value="all" id="topicPageModeAll">
+              <span class="choice-title">Read every page <span class="choice-badge">Default</span></span>
+            </label>
+            <div class="page-mode-option page-mode-limit">
+              <input type="radio" name="topicPageMode" value="limit" id="topicPageModeLimit">
+              <label for="topicPageModeLimit" id="topicPageModeLimitLabel" class="choice-title">Read only the first</label>
+              <input type="number" id="topicPageLimit" min="1" max="100" step="1" inputmode="numeric"
+                aria-labelledby="topicPageModeLimitLabel topicPageLimitUnit"
+                aria-describedby="topicPageHelp topicPageLimitError">
+              <span id="topicPageLimitUnit" class="unit">pages</span>
+            </div>
           </div>
-          <small id="topicPageLimitHelp" class="help-text">
-            1–100. Topics are read from the first page. A longer topic is summarized from its first
-            pages only, and the summary says so. Lower is faster, cheaper, and lighter on the forum.
+          <small id="topicPageHelp" class="help-text">
+            Each page holds 100 posts, read from the start of the topic. A limit (1–100 pages) makes very long
+            topics faster, cheaper, and lighter on the forum; a topic past it is summarized from its first pages,
+            and the summary says so.
           </small>
           <small id="topicPageLimitError" class="field-error" hidden></small>
           <p id="topicPageLimitEffective" class="effective-value" aria-live="polite"></p>
-        </div>
+        </fieldset>
 
         <div class="form-group">
           <label for="forumContextLimit">Chat context</label>

@@ -8,7 +8,9 @@
 //   {
 //     researchDepth: 'quick' | 'balanced' | 'thorough' | 'custom',
 //     customResearch: { searchQueries, searchPages, topicsRead },
-//     topicPageLimit: number,          // raw pages of 100 posts per topic
+//     topicPageMode: 'all' | 'limit',  // read every page (default) or only the first ones
+//     topicPageLimit: number,          // raw pages of 100 posts per topic, used in 'limit'
+//                                      // mode and remembered while 'all' is chosen
 //     historyRetention: '1d' | '3d' | '7d' | '30d' | 'forever',
 //     maxSavedTopics: number
 //   }
@@ -16,7 +18,13 @@
 // Consumers never read these fields directly; they ask for the effective
 // values with resolveResearchLimits(), resolveTopicPageLimit() and
 // resolveRetention(), so a preset, a custom value or a missing key all
-// resolve in exactly one place.
+// resolve in exactly one place. resolveTopicPageLimit() returns the page
+// limit, or null for "every page" (the default).
+//
+// Older stored preferences have a topicPageLimit but no topicPageMode. They
+// read as 'all': normalizePreferences() wrote topicPageLimit (then 20) on
+// every save, so a stored number says nothing about whether the user chose a
+// limit. The number is kept as the value offered when they pick a limit.
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -43,6 +51,10 @@ export const RESEARCH_PRESETS = Object.freeze({
 
 export const RESEARCH_DEPTHS = Object.freeze(['quick', 'balanced', 'thorough', 'custom']);
 
+// 'all': read every page of a topic. 'limit': read only the first
+// topicPageLimit pages.
+export const TOPIC_PAGE_MODES = Object.freeze(['all', 'limit']);
+
 export const HISTORY_RETENTION_OPTIONS = Object.freeze([
   { value: '1d', label: '1 day', ms: DAY_MS },
   { value: '3d', label: '3 days', ms: 3 * DAY_MS },
@@ -60,7 +72,9 @@ export const MAX_TASK_RETENTION_MS = 7 * DAY_MS;
 export const DEFAULT_PREFERENCES = Object.freeze({
   researchDepth: 'balanced',
   customResearch: RESEARCH_PRESETS.balanced,
-  // 20 pages = the first 2,000 posts. Longer topics are summarized from those.
+  // Every page of a topic is read. When the user opts into a limit, it
+  // starts at 20 pages (the first 2,000 posts).
+  topicPageMode: 'all',
   topicPageLimit: 20,
   historyRetention: '1d',
   maxSavedTopics: 40
@@ -103,6 +117,9 @@ export function normalizePreferences(value) {
       ? raw.researchDepth
       : DEFAULT_PREFERENCES.researchDepth,
     customResearch: normalizeResearch(raw.customResearch, DEFAULT_PREFERENCES.customResearch),
+    topicPageMode: TOPIC_PAGE_MODES.includes(raw.topicPageMode)
+      ? raw.topicPageMode
+      : DEFAULT_PREFERENCES.topicPageMode,
     topicPageLimit: clampInteger(
       raw.topicPageLimit,
       PREFERENCE_RANGES.topicPageLimit,
@@ -166,7 +183,10 @@ export function validatePreferences(value) {
     check('searchPages', raw.customResearch?.searchPages);
     check('topicsRead', raw.customResearch?.topicsRead);
   }
-  check('topicPageLimit', raw.topicPageLimit);
+  // The page limit only matters (and is only checked) when a limit is chosen.
+  if (raw.topicPageMode === 'limit') {
+    check('topicPageLimit', raw.topicPageLimit);
+  }
   check('maxSavedTopics', raw.maxSavedTopics);
   const errors = Object.values(fieldErrors);
   return {
@@ -204,8 +224,13 @@ export function researchRequestBudget(limits) {
   return limits.searchQueries * limits.searchPages + limits.topicsRead * 2;
 }
 
+/**
+ * The most raw pages read per topic, or null to read every page.
+ * @returns {number|null}
+ */
 export function resolveTopicPageLimit(value) {
-  return normalizePreferences(value).topicPageLimit;
+  const preferences = normalizePreferences(value);
+  return preferences.topicPageMode === 'limit' ? preferences.topicPageLimit : null;
 }
 
 /**
@@ -249,6 +274,7 @@ export function snapshotTaskLimits(type, preferences) {
     return { research: { searchQueries, searchPages, topicsRead, rawFallbacks } };
   }
   if (type === 'summary' || type === 'chat') {
+    // null = read every page.
     return { topicPageLimit: resolveTopicPageLimit(preferences) };
   }
   return {};
@@ -274,7 +300,9 @@ export function normalizeTaskLimits(type, value) {
     };
   }
   if (type === 'summary' || type === 'chat') {
+    // undefined: the record predates limits. null: every page.
     if (value.topicPageLimit === undefined) return null;
+    if (value.topicPageLimit === null) return { topicPageLimit: null };
     return {
       topicPageLimit: clampInteger(
         value.topicPageLimit,
