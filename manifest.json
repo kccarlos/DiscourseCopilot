@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "DiscourseCopilot",
+  "version": "2.0.0",
+  "description": "AI summaries and research copilot for any Discourse forum",
+  "permissions": [
+    "storage",
+    "sidePanel",
+    "alarms"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_title": "DiscourseCopilot"
+  },
+  "side_panel": {
+    "default_path": "src/popup/popup.html"
+  },
+  "options_page": "src/settings/settings.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/content/content.js"
+      ]
+    }
+  ],
+  "background": {
+    "service_worker": "src/background/background.js"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

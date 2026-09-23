@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DiscourseCopilot</title>
+
+  <!-- Normalize CSS for browser consistency -->
+  <link rel="stylesheet" href="../shared/normalize.css">
+
+  <!-- Pico CSS Framework -->
+  <link rel="stylesheet" href="../shared/pico.min.css">
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <main class="container">
+    <header class="app-header">
+      <div class="brand-lockup">
+        <span class="brand-mark" aria-hidden="true">D</span>
+        <div class="brand-copy">
+          <h1>DiscourseCopilot</h1>
+          <label class="sr-only" for="favoriteModelSelect">Quick switch favorite model</label>
+          <select id="favoriteModelSelect" class="favorite-model-select" aria-label="Quick switch favorite model" disabled>
+            <option>Loading favorite models…</option>
+          </select>
+          <p id="providerContext" class="provider-context" title="Current AI provider and model">
+            <span id="currentProvider">Loading provider…</span>
+            <span aria-hidden="true">·</span>
+            <span id="currentModel">Loading model…</span>
+          </p>
+          <button id="setupJumpBtn" class="setup-jump-btn hidden" type="button" aria-controls="setupCard">
+            <span class="setup-jump-dot" aria-hidden="true"></span>
+            Not set up
+          </button>
+        </div>
+      </div>
+      <nav class="header-actions" aria-label="App navigation">
+        <button id="savedBtn" class="nav-btn" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Z"/>
+            <path d="M8 8h8M8 12h8M8 16h5"/>
+          </svg>
+          <span>Activity</span>
+        </button>
+        <button id="settingsBtn" class="nav-btn" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.1.38.3.73.6 1 .3.27.69.4 1.1.4H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"/>
+          </svg>
+          <span>Settings</span>
+        </button>
+      </nav>
+    </header>
+
+    <div id="forumBar" class="forum-bar" data-state="none">
+      <span class="forum-avatar" aria-hidden="true">
+        <img id="forumBarIcon" class="forum-avatar-icon hidden" alt="" referrerpolicy="no-referrer">
+        <span id="forumBarInitial" class="forum-avatar-initial">?</span>
+      </span>
+      <span class="forum-bar-copy">
+        <strong id="forumBarName">Not a Discourse forum</strong>
+        <span id="forumBarHost" class="forum-bar-host"></span>
+      </span>
+    </div>
+    <div id="forumSwitchAnnouncer" class="sr-only" role="status" aria-live="polite"></div>
+
+    <div id="topicView">
+      <section class="topic-hero">
+        <div class="topic-copy">
+          <span id="heroEyebrow" class="eyebrow">Current post</span>
+          <h2 id="currentPageTitle">Loading page…</h2>
+          <p id="topicHelper">Open a Discourse forum topic to get started.</p>
+        </div>
+        <div class="hero-action">
+          <div class="hero-action-buttons">
+            <button id="summarizeBtn" class="summarize-main-btn" type="button">
+              Create summary
+            </button>
+            <button id="agentLaunchBtn" class="outline agent-launch-btn" type="button">
+              Ask the forum
+            </button>
+          </div>
+          <small>Runs in the background. You can keep browsing.</small>
+        </div>
+      </section>
+
+      <section id="setupCard" class="setup-card hidden" aria-labelledby="setupHeading">
+        <div id="setupIntro" class="setup-card-header">
+          <span class="eyebrow">First-time setup</span>
+          <h2 id="setupHeading" tabindex="-1">Connect an AI provider</h2>
+          <p>DiscourseCopilot uses your own AI provider to summarize and search any Discourse forum. Your key stays in this browser.</p>
+        </div>
+        <form id="setupForm" class="setup-form" novalidate>
+          <fieldset class="setup-step setup-provider-step">
+            <legend class="setup-step-title">
+              <span class="setup-step-number" aria-hidden="true">1</span>
+              <span>Choose a provider</span>
+            </legend>
+            <div id="setupProviderOptions" class="setup-provider-options"></div>
+            <label class="sr-only" for="setupMoreProviders">More providers</label>
+            <select id="setupMoreProviders" class="setup-more-select">
+              <option value="">More providers…</option>
+            </select>
+          </fieldset>
+
+          <div id="setupDetails" class="setup-details hidden">
+            <div id="setupKeyStep" class="setup-step">
+              <div class="setup-step-title">
+                <span class="setup-step-number" aria-hidden="true">2</span>
+                <label for="setupApiKey" id="setupApiKeyLabel">API key</label>
+              </div>
+              <div class="setup-key-row">
+                <input
+                  id="setupApiKey"
+                  type="password"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="Paste your API key"
+                  aria-describedby="setupApiKeyHint setupApiKeyError"
+                >
+                <button id="setupKeyToggle" class="setup-key-toggle" type="button" aria-controls="setupApiKey" aria-label="Show API key">Show</button>
+              </div>
+              <p id="setupApiKeyError" class="setup-field-error hidden"></p>
+              <p id="setupApiKeyHint" class="setup-hint">
+                <a id="setupKeyLink" href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer">Get a key <span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a>
+                <span>Stored only in this browser.</span>
+              </p>
+            </div>
+
+            <div id="setupUrlStep" class="setup-step hidden">
+              <div class="setup-step-title">
+                <span class="setup-step-number" aria-hidden="true">2</span>
+                <label for="setupServerUrl" id="setupServerUrlLabel">Server URL</label>
+              </div>
+              <input
+                id="setupServerUrl"
+                type="url"
+                autocomplete="off"
+                spellcheck="false"
+                aria-describedby="setupServerUrlHint setupServerUrlError"
+              >
+              <p id="setupServerUrlError" class="setup-field-error hidden"></p>
+              <p id="setupServerUrlHint" class="setup-hint">
+                <span id="setupServerUrlHelp">Make sure the server is running on this computer.</span>
+                <a id="setupDownloadLink" href="https://ollama.ai" target="_blank" rel="noopener noreferrer">Download <span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a>
+              </p>
+              <p id="setupOllamaOrigins" class="setup-hint setup-origins-hint hidden">
+                Extension requests need <code>OLLAMA_ORIGINS=chrome-extension://*</code> set when starting Ollama.
+              </p>
+            </div>
+
+            <div class="setup-step">
+              <div class="setup-step-title">
+                <span class="setup-step-number" aria-hidden="true">3</span>
+                <label for="setupModel">Model</label>
+              </div>
+              <input
+                id="setupModel"
+                type="text"
+                list="setupModelList"
+                autocomplete="off"
+                spellcheck="false"
+                aria-describedby="setupModelHint setupModelError"
+              >
+              <datalist id="setupModelList"></datalist>
+              <p id="setupModelError" class="setup-field-error hidden"></p>
+              <p id="setupModelHint" class="setup-hint">Prefilled with a good default. You can change it any time.</p>
+            </div>
+
+            <div class="setup-step setup-actions">
+              <div class="setup-step-title">
+                <span class="setup-step-number" aria-hidden="true">4</span>
+                <span>Test &amp; save</span>
+              </div>
+              <p id="setupFormError" class="setup-form-error hidden" role="alert"></p>
+              <p id="setupProgress" class="setup-progress hidden" role="status" aria-live="polite"></p>
+              <button id="setupTestSaveBtn" class="summarize-main-btn" type="submit">Test &amp; save</button>
+              <button id="setupSaveOnlyBtn" class="text-btn setup-save-only" type="button">Save without testing</button>
+            </div>
+          </div>
+        </form>
+        <div id="setupSuccess" class="setup-success hidden">
+          <span class="setup-success-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></svg>
+          </span>
+          <p id="setupSuccessText">You’re set — open any Discourse topic and press Create summary.</p>
+          <button id="setupDoneBtn" class="outline secondary setup-done-btn" type="button">Done</button>
+        </div>
+        <div class="setup-card-footer">
+          <button id="setupAdvancedBtn" class="text-btn" type="button">Advanced settings</button>
+        </div>
+      </section>
+      <div id="setupAnnouncer" class="sr-only" role="status" aria-live="polite"></div>
+
+      <div id="status" class="status hidden" role="status" aria-live="polite"></div>
+      <div id="agentAnnouncer" class="sr-only" role="status" aria-live="polite"></div>
+      <button id="agentPill" class="agent-pill hidden" type="button">
+        <span class="agent-pill-dot" aria-hidden="true"></span>
+        <span id="agentPillText" class="agent-pill-text">Answer ready</span>
+        <span class="agent-pill-action" aria-hidden="true">View</span>
+      </button>
+      <section id="agentPanel" class="agent-panel hidden" aria-label="Forum answer">
+        <details class="content-panel agent-panel-details" open>
+          <summary class="panel-summary agent-panel-summary">
+            <span class="panel-heading">
+              <span class="panel-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.2-4.2"/></svg>
+              </span>
+              <span>
+                <strong class="agent-panel-question" data-part="question">Ask the forum</strong>
+                <small class="agent-panel-meta">
+                  <span data-part="forum"></span>
+                  <span data-part="meta"></span>
+                </small>
+              </span>
+            </span>
+            <span class="chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="panel-body agent-panel-body" data-agent-body></div>
+        </details>
+        <button class="agent-panel-dismiss" type="button" data-agent-action="dismiss" aria-label="Close this answer" title="Close this answer">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </section>
+      <section id="agentComposer" class="agent-composer-panel hidden" aria-labelledby="agentComposerHeading">
+        <div class="agent-composer-header">
+          <div>
+            <span class="eyebrow">Forum-wide research</span>
+            <h2 id="agentComposerHeading">Search this forum</h2>
+            <p>Search relevant discussions on this forum and answer with sources.</p>
+          </div>
+          <button id="agentCloseBtn" class="text-btn" type="button">Close</button>
+        </div>
+        <form id="agentForm" class="agent-form">
+          <label for="agentInput">What would you like to find?</label>
+          <textarea
+            id="agentInput"
+            rows="4"
+            maxlength="4000"
+            placeholder="Ask a question about this forum…"
+          ></textarea>
+          <div class="agent-suggestions" aria-label="Suggested forum questions">
+            <button id="agentTopicSuggestion" type="button" data-agent-question="What have people added recently about this topic, and are there related discussions?">Recent on this topic</button>
+            <button type="button" data-agent-question="What are the most common recommendations, and what warnings or caveats do people mention?">Common advice &amp; caveats</button>
+            <button type="button" data-agent-question="How do the most active recent discussions compare?">Compare discussions</button>
+          </div>
+          <small class="composer-hint">Searches the forum. The task continues while you browse elsewhere.</small>
+          <button id="sendAgentBtn" class="summarize-main-btn" type="submit">Search this forum</button>
+        </form>
+      </section>
+      <section id="backgroundRecovery" class="recovery-card hidden" role="alert">
+        <div>
+          <strong>Finish updating DiscourseCopilot</strong>
+          <p>The interface is newer than its background service. Restart once, then reopen the side panel.</p>
+        </div>
+        <button id="restartExtensionBtn" type="button">Restart DiscourseCopilot</button>
+      </section>
+
+      <section id="fetchProgress" class="fetch-progress hidden">
+        <div class="fetch-progress-details">
+          <span id="fetchProgressLabel">Reading responses…</span>
+          <span id="fetchProgressEta">Calculating ETA…</span>
+        </div>
+        <progress id="fetchProgressBar" max="100"></progress>
+      </section>
+
+      <section id="welcomePanel" class="welcome-panel">
+        <div class="welcome-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="m12 3 1.35 4.15L17.5 8.5l-4.15 1.35L12 14l-1.35-4.15L6.5 8.5l4.15-1.35L12 3Z"/>
+            <path d="m18.5 14 .75 2.25L21.5 17l-2.25.75L18.5 20l-.75-2.25L15.5 17l2.25-.75.75-2.25Z"/>
+          </svg>
+        </div>
+        <div>
+          <h2>Catch up without the scroll</h2>
+          <p>DiscourseCopilot reads the original post and every reply, then gives you a focused summary you can save, copy, or discuss with AI.</p>
+        </div>
+      </section>
+
+      <details id="summaryContainer" class="content-panel summary-container hidden" open>
+        <summary class="panel-summary">
+          <span class="panel-heading">
+            <span class="panel-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7V3Z"/><path d="M15 3v5h5M10 12h6M10 16h6"/></svg>
+            </span>
+            <span>
+              <strong>Summary</strong>
+              <small id="summaryMeta" class="summary-meta">Your saved overview</small>
+            </span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="panel-body">
+          <article id="summaryDisplay" class="summary-display">
+            <p>Your summary will appear here…</p>
+          </article>
+          <div class="button-group" aria-label="Summary actions">
+            <button id="copyBtn" class="secondary" type="button" disabled>Copy summary</button>
+            <button id="copyPostBtn" class="outline secondary" type="button" disabled>Copy full post</button>
+            <button id="exportBtn" class="outline secondary" type="button" disabled>Download</button>
+          </div>
+        </div>
+      </details>
+
+      <details id="chatContainer" class="content-panel chat-container hidden" open>
+        <summary class="panel-summary">
+          <span class="panel-heading">
+            <span class="panel-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 5h16v12H9l-5 4V5Z"/><path d="M8 9h8M8 13h5"/></svg>
+            </span>
+            <span>
+              <strong>Ask about this post</strong>
+              <small>Use the post and summary as context</small>
+            </span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="panel-body chat-panel-body">
+          <div class="chat-toolbar">
+            <span id="chatCount">Start a conversation</span>
+            <button id="clearChatBtn" class="text-btn" type="button">Clear conversation</button>
+          </div>
+
+          <div id="chatSuggestions" class="chat-suggestions" aria-label="Suggested questions">
+            <button type="button" data-question="What are the key takeaways?">Key takeaways</button>
+            <button type="button" data-question="Are there any warnings or important caveats?">Warnings &amp; caveats</button>
+            <button type="button" data-question="What do the latest replies add?">Latest replies</button>
+          </div>
+
+          <div id="chatMessages" class="chat-messages"></div>
+
+          <details class="chat-context-control">
+            <summary class="chat-context-summary">
+              <span>Forum context</span>
+              <span class="chat-context-value">
+                <output id="forumContextLimitValue" for="forumContextLimit">
+                  30,000 characters
+                </output>
+                <span class="chevron" aria-hidden="true"></span>
+              </span>
+            </summary>
+            <div class="chat-context-body">
+              <label class="sr-only" for="forumContextLimit">
+                Forum discussion context character limit
+              </label>
+              <input
+                id="forumContextLimit"
+                type="range"
+                min="5000"
+                max="1000000"
+                step="5000"
+                value="30000"
+                aria-describedby="forumContextLimitHelp forumContextLimitWarning"
+              >
+              <div class="chat-context-scale" aria-hidden="true">
+                <span>5k</span>
+                <span>More context</span>
+                <span>1M</span>
+              </div>
+              <small id="forumContextLimitHelp">
+                Up to 30,000 characters from the discussion will be sent with each question.
+              </small>
+              <small id="forumContextLimitWarning" class="chat-context-warning hidden">
+                Large contexts can exceed some models’ limits and may use substantially more tokens.
+              </small>
+            </div>
+          </details>
+
+          <form id="chatForm" class="chat-form">
+            <label class="sr-only" for="chatInput">Ask a follow-up question</label>
+            <div class="chat-composer">
+              <textarea
+                id="chatInput"
+                rows="1"
+                maxlength="2000"
+                placeholder="Ask a follow-up question…"
+              ></textarea>
+              <button id="sendChatBtn" type="submit" aria-label="Send question" disabled>
+                <span>Send</span>
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 14-7-4 14-3-6-7-1Z"/><path d="m12 13 7-8"/></svg>
+              </button>
+            </div>
+            <small class="composer-hint">Press Enter to send · Shift+Enter for a new line</small>
+          </form>
+        </div>
+      </details>
+    </div>
+
+    <section id="savedView" class="saved-view hidden" aria-labelledby="savedHeading">
+      <div id="savedViewHeader" class="saved-view-header">
+        <button id="closeSavedBtn" class="back-btn" type="button" aria-label="Back to current post">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <div>
+          <span class="eyebrow">Your workspace</span>
+          <h2 id="savedHeading">Activity</h2>
+          <p>Track background work and reopen saved summaries.</p>
+        </div>
+      </div>
+      <div id="savedStatus" class="status hidden" role="status" aria-live="polite"></div>
+
+      <div class="tab-list" role="tablist" aria-label="Activity sections">
+        <button id="tasksTab" class="tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="tasksPanel">
+          Tasks <span id="taskCount" class="count-badge">0</span>
+        </button>
+        <button id="summariesTab" class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="summariesPanel">
+          Saved <span id="savedCount" class="count-badge">0</span>
+        </button>
+      </div>
+
+      <div id="forumFilter" class="forum-filter hidden" role="group" aria-label="Filter activity by forum"></div>
+
+      <section id="tasksPanel" class="tab-panel" role="tabpanel" aria-labelledby="tasksTab">
+        <div class="section-intro">
+          <h3 id="taskHeading">Background tasks</h3>
+          <p>Two tasks can run at once. Work for the same post stays in order.</p>
+        </div>
+        <div id="activeTaskList" class="task-list"></div>
+        <details id="recentTasks" class="recent-tasks" open>
+          <summary>
+            <span>Recent activity</span>
+            <span id="recentTaskCount" class="count-badge">0</span>
+          </summary>
+          <div id="taskList" class="task-list"></div>
+        </details>
+      </section>
+
+      <section id="summariesPanel" class="tab-panel hidden" role="tabpanel" aria-labelledby="summariesTab">
+        <div class="section-intro">
+          <h3>Saved summaries and answers</h3>
+          <p>Conversations and Agent answers expire after 24 hours. Keep one to preserve it.</p>
+        </div>
+        <div id="savedList" class="saved-list"></div>
+      </section>
+
+      <section id="agentDetailView" class="agent-detail-view hidden" aria-labelledby="agentDetailHeading">
+        <div class="saved-view-header agent-detail-header">
+          <button id="closeAgentDetailBtn" class="back-btn" type="button" aria-label="Back to Activity">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <div>
+            <span class="eyebrow">Agent answer</span>
+            <h2 id="agentDetailHeading" tabindex="-1">Ask the forum</h2>
+            <p id="agentDetailMeta">Loading answer…</p>
+          </div>
+        </div>
+        <div id="agentDetailBody" data-agent-body></div>
+      </section>
+    </section>
+  </main>
+
+  <template id="agentAnswerTemplate">
+    <div class="agent-progress hidden" data-part="progress">
+      <div class="agent-progress-row">
+        <span class="agent-progress-label" data-part="progress-label">Starting forum research…</span>
+        <button class="outline secondary agent-stop-btn" type="button" data-agent-action="stop">Stop</button>
+      </div>
+      <progress class="agent-progress-bar" data-part="progress-bar" max="100"></progress>
+    </div>
+    <div class="agent-notice status hidden" data-part="notice">
+      <p data-part="notice-text"></p>
+      <div class="agent-notice-actions" data-part="notice-actions"></div>
+    </div>
+    <article class="agent-answer-display summary-display" data-part="answer"></article>
+    <details class="agent-sources-panel agent-search-panel" data-part="searches">
+      <summary>
+        <span>Searches</span>
+        <span class="agent-sources-summary-end">
+          <span class="count-badge" data-part="search-count">0</span>
+          <span class="chevron" aria-hidden="true"></span>
+        </span>
+      </summary>
+      <ol class="agent-search-list" data-part="search-list"></ol>
+    </details>
+    <details class="agent-sources-panel" data-part="sources">
+      <summary>
+        <span>Sources</span>
+        <span class="agent-sources-summary-end">
+          <span class="count-badge" data-part="source-count">0</span>
+          <span class="chevron" aria-hidden="true"></span>
+        </span>
+      </summary>
+      <div class="agent-source-list" data-part="source-list"></div>
+    </details>
+    <p class="agent-action-status hidden" data-part="action-status" role="status"></p>
+    <div class="agent-detail-actions" data-part="actions"></div>
+  </template>
+
+  <script type="module" src="popup.js"></script>
+</body>
+
+</html>

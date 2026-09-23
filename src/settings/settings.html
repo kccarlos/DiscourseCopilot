@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>DiscourseCopilot Settings</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --s-bg: #f8f9fa;
+      --s-surface: #ffffff;
+      --s-surface-soft: #f9fafb;
+      --s-surface-tint: #f8fbff;
+      --s-ink: #1a1a1a;
+      --s-ink-strong: #1f2937;
+      --s-label: #374151;
+      --s-muted: #6b7280;
+      --s-muted-strong: #4b5563;
+      --s-line: #e5e7eb;
+      --s-line-strong: #d1d5db;
+      --s-line-soft: #e1e7ef;
+      --s-line-tint: #dbe5f2;
+      --s-accent: #007cba;
+      --s-accent-hover: #005a87;
+      --s-accent-text: #0a66a5;
+      --s-accent-ring: rgba(0, 124, 186, 0.15);
+      --s-header-bg: #007cba;
+      --s-header-ink: #ffffff;
+      --s-btn-soft: #f3f4f6;
+      --s-btn-soft-hover: #e5e7eb;
+      --s-btn-soft-ink: #374151;
+      --s-test: #059669;
+      --s-test-hover: #047857;
+      --s-fav-bg: #e8f2ff;
+      --s-fav-line: #a9ccef;
+      --s-fav-ink: #075ea5;
+      --s-info-bg: #eff6ff;
+      --s-info-line: #bfdbfe;
+      --s-info-ink: #1d4ed8;
+      --s-success-bg: #f0fdf4;
+      --s-success-line: #bbf7d0;
+      --s-success-ink: #15803d;
+      --s-danger-bg: #fef2f2;
+      --s-danger-line: #fecaca;
+      --s-danger-ink: #dc2626;
+      --s-danger-ring: rgba(220, 38, 38, 0.12);
+      --s-dirty-ink: #fef3c7;
+      --s-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      --s-welcome-bg: #eaf5fb;
+      --s-welcome-line: #b9dcef;
+      --s-code-bg: rgba(15, 23, 42, 0.06);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --s-bg: #0f141b;
+        --s-surface: #171d26;
+        --s-surface-soft: #1c232d;
+        --s-surface-tint: #18212e;
+        --s-ink: #e7ecf3;
+        --s-ink-strong: #e7ecf3;
+        --s-label: #ccd4df;
+        --s-muted: #9aa6b8;
+        --s-muted-strong: #b3bdcb;
+        --s-line: #2a3340;
+        --s-line-strong: #3a4556;
+        --s-line-soft: #2a3340;
+        --s-line-tint: #2a3a52;
+        --s-accent: #1a6fae;
+        --s-accent-hover: #1f7cc0;
+        --s-accent-text: #6fbfff;
+        --s-accent-ring: rgba(111, 191, 255, 0.22);
+        --s-header-bg: #0f4c75;
+        --s-header-ink: #ffffff;
+        --s-btn-soft: #232b36;
+        --s-btn-soft-hover: #2c3542;
+        --s-btn-soft-ink: #d6dde7;
+        --s-test: #0f7a5a;
+        --s-test-hover: #13926b;
+        --s-fav-bg: #1a2a40;
+        --s-fav-line: #2f4d75;
+        --s-fav-ink: #a3c6ff;
+        --s-info-bg: #16243a;
+        --s-info-line: #2a4166;
+        --s-info-ink: #a3c6ff;
+        --s-success-bg: #11261c;
+        --s-success-line: #25583e;
+        --s-success-ink: #6fdc9f;
+        --s-danger-bg: #2a171b;
+        --s-danger-line: #6a2d35;
+        --s-danger-ink: #ff8a93;
+        --s-danger-ring: rgba(255, 138, 147, 0.2);
+        --s-dirty-ink: #fde68a;
+        --s-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+        --s-welcome-bg: #13263a;
+        --s-welcome-line: #24486b;
+        --s-code-bg: rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--s-bg);
+    }
+    
+    body {
+      width: 100%;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      background-color: var(--s-bg);
+      color: var(--s-ink);
+      line-height: 1.5;
+    }
+    
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: var(--s-surface);
+      border-radius: 8px;
+      box-shadow: var(--s-shadow);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: var(--s-header-bg);
+      color: var(--s-header-ink);
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .saved-config {
+      margin: 12px auto 0;
+      padding: 10px 12px;
+      max-width: 520px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      font-size: 13px;
+    }
+
+    .saved-config strong {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    #dirtyIndicator.hidden,
+    .welcome-header.hidden {
+      display: none;
+    }
+
+    .saved-config.not-set-up {
+      border-color: rgba(254, 243, 199, 0.7);
+      background: rgba(254, 243, 199, 0.18);
+      font-weight: 600;
+    }
+
+    .welcome-header {
+      --welcome-accent: var(--s-accent);
+      --welcome-accent-soft: var(--s-welcome-bg);
+      --welcome-line: var(--s-welcome-line);
+      --welcome-ink: var(--s-ink);
+      --welcome-muted: var(--s-muted-strong);
+      margin-bottom: 24px;
+      padding: 18px 20px;
+      border: 1px solid var(--welcome-line);
+      border-radius: 8px;
+      background: var(--welcome-accent-soft);
+      color: var(--welcome-ink);
+    }
+
+    .welcome-header h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      line-height: 1.3;
+    }
+
+    .welcome-header p {
+      margin: 0 0 12px;
+      color: var(--welcome-muted);
+    }
+
+    .welcome-steps {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .welcome-steps li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .welcome-step-number,
+    .welcome-mode .step-label::before {
+      display: inline-grid;
+      width: 22px;
+      height: 22px;
+      flex: 0 0 auto;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--welcome-accent, var(--s-accent));
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .welcome-mode .step-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .welcome-mode .step-label::before {
+      content: attr(data-step);
+    }
+
+    #dirtyIndicator {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 12px;
+      opacity: 0.85;
+    }
+
+    #dirtyIndicator.dirty {
+      color: var(--s-dirty-ink);
+      font-weight: 600;
+    }
+    
+    .content {
+      padding: 24px;
+    }
+    
+    .section {
+      margin-bottom: 32px;
+    }
+    
+    .section:last-child {
+      margin-bottom: 0;
+    }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--s-ink);
+      margin: 0 0 16px 0;
+      border-bottom: 2px solid var(--s-line);
+      padding-bottom: 8px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+    
+    label {
+      display: block;
+      font-weight: 500;
+      color: var(--s-label);
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    
+    select, input[type="text"], input[type="password"], input[type="url"], textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--s-line-strong);
+      border-radius: 6px;
+      font-size: 14px;
+      background: var(--s-surface);
+      color: var(--s-ink);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+      font-family: inherit;
+      line-height: 1.5;
+    }
+    
+    select:focus, input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--s-accent);
+      box-shadow: 0 0 0 3px var(--s-accent-ring);
+    }
+    
+    .provider-config {
+      background: var(--s-surface-soft);
+      border: 1px solid var(--s-line);
+      border-radius: 6px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+    
+    .provider-config.hidden {
+      display: none;
+    }
+    
+    .help-text {
+      font-size: 12px;
+      color: var(--s-muted);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+    
+    .status {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .status.success {
+      background-color: var(--s-success-bg);
+      color: var(--s-success-ink);
+      border: 1px solid var(--s-success-line);
+    }
+
+    .status.info {
+      background-color: var(--s-info-bg);
+      color: var(--s-info-ink);
+      border: 1px solid var(--s-info-line);
+    }
+    
+    .status.error {
+      background-color: var(--s-danger-bg);
+      color: var(--s-danger-ink);
+      border: 1px solid var(--s-danger-line);
+    }
+    
+    .status.hidden {
+      display: none;
+    }
+    
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--s-line);
+    }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .btn-primary {
+      background: var(--s-accent);
+      color: #ffffff;
+      flex: 1;
+    }
+    
+    .btn-primary:hover {
+      background: var(--s-accent-hover);
+    }
+    
+    .btn-secondary {
+      background: var(--s-btn-soft);
+      color: var(--s-btn-soft-ink);
+      border: 1px solid var(--s-line-strong);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--s-btn-soft-hover);
+    }
+    
+    .btn-test {
+      background: var(--s-test);
+      color: #ffffff;
+    }
+    
+    .btn-test:hover {
+      background: var(--s-test-hover);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-refresh {
+      margin-top: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      background: var(--s-btn-soft);
+      border: 1px solid var(--s-line-strong);
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--s-btn-soft-ink);
+    }
+    
+    .btn-refresh:hover {
+      background: var(--s-btn-soft-hover);
+    }
+    
+    .btn-refresh:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .model-load-status {
+      min-height: 18px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--s-muted);
+    }
+
+    .favorite-models {
+      margin-top: 18px;
+      padding: 16px;
+      border: 1px solid var(--s-line-tint);
+      border-radius: 8px;
+      background: var(--s-surface-tint);
+    }
+
+    .favorite-models-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .favorite-models-header h3 {
+      margin: 0;
+      color: var(--s-ink-strong);
+      font-size: 15px;
+    }
+
+    #addFavoriteBtn {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      background: var(--s-fav-bg);
+      border: 1px solid var(--s-fav-line);
+      color: var(--s-fav-ink);
+    }
+
+    .favorite-model-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .favorite-model-item {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--s-line-soft);
+      border-radius: 7px;
+      background: var(--s-surface);
+    }
+
+    .favorite-model-item > div {
+      display: grid;
+      min-width: 0;
+    }
+
+    .favorite-model-item strong,
+    .favorite-model-item span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .favorite-model-item strong {
+      color: var(--s-ink-strong);
+      font-size: 13px;
+    }
+
+    .favorite-model-item span,
+    .favorite-model-empty {
+      color: var(--s-muted);
+      font-size: 12px;
+    }
+
+    .favorite-model-empty {
+      margin: 0;
+    }
+
+    .favorite-model-empty.hidden {
+      display: none;
+    }
+
+    .favorite-remove {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border: 1px solid var(--s-line-strong);
+      background: var(--s-surface);
+      color: var(--s-muted-strong);
+      font-size: 12px;
+    }
+
+    [aria-invalid="true"] {
+      border-color: var(--s-danger-ink) !important;
+      box-shadow: 0 0 0 3px var(--s-danger-ring) !important;
+    }
+
+    @media (max-width: 560px) {
+      body {
+        padding: 0;
+      }
+
+      .container {
+        min-height: 100vh;
+        border-radius: 0;
+      }
+
+      .content {
+        padding: 18px;
+      }
+
+      .button-group button {
+        flex: 1 1 100%;
+      }
+
+      .favorite-models-header {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      #addFavoriteBtn {
+        width: 100%;
+      }
+    }
+
+    a {
+      color: var(--s-accent-text);
+    }
+
+    code {
+      padding: 0.05em 0.3em;
+      border-radius: 4px;
+      background: var(--s-code-bg);
+      font-size: 0.92em;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>DiscourseCopilot Settings</h1>
+      <div class="saved-config">
+        <strong id="savedConfigurationLabel">Currently saved</strong>
+        <span id="savedConfiguration">Loading…</span>
+      </div>
+      <span id="dirtyIndicator" class="hidden"></span>
+    </div>
+    
+    <div class="content">
+      <section id="welcomeHeader" class="welcome-header hidden" aria-labelledby="welcomeHeading">
+        <h2 id="welcomeHeading">Welcome to DiscourseCopilot — 3 steps to get started</h2>
+        <p>
+          DiscourseCopilot summarizes long topics and answers questions with sources on
+          <strong>any Discourse forum</strong>. Connect your own AI provider below — or finish
+          setup in the side panel, which walks you through the same steps.
+        </p>
+        <ol class="welcome-steps">
+          <li><span class="welcome-step-number" aria-hidden="true">1</span><span><strong>Choose a provider.</strong> OpenRouter gives you many models with one key; Ollama runs on your computer.</span></li>
+          <li><span class="welcome-step-number" aria-hidden="true">2</span><span><strong>Paste your API key</strong> (or your local server URL). It stays in this browser.</span></li>
+          <li><span class="welcome-step-number" aria-hidden="true">3</span><span><strong>Pick a model</strong>, then <em>Test Connection</em> and <em>Save Settings</em>.</span></li>
+        </ol>
+      </section>
+
+      <div id="status" class="status hidden" role="status" aria-live="polite"></div>
+      
+      <div class="section">
+        <h2 class="section-title">AI Provider</h2>
+        
+        <div class="form-group">
+          <label for="providerSelect" class="step-label" data-step="1">Choose AI Provider:</label>
+          <select id="providerSelect">
+            <option value="openrouter">OpenRouter</option>
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="groq">Groq</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="ollama">Ollama (Local)</option>
+            <option value="xai">xAI Grok</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="lmstudio">LM Studio (Local)</option>
+          </select>
+        </div>
+        
+        <!-- OpenRouter Config -->
+        <div id="config-openrouter" class="provider-config">
+          <div class="form-group">
+            <label for="openrouterApiKey" class="step-label" data-step="2">OpenRouter API Key:</label>
+            <input type="password" id="openrouterApiKey" placeholder="sk-or-v1-..." autocomplete="off" spellcheck="false">
+            <div class="help-text">Get your API key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" data-provider-link="openrouter">openrouter.ai/keys</a></div>
+          </div>
+          <div class="form-group">
+            <label for="openrouterModel" class="step-label" data-step="3">Model:</label>
+            <input type="text" id="openrouterModel" list="openrouterModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <datalist id="openrouterModelList"></datalist>
+            <button type="button" class="btn-refresh" data-provider="openrouter">Refresh models</button>
+            <div id="openrouterModelStatus" class="model-load-status" aria-live="polite"></div>
+          </div>
+        </div>
+        
+        <!-- OpenAI Config -->
+        <div id="config-openai" class="provider-config hidden">
+          <div class="form-group">
+            <label for="openaiApiKey" class="step-label" data-step="2">OpenAI API Key:</label>
+            <input type="password" id="openaiApiKey" placeholder="sk-..." autocomplete="off" spellcheck="false">
+            <div class="help-text">Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" data-provider-link="openai">platform.openai.com</a></div>
+          </div>
+          <div class="form-group">
+            <label for="openaiModel" class="step-label" data-step="3">Model:</label>
+            <input type="text" id="openaiModel" list="openaiModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <datalist id="openaiModelList"></datalist>
+            <button type="button" class="btn-refresh" data-provider="openai">Refresh models</button>
+            <div id="openaiModelStatus" class="model-load-status" aria-live="polite"></div>
+          </div>
+        </div>
+        
+        <!-- Anthropic Config -->
+        <div id="config-anthropic" class="provider-config hidden">
+          <div class="form-group">
+            <label for="anthropicApiKey" class="step-label" data-step="2">Anthropic API Key:</label>
+            <input type="password" id="anthropicApiKey" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+            <div class="help-text">Get your API key from <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" data-provider-link="anthropic">console.anthropic.com</a></div>
+          </div>
+          <div class="form-group">
+            <label for="anthropicModel" class="step-label" data-step="3">Model:</label>
+            <input type="text" id="anthropicModel" list="anthropicModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <datalist id="anthropicModelList"></datalist>
+            <button type="button" class="btn-refresh" data-provider="anthropic">Refresh models</button>
+            <div id="anthropicModelStatus" class="model-load-status" aria-live="polite"></div>
+          </div>
+        </div>
+        
+        <!-- Groq Config -->
+        <div id="config-groq" class="provider-config hidden">
+          <div class="form-group">
+            <label for="groqApiKey" class="step-label" data-step="2">Groq API Key:</label>
+            <input type="password" id="groqApiKey" placeholder="gsk_..." autocomplete="off" spellcheck="false">
+            <div class="help-text">Get your API key from <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" data-provider-link="groq">console.groq.com</a></div>
+          </div>
+          <div class="form-group">
+            <label for="groqModel" class="step-label" data-step="3">Model:</label>
+            <input type="text" id="groqModel" list="groqModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <datalist id="groqModelList"></datalist>
+            <button type="button" class="btn-refresh" data-provider="groq">Refresh models</button>
+            <div id="groqModelStatus" class="model-load-status" aria-live="polite"></div>
+          </div>
+        </div>
+        
+        <!-- Gemini Config -->
+        <div id="config-gemini" class="provider-config hidden">
+          <div class="form-group">
+            <label for="geminiApiKey" class="step-label" data-step="2">Google Gemini API Key:</label>
+            <input type="password" id="geminiApiKey" placeholder="AIza..." autocomplete="off" spellcheck="false">
+            <div class="help-text">Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" data-provider-link="gemini">Google AI Studio</a></div>
+          </div>
+          <div class="form-group">
+            <label for="geminiModel" class="step-label" data-step="3">Model:</label>
+            <input type="text" id="geminiModel" list="geminiModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <datalist id="geminiModelList"></datalist>
+            <button type="button" class="btn-refresh" data-provider="gemini">Refresh models</button>
+            <div id="geminiModelStatus" class="model-load-status" aria-live="polite"></div>
+          </div>
+        </div>
+        
+        <!-- Ollama Config -->
+        <div id="config-ollama" class="provider-config hidden">
+          <div class="form-group">
+            <label for="ollamaUrl" class="step-label" data-step="2">Ollama Server URL:</label>
+            <input type="url" id="ollamaUrl" placeholder="http://localhost:11434" value="http://localhost:11434">
+            <div class="help-text">Make sure Ollama is running locally. <a href="https://ollama.ai" target="_blank" rel="noopener noreferrer" data-provider-link="ollama">Download Ollama</a></div>
+            <div class="help-text">Ollama must allow extension requests: start it with <code>OLLAMA_ORIGINS=chrome-extension://*</code>.</div>
+          </div>
+          <div class="form-group">
+            <label for="ollamaModel" class="step-label" data-step="3">Model:</label>
+            <input type="text" id="ollamaModel" list="ollamaModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <datalist id="ollamaModelList"></datalist>
+            <button type="button" class="btn-refresh" data-provider="ollama">Refresh models</button>
+            <div id="ollamaModelStatus" class="model-load-status" aria-live="polite"></div>
+            <div class="help-text">Make sure the model is downloaded: <code>ollama pull &lt;model-name&gt;</code></div>
+          </div>
+        </div>
+        
+        <!-- xAI Config -->
+        <div id="config-xai" class="provider-config hidden">
+          <div class="form-group">
+            <label for="xaiApiKey" class="step-label" data-step="2">xAI API Key:</label>
+            <input type="password" id="xaiApiKey" placeholder="xai-..." autocomplete="off" spellcheck="false">
+            <div class="help-text">Get your API key from <a href="https://console.x.ai" target="_blank" rel="noopener noreferrer" data-provider-link="xai">console.x.ai</a></div>
+          </div>
+          <div class="form-group">
+            <label for="xaiModel" class="step-label" data-step="3">Model:</label>
+            <input type="text" id="xaiModel" list="xaiModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <datalist id="xaiModelList"></datalist>
+            <button type="button" class="btn-refresh" data-provider="xai">Refresh models</button>
+            <div id="xaiModelStatus" class="model-load-status" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <!-- Deepseek Config -->
+        <div id="config-deepseek" class="provider-config hidden">
+          <div class="form-group">
+            <label for="deepseekApiKey" class="step-label" data-step="2">DeepSeek API Key:</label>
+            <input type="password" id="deepseekApiKey" placeholder="ds-..." autocomplete="off" spellcheck="false">
+            <div class="help-text">Get your API key from <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer" data-provider-link="deepseek">platform.deepseek.com</a></div>
+          </div>
+          <div class="form-group">
+            <label for="deepseekModel" class="step-label" data-step="3">Model:</label>
+            <input type="text" id="deepseekModel" list="deepseekModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <datalist id="deepseekModelList"></datalist>
+            <button type="button" class="btn-refresh" data-provider="deepseek">Refresh models</button>
+            <div id="deepseekModelStatus" class="model-load-status" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <!-- LM Studio Config -->
+        <div id="config-lmstudio" class="provider-config hidden">
+          <div class="form-group">
+            <label for="lmstudioUrl" class="step-label" data-step="2">LM Studio Server URL:</label>
+            <input type="url" id="lmstudioUrl" placeholder="http://localhost:1234" value="http://localhost:1234">
+            <div class="help-text">Make sure LM Studio is running with the local server enabled. <a href="https://lmstudio.ai" target="_blank" rel="noopener noreferrer" data-provider-link="lmstudio">Download LM Studio</a></div>
+          </div>
+          <div class="form-group">
+            <label for="lmstudioModel" class="step-label" data-step="3">Model:</label>
+            <input type="text" id="lmstudioModel" list="lmstudioModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <datalist id="lmstudioModelList"></datalist>
+            <button type="button" class="btn-refresh" data-provider="lmstudio">Refresh models</button>
+            <div id="lmstudioModelStatus" class="model-load-status" aria-live="polite"></div>
+            <div class="help-text">Load a model in LM Studio and start the local server (Developer tab → Start Server)</div>
+          </div>
+        </div>
+
+        <section class="favorite-models" aria-labelledby="favoriteModelsHeading">
+          <div class="favorite-models-header">
+            <div>
+              <h3 id="favoriteModelsHeading">Favorite models</h3>
+              <div class="help-text">Save up to 30 models to switch between them from the DiscourseCopilot header.</div>
+            </div>
+            <button id="addFavoriteBtn" type="button">Add current model</button>
+          </div>
+          <p id="favoriteModelEmpty" class="favorite-model-empty">No favorites yet. Choose or enter a model above, then add it.</p>
+          <div id="favoriteModelList" class="favorite-model-list" aria-live="polite"></div>
+        </section>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">Prompt &amp; Language</h2>
+        <div class="form-group">
+          <label for="responseLanguage">Response language:</label>
+          <select id="responseLanguage">
+            <option value="auto">Auto (match the discussion)</option>
+          </select>
+          <div class="help-text">
+            Language for summaries, follow-up answers, and Agent answers. Auto answers
+            summaries in the discussion's language and questions in the language you ask in.
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="systemPrompt">Custom instructions:</label>
+          <textarea
+            id="systemPrompt"
+            placeholder="Leave empty to use DiscourseCopilot's built-in summarization instructions."
+            spellcheck="true"
+            maxlength="12000"
+          ></textarea>
+          <div class="help-text">
+            This prompt applies to new summaries, chats, and Agent answers. Leave it empty to use the
+            built-in prompt. The response language setting above is still applied.
+          </div>
+        </div>
+      </div>
+      
+      <div class="button-group">
+        <button id="testBtn" class="btn-test">Test Connection</button>
+        <button id="saveBtn" class="btn-primary">Save Settings</button>
+        <button id="resetBtn" class="btn-secondary">Reset to Defaults</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="settings.js"></script>
+</body>
+</html>

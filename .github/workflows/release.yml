@@ -1,0 +1,158 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release (e.g. v2.0.0)'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      zip: ${{ steps.zip.outputs.zip }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check tag matches versions
+        id: version
+        run: |
+          node -e '
+            const fs = require("fs");
+            const tag = process.env.TAG.replace(/^v/, "");
+            const m = JSON.parse(fs.readFileSync("manifest.json", "utf8")).version;
+            const p = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
+            if (m !== p) { console.error(`::error::manifest.json=${m} but package.json=${p}`); process.exit(1); }
+            if (tag !== m) { console.error(`::error::Tag ${process.env.TAG} does not match manifest.json version ${m}`); process.exit(1); }
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${m}\n`);
+          '
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Package extension
+        id: zip
+        run: |
+          test -f dist/manifest.json
+          ZIP="discourse-copilot-${{ steps.version.outputs.version }}.zip"
+          (cd dist && zip -r -X "../$ZIP" .)
+          unzip -l "$ZIP" | grep -E '\smanifest\.json$'
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" "${{ steps.zip.outputs.zip }}" \
+            --title "$TAG" --generate-notes --verify-tag
+
+      - name: Upload zip for publish job
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-zip
+          path: ${{ steps.zip.outputs.zip }}
+          retention-days: 7
+          if-no-files-found: error
+
+  chrome-web-store:
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+      CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+      CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+      CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+      AUTO_PUBLISH: ${{ vars.CWS_AUTO_PUBLISH }}
+      ZIP: ${{ needs.release.outputs.zip }}
+    steps:
+      - name: Check Chrome Web Store secrets
+        id: check
+        run: |
+          if [ -n "$CWS_EXTENSION_ID" ] && [ -n "$CWS_CLIENT_ID" ] && [ -n "$CWS_CLIENT_SECRET" ] && [ -n "$CWS_REFRESH_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Chrome Web Store secrets not configured; skipping store upload."
+          fi
+
+      - uses: actions/download-artifact@v4
+        if: steps.check.outputs.enabled == 'true'
+        with:
+          name: extension-zip
+
+      - name: Upload to Chrome Web Store
+        if: steps.check.outputs.enabled == 'true'
+        run: |
+          set -euo pipefail
+          ACCESS_TOKEN=$(curl -fsS https://oauth2.googleapis.com/token \
+            -d client_id="$CWS_CLIENT_ID" \
+            -d client_secret="$CWS_CLIENT_SECRET" \
+            -d refresh_token="$CWS_REFRESH_TOKEN" \
+            -d grant_type=refresh_token | jq -r '.access_token')
+          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
+            echo "::error::Failed to obtain OAuth access token"; exit 1
+          fi
+          echo "::add-mask::$ACCESS_TOKEN"
+          echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> "$GITHUB_ENV"
+
+          RESP=$(curl -sS -X PUT \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "x-goog-api-version: 2" \
+            -T "$ZIP" \
+            "https://www.googleapis.com/upload/chromewebstore/v1.1/items/$CWS_EXTENSION_ID")
+          echo "$RESP" | jq .
+          STATE=$(echo "$RESP" | jq -r '.uploadState // empty')
+          if [ "$STATE" != "SUCCESS" ]; then
+            echo "::error::Chrome Web Store upload failed (uploadState=${STATE:-none})"; exit 1
+          fi
+
+      - name: Publish on Chrome Web Store
+        if: steps.check.outputs.enabled == 'true' && env.AUTO_PUBLISH == 'true'
+        run: |
+          set -euo pipefail
+          RESP=$(curl -sS -X POST \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "x-goog-api-version: 2" \
+            -H "Content-Length: 0" \
+            "https://www.googleapis.com/chromewebstore/v1.1/items/$CWS_EXTENSION_ID/publish")
+          echo "$RESP" | jq .
+          if ! echo "$RESP" | jq -e '.status | index("OK") or index("ITEM_PENDING_REVIEW")' > /dev/null; then
+            echo "::error::Chrome Web Store publish failed"; exit 1
+          fi
+
+      - name: Draft only
+        if: steps.check.outputs.enabled == 'true' && env.AUTO_PUBLISH != 'true'
+        run: echo "::notice::Uploaded as draft. Set repo variable CWS_AUTO_PUBLISH=true to auto-publish, or submit for review in the developer dashboard."

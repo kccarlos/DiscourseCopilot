@@ -1,0 +1,41 @@
+{
+  "name": "discourse-copilot",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Chrome extension that provides AI summaries and a research copilot for any Discourse forum",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "clean": "rm -rf dist/",
+    "test": "node --test"
+  },
+  "keywords": [
+    "chrome-extension",
+    "ai-summarization",
+    "discourse",
+    "discourse-copilot"
+  ],
+  "author": "kccarlos",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.34.5",
+  "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.104",
+    "@ai-sdk/deepseek": "^1.0.58",
+    "@ai-sdk/google": "^2.0.98",
+    "@ai-sdk/groq": "^2.0.54",
+    "@ai-sdk/openai": "^2.0.128",
+    "@ai-sdk/openai-compatible": "^1.0.55",
+    "@ai-sdk/xai": "^2.0.96",
+    "@openrouter/ai-sdk-provider": "^1.5.4",
+    "ai": "^5.0.264",
+    "marked": "15.0.12",
+    "ollama-ai-provider-v2": "^1.5.5",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "6.2.5",
+    "vite": "^7.3.6",
+    "vite-plugin-web-extension": "^4.5.1"
+  }
+}

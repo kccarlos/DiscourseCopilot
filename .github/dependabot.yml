@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ['*']
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      # The AI SDK packages must move to a new major together (ai, every
+      # provider, and zod); upgrade them as one coordinated change by hand.
+      - dependency-name: 'ai'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@ai-sdk/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@openrouter/ai-sdk-provider'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'ollama-ai-provider-v2'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'zod'
+        update-types: ['version-update:semver-major']
