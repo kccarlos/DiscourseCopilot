@@ -29,13 +29,13 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       zip: ${{ steps.zip.outputs.zip }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.TAG }}
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -79,7 +79,7 @@ jobs:
             --title "$TAG" --generate-notes --verify-tag
 
       - name: Upload zip for publish job
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: extension-zip
           path: ${{ steps.zip.outputs.zip }}
@@ -108,7 +108,7 @@ jobs:
             echo "::notice::Chrome Web Store secrets not configured; skipping store upload."
           fi
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: steps.check.outputs.enabled == 'true'
         with:
           name: extension-zip
