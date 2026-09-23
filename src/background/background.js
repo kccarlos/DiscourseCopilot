@@ -5,6 +5,8 @@ import { AIService } from '../services/ai-service.js';
 import { topicSessionDatabase } from '../popup/topic-session-db.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { TASK_TYPE } from '../shared/task-record.mjs';
+import { ConfigStore } from '../shared/config-state.mjs';
+import { resolveRetention } from '../shared/preferences.mjs';
 import { ForumRequestGovernor } from './forum-tools.mjs';
 import { AgentActivityStore } from './agent-activity-store.mjs';
 import { TaskService } from './task-service.mjs';
@@ -61,6 +63,25 @@ taskService.start((task, context) => {
 });
 
 chrome.alarms.onAlarm.addListener(alarm => taskService.handleAlarm(alarm));
+
+// Saved preferences changed (settings page, another window): apply a new
+// history retention right away — the database removes what it no longer
+// keeps. Research depth and the page limit need nothing here: every task
+// reads them from the preferences when it is queued.
+const configStore = new ConfigStore({
+  reloadDelayMs: 250,
+  onError: error => console.warn('Background: Unable to reload preferences:', error)
+});
+configStore.subscribe(event => {
+  if (event.type !== 'loaded') {
+    return;
+  }
+  void taskService.ready
+    .then(() => taskService.applyRetention(resolveRetention(configStore.config.preferences)))
+    .catch(error => {
+      console.warn('Background: Unable to apply history retention:', error);
+    });
+});
 
 // First install: open the settings page in welcome mode so setup starts right away.
 chrome.runtime.onInstalled?.addListener(details => {

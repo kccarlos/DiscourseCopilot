@@ -24,7 +24,8 @@ export const DiscourseCopilotConstants = {
     SYSTEM_PROMPT: 'systemPrompt',
     RESPONSE_LANGUAGE: 'responseLanguage',
     FORUM_CONTEXT_LIMIT: 'forumContextLimit',
-    FAVORITE_MODELS: 'favoriteModels'
+    FAVORITE_MODELS: 'favoriteModels',
+    PREFERENCES: 'preferences'
   },
 
   // Keys earlier versions wrote that nothing reads any more. They are only

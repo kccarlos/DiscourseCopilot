@@ -12,9 +12,12 @@ import {
 import { TASK_TYPE } from '../shared/task-record.mjs';
 import { normalizeAgentQuestion } from '../services/agent-context.mjs';
 import { topicSessionDatabase } from './topic-session-db.mjs';
+import { resolveRetention } from '../shared/preferences.mjs';
 import {
+  agentRecentWindowMs,
   isAgentAnswerUnopened,
   mergeAgentRunState,
+  retentionCopy,
   selectAgentRunView
 } from './ui-state.mjs';
 import { writeClipboardText } from './clipboard.mjs';
@@ -63,9 +66,15 @@ export class AgentController {
     this.view = new AgentAnswerView({
       forums,
       markdown,
+      getRetentionCopy: () => retentionCopy(this.retention),
       getStream: taskId => this.streams.get(taskId),
       findTask: activity => this.tasks.findAgentTask(activity)
     });
+  }
+
+  // The effective history retention, always from the configuration model.
+  get retention() {
+    return resolveRetention(this.config?.config?.preferences);
   }
 
   // ---------- Setup ----------
@@ -291,7 +300,8 @@ export class AgentController {
     const pill = $('agentPill');
     const siteUrl = this.state.pageContext?.siteUrl || '';
     const view = selectAgentRunView(this.runRecords(), siteUrl, {
-      preferredId: this.currentRuns.get(siteUrl) || ''
+      preferredId: this.currentRuns.get(siteUrl) || '',
+      windowMs: agentRecentWindowMs(this.retention)
     });
 
     const showPanel = view.mode === 'panel' && !this.composerOpen;

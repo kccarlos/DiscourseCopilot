@@ -15,7 +15,9 @@ import {
   AGENT_ACTIVITY_RETENTION_MS,
   MAX_AGENT_ACTIVITIES,
   AGENT_ACTIVITY_STATUS,
+  agentActivityExpiry,
   buildAgentActivityIndexEntry,
+  isAgentActivityExpired,
   isAgentActivityTerminal,
   mergeAgentActivityMarks,
   normalizeAgentActivity
@@ -117,6 +119,22 @@ export class TopicSessionDatabase {
     this.agentActivityRetentionMs = agentActivityRetentionMs;
     this.databaseName = databaseName;
     this.databasePromise = null;
+  }
+
+  /**
+   * Applies the history setting (resolveRetention(preferences)). Both the
+   * background worker and the side panel hold an instance; each applies the
+   * saved preferences at startup and on every change, so lazy expiry in get()
+   * and setKept() matches the cleanup the background runs. Infinity = no
+   * time limit.
+   */
+  setRetention({ chatMs, taskMs, agentMs, maxSavedTopics } = {}) {
+    if (chatMs !== undefined) this.chatRetentionMs = chatMs;
+    if (taskMs !== undefined) this.taskRetentionMs = taskMs;
+    if (agentMs !== undefined) this.agentActivityRetentionMs = agentMs;
+    if (Number.isInteger(maxSavedTopics) && maxSavedTopics > 0) {
+      this.maxSavedTopics = maxSavedTopics;
+    }
   }
 
   open() {
@@ -274,7 +292,8 @@ export class TopicSessionDatabase {
   async cleanupStaleChats() {
     const database = await this.open();
     const cutoff = this.now() - this.chatRetentionMs;
-    if (cutoff < 1) {
+    // No time limit (Infinity) gives -Infinity here.
+    if (!Number.isFinite(cutoff) || cutoff < 1) {
       return 0;
     }
     const readTransaction = database.transaction(SESSION_STORE, 'readonly');
@@ -388,6 +407,9 @@ export class TopicSessionDatabase {
   async cleanupTasks() {
     const tasks = await this.listTasks();
     const cutoff = this.now() - this.taskRetentionMs;
+    if (!Number.isFinite(cutoff)) {
+      return 0;
+    }
     const expired = tasks.filter(task =>
       isTerminalTaskStatus(task.status)
       && task.completedAt > 0
@@ -431,6 +453,7 @@ export class TopicSessionDatabase {
 
   async saveAgentActivity(value, { prune = true } = {}) {
     const incoming = normalizeAgentActivity(value, this.now());
+    incoming.expiresAt = agentActivityExpiry(incoming, this.agentActivityRetentionMs);
     const database = await this.open();
     const transaction = database.transaction(AGENT_ACTIVITY_STORE, 'readwrite');
     const store = transaction.objectStore(AGENT_ACTIVITY_STORE);
@@ -498,12 +521,11 @@ export class TopicSessionDatabase {
       throw new Error('Agent activity not found');
     }
     const now = this.now();
+    // Unkeeping starts a fresh retention period from now.
     const next = {
       ...activity,
       kept: kept === true,
-      expiresAt: kept === true
-        ? 0
-        : now + this.agentActivityRetentionMs,
+      retainedFrom: kept === true ? activity.retainedFrom : now,
       updatedAt: now
     };
     return this.saveAgentActivity(next, { prune: false });
@@ -518,12 +540,11 @@ export class TopicSessionDatabase {
 
   async cleanupAgentActivities() {
     const activities = await this.listAgentActivities({ includeExpired: true });
-    const cutoff = this.now();
+    const now = this.now();
+    // Expiry is recomputed with the current retention, so shortening the
+    // history setting removes older answers right away.
     const expired = activities.filter(activity =>
-      !activity.kept
-      && isAgentActivityTerminal(activity.status)
-      && activity.expiresAt > 0
-      && activity.expiresAt <= cutoff
+      isAgentActivityExpired(activity, this.agentActivityRetentionMs, now)
     );
     if (!expired.length) {
       return 0;

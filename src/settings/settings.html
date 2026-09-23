@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <title>DiscourseCopilot Settings</title>
+  <link rel="icon" type="image/svg+xml" href="/brand/tab-icon-light.svg" media="(prefers-color-scheme: light)">
+  <link rel="icon" type="image/svg+xml" href="/brand/tab-icon-dark.svg" media="(prefers-color-scheme: dark)">
   <style>
     :root {
       color-scheme: light dark;
@@ -23,7 +25,7 @@
       --s-accent-hover: #005a87;
       --s-accent-text: #0a66a5;
       --s-accent-ring: rgba(0, 124, 186, 0.15);
-      --s-header-bg: #007cba;
+      --s-header-bg: linear-gradient(135deg, #1e2150 0%, #2c1d52 100%);
       --s-header-ink: #ffffff;
       --s-btn-soft: #f3f4f6;
       --s-btn-soft-hover: #e5e7eb;
@@ -48,6 +50,12 @@
       --s-welcome-bg: #eaf5fb;
       --s-welcome-line: #b9dcef;
       --s-code-bg: rgba(15, 23, 42, 0.06);
+      --s-warn-bg: #fffbeb;
+      --s-warn-line: #fcd34d;
+      --s-warn-ink: #b45309;
+      --s-selected-bg: #eef6fc;
+      --s-bar-bg: rgba(255, 255, 255, 0.94);
+      --s-bar-shadow: 0 -6px 16px rgba(15, 23, 42, 0.08);
     }
 
     @media (prefers-color-scheme: dark) {
@@ -69,7 +77,7 @@
         --s-accent-hover: #1f7cc0;
         --s-accent-text: #6fbfff;
         --s-accent-ring: rgba(111, 191, 255, 0.22);
-        --s-header-bg: #0f4c75;
+        --s-header-bg: linear-gradient(135deg, #171a3d 0%, #221842 100%);
         --s-header-ink: #ffffff;
         --s-btn-soft: #232b36;
         --s-btn-soft-hover: #2c3542;
@@ -94,6 +102,12 @@
         --s-welcome-bg: #13263a;
         --s-welcome-line: #24486b;
         --s-code-bg: rgba(255, 255, 255, 0.08);
+        --s-warn-bg: #2a2112;
+        --s-warn-line: #624a22;
+        --s-warn-ink: #f3cb8a;
+        --s-selected-bg: #16263a;
+        --s-bar-bg: rgba(23, 29, 38, 0.94);
+        --s-bar-shadow: 0 -6px 18px rgba(0, 0, 0, 0.45);
       }
     }
 
@@ -123,7 +137,9 @@
       background: var(--s-surface);
       border-radius: 8px;
       box-shadow: var(--s-shadow);
-      overflow: hidden;
+      /* clip, not hidden: hidden would make this the scroll container and
+         stop the save bar from sticking to the window. */
+      overflow: clip;
     }
     
     .header {
@@ -134,9 +150,47 @@
     }
     
     .header h1 {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 6px 12px;
       margin: 0;
       font-size: 24px;
       font-weight: 600;
+    }
+
+    .header-wordmark {
+      display: block;
+      width: auto;
+      height: 36px;
+    }
+
+    .header-title-page {
+      padding-left: 12px;
+      border-left: 1px solid rgba(255, 255, 255, 0.45);
+      font-size: 20px;
+      font-weight: 500;
+      line-height: 28px;
+    }
+
+    .welcome-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .welcome-logo {
+      display: block;
+      flex: 0 0 auto;
+      width: 32px;
+      height: 32px;
+    }
+
+    .welcome-logo img {
+      display: block;
+      width: 100%;
+      height: 100%;
     }
 
     .saved-config {
@@ -282,7 +336,7 @@
       font-size: 14px;
     }
     
-    select, input[type="text"], input[type="password"], input[type="url"], textarea {
+    select, input[type="text"], input[type="password"], input[type="url"], input[type="number"], textarea {
       width: 100%;
       padding: 10px 12px;
       border: 1px solid var(--s-line-strong);
@@ -559,6 +613,413 @@
       color: var(--s-accent-text);
     }
 
+    /* ---------- Section layout ---------- */
+
+    .section-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0 0 24px;
+    }
+
+    .section-nav a {
+      padding: 4px 10px;
+      border: 1px solid var(--s-line);
+      border-radius: 999px;
+      background: var(--s-surface-soft);
+      color: var(--s-muted-strong);
+      font-size: 12px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .section-nav a:hover,
+    .section-nav a:focus-visible {
+      border-color: var(--s-accent);
+      color: var(--s-accent-text);
+    }
+
+    .section {
+      scroll-margin-top: 16px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--s-line);
+    }
+
+    .section-head .section-title {
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .section-lede {
+      margin: 2px 0 0;
+      color: var(--s-muted);
+      font-size: 13px;
+    }
+
+    .btn-restore {
+      flex: 0 0 auto;
+      padding: 6px 10px;
+      border: 1px solid var(--s-line-strong);
+      background: transparent;
+      color: var(--s-accent-text);
+      font-size: 12px;
+    }
+
+    .btn-restore:hover {
+      background: var(--s-btn-soft);
+    }
+
+    button:focus-visible,
+    .section-nav a:focus-visible {
+      outline: 2px solid var(--s-accent);
+      outline-offset: 2px;
+    }
+
+    /* ---------- Choices ---------- */
+
+    fieldset.choice-group {
+      min-width: 0;
+      margin: 0 0 16px;
+      padding: 0;
+      border: 0;
+    }
+
+    fieldset.choice-group legend {
+      margin-bottom: 8px;
+      padding: 0;
+      color: var(--s-label);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .choice-cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .choice-card {
+      position: relative;
+      display: grid;
+      align-content: start;
+      gap: 2px;
+      margin: 0;
+      padding: 10px 12px 10px 36px;
+      border: 1px solid var(--s-line-strong);
+      border-radius: 8px;
+      background: var(--s-surface);
+      cursor: pointer;
+      font-weight: 400;
+      transition: border-color 0.15s, background-color 0.15s;
+    }
+
+    .choice-card:hover {
+      border-color: var(--s-accent);
+    }
+
+    .choice-card input {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--s-accent);
+    }
+
+    .choice-card:has(input:checked) {
+      border-color: var(--s-accent);
+      background: var(--s-selected-bg);
+      box-shadow: inset 0 0 0 1px var(--s-accent);
+    }
+
+    .choice-card:has(input:focus-visible) {
+      box-shadow: inset 0 0 0 1px var(--s-accent), 0 0 0 3px var(--s-accent-ring);
+    }
+
+    .choice-title {
+      color: var(--s-ink-strong);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .choice-detail {
+      color: var(--s-muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .choice-badge {
+      margin-left: 4px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: var(--s-btn-soft);
+      color: var(--s-muted-strong);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      vertical-align: 1px;
+    }
+
+    .segmented {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .segmented label {
+      position: relative;
+      margin: 0;
+      font-weight: 400;
+    }
+
+    .segmented input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .segmented span {
+      display: block;
+      padding: 7px 14px;
+      border: 1px solid var(--s-line-strong);
+      border-radius: 999px;
+      background: var(--s-surface);
+      color: var(--s-label);
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: border-color 0.15s, background-color 0.15s;
+    }
+
+    .segmented label:hover span {
+      border-color: var(--s-accent);
+    }
+
+    .segmented input:checked + span {
+      border-color: var(--s-accent);
+      background: var(--s-accent);
+      color: #ffffff;
+    }
+
+    .segmented input:focus-visible + span {
+      box-shadow: 0 0 0 3px var(--s-accent-ring);
+    }
+
+    /* ---------- Numeric fields ---------- */
+
+    .custom-fields {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px 16px;
+      margin: 0 0 16px;
+      padding: 14px 16px;
+      border: 1px solid var(--s-line);
+      border-radius: 8px;
+      background: var(--s-surface-soft);
+    }
+
+    .custom-fields[hidden] {
+      display: none;
+    }
+
+    .custom-fields .form-group {
+      margin: 0;
+    }
+
+    .custom-fields input[type="number"] {
+      max-width: 120px;
+    }
+
+    .input-unit {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .input-unit input[type="number"] {
+      width: 130px;
+      flex: 0 0 auto;
+    }
+
+    .unit {
+      color: var(--s-muted);
+      font-size: 13px;
+    }
+
+    small.help-text {
+      display: block;
+    }
+
+    .field-error {
+      display: block;
+      margin-top: 4px;
+      color: var(--s-danger-ink);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .field-error[hidden] {
+      display: none;
+    }
+
+    .effective-value {
+      margin: 12px 0 0;
+      padding: 8px 12px;
+      border-left: 3px solid var(--s-accent);
+      border-radius: 0 6px 6px 0;
+      background: var(--s-surface-soft);
+      color: var(--s-muted-strong);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .effective-value:empty {
+      display: none;
+    }
+
+    .effective-value strong {
+      color: var(--s-ink-strong);
+      font-weight: 600;
+    }
+
+    .effective-value.warn {
+      border-left-color: var(--s-warn-ink);
+    }
+
+    /* ---------- Reset ---------- */
+
+    .danger-zone .section-title {
+      font-size: 15px;
+    }
+
+    .danger-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .danger-row .help-text {
+      margin: 0;
+    }
+
+    #resetBtn {
+      flex: 0 0 auto;
+    }
+
+    /* ---------- Sticky save bar ---------- */
+
+    .action-bar {
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+      padding: 12px 24px;
+      border-top: 1px solid var(--s-line);
+      background: var(--s-bar-bg);
+      box-shadow: var(--s-bar-shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .action-bar .status {
+      margin: 0 0 10px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .action-bar-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px 16px;
+    }
+
+    .form-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--s-muted-strong);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .form-state-dot {
+      width: 9px;
+      height: 9px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--s-line-strong);
+    }
+
+    .form-state[data-tone="dirty"] { color: var(--s-warn-ink); }
+    .form-state[data-tone="dirty"] .form-state-dot { background: var(--s-warn-ink); }
+    .form-state[data-tone="busy"] { color: var(--s-accent-text); }
+    .form-state[data-tone="busy"] .form-state-dot {
+      background: var(--s-accent-text);
+      animation: form-state-pulse 1s ease-in-out infinite;
+    }
+    .form-state[data-tone="success"] { color: var(--s-success-ink); }
+    .form-state[data-tone="success"] .form-state-dot { background: var(--s-success-ink); }
+    .form-state[data-tone="error"] { color: var(--s-danger-ink); }
+    .form-state[data-tone="error"] .form-state-dot { background: var(--s-danger-ink); }
+
+    @keyframes form-state-pulse {
+      50% { opacity: 0.3; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .form-state[data-tone="busy"] .form-state-dot { animation: none; }
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .action-buttons .btn-primary {
+      flex: 0 0 auto;
+      min-width: 140px;
+    }
+
+    @media (max-width: 560px) {
+      .section-head {
+        flex-direction: column;
+      }
+
+      .danger-row {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .action-bar {
+        padding: 10px 16px;
+      }
+
+      .action-buttons {
+        width: 100%;
+      }
+
+      .action-buttons button {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 10px 12px;
+      }
+    }
+
     code {
       padding: 0.05em 0.3em;
       border-radius: 4px;
@@ -571,7 +1032,10 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>DiscourseCopilot Settings</h1>
+      <h1>
+        <img class="header-wordmark" src="/brand/wordmark-on-dark.svg" alt="DiscourseCopilot" width="197" height="36">
+        <span class="header-title-page">Settings</span>
+      </h1>
       <div class="saved-config">
         <strong id="savedConfigurationLabel">Currently saved</strong>
         <span id="savedConfiguration">Loading…</span>
@@ -581,7 +1045,13 @@
     
     <div class="content">
       <section id="welcomeHeader" class="welcome-header hidden" aria-labelledby="welcomeHeading">
-        <h2 id="welcomeHeading">Welcome to DiscourseCopilot — 3 steps to get started</h2>
+        <h2 id="welcomeHeading" class="welcome-title">
+          <picture class="welcome-logo" aria-hidden="true">
+            <source srcset="/brand/icon-on-dark.svg" media="(prefers-color-scheme: dark)">
+            <img src="/brand/icon-on-light.svg" alt="" width="32" height="32">
+          </picture>
+          <span>Welcome to DiscourseCopilot — 3 steps to get started</span>
+        </h2>
         <p>
           DiscourseCopilot summarizes long topics and answers questions with sources on
           <strong>any Discourse forum</strong>. Connect your own AI provider below — or finish
@@ -594,10 +1064,21 @@
         </ol>
       </section>
 
-      <div id="status" class="status hidden" role="status" aria-live="polite"></div>
-      
-      <div class="section">
-        <h2 class="section-title">AI Provider</h2>
+      <nav class="section-nav" aria-label="Settings sections">
+        <a href="#providerHeading">AI provider</a>
+        <a href="#promptHeading">Prompt &amp; language</a>
+        <a href="#researchHeading">Ask the forum</a>
+        <a href="#readingHeading">Reading topics</a>
+        <a href="#historyHeading">History &amp; privacy</a>
+      </nav>
+
+      <section class="section" aria-labelledby="providerHeading">
+        <div class="section-head">
+          <div>
+            <h2 id="providerHeading" class="section-title">AI provider</h2>
+            <p class="section-lede">The AI service that writes summaries and answers. Your key stays in this browser.</p>
+          </div>
+        </div>
         
         <div class="form-group">
           <label for="providerSelect" class="step-label" data-step="1">Choose AI Provider:</label>
@@ -772,10 +1253,15 @@
           <p id="favoriteModelEmpty" class="favorite-model-empty">No favorites yet. Choose or enter a model above, then add it.</p>
           <div id="favoriteModelList" class="favorite-model-list" aria-live="polite"></div>
         </section>
-      </div>
+      </section>
 
-      <div class="section">
-        <h2 class="section-title">Prompt &amp; Language</h2>
+      <section class="section" aria-labelledby="promptHeading">
+        <div class="section-head">
+          <div>
+            <h2 id="promptHeading" class="section-title">Prompt &amp; language</h2>
+            <p class="section-lede">How answers are written.</p>
+          </div>
+        </div>
         <div class="form-group">
           <label for="responseLanguage">Response language:</label>
           <select id="responseLanguage">
@@ -799,12 +1285,157 @@
             built-in prompt. The response language setting above is still applied.
           </div>
         </div>
-      </div>
-      
-      <div class="button-group">
-        <button id="testBtn" class="btn-test">Test Connection</button>
-        <button id="saveBtn" class="btn-primary">Save Settings</button>
-        <button id="resetBtn" class="btn-secondary">Reset to Defaults</button>
+      </section>
+
+      <section class="section" aria-labelledby="researchHeading">
+        <div class="section-head">
+          <div>
+            <h2 id="researchHeading" class="section-title">Ask the forum</h2>
+            <p class="section-lede">How much research the Agent does for each question you ask a forum.</p>
+          </div>
+          <button type="button" class="btn-restore" data-restore="research" aria-label="Restore Ask the forum defaults">Restore defaults</button>
+        </div>
+
+        <fieldset class="choice-group" aria-describedby="researchHelp">
+          <legend>Research depth</legend>
+          <div class="choice-cards">
+            <label class="choice-card">
+              <input type="radio" name="researchDepth" value="quick">
+              <span class="choice-title">Quick</span>
+              <span class="choice-detail">1 search · reads 3 discussions</span>
+            </label>
+            <label class="choice-card">
+              <input type="radio" name="researchDepth" value="balanced">
+              <span class="choice-title">Balanced <span class="choice-badge">Default</span></span>
+              <span class="choice-detail">3 searches · reads 6 discussions</span>
+            </label>
+            <label class="choice-card">
+              <input type="radio" name="researchDepth" value="thorough">
+              <span class="choice-title">Thorough</span>
+              <span class="choice-detail">4 searches × 2 result pages · reads 10 discussions</span>
+            </label>
+            <label class="choice-card">
+              <input type="radio" name="researchDepth" value="custom">
+              <span class="choice-title">Custom</span>
+              <span class="choice-detail">Set each limit yourself</span>
+            </label>
+          </div>
+          <p id="researchHelp" class="help-text">
+            Deeper research finds more sources, but takes longer, uses more AI tokens, and sends more
+            requests to the forum (always paced, one at a time).
+          </p>
+        </fieldset>
+
+        <div id="customResearch" class="custom-fields" hidden>
+          <div class="form-group">
+            <label for="searchQueries">Search queries</label>
+            <input type="number" id="searchQueries" min="1" max="4" step="1" inputmode="numeric" aria-describedby="searchQueriesHelp searchQueriesError">
+            <small id="searchQueriesHelp" class="help-text">1–4. Rewordings of your question; near-duplicates are merged.</small>
+            <small id="searchQueriesError" class="field-error" hidden></small>
+          </div>
+          <div class="form-group">
+            <label for="searchPages">Result pages per search</label>
+            <input type="number" id="searchPages" min="1" max="3" step="1" inputmode="numeric" aria-describedby="searchPagesHelp searchPagesError">
+            <small id="searchPagesHelp" class="help-text">1–3. Later pages reach less relevant matches.</small>
+            <small id="searchPagesError" class="field-error" hidden></small>
+          </div>
+          <div class="form-group">
+            <label for="topicsRead">Discussions read</label>
+            <input type="number" id="topicsRead" min="1" max="12" step="1" inputmode="numeric" aria-describedby="topicsReadHelp topicsReadError">
+            <small id="topicsReadHelp" class="help-text">1–12. The most relevant ones are opened and cited.</small>
+            <small id="topicsReadError" class="field-error" hidden></small>
+          </div>
+        </div>
+
+        <p id="researchEffective" class="effective-value" aria-live="polite"></p>
+      </section>
+
+      <section class="section" aria-labelledby="readingHeading">
+        <div class="section-head">
+          <div>
+            <h2 id="readingHeading" class="section-title">Reading topics</h2>
+            <p class="section-lede">How much of a topic summaries and follow-up chat read.</p>
+          </div>
+          <button type="button" class="btn-restore" data-restore="reading" aria-label="Restore Reading topics defaults">Restore defaults</button>
+        </div>
+
+        <div class="form-group">
+          <label for="topicPageLimit">Pages read per topic</label>
+          <div class="input-unit">
+            <input type="number" id="topicPageLimit" min="1" max="100" step="1" inputmode="numeric" aria-describedby="topicPageLimitHelp topicPageLimitEffective topicPageLimitError">
+            <span class="unit" aria-hidden="true">pages of 100 posts</span>
+          </div>
+          <small id="topicPageLimitHelp" class="help-text">
+            1–100. Topics are read from the first page. A longer topic is summarized from its first
+            pages only, and the summary says so. Lower is faster, cheaper, and lighter on the forum.
+          </small>
+          <small id="topicPageLimitError" class="field-error" hidden></small>
+          <p id="topicPageLimitEffective" class="effective-value" aria-live="polite"></p>
+        </div>
+
+        <div class="form-group">
+          <label for="forumContextLimit">Chat context</label>
+          <div class="input-unit">
+            <input type="number" id="forumContextLimit" min="5000" max="1000000" step="5000" inputmode="numeric" aria-describedby="forumContextLimitHelp forumContextLimitError">
+            <span class="unit" aria-hidden="true">characters</span>
+          </div>
+          <small id="forumContextLimitHelp" class="help-text">
+            5,000–1,000,000, rounded to the nearest 5,000. How much of the topic is sent with each follow-up question (also adjustable
+            in the side panel). More context helps on long topics but uses more tokens.
+          </small>
+          <small id="forumContextLimitError" class="field-error" hidden></small>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="historyHeading">
+        <div class="section-head">
+          <div>
+            <h2 id="historyHeading" class="section-title">History &amp; privacy</h2>
+            <p class="section-lede">How long the side panel remembers what you haven’t kept. Everything stays in this browser.</p>
+          </div>
+          <button type="button" class="btn-restore" data-restore="history" aria-label="Restore History and privacy defaults">Restore defaults</button>
+        </div>
+
+        <fieldset class="choice-group" aria-describedby="historyRetentionHelp">
+          <legend>Keep conversations and Agent answers for</legend>
+          <div class="segmented" id="historyRetentionOptions"></div>
+          <p id="historyRetentionHelp" class="help-text">
+            Kept items never expire. Shortening this removes older unkept items as soon as you save.
+          </p>
+        </fieldset>
+
+        <div class="form-group">
+          <label for="maxSavedTopics">Saved topics</label>
+          <div class="input-unit">
+            <input type="number" id="maxSavedTopics" min="10" max="200" step="1" inputmode="numeric" aria-describedby="maxSavedTopicsHelp maxSavedTopicsError">
+            <span class="unit" aria-hidden="true">topics</span>
+          </div>
+          <small id="maxSavedTopicsHelp" class="help-text">
+            10–200. Past this many saved summaries, the oldest unkept ones are removed.
+          </small>
+          <small id="maxSavedTopicsError" class="field-error" hidden></small>
+        </div>
+
+        <p id="historyEffective" class="effective-value" aria-live="polite"></p>
+      </section>
+
+      <section class="section danger-zone" aria-labelledby="resetHeading">
+        <h2 id="resetHeading" class="section-title">Reset</h2>
+        <div class="danger-row">
+          <p class="help-text">Remove every provider, API key, model, favorite, prompt, and preference on this page. Saved summaries and answers are not deleted.</p>
+          <button id="resetBtn" type="button" class="btn-secondary">Reset all settings</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="action-bar" role="region" aria-label="Save settings">
+      <div id="status" class="status hidden" role="status" aria-live="polite"></div>
+      <div class="action-bar-row">
+        <span id="formState" class="form-state" data-tone="busy"><span class="form-state-dot" aria-hidden="true"></span><span id="formStateText">Loading…</span></span>
+        <div class="action-buttons">
+          <button id="testBtn" type="button" class="btn-test">Test Connection</button>
+          <button id="saveBtn" type="button" class="btn-primary">Save Settings</button>
+        </div>
       </div>
     </div>
   </div>

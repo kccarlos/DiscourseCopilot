@@ -5,7 +5,7 @@ import { formatEta } from '../shared/fetch-progress.mjs';
 import { formatRetryDelay } from '../shared/rate-limit-retry.mjs';
 import { TASK_STATUS, TASK_TYPE } from '../shared/task-record.mjs';
 import { setPostCopyAvailability, writeClipboardText } from './clipboard.mjs';
-import { forumHostname, formatRelativeTime } from './ui-state.mjs';
+import { describeSummaryCoverage, forumHostname, formatRelativeTime } from './ui-state.mjs';
 import { renderMarkdown } from './markdown.mjs';
 
 const $ = id => document.getElementById(id);
@@ -100,13 +100,21 @@ export class SummaryView {
       return;
     }
     const details = [];
-    if (session.summaryPostCount) {
-      details.push(`${Math.max(0, session.summaryPostCount - 1)} replies`);
+    const coverage = describeSummaryCoverage(session);
+    if (coverage.text) {
+      details.push(coverage.text);
     }
     if (session.summaryUpdatedAt) {
       details.push(`saved ${formatRelativeTime(session.summaryUpdatedAt)}`);
     }
     metadata.textContent = details.join(' · ') || 'Saved overview';
+    // Say plainly when the page limit cut the topic short.
+    metadata.title = coverage.note;
+    const note = $('summaryCoverageNote');
+    if (note) {
+      note.textContent = coverage.note;
+      note.classList.toggle('hidden', !coverage.truncated);
+    }
   }
 
   // Opens the summary card for a summary being written.

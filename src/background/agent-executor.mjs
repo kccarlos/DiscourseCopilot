@@ -2,9 +2,7 @@
 // an answer, and keeps the task's activity record (progress, sources,
 // answer, outcome) up to date for the side panel.
 import {
-  AGENT_ACTIVITY_RETENTION_MS,
   AGENT_ACTIVITY_STATUS,
-  agentActivityExpiry,
   agentActivityFromTask
 } from '../shared/agent-activity.mjs';
 import { TASK_STATUS } from '../shared/task-record.mjs';
@@ -47,8 +45,10 @@ export function agentFailurePatch(error, { cancelled, needsUserAction }, now = D
         : 'Failed',
     error: cancelled ? null : agentActivityError(error),
     // A run waiting for the user stays open and never expires on its own.
+    // Retention counts from retainedFrom; the database derives expiresAt
+    // from it with the current history setting.
     completedAt: finished ? now : 0,
-    expiresAt: finished ? now + AGENT_ACTIVITY_RETENTION_MS : 0
+    retainedFrom: finished ? now : 0
   };
 }
 
@@ -108,6 +108,8 @@ export function createAgentExecutor({
         systemPrompt: configuration.systemPrompt,
         responseLanguage: configuration.responseLanguage,
         forumName: configuration.forumName,
+        // Snapshotted when the task was queued (task-service.mjs).
+        limits: configuration.limits?.research,
         signal,
         toolClient,
         generateAnswer: ({
@@ -157,7 +159,7 @@ export function createAgentExecutor({
           : 'Completed',
         answer: result.answer,
         completedAt,
-        expiresAt: agentActivityExpiry(activity, completedAt),
+        retainedFrom: completedAt,
         progress: {
           percent: 100,
           completedSteps: activity.progress?.totalSteps || null,

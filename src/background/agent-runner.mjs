@@ -1,7 +1,9 @@
 import {
   buildTopicUrl,
+  FORUM_TOOL_LIMITS,
   ForumToolError
 } from './forum-tools.mjs';
+import { PREFERENCE_RANGES, RESEARCH_PRESETS } from '../shared/preferences.mjs';
 import {
   buildTopicKey,
   forumDisplayName,
@@ -13,10 +15,40 @@ import {
   rankSearchResults
 } from '../services/agent-context.mjs';
 
-const MAX_SEARCH_QUERIES = 3;
-const MAX_TOPIC_CANDIDATES = 6;
+// Sources handed to the model; matches AGENT_CONTEXT_LIMITS.maxSourceCount.
 const MAX_SELECTED_SOURCES = 12;
-const MAX_RAW_FALLBACKS = 3;
+
+// The research budget when the caller passes none (the Balanced preset).
+export const DEFAULT_RESEARCH_LIMITS = Object.freeze({
+  ...RESEARCH_PRESETS.balanced,
+  rawFallbacks: Math.ceil(RESEARCH_PRESETS.balanced.topicsRead / 2)
+});
+
+function boundedCount(value, fallback, min, max) {
+  const number = Number(value);
+  return Number.isInteger(number) ? Math.min(max, Math.max(min, number)) : fallback;
+}
+
+// The run's budget, clamped to the hard caps whatever the caller asked for:
+// preference ranges, and the forum tools' own search page limit.
+export function effectiveResearchLimits(limits = {}) {
+  const ranges = PREFERENCE_RANGES;
+  const topicsRead = boundedCount(
+    limits.topicsRead, DEFAULT_RESEARCH_LIMITS.topicsRead, ranges.topicsRead.min, ranges.topicsRead.max
+  );
+  return {
+    searchQueries: boundedCount(
+      limits.searchQueries, DEFAULT_RESEARCH_LIMITS.searchQueries,
+      ranges.searchQueries.min, ranges.searchQueries.max
+    ),
+    searchPages: boundedCount(
+      limits.searchPages, DEFAULT_RESEARCH_LIMITS.searchPages,
+      ranges.searchPages.min, Math.min(ranges.searchPages.max, FORUM_TOOL_LIMITS.maxSearchPage)
+    ),
+    topicsRead,
+    rawFallbacks: boundedCount(limits.rawFallbacks, Math.ceil(topicsRead / 2), 0, topicsRead)
+  };
+}
 
 function now() {
   return Date.now();
@@ -112,8 +144,10 @@ export async function runAgentTask({
   generateAnswer,
   onProgress = () => {},
   onActivityPatch = () => {},
-  onStream = () => {}
+  onStream = () => {},
+  limits
 } = {}) {
+  const budget = effectiveResearchLimits(limits);
   // Source links are always built from the tool client's forum, never from
   // model output.
   const siteUrl = normalizeSiteUrl(toolClient?.siteUrl);
@@ -123,12 +157,12 @@ export async function runAgentTask({
     });
   }
   const forumLabel = forumDisplayName(siteUrl, forumName) || 'the forum';
-  const queries = deriveSearchQueries(question, MAX_SEARCH_QUERIES);
+  const queries = deriveSearchQueries(question, budget.searchQueries);
   if (!queries.length) {
     throw new Error('Agent question is required');
   }
 
-  const totalSteps = queries.length + MAX_TOPIC_CANDIDATES + 4;
+  const totalSteps = queries.length * budget.searchPages + budget.topicsRead + 4;
   let completedSteps = 0;
   const searchQueries = [];
   const toolCalls = [];
@@ -178,31 +212,38 @@ export async function runAgentTask({
 
   await report(progressPatch('searching', `Searching ${forumLabel}…`, 0, totalSteps), true);
   for (const query of queries) {
-    const startedAt = now();
-    const result = await invoke(
-      'searchForum',
-      { query, page: 1 },
-      () => toolClient.searchForum({ query, page: 1 })
-    );
-    searchHits.push(...result.hits);
-    searchQueries.push({
-      query,
-      page: 1,
-      resultCount: result.hits.length,
-      startedAt,
-      completedAt: now()
-    });
-    completedSteps++;
-    await onActivityPatch({ searchQueries: [...searchQueries] }, true);
-    await report(progressPatch(
-      'searching',
-      `Found ${searchHits.length} search matches…`,
-      completedSteps,
-      totalSteps
-    ));
+    for (let page = 1; page <= budget.searchPages; page++) {
+      const startedAt = now();
+      const result = await invoke(
+        'searchForum',
+        { query, page },
+        () => toolClient.searchForum({ query, page })
+      );
+      searchHits.push(...result.hits);
+      searchQueries.push({
+        query,
+        page,
+        resultCount: result.hits.length,
+        startedAt,
+        completedAt: now()
+      });
+      completedSteps++;
+      await onActivityPatch({ searchQueries: [...searchQueries] }, true);
+      await report(progressPatch(
+        'searching',
+        `Found ${searchHits.length} search matches…`,
+        completedSteps,
+        totalSteps
+      ));
+      // No further result pages for this query.
+      if (result.more !== true) {
+        completedSteps += budget.searchPages - page;
+        break;
+      }
+    }
   }
 
-  const ranked = rankSearchResults(searchHits, question, MAX_TOPIC_CANDIDATES);
+  const ranked = rankSearchResults(searchHits, question, budget.topicsRead);
   if (!ranked.length) {
     return {
       answer: `I could not find any relevant discussions on ${forumLabel} for that question.`,
@@ -256,7 +297,7 @@ export async function runAgentTask({
         ...sourceRefFromPost(siteUrl, post, topic, `S${sourceCandidates.length + 1}`),
         score: hit.score
       })));
-    } else if (rawFallbacks < MAX_RAW_FALLBACKS) {
+    } else if (rawFallbacks < budget.rawFallbacks) {
       rawFallbacks++;
       const raw = await invoke(
         'getRawPage',

@@ -9,6 +9,9 @@ import {
 
 const { MESSAGES } = DiscourseCopilotConstants;
 const LAUNCHER_ID = 'discourse-copilot-page-launcher';
+// DiscourseCopilot logo (white bubble, "on-dark" variant) pixel-hinted for
+// small sizes; source: assets/brand/icon/sizes/discoursecopilot-icon-32-on-dark.svg
+const LAUNCHER_LOGO_SVG = '<svg class="logo" aria-hidden="true" focusable="false" viewBox="0 0 32 32"><defs><linearGradient id="dcl-bub" gradientUnits="userSpaceOnUse" x1="3.5" y1="7" x2="25.5" y2="29"><stop offset="0" stop-color="#3A5BE0"/><stop offset="1" stop-color="#8E2DB5"/></linearGradient><linearGradient id="dcl-star" gradientUnits="userSpaceOnUse" x1="17.5" y1="1" x2="31.5" y2="16.5"><stop offset="0" stop-color="#3D5CEB"/><stop offset="1" stop-color="#9B2FC6"/></linearGradient></defs><g><path d="M9.548 29.108Q6.103 29.8 2.058 31.319Q1.648 31.473 1.366 31.345Q1.085 31.217 0.931 30.808Q0.835 30.552 0.901 30.287Q2.079 25.587 2.404 21.502Q1.199 17.616 2.647 13.793Q4.127 9.888 7.726 7.769Q11.324 5.65 15.457 6.249Q17.34 6.523 18.957 7.306Q18.191 7.618 17.295 7.767Q16.414 7.914 16.267 8.795Q16.164 9.411 16.421 9.771Q16.678 10.13 17.295 10.233Q22.402 11.084 23.265 16.69Q23.404 17.596 24.31 17.735Q25.269 17.883 25.598 17.172Q25.889 21.308 23.538 24.728Q21.172 28.17 17.173 29.373Q13.301 30.538 9.548 29.108Z" fill="#4A6BFF" opacity="0.55"/><path d="M11.048 29.483Q7.603 30.175 3.558 31.694Q3.148 31.848 2.866 31.72Q2.585 31.592 2.431 31.183Q2.335 30.927 2.401 30.662Q3.579 25.962 3.904 21.877Q2.699 17.991 4.147 14.168Q5.627 10.263 9.226 8.144Q12.824 6.025 16.957 6.624Q18.156 6.799 19.248 7.179Q18.364 7.589 17.295 7.767Q16.414 7.914 16.267 8.795Q16.164 9.411 16.421 9.771Q16.678 10.13 17.295 10.233Q22.402 11.084 23.265 16.69Q23.404 17.596 24.31 17.735Q25.545 17.926 25.735 16.69Q25.945 15.328 26.406 14.246Q26.967 15.777 27.094 17.498Q27.403 21.662 25.038 25.103Q22.672 28.545 18.673 29.748Q14.801 30.913 11.048 29.483Z" fill="#C13AE0" opacity="0.55"/><path d="M10.298 29.108Q6.853 29.8 2.808 31.319Q2.398 31.473 2.116 31.345Q1.835 31.217 1.681 30.808Q1.585 30.552 1.651 30.287Q2.829 25.587 3.154 21.502Q1.949 17.616 3.397 13.793Q4.877 9.888 8.476 7.769Q12.074 5.65 16.207 6.249Q17.878 6.492 19.34 7.136Q18.42 7.579 17.295 7.767Q16.857 7.84 16.6 8.094Q16.283 8.029 15.955 7.981Q12.432 7.47 9.364 9.277Q6.296 11.084 5.034 14.414Q3.772 17.743 4.872 21.13Q4.926 21.294 4.913 21.466Q4.64 25.072 3.726 29.126Q7.184 27.927 10.214 27.341Q10.468 27.292 10.708 27.389Q14.009 28.723 17.419 27.697Q20.828 26.671 22.846 23.737Q24.717 21.014 24.625 17.761Q25.571 17.758 25.735 16.69Q25.855 15.91 26.058 15.222Q26.271 16.141 26.344 17.123Q26.653 21.287 24.288 24.728Q21.922 28.17 17.923 29.373Q14.051 30.538 10.298 29.108Z" fill="url(#dcl-bub)"/><path d="M4.872 21.13Q3.772 17.743 5.034 14.414Q6.296 11.084 9.364 9.277Q12.432 7.47 15.955 7.981Q16.283 8.029 16.6 8.094Q16.341 8.352 16.267 8.795Q16.164 9.411 16.421 9.771Q16.678 10.13 17.295 10.233Q22.402 11.084 23.265 16.69Q23.404 17.596 24.31 17.735Q24.477 17.761 24.625 17.761Q24.717 21.014 22.846 23.737Q20.828 26.671 17.419 27.697Q14.009 28.723 10.708 27.389Q10.468 27.292 10.214 27.341Q7.184 27.927 3.726 29.126Q4.64 25.072 4.913 21.466Q4.926 21.294 4.872 21.13Z" fill="#FFFFFF"/><path d="M8.55 13H18.95Q19.25 13 19.25 13.3V14.7Q19.25 15 18.95 15H8.55Q8.25 15 8.25 14.7V13.3Q8.25 13 8.55 13ZM8.55 17H18.95Q19.25 17 19.25 17.3V18.7Q19.25 19 18.95 19H8.55Q8.25 19 8.25 18.7V17.3Q8.25 17 8.55 17ZM8.55 21H14.95Q15.25 21 15.25 21.3V22.7Q15.25 23 14.95 23H8.55Q8.25 23 8.25 22.7V21.3Q8.25 21 8.55 21Z" fill="#4A6BFF"/><path d="M10.05 13.375H20.45Q20.75 13.375 20.75 13.675V15.075Q20.75 15.375 20.45 15.375H10.05Q9.75 15.375 9.75 15.075V13.675Q9.75 13.375 10.05 13.375ZM10.05 17.375H20.45Q20.75 17.375 20.75 17.675V19.075Q20.75 19.375 20.45 19.375H10.05Q9.75 19.375 9.75 19.075V17.675Q9.75 17.375 10.05 17.375ZM10.05 21.375H16.45Q16.75 21.375 16.75 21.675V23.075Q16.75 23.375 16.45 23.375H10.05Q9.75 23.375 9.75 23.075V21.675Q9.75 21.375 10.05 21.375Z" fill="#C13AE0"/><path d="M9.3 13H19.7Q20 13 20 13.3V14.7Q20 15 19.7 15H9.3Q9 15 9 14.7V13.3Q9 13 9.3 13ZM9.3 17H19.7Q20 17 20 17.3V18.7Q20 19 19.7 19H9.3Q9 19 9 18.7V17.3Q9 17 9.3 17ZM9.3 21H15.7Q16 21 16 21.3V22.7Q16 23 15.7 23H9.3Q9 23 9 22.7V21.3Q9 21 9.3 21Z" fill="#17132B"/><path d="M23.75 1Q24.75 8 30.75 9Q27.361 9.565 25.567 11.885Q24.827 10.562 23.736 9.392Q22.447 8.009 20.91 7.1Q23.17 5.058 23.75 1Z" fill="#4A6BFF" opacity="0.7"/><path d="M25.25 1.375Q26.25 8.375 32.25 9.375Q28.055 10.074 26.304 13.461Q25.455 11.236 23.736 9.392Q22.915 8.511 21.994 7.823Q24.619 5.795 25.25 1.375Z" fill="#C13AE0" opacity="0.7"/><path d="M24.5 1Q25.5 8 31.5 9Q25.5 10 24.5 16.5Q23.5 10 17.5 9Q23.5 8 24.5 1Z" fill="url(#dcl-star)"/></g></svg>';
 const URL_CHECK_INTERVAL_MS = 500;
 const DETECTION_RETRY_MS = 1500;
 
@@ -163,9 +166,9 @@ class DiscourseCopilotContent {
         justify-content: center;
         gap: 8px;
         padding: 9px 13px 9px 10px;
-        border: 1px solid rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.5);
         border-radius: 999px;
-        background: linear-gradient(145deg, #1769e0, #7254e8);
+        background: linear-gradient(135deg, #22265c, #33205f);
         box-shadow:
           0 10px 30px rgba(23, 58, 117, 0.25),
           0 2px 8px rgba(23, 58, 117, 0.2);
@@ -201,15 +204,11 @@ class DiscourseCopilotContent {
         cursor: wait;
         opacity: 0.78;
       }
-      svg {
-        width: 21px;
-        height: 21px;
+      .logo {
+        display: block;
+        width: 24px;
+        height: 24px;
         flex: 0 0 auto;
-        fill: none;
-        stroke: currentColor;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-        stroke-width: 1.9;
       }
       @keyframes discourse-copilot-enter {
         to {
@@ -249,13 +248,7 @@ class DiscourseCopilotContent {
     button.type = 'button';
     button.setAttribute('aria-label', 'Open DiscourseCopilot panel');
     button.title = 'Open DiscourseCopilot';
-    button.innerHTML = `
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M5 4h14v16H5z"/>
-        <path d="M9 8h6M9 12h6M9 16h4"/>
-      </svg>
-      <span class="label">DiscourseCopilot</span>
-    `;
+    button.innerHTML = `${LAUNCHER_LOGO_SVG}<span class="label">DiscourseCopilot</span>`;
     button.addEventListener('click', () => {
       void this.openPanel(button);
     });

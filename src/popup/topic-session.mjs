@@ -15,6 +15,10 @@ function finiteTimestamp(value, fallback = 0) {
   return Number.isFinite(value) && value >= 0 ? value : fallback;
 }
 
+function positiveIntegerOrNull(value) {
+  return Number.isInteger(value) && value > 0 ? value : null;
+}
+
 function trimmedString(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -97,6 +101,12 @@ export function createTopicSession(
     kept: false,
     totalPosts: null,
     summaryPostCount: null,
+    // Page-limit coverage: the cached source (latest read) and the summary.
+    sourceTruncated: false,
+    coveredPosts: null,
+    summaryTruncated: false,
+    summaryCoveredPosts: null,
+    summaryPagesRead: 0,
     pagesFetched: 0,
     provider: '',
     model: '',
@@ -137,6 +147,13 @@ export function normalizeTopicSession(value, now = Date.now()) {
       Number.isInteger(value.summaryPostCount) && value.summaryPostCount > 0
         ? value.summaryPostCount
         : null,
+    sourceTruncated: value.sourceTruncated === true,
+    coveredPosts: positiveIntegerOrNull(value.coveredPosts),
+    summaryTruncated: value.summaryTruncated === true,
+    summaryCoveredPosts: positiveIntegerOrNull(value.summaryCoveredPosts),
+    summaryPagesRead: Number.isInteger(value.summaryPagesRead) && value.summaryPagesRead >= 0
+      ? value.summaryPagesRead
+      : 0,
     pagesFetched: Number.isInteger(value.pagesFetched) && value.pagesFetched >= 0
       ? value.pagesFetched
       : 0,
@@ -206,6 +223,8 @@ export function buildTopicIndexEntry(value) {
       .slice(0, 180),
     totalPosts: session.totalPosts,
     summaryPostCount: session.summaryPostCount,
+    summaryTruncated: session.summaryTruncated,
+    summaryCoveredPosts: session.summaryCoveredPosts,
     historyCount: session.history.length,
     provider: session.provider,
     model: session.model,

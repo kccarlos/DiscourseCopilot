@@ -54,9 +54,9 @@ Only from the forum of the current page or task:
 ## Data Retention
 
 - Settings and API keys remain until you clear them, reset settings, or uninstall the extension.
-- Up to the 40 most recently updated topic summaries and their cached forum pages are retained locally.
-- Chat history is removed 24 hours after its latest message; the summary remains available.
-- Completed, failed, and cancelled task records are removed after 24 hours.
+- Up to the 40 most recently updated topic summaries and their cached forum pages are retained locally (10–200, set under **Settings → History & privacy**; kept topics are never removed).
+- Chat history and Agent answers you haven't kept are removed 1 day after their latest activity by default (3, 7 or 30 days, or no time limit, under **Settings → History & privacy**); the summary remains available and kept items never expire.
+- Completed, failed, and cancelled task records follow the same setting, for at most 7 days.
 - You can delete individual saved summaries from **Activity**.
 - Uninstalling the extension removes its local storage and IndexedDB data.
 

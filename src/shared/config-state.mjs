@@ -1,8 +1,10 @@
-// The extension's AI configuration: the one place that reads, normalizes,
+// The extension's configuration: the one place that reads, normalizes,
 // validates and writes the persisted settings (provider, per-provider
 // settings, active model, favorites, system prompt, response language, forum
-// context limit). The settings page, the side panel (header, model switcher,
-// setup card) and the background worker all go through this module.
+// context limit, and the `preferences` section: research depth, topic page
+// limit, history retention). The settings page, the side panel (header, model
+// switcher, setup card, Activity labels) and the background worker (task
+// limits, retention cleanup) all go through this module.
 //
 // Persisted status (derived from storage on every load and write, never
 // stored itself):
@@ -38,15 +40,43 @@
 // phase the last operation ended in. test()/save()/reset() refuse to start
 // while another operation is in flight (they return { ok: false, reason: 'busy' }).
 //
-// Draft edits (selectProvider, updateField, updateDraft) are synchronous and
-// do not notify subscribers; subscribers hear about persisted changes and
-// operation phases. The draft starts as a copy of the persisted settings and
-// only reaches storage through save().
+// Draft edits (selectProvider, updateField, updateDraft, updatePreferences,
+// resetPreferencesDraft) are synchronous and do not notify subscribers;
+// subscribers hear about persisted changes and operation phases. The draft
+// starts as a copy of the persisted settings and only reaches storage through
+// save(), which validates the provider and the preferences together.
+//
+// Preferences (config.preferences, see preferences.mjs):
+//
+//   storage ──readConfig()──▶ normalizePreferences()   missing keys → defaults,
+//      ▲                          │                     out of range → clamped
+//      │                          ▼
+//      │                   config.preferences ──▶ resolveResearchLimits()
+//      │                          │                   resolveTopicPageLimit()
+//      │                          │                   resolveRetention()
+//      │                          ▼
+//      │     updatePreferences() / resetPreferencesDraft()
+//      │                          │
+//      │                          ▼
+//      │                   draft.preferences ──validatePreferences()──▶ invalid
+//      │                          │                (per-field errors, nothing
+//      └──────── save() ──────────┘                 clamped, nothing written)
+//
+//   Effective values are always derived with the resolve*() helpers. The
+//   background snapshots the task-relevant ones into each task when it is
+//   queued (snapshotTaskLimits), so queued and running tasks keep the values
+//   they started with; retention changes reach the background and the side
+//   panel through subscribe() and are applied at once (cleanup + labels).
 
 import { DiscourseCopilotConstants } from './constants.js';
 import { normalizeFavoriteModels } from './favorite-models.mjs';
-import { normalizeForumContextLimit } from './chat-context-limit.mjs';
+import { FORUM_CONTEXT_LIMIT, normalizeForumContextLimit } from './chat-context-limit.mjs';
 import { normalizeResponseLanguage } from './response-language.mjs';
+import {
+  defaultPreferences,
+  normalizePreferences,
+  validatePreferences
+} from './preferences.mjs';
 import {
   classifyConnectionFailure,
   defaultProviderSettings,
@@ -135,7 +165,8 @@ function readProviderSettings(values, provider, providerConfigs) {
  *   provider: string, providerChoice: string,
  *   providers: Record<string, {apiKey?: string, url?: string, model: string}>,
  *   favorites: Array<{provider: string, model: string}>,
- *   systemPrompt: string, responseLanguage: string, forumContextLimit: number
+ *   systemPrompt: string, responseLanguage: string, forumContextLimit: number,
+ *   preferences: ReturnType<typeof normalizePreferences>
  * }}
  */
 export function readConfig(values = {}, providerConfigs = PROVIDER_CONFIGS) {
@@ -153,7 +184,8 @@ export function readConfig(values = {}, providerConfigs = PROVIDER_CONFIGS) {
     favorites: normalizeFavoriteModels(raw[STORAGE_KEYS.FAVORITE_MODELS], providerConfigs),
     systemPrompt: storedString(raw[STORAGE_KEYS.SYSTEM_PROMPT]),
     responseLanguage: normalizeResponseLanguage(raw[STORAGE_KEYS.RESPONSE_LANGUAGE]),
-    forumContextLimit: normalizeForumContextLimit(raw[STORAGE_KEYS.FORUM_CONTEXT_LIMIT])
+    forumContextLimit: normalizeForumContextLimit(raw[STORAGE_KEYS.FORUM_CONTEXT_LIMIT]),
+    preferences: normalizePreferences(raw[STORAGE_KEYS.PREFERENCES])
   };
 }
 
@@ -188,7 +220,9 @@ export function deriveConfigStatus(config, providerConfigs = PROVIDER_CONFIGS) {
 // Storage values for saving a provider's settings (written in one call).
 export function buildConfigurationWrite(provider, settings, {
   systemPrompt = '',
-  responseLanguage
+  responseLanguage,
+  preferences,
+  forumContextLimit
 } = {}) {
   const keys = PROVIDER_STORAGE_KEYS[provider];
   if (!keys) {
@@ -200,6 +234,12 @@ export function buildConfigurationWrite(provider, settings, {
   };
   if (responseLanguage !== undefined) {
     values[STORAGE_KEYS.RESPONSE_LANGUAGE] = normalizeResponseLanguage(responseLanguage);
+  }
+  if (preferences !== undefined) {
+    values[STORAGE_KEYS.PREFERENCES] = normalizePreferences(preferences);
+  }
+  if (forumContextLimit !== undefined) {
+    values[STORAGE_KEYS.FORUM_CONTEXT_LIMIT] = normalizeForumContextLimit(forumContextLimit);
   }
   for (const [field, key] of Object.entries(keys)) {
     values[key] = settings?.[field] || '';
@@ -303,7 +343,8 @@ export class ConfigStore {
       [STORAGE_KEYS.FAVORITE_MODELS]: this.config.favorites,
       [STORAGE_KEYS.SYSTEM_PROMPT]: this.config.systemPrompt,
       [STORAGE_KEYS.RESPONSE_LANGUAGE]: this.config.responseLanguage,
-      [STORAGE_KEYS.FORUM_CONTEXT_LIMIT]: this.config.forumContextLimit
+      [STORAGE_KEYS.FORUM_CONTEXT_LIMIT]: this.config.forumContextLimit,
+      [STORAGE_KEYS.PREFERENCES]: this.config.preferences
     };
     for (const [provider, keys] of Object.entries(PROVIDER_STORAGE_KEYS)) {
       for (const [field, key] of Object.entries(keys)) {
@@ -336,11 +377,23 @@ export class ConfigStore {
     return normalized;
   }
 
+  // Writes the preferences section directly (validated; no draft involved).
+  async setPreferences(preferences) {
+    const validation = validatePreferences(preferences);
+    if (!validation.valid) {
+      return { ok: false, reason: 'invalid', validation };
+    }
+    const values = { [STORAGE_KEYS.PREFERENCES]: validation.preferences };
+    await this.storageArea.set(values);
+    this.applyWrite(values, 'preferences');
+    return { ok: true, preferences: this.config.preferences };
+  }
+
   // ---------- Subscription ----------
 
   // listener(event, store); event.type is 'loaded' (initial or external
-  // change), 'active-model', 'favorites', 'forum-context-limit', 'saved',
-  // 'reset' or 'operation'. The first subscriber starts watching storage.
+  // change), 'active-model', 'favorites', 'forum-context-limit',
+  // 'preferences', 'saved', 'reset' or 'operation'. The first subscriber starts watching storage.
   subscribe(listener) {
     this.listeners.add(listener);
     this.watchStorage();
@@ -390,7 +443,11 @@ export class ConfigStore {
       provider: '',
       providers: new Map(),
       systemPrompt: undefined,
-      responseLanguage: undefined
+      responseLanguage: undefined,
+      forumContextLimit: undefined,
+      // undefined until edited; then the preferences being edited (field
+      // values may be strings typed into inputs until they validate).
+      preferences: undefined
     };
   }
 
@@ -425,13 +482,84 @@ export class ConfigStore {
     settings[field] = typeof value === 'string' ? value : '';
   }
 
-  updateDraft({ systemPrompt, responseLanguage } = {}) {
+  updateDraft({ systemPrompt, responseLanguage, forumContextLimit } = {}) {
     if (systemPrompt !== undefined) this.draft.systemPrompt = systemPrompt;
     if (responseLanguage !== undefined) this.draft.responseLanguage = responseLanguage;
+    // May be a string typed into the settings page until it validates.
+    if (forumContextLimit !== undefined) this.draft.forumContextLimit = forumContextLimit;
   }
 
+  // The preferences being edited (a copy of the persisted ones until edited).
+  get draftPreferences() {
+    return this.draft.preferences ?? structuredClone(this.config.preferences);
+  }
+
+  // Merges a patch into the draft preferences; `customResearch` merges too.
+  updatePreferences(patch = {}) {
+    const current = this.draftPreferences;
+    this.draft.preferences = {
+      ...current,
+      ...patch,
+      customResearch: {
+        ...current.customResearch,
+        ...(patch.customResearch || {})
+      }
+    };
+    return this.draft.preferences;
+  }
+
+  // "Reset to defaults" for the preferences (all of them, or only `keys`):
+  // a draft edit like any other (nothing is written until save()).
+  resetPreferencesDraft(keys) {
+    const defaults = defaultPreferences();
+    if (!Array.isArray(keys)) {
+      this.draft.preferences = defaults;
+      return this.draft.preferences;
+    }
+    this.draft.preferences = {
+      ...this.draftPreferences,
+      ...Object.fromEntries(keys.filter(key => key in defaults).map(key => [key, defaults[key]]))
+    };
+    return this.draft.preferences;
+  }
+
+  // Provider settings only (what test() needs).
   validateDraft(provider = this.draft.provider) {
     return validateProviderSettings(provider, this.draftSettings(provider), this.providerConfigs);
+  }
+
+  validatePreferencesDraft() {
+    const validation = validatePreferences(this.draftPreferences);
+    const limit = this.draft.forumContextLimit;
+    if (limit === undefined) {
+      return validation;
+    }
+    const text = typeof limit === 'number' ? String(limit) : String(limit ?? '').trim();
+    const number = Number(text);
+    if (/^\d+$/.test(text) && number >= FORUM_CONTEXT_LIMIT.min && number <= FORUM_CONTEXT_LIMIT.max) {
+      return validation;
+    }
+    const message = `Chat context must be a whole number from ${FORUM_CONTEXT_LIMIT.min.toLocaleString('en-US')} to ${FORUM_CONTEXT_LIMIT.max.toLocaleString('en-US')} characters.`;
+    return {
+      ...validation,
+      valid: false,
+      errors: [...validation.errors, message],
+      fieldErrors: { ...validation.fieldErrors, forumContextLimit: message },
+      preferences: null
+    };
+  }
+
+  // Everything save() checks: the provider settings plus the preferences.
+  validateSave(provider = this.draft.provider) {
+    const providerValidation = this.validateDraft(provider);
+    const preferenceValidation = this.validatePreferencesDraft();
+    return {
+      ...providerValidation,
+      valid: providerValidation.valid && preferenceValidation.valid,
+      errors: [...providerValidation.errors, ...preferenceValidation.errors],
+      fieldErrors: { ...providerValidation.fieldErrors, ...preferenceValidation.fieldErrors },
+      preferences: preferenceValidation.preferences
+    };
   }
 
   // ---------- Operations ----------
@@ -468,17 +596,22 @@ export class ConfigStore {
 
   async save(provider = this.draft.provider) {
     if (this.busy) return { ok: false, reason: 'busy' };
-    const validation = this.validateDraft(provider);
+    const validation = this.validateSave(provider);
     if (!validation.valid) {
       this.setOperation({ phase: OPERATION_PHASE.INVALID, provider, validation });
       return { ok: false, reason: 'invalid', validation };
     }
     this.setOperation({ phase: OPERATION_PHASE.SAVING, provider });
+    // Edits made while the write is in flight stay in the draft.
+    const savedDraftPreferences = this.draft.preferences;
+    const savedDraftContextLimit = this.draft.forumContextLimit;
     let values;
     try {
       values = buildConfigurationWrite(provider, validation.settings, {
         systemPrompt: this.draft.systemPrompt ?? this.config.systemPrompt,
-        responseLanguage: this.draft.responseLanguage ?? this.config.responseLanguage
+        responseLanguage: this.draft.responseLanguage ?? this.config.responseLanguage,
+        preferences: validation.preferences,
+        forumContextLimit: this.draft.forumContextLimit
       });
       await this.storageArea.set(values);
     } catch (error) {
@@ -486,6 +619,8 @@ export class ConfigStore {
       return { ok: false, reason: 'error', error, validation };
     }
     this.draft.providers.set(provider, { ...validation.settings });
+    if (this.draft.preferences === savedDraftPreferences) this.draft.preferences = undefined;
+    if (this.draft.forumContextLimit === savedDraftContextLimit) this.draft.forumContextLimit = undefined;
     this.applyWrite(values, 'saved');
     this.setOperation({ phase: OPERATION_PHASE.SAVED, provider });
     return { ok: true, validation };

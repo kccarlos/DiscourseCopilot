@@ -41,7 +41,10 @@ Plain JavaScript ES modules, bundled by Vite (`vite-plugin-web-extension` reads 
 ```
 manifest.json       Chrome MV3 manifest (build input)
 vite.config.js      Build configuration
-public/             Static assets copied into dist/ (icons)
+public/             Static assets copied into dist/ as-is: toolbar/store icons (icon16/32/48/128.png,
+                    rendered from assets/brand/icon/sizes/*-on-light.svg) and brand/ SVGs used by the pages
+assets/brand/       Logo source of truth (icon, pixel-hinted small sizes, wordmarks; on-light/on-dark
+                    variants). Not shipped; the README wordmark is served from here
 test/               Unit tests (node --test)
 src/
   background/       Service worker
@@ -84,6 +87,8 @@ src/
   services/         AI provider calls (ai-service, provider-config), prompts, chat/Agent context
   shared/           Used across the above
     config-state.mjs      The configuration model (see below)
+    preferences.mjs       Research depth, topic page limit and history retention: defaults, ranges,
+                          normalization/validation and the resolve*() helpers
     provider-setup.mjs    Provider validation, connection test, failure messages
     constants.js          Storage keys, message names, provider list
     task-record.mjs, agent-activity.mjs, forum-site.mjs, forum-response.mjs, …  Records and utilities
@@ -91,7 +96,7 @@ src/
 
 ### Configuration state
 
-`src/shared/config-state.mjs` is the only code that reads or writes the AI configuration in `chrome.storage.local` (provider, per-provider key/URL/model, favorites, system prompt, response language, forum context limit). `readConfig()` normalizes the stored values, `deriveConfigStatus()` derives the status, and a `ConfigStore` holds the snapshot, a draft being edited, and the transitions. The settings page, the side panel (header, model switcher, setup card) and the background worker (`loadConfig()`, used when a task's in-memory settings are gone after a restart) all use it.
+`src/shared/config-state.mjs` is the only code that reads or writes the configuration in `chrome.storage.local` (provider, per-provider key/URL/model, favorites, system prompt, response language, forum context limit, and the `preferences` section described below). `readConfig()` normalizes the stored values, `deriveConfigStatus()` derives the status, and a `ConfigStore` holds the snapshot, a draft being edited, and the transitions. The settings page, the side panel (header, model switcher, setup card) and the background worker (`loadConfig()`, used when a task's in-memory settings are gone after a restart) all use it.
 
 Status is derived from storage and never stored:
 
@@ -122,9 +127,55 @@ Operations on a store (`store.operation.phase`):
          └──▶ resetting ──▶ idle | error        reset()
 ```
 
-Draft edits (`selectProvider`, `updateField`, `updateDraft`) are synchronous and never touch storage; only `save()` does. `setActiveModel`, `setFavorites` and `setForumContextLimit` write directly. `subscribe()` reports persisted changes, including those made in other extension pages (via `chrome.storage.onChanged`), and operation phases.
+Draft edits (`selectProvider`, `updateField`, `updateDraft`, `updatePreferences`, `resetPreferencesDraft`) are synchronous and never touch storage; only `save()` does, after validating the provider settings *and* the preferences (`validateSave()`; `test()` checks the provider only). `setActiveModel`, `setFavorites`, `setForumContextLimit` and `setPreferences` write directly. `subscribe()` reports persisted changes, including those made in other extension pages (via `chrome.storage.onChanged`), and operation phases.
 
-The settings page layers its form lifecycle on top of this in `settings-form-state.mjs`: `loading → pristine ⇄ dirty → testing | saving → saved`, plus `invalid`, `error` and `resetting`. The status line, the "Unsaved changes" indicator and the disabled buttons are all derived from that state.
+### Preferences
+
+`config.preferences` (storage key `preferences`, logic in `src/shared/preferences.mjs`):
+
+| Option | Default | Range / choices | Consumed by |
+| --- | --- | --- | --- |
+| `researchDepth` + `customResearch` | Balanced (3 searches, 1 result page, 6 discussions) | Quick / Balanced / Thorough / Custom (queries 1–4, result pages 1–3, discussions 1–12) | `agent-runner.mjs` via the task's snapshot |
+| `topicPageLimit` | 20 pages (2,000 posts) | 1–100 | `topic-fetcher.mjs` via the task's snapshot; summary coverage in the side panel |
+| `historyRetention` | 1 day | 1d / 3d / 7d / 30d / forever | `TopicSessionDatabase.setRetention()` in the background (cleanup) and side panel (lazy expiry, Saved list, labels) |
+| `maxSavedTopics` | 40 | 10–200 | saved-topic pruning |
+
+Hard caps stay in code: `FORUM_TOOL_LIMITS` (search pages ≤ 3, raw pages ≤ 20), `MAX_UNKNOWN_TOPIC_PAGES`, the forum request pacing, `MAX_AGENT_SEARCH_QUERIES`/`MAX_AGENT_TOOL_CALLS` (sized for the largest budget) and a 7-day ceiling on finished task records.
+
+```
+  storage ──readConfig()──▶ normalizePreferences()     missing keys → defaults,
+     ▲                          │                       out of range → clamped
+     │                          ▼
+     │                   config.preferences ──▶ resolveResearchLimits()
+     │                          │                  resolveTopicPageLimit()
+     │                          │                  resolveRetention()
+     │                          ▼
+     │     updatePreferences() / resetPreferencesDraft([keys])
+     │                          │
+     │                          ▼
+     │                   draft.preferences ──validatePreferences()──▶ invalid
+     │                          │               (per-field errors, nothing
+     └──────── save() ──────────┘                clamped, nothing written)
+```
+
+Consumers never read the raw fields; effective values always come from the `resolve*()` helpers.
+
+- **Snapshot rule.** When the background queues a task, `TaskService.enqueue()` reads the saved preferences and stores `snapshotTaskLimits(type, preferences)` on the task record (`task.limits`: `research` for Agent tasks, `topicPageLimit` for summary/chat). Executors only use `task.limits` (through `getTaskConfiguration()`), and the record is persisted, so queued and running tasks — including ones resumed after a worker restart — keep the values they started with. Tasks queued after a change use the new values.
+- **Retention.** The background holds a `ConfigStore` subscription; on every change it calls `TaskService.applyRetention(resolveRetention(prefs))`, which updates the database and re-runs chat/task/Agent cleanup and pruning (also done at startup, *after* reading the preferences). Agent answers expire `retention` after `retainedFrom` (completion, or the moment they were unkept), recomputed with the current setting, so shortening the period applies immediately. The side panel applies the same retention to its own database instance and re-renders the Saved list, the "expires in …" labels and the Keep button titles when the preferences change in any page.
+- **Truncation.** A topic longer than the page limit is read from its first pages; the fetch result carries `truncated`/`coveredPosts`, the task status says "(page limit; the topic has N)", and the session stores `summaryTruncated`/`summaryCoveredPosts`, shown as "first X of Y replies" plus a note on the summary. Replies added past the limit don't trigger a re-read or a new summary.
+
+### Settings form
+
+The settings page layers its form lifecycle on top of this in `settings-form-state.mjs`: `loading → pristine ⇄ dirty → testing | saving → saved`, plus `invalid`, `error` and `resetting`. Inline field errors (`fieldErrors`) are part of that state: a number field shows its error when left, clears it as soon as it is fixed, and Save with errors goes to `invalid` without writing anything. "Restore defaults" on a section is a draft edit (`defaults-restored` → dirty) saved with Save.
+
+```
+                    edit with an error ─┐
+  pristine ──edit──▶ dirty ◀──fix──── dirty + fieldErrors ──Save──▶ invalid
+                       │                                       (nothing written)
+                       └──Save──▶ saving ──▶ saved | dirty | error
+```
+
+The status line, the save bar's state label ("Unsaved changes", "Saving…", "Saved", "Fix the highlighted fields", …), the header's "Unsaved changes" indicator and the disabled buttons are all derived from that state.
 
 ## CI/CD & releases
 

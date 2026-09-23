@@ -214,17 +214,17 @@ textarea:focus-visible {
 }
 
 .brand-mark {
-    display: grid;
-    width: 2.35rem;
-    height: 2.35rem;
+    display: block;
+    width: 2.5rem;
+    height: 2.5rem;
     flex: 0 0 auto;
-    place-items: center;
-    border-radius: 12px;
-    background: linear-gradient(145deg, var(--uc-accent-fill), var(--uc-agent));
-    box-shadow: 0 5px 14px rgba(23, 105, 224, 0.24);
-    color: white;
-    font-size: 1rem;
-    font-weight: 800;
+}
+
+.brand-mark img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    user-select: none;
 }
 
 .brand-copy {
@@ -235,7 +235,13 @@ textarea:focus-visible {
     margin: 0;
     color: var(--uc-ink);
     font-size: 1.08rem;
+    font-weight: 500;
     letter-spacing: -0.02em;
+}
+
+/* Echoes the wordmark: bold "Discourse", regular "Copilot". */
+.brand-name-strong {
+    font-weight: 800;
 }
 
 .favorite-model-select {
@@ -771,6 +777,17 @@ details[open] > summary .chevron {
     padding: 0 0.85rem 0.85rem;
     border-top: 1px solid var(--uc-line-soft);
     animation: reveal-panel 180ms ease both;
+}
+
+.summary-coverage-note {
+    margin: 0.7rem 0 0;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--uc-warning-line);
+    border-radius: 8px;
+    background: var(--uc-warning-soft);
+    color: var(--uc-warning-ink);
+    font-size: 0.72rem;
+    line-height: 1.4;
 }
 
 .summary-display {
@@ -2765,8 +2782,8 @@ details[open] > summary .chevron {
     }
 
     .brand-mark {
-        width: 2.15rem;
-        height: 2.15rem;
+        width: 2.25rem;
+        height: 2.25rem;
     }
 
     .provider-context {

@@ -3,7 +3,9 @@ import test from 'node:test';
 
 import {
   AGENT_ACTIVITY_STATUS,
+  MAX_AGENT_SEARCH_QUERIES,
   MAX_AGENT_SOURCES,
+  MAX_AGENT_TOOL_CALLS,
   createAgentActivity,
   buildAgentActivityIndexEntry,
   normalizeAgentActivity
@@ -55,8 +57,8 @@ test('normalizes bounded Agent activity records and derives a lightweight index 
   }, 100);
 
   assert.equal(activity.status, AGENT_ACTIVITY_STATUS.COMPLETED);
-  assert.equal(activity.searchQueries.length, 6);
-  assert.equal(activity.toolCalls.length, 40);
+  assert.equal(activity.searchQueries.length, MAX_AGENT_SEARCH_QUERIES);
+  assert.equal(activity.toolCalls.length, MAX_AGENT_TOOL_CALLS);
   assert.equal(activity.sourceRefs.length, MAX_AGENT_SOURCES);
   assert.equal(activity.expiresAt, 100 + 24 * 60 * 60 * 1000);
 

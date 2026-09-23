@@ -1,7 +1,13 @@
 // Background task service: the job queue plus everything around it —
 // request validation, IndexedDB persistence, broadcasting task updates to
 // open views, the wake-up alarm that keeps the worker alive while tasks run,
-// and the per-task provider configuration.
+// the per-task provider configuration and limits, and history retention.
+//
+// Snapshot rule: a task's limits (Agent research budget, topic page limit)
+// are read from the saved preferences once, when the task is queued, and
+// stored on the task record (they survive a worker restart). Executors only
+// ever use task.limits, so changing a preference affects tasks queued after
+// the change and never a task that is already queued or running.
 import {
   TASK_STATUS,
   TASK_TYPE,
@@ -12,6 +18,12 @@ import {
 import { agentActivityFromTask } from '../shared/agent-activity.mjs';
 import { buildTopicKey, forumDisplayName, normalizeSiteUrl } from '../shared/forum-site.mjs';
 import { loadConfig, providerSettingsOf } from '../shared/config-state.mjs';
+import {
+  normalizeTaskLimits,
+  resolveRetention,
+  retentionEqual,
+  snapshotTaskLimits
+} from '../shared/preferences.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { JobQueue } from './job-queue.mjs';
 
@@ -88,6 +100,8 @@ export class TaskService {
     this.persistedAt = new Map();
     this.persistenceQueues = new Map();
     this.alarmScheduled = false;
+    // The retention the database currently applies (see applyRetention).
+    this.retention = null;
     this.queue = new JobQueue({
       concurrency,
       maxQueued,
@@ -110,13 +124,37 @@ export class TaskService {
   async initialize() {
     await this.db.open();
     this.alarmScheduled = Boolean(await this.alarms.get(TASK_WAKE_ALARM));
+    // Startup cleanup must use the saved retention, not the defaults.
+    let preferences;
+    try {
+      preferences = (await this.readConfig()).preferences;
+    } catch (error) {
+      console.warn('Background: Unable to read preferences; using defaults:', error);
+    }
+    await this.applyRetention(resolveRetention(preferences), { force: true });
+    await this.queue.restore(await this.db.listTasks());
+    await this.syncAlarm();
+  }
+
+  /**
+   * Applies a history retention to the database and removes whatever it no
+   * longer keeps. Called at startup and whenever the saved preferences
+   * change (background.js subscribes to the configuration model).
+   * @returns {Promise<boolean>} whether anything was applied
+   */
+  async applyRetention(retention, { force = false } = {}) {
+    if (!force && retentionEqual(retention, this.retention)) {
+      return false;
+    }
+    this.retention = retention;
+    this.db.setRetention(retention);
     await Promise.all([
       this.db.cleanupStaleChats(),
       this.db.cleanupTasks(),
-      this.db.cleanupAgentActivities()
+      this.db.cleanupAgentActivities(),
+      this.db.prune()
     ]);
-    await this.queue.restore(await this.db.listTasks());
-    await this.syncAlarm();
+    return true;
   }
 
   async runTask(task, context) {
@@ -190,20 +228,30 @@ export class TaskService {
   }
 
   // Provider, settings, prompt and language for a task: what the request
-  // carried, or the saved configuration after a worker restart.
+  // carried, or the saved configuration after a worker restart. `limits`
+  // always come from the task record (snapshotted at enqueue); only records
+  // from before limits existed fall back to the current preferences.
   async getTaskConfiguration(task) {
     const runtime = this.runtimePayloads.get(task.id);
     const forumName = forumDisplayName(task.siteUrl, task.forumName || runtime?.forumName);
+    let config = null;
+    const readConfig = async () => {
+      config ??= await this.readConfig();
+      return config;
+    };
+    const limits = normalizeTaskLimits(task.type, task.limits)
+      || snapshotTaskLimits(task.type, (await readConfig()).preferences);
     if (runtime?.settings) {
       return {
         ...runtime,
         responseLanguage: runtime.responseLanguage
-          ?? (await this.readConfig()).responseLanguage,
-        forumName
+          ?? (await readConfig()).responseLanguage,
+        forumName,
+        limits
       };
     }
 
-    const config = await this.readConfig();
+    await readConfig();
     const provider = task.provider || config.provider;
     const settings = providerSettingsOf(config, provider);
     if (task.model) {
@@ -214,7 +262,8 @@ export class TaskService {
       settings,
       systemPrompt: config.systemPrompt,
       responseLanguage: config.responseLanguage,
-      forumName
+      forumName,
+      limits
     };
   }
 
@@ -242,6 +291,11 @@ export class TaskService {
       }
     }
 
+    // Snapshot rule (see the top of this file): the saved preferences at
+    // enqueue time decide this task's limits for its whole life.
+    const { preferences } = await this.readConfig();
+    const limits = snapshotTaskLimits(type, preferences);
+
     const id = createTaskId();
     const agentRunId = type === TASK_TYPE.AGENT
       ? (request.agentRunId || id)
@@ -259,6 +313,7 @@ export class TaskService {
       url: request.url,
       question: request.question,
       maxPostChars: request.maxPostChars,
+      limits,
       provider: request.provider,
       model: request.settings?.model
     });

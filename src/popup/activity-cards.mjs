@@ -1,7 +1,14 @@
 // Cards on the Activity screen: tasks (Tasks tab) and saved items (Saved
 // tab). Pure DOM builders; every action goes through a callback.
 import { TASK_STATUS, TASK_TYPE, isTerminalTaskStatus } from '../shared/task-record.mjs';
-import { cleanTopicTitle, formatRelativeTime } from './ui-state.mjs';
+import { agentActivityExpiry } from '../shared/agent-activity.mjs';
+import { formatExpiresIn } from '../shared/preferences.mjs';
+import {
+  cleanTopicTitle,
+  describeSummarizedReplies,
+  formatRelativeTime,
+  retentionCopy
+} from './ui-state.mjs';
 
 function plural(count, word) {
   return `${count} ${word}${count === 1 ? '' : 's'}`;
@@ -173,7 +180,15 @@ function createKeepButton({ kept, label, title, disabledTitle, onToggle }) {
  * @param {(entry: object, button: HTMLButtonElement) => void} options.onKeep
  * @param {(entry: object) => void} options.onDelete
  */
-export function createSavedTopicCard(entry, { forumName, isCurrent, hasActiveTasks, onOpen, onKeep, onDelete }) {
+export function createSavedTopicCard(entry, {
+  forumName,
+  isCurrent,
+  hasActiveTasks,
+  onOpen,
+  onKeep,
+  onDelete,
+  copy = retentionCopy(null)
+}) {
   const card = document.createElement('article');
   card.className = 'saved-card';
   card.classList.toggle('kept', entry.kept === true);
@@ -193,11 +208,8 @@ export function createSavedTopicCard(entry, { forumName, isCurrent, hasActiveTas
 
   const metadata = document.createElement('div');
   metadata.className = 'saved-card-meta';
-  const replyCount = entry.summaryPostCount ?? entry.totalPosts;
   metadata.append(
-    createMetadataSpan(
-      replyCount ? `${Math.max(0, replyCount - 1)} replies summarized` : 'Reply count unavailable'
-    ),
+    createMetadataSpan(describeSummarizedReplies(entry)),
     createMetadataSpan(`${entry.historyCount} chat messages`),
     createMetadataSpan(formatRelativeTime(entry.updatedAt))
   );
@@ -219,9 +231,7 @@ export function createSavedTopicCard(entry, { forumName, isCurrent, hasActiveTas
   const keepButton = createKeepButton({
     kept: entry.kept,
     label: `saved session for ${topicTitle}`,
-    title: entry.kept
-      ? 'Resume the 24-hour conversation expiry'
-      : 'Keep this summary and conversation beyond 24 hours',
+    title: entry.kept ? copy.unkeepTopic : copy.keepTopic,
     disabledTitle: hasActiveTasks
       ? 'Wait for this topic’s tasks to finish before changing retention'
       : '',
@@ -250,7 +260,14 @@ export function answerExcerpt(answer, maxLength = 240) {
  * @param {(activity: object, button: HTMLButtonElement) => void} options.onKeep
  * @param {(activity: object) => void} options.onDelete
  */
-export function createSavedAgentCard(activity, { onOpen, onKeep, onDelete, now = Date.now() }) {
+export function createSavedAgentCard(activity, {
+  onOpen,
+  onKeep,
+  onDelete,
+  now = Date.now(),
+  retention = null,
+  copy = retentionCopy(retention)
+}) {
   const card = document.createElement('article');
   card.className = 'saved-card agent-saved-card';
   card.classList.toggle('kept', activity.kept === true);
@@ -272,18 +289,20 @@ export function createSavedAgentCard(activity, { onOpen, onKeep, onDelete, now =
     createMetadataSpan(plural(activity.sourceRefs.length, 'source')),
     createMetadataSpan(formatRelativeTime(activity.completedAt || activity.updatedAt))
   );
-  const expiresInHours = Math.ceil((activity.expiresAt - now) / 3600000);
-  if (!activity.kept && activity.expiresAt > 0 && expiresInHours > 0) {
-    metadata.appendChild(createMetadataSpan(`expires in ${expiresInHours}h`));
+  // Recomputed with the current history setting (never the stored copy).
+  const expires = formatExpiresIn(
+    agentActivityExpiry(activity, retention ? retention.agentMs : undefined),
+    now
+  );
+  if (expires) {
+    metadata.appendChild(createMetadataSpan(expires));
   }
   card.appendChild(metadata);
 
   const keepButton = createKeepButton({
     kept: activity.kept,
     label: `Agent answer for ${activity.title}`,
-    title: activity.kept
-      ? 'Let this answer expire 24 hours from now'
-      : 'Keep this answer beyond 24 hours',
+    title: activity.kept ? copy.unkeepSavedAnswer : copy.keepSavedAnswer,
     onToggle: button => onKeep(activity, button)
   });
 

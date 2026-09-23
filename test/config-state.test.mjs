@@ -16,6 +16,7 @@ import {
   readConfig
 } from '../src/shared/config-state.mjs';
 import { ConnectionTestError } from '../src/shared/provider-setup.mjs';
+import { defaultPreferences } from '../src/shared/preferences.mjs';
 
 // chrome.storage.local + chrome.storage.onChanged, firing change events the
 // way Chrome does (asynchronously, only for keys that were present).
@@ -511,7 +512,10 @@ test('save(): saving → saved writes atomically and the status becomes ready', 
     systemPrompt: 'Keep me',
     responseLanguage: 'ja',
     openaiApiKey: 'secret',
-    openaiModel: 'gpt-custom'
+    openaiModel: 'gpt-custom',
+    // Saving also writes the (normalized) preferences, migrating installs
+    // that never stored them.
+    preferences: defaultPreferences()
   });
   assert.equal(store.status.status, CONFIG_STATUS.READY);
   assert.equal(store.config.providerChoice, 'openai');
@@ -596,4 +600,110 @@ test('an external removal of the key moves ready → incomplete', async () => {
   await settle();
   assert.equal(store.status.status, CONFIG_STATUS.INCOMPLETE);
   assert.ok(store.status.fieldErrors.apiKey);
+});
+
+// ---------- preferences section ----------
+
+test('readConfig normalizes the preferences section (migration for missing keys)', () => {
+  assert.deepEqual(readConfig({}).preferences, defaultPreferences());
+  const config = readConfig({ preferences: { researchDepth: 'quick', topicPageLimit: 500 } });
+  assert.equal(config.preferences.researchDepth, 'quick');
+  assert.equal(config.preferences.topicPageLimit, 100);
+  assert.equal(config.preferences.historyRetention, '1d');
+  assert.ok(CONFIG_STORAGE_KEYS.includes('preferences'));
+  assert.ok(RESETTABLE_STORAGE_KEYS.includes('preferences'));
+});
+
+test('preference draft edits never touch storage until save()', async () => {
+  const storage = createFakeStorage({ selectedProvider: 'ollama' });
+  const store = createStore(storage);
+  await store.load();
+  store.selectProvider('ollama');
+  store.updatePreferences({ researchDepth: 'custom', customResearch: { topicsRead: '9' } });
+  store.updatePreferences({ historyRetention: '7d' });
+  assert.equal(storage.writes.length, 0);
+  assert.equal(store.config.preferences.historyRetention, '1d');
+  assert.equal(store.draftPreferences.customResearch.topicsRead, '9');
+  assert.equal(store.draftPreferences.customResearch.searchQueries, 3, 'merged, not replaced');
+
+  const result = await store.save();
+  assert.equal(result.ok, true);
+  assert.equal(storage.writes.length, 1);
+  assert.equal(storage.values.preferences.historyRetention, '7d');
+  assert.equal(storage.values.preferences.customResearch.topicsRead, 9);
+  assert.equal(store.config.preferences.researchDepth, 'custom');
+  assert.equal(store.draft.preferences, undefined, 'draft follows the saved values again');
+});
+
+test('save(): invalid preferences → invalid with field errors and nothing is written', async () => {
+  const storage = createFakeStorage({ selectedProvider: 'ollama' });
+  const store = createStore(storage);
+  await store.load();
+  store.selectProvider('ollama');
+  store.updatePreferences({ topicPageLimit: '0' });
+  store.updateDraft({ forumContextLimit: '12' });
+  const result = await store.save();
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'invalid');
+  assert.equal(store.operation.phase, OPERATION_PHASE.INVALID);
+  assert.ok(result.validation.fieldErrors.topicPageLimit);
+  assert.ok(result.validation.fieldErrors.forumContextLimit);
+  assert.equal(storage.writes.length, 0);
+  // test() only checks the provider.
+  assert.equal(store.validateDraft().valid, true);
+});
+
+test('save(): a drafted chat context limit is saved normalized', async () => {
+  const storage = createFakeStorage({ selectedProvider: 'ollama' });
+  const store = createStore(storage);
+  await store.load();
+  store.selectProvider('ollama');
+  store.updateDraft({ forumContextLimit: '42001' });
+  assert.equal((await store.save()).ok, true);
+  assert.equal(storage.values.forumContextLimit, 40000);
+  assert.equal(store.config.forumContextLimit, 40000);
+});
+
+test('resetPreferencesDraft restores defaults for all or some keys (draft only)', async () => {
+  const storage = createFakeStorage({
+    preferences: { researchDepth: 'thorough', topicPageLimit: 3, historyRetention: '30d', maxSavedTopics: 99 }
+  });
+  const store = createStore(storage);
+  await store.load();
+  store.resetPreferencesDraft(['historyRetention', 'maxSavedTopics']);
+  assert.equal(store.draftPreferences.historyRetention, '1d');
+  assert.equal(store.draftPreferences.maxSavedTopics, 40);
+  assert.equal(store.draftPreferences.researchDepth, 'thorough', 'other sections untouched');
+  store.resetPreferencesDraft();
+  assert.deepEqual(store.draftPreferences, defaultPreferences());
+  assert.equal(storage.writes.length, 0);
+  assert.equal(store.config.preferences.researchDepth, 'thorough');
+});
+
+test('setPreferences validates and writes directly; subscribers hear it', async () => {
+  const storage = createFakeStorage();
+  const store = createStore(storage);
+  await store.load();
+  const events = [];
+  store.subscribe(event => events.push(event.type));
+  const bad = await store.setPreferences({ ...defaultPreferences(), maxSavedTopics: 2 });
+  assert.equal(bad.ok, false);
+  assert.equal(storage.writes.length, 0);
+  const good = await store.setPreferences({ ...defaultPreferences(), historyRetention: '3d' });
+  assert.equal(good.ok, true);
+  assert.equal(storage.values.preferences.historyRetention, '3d');
+  assert.ok(events.includes('preferences'));
+});
+
+test('preferences saved in another page reach subscribers as a reload', async () => {
+  const storage = createFakeStorage();
+  const store = createStore(storage);
+  await store.load();
+  const seen = [];
+  store.subscribe((event, current) => {
+    if (event.type === 'loaded') seen.push(current.config.preferences.historyRetention);
+  });
+  storage.externalSet({ preferences: { historyRetention: 'forever' } });
+  await settle();
+  assert.deepEqual(seen, ['forever']);
 });

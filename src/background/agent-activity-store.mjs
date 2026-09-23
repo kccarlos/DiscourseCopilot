@@ -1,9 +1,6 @@
 // Agent activity records in IndexedDB, written in order per activity and
 // broadcast to open extension views after each save.
-import {
-  AGENT_ACTIVITY_STATUS,
-  agentActivityExpiry
-} from '../shared/agent-activity.mjs';
+import { AGENT_ACTIVITY_STATUS } from '../shared/agent-activity.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 
 const { MESSAGES } = DiscourseCopilotConstants;
@@ -71,7 +68,7 @@ export class AgentActivityStore {
       statusText: 'Cancelled',
       error: null,
       completedAt: now,
-      expiresAt: agentActivityExpiry(activity, now)
+      retainedFrom: now
     }, { prune: true });
   }
 }

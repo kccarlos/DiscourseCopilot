@@ -19,6 +19,7 @@
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { ConfigStore } from '../shared/config-state.mjs';
+import { resolveRetention, retentionEqual } from '../shared/preferences.mjs';
 import { TASK_TYPE } from '../shared/task-record.mjs';
 import { normalizeAgentQuestion } from '../services/agent-context.mjs';
 import { topicSessionDatabase } from './topic-session-db.mjs';
@@ -188,6 +189,7 @@ class DiscourseCopilotPopup {
       forums: this.forums,
       sessions: this.sessions,
       agent: this.agent,
+      config: this.config,
       hooks: {
         cancelTask: taskId => this.cancelTask(taskId),
         isCurrentTopic: topicKey => this.topic.isCurrentTopic(topicKey),
@@ -262,10 +264,28 @@ class DiscourseCopilotPopup {
         return;
       }
       this.chat.syncContextLimit(this.config.config.forumContextLimit);
+      this.applyPreferences();
       if (this.started) {
         this.updateUI({ announce: false });
       }
     });
+  }
+
+  // Applies the saved preferences that shape what this panel shows: the
+  // history retention (lazy chat expiry in this page's database copy, the
+  // Saved tab's window and every "expires in…"/Keep label). Research depth
+  // and the page limit are applied by the background when a task is queued.
+  applyPreferences() {
+    const retention = resolveRetention(this.config.config.preferences);
+    if (retentionEqual(retention, this.appliedRetention)) {
+      return;
+    }
+    this.appliedRetention = retention;
+    topicSessionDatabase.setRetention(retention);
+    this.activity.applyRetention();
+    if (this.started) {
+      this.agent.renderPanel?.();
+    }
   }
 
   // ---------- Loading ----------
@@ -276,6 +296,7 @@ class DiscourseCopilotPopup {
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Error loading provider settings:', error);
     }
+    this.applyPreferences();
   }
 
   async initializePersistence() {

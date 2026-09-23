@@ -10,10 +10,14 @@ import {
   siteUrlFromPageUrl
 } from './forum-site.mjs';
 
+// Default retention (the "1 day" history setting); the effective value comes
+// from resolveRetention(preferences).agentMs.
 export const AGENT_ACTIVITY_RETENTION_MS = 24 * 60 * 60 * 1000;
 export const MAX_AGENT_ACTIVITIES = 100;
-export const MAX_AGENT_SEARCH_QUERIES = 6;
-export const MAX_AGENT_TOOL_CALLS = 40;
+// Sized for the largest research budget in preferences.mjs: 4 queries × 3
+// result pages, and 12 discussions × (metadata + posts + raw fallback).
+export const MAX_AGENT_SEARCH_QUERIES = 12;
+export const MAX_AGENT_TOOL_CALLS = 60;
 export const MAX_AGENT_SOURCES = 16;
 export const MAX_AGENT_ANSWER_CHARS = 120000;
 
@@ -215,6 +219,16 @@ export function createAgentActivity(value, now = Date.now()) {
   const siteUrl = normalizeSiteUrl(value?.siteUrl);
   const completedAt = timestamp(value?.completedAt);
   const terminal = isAgentActivityTerminal(value?.status);
+  const legacyExpiresAt = timestamp(value?.expiresAt);
+  // When the retention period starts: completion, or the moment the run was
+  // unkept. Records from before this field existed derive it from their
+  // expiry under the old fixed one-day retention.
+  const retainedFrom = timestamp(
+    value?.retainedFrom,
+    legacyExpiresAt > AGENT_ACTIVITY_RETENTION_MS
+      ? legacyExpiresAt - AGENT_ACTIVITY_RETENTION_MS
+      : completedAt
+  );
   return {
     schemaVersion: 1,
     activityId,
@@ -241,10 +255,14 @@ export function createAgentActivity(value, now = Date.now()) {
     updatedAt: timestamp(value?.updatedAt, now),
     startedAt: timestamp(value?.startedAt),
     completedAt,
+    retainedFrom,
+    // Informational copy of agentActivityExpiry() under the retention that
+    // was in force when the record was last saved; cleanup and labels always
+    // recompute it from retainedFrom and the current retention.
     expiresAt: timestamp(
       value?.expiresAt,
-      terminal && completedAt > 0
-        ? completedAt + AGENT_ACTIVITY_RETENTION_MS
+      terminal && retainedFrom > 0
+        ? retainedFrom + AGENT_ACTIVITY_RETENTION_MS
         : 0
     ),
     kept: value?.kept === true,
@@ -273,9 +291,25 @@ export function agentActivityFromTask(task, { withTimestamps = false } = {}) {
   });
 }
 
-// When a finished activity expires: never while kept, else after retention.
-export function agentActivityExpiry(activity, now = Date.now()) {
-  return activity?.kept ? 0 : now + AGENT_ACTIVITY_RETENTION_MS;
+/**
+ * When an activity expires under a retention period (0 = never): kept runs,
+ * unfinished runs (including those waiting for the user) and "no time limit"
+ * never expire; others expire `retentionMs` after retainedFrom.
+ */
+export function agentActivityExpiry(activity, retentionMs = AGENT_ACTIVITY_RETENTION_MS) {
+  if (!activity || activity.kept || !isAgentActivityTerminal(activity.status)) {
+    return 0;
+  }
+  if (!Number.isFinite(retentionMs)) {
+    return 0;
+  }
+  const from = timestamp(activity.retainedFrom) || timestamp(activity.completedAt);
+  return from > 0 ? from + Math.max(0, retentionMs) : 0;
+}
+
+export function isAgentActivityExpired(activity, retentionMs, now = Date.now()) {
+  const expiresAt = agentActivityExpiry(activity, retentionMs);
+  return expiresAt > 0 && expiresAt <= now;
 }
 
 export function normalizeAgentActivity(value, now = Date.now()) {
@@ -325,6 +359,7 @@ export function normalizeAgentActivity(value, now = Date.now()) {
     updatedAt: timestamp(value?.updatedAt, base.updatedAt),
     startedAt: timestamp(value?.startedAt),
     completedAt: timestamp(value?.completedAt),
+    retainedFrom: base.retainedFrom,
     expiresAt: timestamp(value?.expiresAt, base.expiresAt),
     kept: value?.kept === true,
     retryOf: text(value?.retryOf, 120),
@@ -369,6 +404,7 @@ export function buildAgentActivityIndexEntry(value) {
     createdAt: activity.createdAt,
     updatedAt: activity.updatedAt,
     completedAt: activity.completedAt,
+    retainedFrom: activity.retainedFrom,
     expiresAt: activity.expiresAt,
     lastOpenedAt: activity.lastOpenedAt,
     dismissedAt: activity.dismissedAt

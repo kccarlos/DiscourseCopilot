@@ -8,8 +8,16 @@
 //   phase        event             next phase
 //   loading      loaded            pristine
 //   loading      load-failed       error
-//   (idle)       edited            dirty     (busy phases keep their phase)
-//   (idle)       invalid           invalid   (Save/Test with field errors)
+//   (idle)       edited            dirty     (busy phases keep their phase;
+//                                            `field` + `fieldError` set or
+//                                            clear that field's inline error)
+//   (idle)       defaults-restored dirty     ("Restore defaults" on a section:
+//                                            a draft edit, saved with Save)
+//   (idle)       invalid           invalid   (Save/Test with field errors;
+//                                            `fieldErrors` shown inline)
+//   any          field-errors      (inline errors of `fields` only; a
+//                                            field checked on blur, or errors
+//                                            re-derived after an edit)
 //   (idle)       test-started      testing
 //   testing      test-passed       pristine, or dirty when there are edits
 //   testing      test-failed       error
@@ -26,6 +34,14 @@
 //
 // `edited` tracks unsaved edits independently of the phase: edits made while
 // a save is in flight keep the form dirty after that save succeeds.
+//
+// `fieldErrors` ({ field: message }) holds the inline errors. Save is
+// blocked while any remain (canSave); fixing a field clears only its error.
+//
+//                     edit with an error ─┐
+//   pristine ──edit──▶ dirty ◀──fix──── dirty + fieldErrors ──Save──▶ invalid
+//                        │                                       (nothing written)
+//                        └──Save──▶ saving ──▶ saved | dirty | error
 
 export const FORM_PHASE = Object.freeze({
   LOADING: 'loading',
@@ -60,8 +76,29 @@ export function initialFormState() {
     edited: false,
     revision: 0,
     savingRevision: null,
+    fieldErrors: {},
     status: status('Loading saved settings…', 'info', false)
   };
+}
+
+export function hasFieldErrors(state) {
+  return Object.keys(state.fieldErrors || {}).length > 0;
+}
+
+// Save is possible when idle and no field shows an error.
+export function canSave(state) {
+  return !isFormBusy(state) && !hasFieldErrors(state);
+}
+
+function withFieldError(fieldErrors = {}, field, message) {
+  if (!field) return fieldErrors;
+  const next = { ...fieldErrors };
+  if (message) {
+    next[field] = message;
+  } else {
+    delete next[field];
+  }
+  return next;
 }
 
 export function isFormBusy(state) {
@@ -83,6 +120,7 @@ export function transitionForm(state, event) {
         ...state,
         phase: FORM_PHASE.PRISTINE,
         edited: false,
+        fieldErrors: {},
         // First install (?welcome=1) starts with a quiet form.
         status: event.welcomeMode ? null : status('Settings loaded.', 'success')
       };
@@ -92,19 +130,52 @@ export function transitionForm(state, event) {
         phase: FORM_PHASE.ERROR,
         status: status(`Could not load saved settings: ${event.message}`, 'error', false)
       };
-    case 'edited':
+    case 'edited': {
+      const fieldErrors = withFieldError(state.fieldErrors, event.field, event.fieldError);
+      const fixedLast = state.phase === FORM_PHASE.INVALID && !Object.keys(fieldErrors).length;
       return {
         ...state,
         phase: isFormBusy(state) ? state.phase : FORM_PHASE.DIRTY,
         edited: true,
         revision: state.revision + 1,
-        // Switching provider or language clears the status; typing does not.
-        status: event.clearStatus ? null : state.status
+        fieldErrors,
+        // Switching provider or language clears the status; typing does not,
+        // except that fixing the last invalid field clears the error message.
+        status: event.clearStatus || fixedLast ? null : state.status
       };
+    }
+    case 'defaults-restored':
+      return {
+        ...state,
+        phase: isFormBusy(state) ? state.phase : FORM_PHASE.DIRTY,
+        edited: true,
+        revision: state.revision + 1,
+        fieldErrors: Object.fromEntries(Object.entries(state.fieldErrors || {})
+          .filter(([field]) => !(event.fields || []).includes(field))),
+        status: status(`${event.section || 'Section'} restored to defaults. Save to apply.`, 'info', false)
+      };
+    case 'field-errors': {
+      const fieldErrors = { ...(state.fieldErrors || {}) };
+      for (const field of event.fields || []) {
+        if (event.fieldErrors?.[field]) {
+          fieldErrors[field] = event.fieldErrors[field];
+        } else {
+          delete fieldErrors[field];
+        }
+      }
+      const fixedLast = state.phase === FORM_PHASE.INVALID && !Object.keys(fieldErrors).length;
+      return {
+        ...state,
+        phase: fixedLast ? restingPhase(state) : state.phase,
+        fieldErrors,
+        status: fixedLast ? null : state.status
+      };
+    }
     case 'invalid':
       return {
         ...state,
         phase: FORM_PHASE.INVALID,
+        fieldErrors: { ...(event.fieldErrors || {}) },
         status: status(event.errors.join(' '), 'error', false)
       };
     case 'test-started':
@@ -139,6 +210,7 @@ export function transitionForm(state, event) {
         phase: edited ? FORM_PHASE.DIRTY : FORM_PHASE.SAVED,
         edited,
         savingRevision: null,
+        fieldErrors: {},
         status: event.welcomeMode
           ? status(WELCOME_SAVED_MESSAGE, 'success', false)
           : status('Settings saved successfully.', 'success')
@@ -163,6 +235,7 @@ export function transitionForm(state, event) {
         phase: FORM_PHASE.PRISTINE,
         edited: false,
         revision: state.revision + 1,
+        fieldErrors: {},
         status: status('Settings reset to defaults.', 'success')
       };
     case 'reset-failed':
@@ -182,6 +255,42 @@ export function transitionForm(state, event) {
     default:
       return state;
   }
+}
+
+/**
+ * The save bar's summary of the form (a short label and a tone for styling).
+ * @returns {{ text: string, tone: 'neutral'|'dirty'|'busy'|'success'|'error' }}
+ */
+export function formStateLabel(state, hasSavedConfiguration) {
+  switch (state.phase) {
+    case FORM_PHASE.LOADING:
+      return { text: 'Loading…', tone: 'busy' };
+    case FORM_PHASE.SAVING:
+      return { text: 'Saving…', tone: 'busy' };
+    case FORM_PHASE.TESTING:
+      return { text: 'Testing connection…', tone: 'busy' };
+    case FORM_PHASE.RESETTING:
+      return { text: 'Resetting…', tone: 'busy' };
+    case FORM_PHASE.INVALID:
+      return { text: 'Fix the highlighted fields', tone: 'error' };
+    case FORM_PHASE.ERROR:
+      return state.edited
+        ? { text: 'Unsaved changes · last action failed', tone: 'error' }
+        : { text: 'Last action failed', tone: 'error' };
+    default:
+  }
+  if (hasFieldErrors(state)) {
+    return { text: 'Fix the highlighted fields', tone: 'error' };
+  }
+  if (state.edited) {
+    return { text: 'Unsaved changes', tone: 'dirty' };
+  }
+  if (state.phase === FORM_PHASE.SAVED) {
+    return { text: 'Saved', tone: 'success' };
+  }
+  return hasSavedConfiguration
+    ? { text: 'All changes saved', tone: 'neutral' }
+    : { text: 'Not set up yet', tone: 'neutral' };
 }
 
 // "All changes saved" would be misleading before anything usable is saved.

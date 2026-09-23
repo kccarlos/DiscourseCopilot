@@ -5,11 +5,14 @@ import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { TASK_STATUS, TASK_TYPE } from '../shared/task-record.mjs';
 import { siteUrlFromPageUrl } from '../shared/forum-site.mjs';
 import { topicSessionDatabase } from './topic-session-db.mjs';
+import { resolveRetention } from '../shared/preferences.mjs';
 import {
+  agentRecentWindowMs,
   cleanTopicTitle,
   getDefaultActivityTab,
   groupByForum,
   partitionTasks,
+  retentionCopy,
   selectSavedAgentActivities
 } from './ui-state.mjs';
 import { applyForumHue, createForumAvatar } from './forum-ui.mjs';
@@ -39,11 +42,13 @@ export class ActivityView {
    * @param {object} deps.forums ForumDirectory
    * @param {object} deps.sessions SessionStore
    * @param {object} deps.agent AgentController
+   * @param {object} deps.config ConfigStore (history retention for the Saved tab)
    * @param {object} deps.hooks cancelTask, isCurrentTopic, showCurrentTopic,
    *   showCreatedTab, expectTopicMetadata, forgetTopicMetadata,
    *   resetCurrentSession
    */
-  constructor({ state, tasks, forums, sessions, agent, hooks }) {
+  constructor({ state, tasks, forums, sessions, agent, config, hooks }) {
+    this.config = config;
     this.state = state;
     this.tasks = tasks;
     this.forums = forums;
@@ -57,6 +62,23 @@ export class ActivityView {
     this.forumFilter = '';
     this.forumFilterSignature = '';
     this.detailReturnsToTopic = false;
+  }
+
+  // The effective history retention, always from the configuration model.
+  get retention() {
+    return resolveRetention(this.config?.config?.preferences);
+  }
+
+  // Re-renders what depends on the history setting (called when the saved
+  // preferences change, including from another extension page).
+  applyRetention() {
+    const intro = $('savedExpiryIntro');
+    if (intro) {
+      intro.textContent = retentionCopy(this.retention).savedIntro;
+    }
+    if (this.state.savedViewOpen) {
+      void this.loadSavedList();
+    }
   }
 
   // Forum records the Saved tab knows about (for forum names).
@@ -100,7 +122,9 @@ export class ActivityView {
     document.querySelector('.tab-list')?.classList.remove('hidden');
     $('topicView').classList.add('hidden');
     $('savedView').classList.remove('hidden');
-    this.selectTab(getDefaultActivityTab(this.tasks.values(), this.agent.runRecords()));
+    this.selectTab(getDefaultActivityTab(this.tasks.values(), this.agent.runRecords(), {
+      windowMs: agentRecentWindowMs(this.retention)
+    }));
     this.renderTaskList();
     await this.loadSavedList();
   }
@@ -230,7 +254,9 @@ export class ActivityView {
           forumName: entry.forumName,
           updatedAt: entry.updatedAt
         })),
-        ...selectSavedAgentActivities(agentActivities).map(activity => ({
+        ...selectSavedAgentActivities(agentActivities, {
+          windowMs: this.retention.agentMs
+        }).map(activity => ({
           kind: 'agent',
           activity,
           siteUrl: activity.siteUrl,
@@ -468,7 +494,8 @@ export class ActivityView {
       hasActiveTasks: this.tasks.activeForTopic(entry.topicKey).length > 0,
       onOpen: value => void this.openSavedTopic(value),
       onKeep: (value, button) => void this.setSavedSessionKept(value, value.kept !== true, button),
-      onDelete: value => void this.deleteSavedTopic(value)
+      onDelete: value => void this.deleteSavedTopic(value),
+      copy: retentionCopy(this.retention)
     });
   }
 
@@ -476,7 +503,8 @@ export class ActivityView {
     return createSavedAgentCard(activity, {
       onOpen: value => void this.openAgentActivity(value),
       onKeep: (value, button) => void this.agent.setKept(value, value.kept !== true, button),
-      onDelete: value => void this.agent.deleteActivity(value)
+      onDelete: value => void this.agent.deleteActivity(value),
+      retention: this.retention
     });
   }
 

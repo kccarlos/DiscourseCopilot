@@ -45,8 +45,9 @@ export function createTopicExecutors({
     });
   };
 
-  // Re-reads the topic, reporting fetch progress as the task status.
-  const fetchTopic = (task, session, { signal, report }) => fetchTopicContent(
+  // Re-reads the topic, reporting fetch progress as the task status. The
+  // page limit is the one snapshotted when the task was queued.
+  const fetchTopic = (task, session, { signal, report, maxPages }) => fetchTopicContent(
     task.siteUrl,
     task.topicId,
     progress => {
@@ -59,7 +60,8 @@ export function createTopicExecutors({
     signal,
     {
       cachedPages: session.rawPages,
-      knownTotalPosts: session.totalPosts
+      knownTotalPosts: session.totalPosts,
+      maxPages
     }
   );
 
@@ -69,12 +71,16 @@ export function createTopicExecutors({
     rawPages: response.rawPages,
     pagesFetched: response.pagesFetched,
     totalPosts: response.totalPosts,
+    // Whether the page limit cut the read short, and how many posts it covered.
+    sourceTruncated: response.truncated === true,
+    coveredPosts: response.coveredPosts ?? null,
     lastCheckedAt: now,
     lastAccessedAt: now
   });
 
   async function executeSummaryTask(task, { signal, report }) {
     const configuration = await getTaskConfiguration(task);
+    const maxPages = configuration.limits?.topicPageLimit;
     let session = await db.get(task.topicKey);
     if (!session) {
       session = createTopicSession({
@@ -96,7 +102,7 @@ export function createTopicExecutors({
       progress: null
     }, { durable: true });
 
-    const response = await fetchTopic(task, session, { signal, report });
+    const response = await fetchTopic(task, session, { signal, report, maxPages });
     session = {
       ...withFetchedContent(session, response, Date.now()),
       url: task.url || session.url,
@@ -104,16 +110,25 @@ export function createTopicExecutors({
     };
     await db.save(session);
 
+    // Up to date when nothing new was read: the same post count, or (for a
+    // topic past the page limit) the same covered part.
     const summaryAlreadyCurrent = Boolean(
       response.unchanged
       && session.summary
       && session.summaryPostCount
-      && session.summaryPostCount === response.totalPosts
+      && (
+        session.summaryPostCount === response.totalPosts
+        || (response.truncated
+          && session.summaryTruncated
+          && session.summaryCoveredPosts === response.coveredPosts)
+      )
     );
     if (summaryAlreadyCurrent) {
       await report({
         phase: 'saving',
-        statusText: 'Saved summary already includes every reply.',
+        statusText: response.truncated
+          ? `Saved summary already covers the first ${Math.max(0, (response.coveredPosts || 0) - 1)} replies (page limit).`
+          : 'Saved summary already includes every reply.',
         progress: { ...response.progress, percent: 100, etaMs: 0 }
       }, { durable: true });
       broadcastSessionUpdated(task);
@@ -153,6 +168,9 @@ export function createTopicExecutors({
     const completedAt = Date.now();
     session.summary = summary;
     session.summaryPostCount = response.totalPosts;
+    session.summaryTruncated = response.truncated === true;
+    session.summaryCoveredPosts = response.truncated ? (response.coveredPosts ?? null) : null;
+    session.summaryPagesRead = response.pagesFetched;
     session.provider = configuration.provider;
     session.model = configuration.settings.model || task.model;
     session.summaryUpdatedAt = completedAt;
@@ -183,7 +201,11 @@ export function createTopicExecutors({
       statusText: 'Checking for new replies before answering…',
       progress: null
     }, { durable: true });
-    const response = await fetchTopic(task, session, { signal, report });
+    const response = await fetchTopic(task, session, {
+      signal,
+      report,
+      maxPages: configuration.limits?.topicPageLimit
+    });
     session = withFetchedContent(session, response, Date.now());
     await db.save(session);
 

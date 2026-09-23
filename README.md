@@ -1,4 +1,9 @@
-# DiscourseCopilot
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/wordmark/discoursecopilot-wordmark-horizontal-on-dark.svg">
+    <img src="assets/brand/wordmark/discoursecopilot-wordmark-horizontal-on-light.svg" alt="DiscourseCopilot" width="440">
+  </picture>
+</h1>
 
 AI summaries, follow-up chat, and a forum-wide research copilot for **any Discourse forum** — [community.openai.com](https://community.openai.com), [meta.discourse.org](https://meta.discourse.org), or your own community.
 
@@ -11,7 +16,7 @@ AI summaries, follow-up chat, and a forum-wide research copilot for **any Discou
 ## What it does
 
 - **Works on any Discourse forum** — detected automatically (via the `generator` meta tag and Discourse's own page markers), no per-site setup.
-- **Topic summaries** of the original post, the community response, and key takeaways, including long, multi-page topics.
+- **Topic summaries** of the original post, the community response, and key takeaways, including long, multi-page topics (up to 2,000 posts by default; adjustable in Settings).
 - **Follow-up chat** — ask questions about a topic using the full discussion and its summary as context.
 - **Ask the forum (Agent mode)** — searches the current forum, reads the most relevant discussions, and answers with cited, clickable sources.
 - **Per-forum history** — saved summaries, chats, and Agent answers are grouped by forum, so different communities never mix. Subfolder installs (e.g. `https://example.com/forum`) are supported too.
@@ -50,6 +55,8 @@ From there, ask follow-up questions under **Ask about this post**, or click **As
 
 <img src="docs/screenshots/feature-agent-answer.png" alt="Ask the forum answer with numbered citations and linked sources" width="420">
 
+How much research it does is up to you: **Settings → Ask the forum** offers **Quick** (1 search, 3 discussions), **Balanced** (the default: 3 searches, 6 discussions), **Thorough** (4 searches × 2 result pages, 10 discussions), or **Custom** limits. Deeper research finds more sources but takes longer, costs more tokens, and makes more (paced) requests to the forum. A changed setting applies to questions asked afterwards; research already queued or running keeps the depth it started with.
+
 Everything you run — summaries, chats, and Agent research — shows up in **Activity**, grouped by forum:
 
 <img src="docs/screenshots/feature-activity.png" alt="Activity view with saved summaries grouped by forum" width="420">
@@ -74,7 +81,7 @@ For a local provider, start it with an origin allowlist so the extension (a `chr
 OLLAMA_ORIGINS=chrome-extension://* ollama serve
 ```
 
-Switch providers or models any time from **Settings** (right-click the extension icon → **Options**, or the **Settings** button in the side panel), where you can also set a custom system prompt and add favorite models for quick switching from the side-panel header.
+Switch providers or models any time from **Settings** (right-click the extension icon → **Options**, or the **Settings** button in the side panel), where you can also set a custom system prompt and add favorite models for quick switching from the side-panel header. Settings also covers **Ask the forum** research depth, **Reading topics** (how many pages of 100 posts are read per topic, and how much of the topic is sent with each chat question), and **History & privacy** (how long unkept history is kept, and how many saved topics are remembered).
 
 The side panel follows your OS/browser theme automatically:
 
@@ -83,6 +90,8 @@ The side panel follows your OS/browser theme automatically:
 ## Privacy
 
 DiscourseCopilot reads only the forum you're currently on (or the forum an Agent task started on), using your existing browser session for it. Everything — settings, API keys, saved summaries, chat, and Agent answers — is stored locally in your browser. Forum content is sent only to the AI provider you configure; there are no developer servers, accounts, or analytics.
+
+Follow-up conversations and Agent answers you haven't kept are removed after **1 day** by default; choose 3, 7 or 30 days, or no time limit, under **Settings → History & privacy**. Kept items never expire, and shortening the period removes older unkept items as soon as you save.
 
 See [PRIVACY.md](PRIVACY.md) for the full policy.
 
@@ -99,6 +108,12 @@ DiscourseCopilot uses your browser session for that forum. Log in (or complete t
 
 **Requests are failing or slow with a rate-limit error**
 The extension retries automatically using the provider's `Retry-After` header. If it keeps failing, check your provider account's plan and usage.
+
+**A summary says "first 1,999 of 4,799 replies"**
+Topics longer than **Pages read per topic** (default 20 pages = 2,000 posts) are summarized from their first pages, and the summary says so. Raise the limit under **Settings → Reading topics** and choose **Check for new replies** to include more — at the cost of a slower, more expensive summary and more requests to the forum.
+
+**How do I keep an answer or a conversation longer?**
+Use **Keep** on it (kept items never expire), or lengthen the period under **Settings → History & privacy**.
 
 **API errors**
 Verify your API key and model, check your provider account's credits, and use **Test Connection** in Settings.

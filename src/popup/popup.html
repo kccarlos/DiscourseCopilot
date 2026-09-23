@@ -5,6 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DiscourseCopilot</title>
+  <link rel="icon" type="image/svg+xml" href="/brand/tab-icon-light.svg" media="(prefers-color-scheme: light)">
+  <link rel="icon" type="image/svg+xml" href="/brand/tab-icon-dark.svg" media="(prefers-color-scheme: dark)">
 
   <!-- Normalize CSS for browser consistency -->
   <link rel="stylesheet" href="../shared/normalize.css">
@@ -20,9 +22,12 @@
   <main class="container">
     <header class="app-header">
       <div class="brand-lockup">
-        <span class="brand-mark" aria-hidden="true">D</span>
+        <picture class="brand-mark" aria-hidden="true">
+          <source srcset="/brand/icon-on-dark.svg" media="(prefers-color-scheme: dark)">
+          <img src="/brand/icon-on-light.svg" alt="" width="40" height="40" draggable="false">
+        </picture>
         <div class="brand-copy">
-          <h1>DiscourseCopilot</h1>
+          <h1 class="brand-name"><span class="brand-name-strong">Discourse</span>Copilot</h1>
           <label class="sr-only" for="favoriteModelSelect">Quick switch favorite model</label>
           <select id="favoriteModelSelect" class="favorite-model-select" aria-label="Quick switch favorite model" disabled>
             <option>Loading favorite models…</option>
@@ -277,7 +282,7 @@
         </div>
         <div>
           <h2>Catch up without the scroll</h2>
-          <p>DiscourseCopilot reads the original post and every reply, then gives you a focused summary you can save, copy, or discuss with AI.</p>
+          <p>DiscourseCopilot reads the original post and its replies, then gives you a focused summary you can save, copy, or discuss with AI.</p>
         </div>
       </section>
 
@@ -295,6 +300,7 @@
           <span class="chevron" aria-hidden="true"></span>
         </summary>
         <div class="panel-body">
+          <p id="summaryCoverageNote" class="summary-coverage-note hidden" role="note"></p>
           <article id="summaryDisplay" class="summary-display">
             <p>Your summary will appear here…</p>
           </article>
@@ -432,7 +438,7 @@
       <section id="summariesPanel" class="tab-panel hidden" role="tabpanel" aria-labelledby="summariesTab">
         <div class="section-intro">
           <h3>Saved summaries and answers</h3>
-          <p>Conversations and Agent answers expire after 24 hours. Keep one to preserve it.</p>
+          <p id="savedExpiryIntro">Conversations and Agent answers expire after 1 day. Keep one to preserve it.</p>
         </div>
         <div id="savedList" class="saved-list"></div>
       </section>

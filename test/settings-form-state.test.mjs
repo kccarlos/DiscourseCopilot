@@ -4,7 +4,10 @@ import test from 'node:test';
 import {
   FORM_PHASE,
   WELCOME_SAVED_MESSAGE,
+  canSave,
   dirtyIndicatorText,
+  formStateLabel,
+  hasFieldErrors,
   initialFormState,
   isFormBusy,
   transitionForm
@@ -138,4 +141,80 @@ test('the dirty indicator derives from edits and the saved configuration', () =>
   assert.equal(dirtyIndicatorText(pristine, true), 'All changes saved');
   assert.equal(dirtyIndicatorText(pristine, false), '');
   assert.equal(dirtyIndicatorText(run([{ type: 'edited' }], pristine), false), 'Unsaved changes');
+});
+
+// ---------- inline field errors (preferences) ----------
+
+function pristineForm() {
+  return transitionForm(initialFormState(), { type: 'loaded' });
+}
+
+test('an edit can set or clear one field error; save is blocked while any remain', () => {
+  let state = transitionForm(pristineForm(), { type: 'edited', field: 'topicPageLimit', fieldError: 'Too big' });
+  assert.equal(state.phase, FORM_PHASE.DIRTY);
+  assert.deepEqual(state.fieldErrors, { topicPageLimit: 'Too big' });
+  assert.equal(hasFieldErrors(state), true);
+  assert.equal(canSave(state), false);
+  assert.deepEqual(formStateLabel(state, true), { text: 'Fix the highlighted fields', tone: 'error' });
+  state = transitionForm(state, { type: 'edited', field: 'topicPageLimit', fieldError: '' });
+  assert.deepEqual(state.fieldErrors, {});
+  assert.equal(canSave(state), true);
+  assert.deepEqual(formStateLabel(state, true), { text: 'Unsaved changes', tone: 'dirty' });
+});
+
+test('invalid carries field errors; fixing the last one returns to dirty and clears the message', () => {
+  let state = transitionForm(pristineForm(), { type: 'edited' });
+  state = transitionForm(state, {
+    type: 'invalid',
+    errors: ['A is bad.', 'B is bad.'],
+    fieldErrors: { searchQueries: 'A is bad.', topicsRead: 'B is bad.' }
+  });
+  assert.equal(state.phase, FORM_PHASE.INVALID);
+  assert.equal(state.status.message, 'A is bad. B is bad.');
+  state = transitionForm(state, { type: 'field-errors', fields: ['searchQueries'], fieldErrors: {} });
+  assert.equal(state.phase, FORM_PHASE.INVALID);
+  assert.deepEqual(Object.keys(state.fieldErrors), ['topicsRead']);
+  state = transitionForm(state, { type: 'field-errors', fields: ['topicsRead'], fieldErrors: {} });
+  assert.equal(state.phase, FORM_PHASE.DIRTY);
+  assert.equal(state.status, null);
+});
+
+test('field-errors only touches the listed fields and never the phase otherwise', () => {
+  let state = transitionForm(pristineForm(), { type: 'field-errors', fields: ['maxSavedTopics'], fieldErrors: { maxSavedTopics: 'x', other: 'y' } });
+  assert.equal(state.phase, FORM_PHASE.PRISTINE);
+  assert.deepEqual(state.fieldErrors, { maxSavedTopics: 'x' });
+});
+
+test('restoring a section to defaults is an edit that clears that section’s errors', () => {
+  let state = transitionForm(pristineForm(), { type: 'edited', field: 'topicsRead', fieldError: 'bad' });
+  state = transitionForm(state, { type: 'edited', field: 'maxSavedTopics', fieldError: 'bad' });
+  state = transitionForm(state, { type: 'defaults-restored', section: 'Ask the forum', fields: ['topicsRead'] });
+  assert.equal(state.phase, FORM_PHASE.DIRTY);
+  assert.equal(state.edited, true);
+  assert.deepEqual(Object.keys(state.fieldErrors), ['maxSavedTopics']);
+  assert.equal(state.status.message, 'Ask the forum restored to defaults. Save to apply.');
+});
+
+test('save and reset clear field errors', () => {
+  let state = transitionForm(pristineForm(), { type: 'edited', field: 'topicsRead', fieldError: 'bad' });
+  state = transitionForm(state, { type: 'save-started' });
+  assert.equal(canSave(state), false, 'busy');
+  state = transitionForm(state, { type: 'save-succeeded' });
+  assert.deepEqual(state.fieldErrors, {});
+  assert.deepEqual(formStateLabel(state, true), { text: 'Saved', tone: 'success' });
+  state = transitionForm(state, { type: 'edited', field: 'topicsRead', fieldError: 'bad' });
+  state = transitionForm(transitionForm(state, { type: 'reset-started' }), { type: 'reset-succeeded' });
+  assert.deepEqual(state.fieldErrors, {});
+});
+
+test('the save bar label follows every phase', () => {
+  assert.equal(formStateLabel(initialFormState(), false).tone, 'busy');
+  const pristine = pristineForm();
+  assert.deepEqual(formStateLabel(pristine, true), { text: 'All changes saved', tone: 'neutral' });
+  assert.deepEqual(formStateLabel(pristine, false), { text: 'Not set up yet', tone: 'neutral' });
+  const saving = transitionForm(transitionForm(pristine, { type: 'edited' }), { type: 'save-started' });
+  assert.deepEqual(formStateLabel(saving, true), { text: 'Saving…', tone: 'busy' });
+  const failed = transitionForm(saving, { type: 'save-failed', message: 'x' });
+  assert.deepEqual(formStateLabel(failed, true), { text: 'Unsaved changes · last action failed', tone: 'error' });
+  assert.equal(formStateLabel(transitionForm(pristine, { type: 'test-started', providerName: 'X' }), true).text, 'Testing connection…');
 });

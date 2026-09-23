@@ -1,5 +1,6 @@
 import { normalizeSiteUrl, parseSiteUrl } from '../shared/forum-site.mjs';
 import { isTerminalTaskStatus } from '../shared/task-record.mjs';
+import { isAgentActivityExpired } from '../shared/agent-activity.mjs';
 
 export function getSummaryActionLabel({
   taskStatus = '',
@@ -31,6 +32,84 @@ export function partitionTasks(tasks = []) {
 }
 
 export const AGENT_RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+// The inline Agent panel and pill follow runs from the last day, or less
+// when history is kept for a shorter time than that.
+export function agentRecentWindowMs(retention) {
+  const agentMs = retention?.agentMs;
+  return Number.isFinite(agentMs) || agentMs === Infinity
+    ? Math.min(AGENT_RECENT_WINDOW_MS, agentMs)
+    : AGENT_RECENT_WINDOW_MS;
+}
+
+function replies(posts) {
+  const count = Math.max(0, posts - 1);
+  return `${count.toLocaleString('en-US')} ${count === 1 ? 'reply' : 'replies'}`;
+}
+
+/**
+ * What a saved summary covers, honest about the page limit: a topic longer
+ * than the limit was summarized from its first pages only.
+ * @returns {{ text: string, truncated: boolean, note: string }}
+ */
+export function describeSummaryCoverage(session = {}) {
+  const total = session.summaryPostCount ?? session.totalPosts ?? null;
+  if (session.summaryTruncated) {
+    const covered = session.summaryCoveredPosts;
+    if (covered && total) {
+      const coveredReplies = Math.max(0, covered - 1).toLocaleString('en-US');
+      return {
+        truncated: true,
+        text: `first ${coveredReplies} of ${replies(total)}`,
+        note: `Page limit reached: summarized from the first ${coveredReplies} of ${replies(total)}. Raise “Pages read per topic” in Settings to include more.`
+      };
+    }
+    const pages = session.summaryPagesRead || 0;
+    return {
+      truncated: true,
+      text: `first ${pages} ${pages === 1 ? 'page' : 'pages'} of replies`,
+      note: `Page limit reached: summarized from the first ${pages} ${pages === 1 ? 'page' : 'pages'} of replies; the topic may be longer. Raise “Pages read per topic” in Settings to include more.`
+    };
+  }
+  return { truncated: false, text: total ? replies(total) : '', note: '' };
+}
+
+export function describeSummarizedReplies(entry = {}) {
+  const coverage = describeSummaryCoverage(entry);
+  return coverage.text ? `${coverage.text} summarized` : 'Reply count unavailable';
+}
+
+/**
+ * Copy that depends on the history setting (resolveRetention()).
+ */
+export function retentionCopy(retention) {
+  const forever = retention?.forever === true;
+  const period = retention?.label || '1 day';
+  const limit = retention?.maxSavedTopics;
+  return {
+    savedIntro: forever
+      ? `Conversations and Agent answers are kept until you delete them${limit ? `; past ${limit} saved topics the oldest unkept ones are removed` : ''}. Keep one to protect it.`
+      : `Conversations and Agent answers expire after ${period}. Keep one to preserve it.`,
+    keepAnswer: forever
+      ? 'Keep this answer in Saved'
+      : `Keep this answer in Saved beyond ${period}`,
+    unkeepAnswer: forever
+      ? 'Kept in Saved. Select to unkeep it.'
+      : `Kept in Saved. Select to let it expire after ${period}.`,
+    keepSavedAnswer: forever
+      ? 'Keep this answer'
+      : `Keep this answer beyond ${period}`,
+    unkeepSavedAnswer: forever
+      ? 'Unkeep this answer'
+      : `Let this answer expire ${period} from now`,
+    keepTopic: forever
+      ? 'Keep this summary and conversation'
+      : `Keep this summary and conversation beyond ${period}`,
+    unkeepTopic: forever
+      ? 'Unkeep this summary and conversation'
+      : `Resume the ${period} conversation expiry`
+  };
+}
 
 const AGENT_ACTIVE_STATUSES = new Set(['queued', 'running', 'waiting_user_action']);
 const AGENT_SETTLED_STATUSES = new Set([
@@ -142,14 +221,20 @@ export function selectAgentRunView(activities = [], currentSiteUrl = '', {
   return { mode: 'none', activity: null, kind: '' };
 }
 
-// Saved lists finished answers for a day, and kept ones until unkept.
+// Saved lists finished answers until they expire under the history setting
+// (`windowMs` = retention; the same rule cleanup applies), and kept ones
+// until unkept.
 export function selectSavedAgentActivities(activities = [], {
   now = Date.now(),
   windowMs = AGENT_RECENT_WINDOW_MS
 } = {}) {
   return activities.filter(activity =>
     activity?.status === 'completed'
-    && (activity.kept === true || now - agentRunTime(activity) <= windowMs)
+    && (activity.kept === true || !isAgentActivityExpired(
+      { ...activity, retainedFrom: activity.retainedFrom || agentRunTime(activity) },
+      windowMs,
+      now
+    ))
   );
 }
 

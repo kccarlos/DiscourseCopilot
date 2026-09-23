@@ -1,4 +1,5 @@
 import { normalizeForumContextLimit } from './chat-context-limit.mjs';
+import { normalizeTaskLimits } from './preferences.mjs';
 import {
   buildTopicKey,
   forumDisplayName,
@@ -99,6 +100,9 @@ export function createTaskRecord(value, now = Date.now()) {
     ...(type === TASK_TYPE.CHAT
       ? { maxPostChars: normalizeForumContextLimit(value.maxPostChars) }
       : {}),
+    // The research / page limits snapshotted when the task was queued (see
+    // snapshotTaskLimits); null on records that predate them.
+    limits: normalizeTaskLimits(type, value.limits),
     provider: stringValue(value.provider, 80),
     model: stringValue(value.model, 300),
     status: TASK_STATUS.QUEUED,
@@ -134,6 +138,10 @@ export function normalizeTaskRecord(value, now = Date.now()) {
           : null,
         processedPosts: Number.isFinite(value.progress.processedPosts)
           ? Math.max(0, value.progress.processedPosts)
+          : null,
+        // The topic's real size when the page limit cut the read short.
+        truncatedFromPosts: Number.isFinite(value.progress.truncatedFromPosts)
+          ? Math.max(0, value.progress.truncatedFromPosts)
           : null,
         etaMs: Number.isFinite(value.progress.etaMs)
           ? Math.max(0, value.progress.etaMs)

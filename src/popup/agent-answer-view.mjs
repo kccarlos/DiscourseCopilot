@@ -10,7 +10,7 @@ import { isTerminalTaskStatus } from '../shared/task-record.mjs';
 import { isSameForumUrl } from '../shared/forum-site.mjs';
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { topicKeyFromUrl } from './conversation-state.mjs';
-import { describeAgentProgress, formatRelativeTime } from './ui-state.mjs';
+import { describeAgentProgress, formatRelativeTime, retentionCopy } from './ui-state.mjs';
 import { renderMarkdown } from './markdown.mjs';
 import { openForumTarget } from './forum-tabs.mjs';
 
@@ -27,8 +27,10 @@ export class AgentAnswerView {
    * @param {object} deps.markdown MarkdownScheduler
    * @param {(taskId: string) => string|undefined} deps.getStream streamed answer text so far
    * @param {(activity: object) => object|null} deps.findTask the run's queue task
+   * @param {() => object} [deps.getRetentionCopy] retentionCopy() for the history setting
    */
-  constructor({ forums, markdown, getStream, findTask }) {
+  constructor({ forums, markdown, getStream, findTask, getRetentionCopy = () => retentionCopy(null) }) {
+    this.getRetentionCopy = getRetentionCopy;
     this.forums = forums;
     this.markdown = markdown;
     this.getStream = getStream;
@@ -222,8 +224,8 @@ export class AgentAnswerView {
         label: activity.kept ? 'Kept' : 'Keep',
         pressed: activity.kept === true,
         title: activity.kept
-          ? 'Kept in Saved. Select to let it expire after 24 hours.'
-          : 'Keep this answer in Saved beyond 24 hours'
+          ? this.getRetentionCopy().unkeepAnswer
+          : this.getRetentionCopy().keepAnswer
       });
     }
     if (mode === 'inline' && activity.status === AGENT_ACTIVITY_STATUS.COMPLETED) {

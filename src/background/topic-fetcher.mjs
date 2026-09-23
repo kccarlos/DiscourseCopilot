@@ -1,6 +1,11 @@
 // Reads a Discourse topic's raw posts page by page, reusing cached pages
 // when the post count shows nothing changed, and reporting progress (with
 // rate-limit retries) as it goes.
+//
+// Page limit: at most `maxPages` raw pages (100 posts each) are read, always
+// the first ones. A longer topic is read up to the limit and the result says
+// so (`truncated`, `coveredPosts` of `totalPosts`); the summary and the
+// progress line report it instead of implying every reply was read.
 import {
   calculateFetchProgress,
   getTopicPagination
@@ -20,6 +25,7 @@ import {
   buildRawPageUrl,
   buildTopicJsonUrl
 } from '../shared/forum-site.mjs';
+import { DEFAULT_PREFERENCES, POSTS_PER_RAW_PAGE } from '../shared/preferences.mjs';
 import {
   FORUM_RESPONSE_KIND,
   MAX_UNKNOWN_TOPIC_PAGES,
@@ -51,7 +57,10 @@ export function formatFetchTaskStatus(progress) {
     return `Forum rate limit reached. Retrying${page} in ${formatRetryDelay(progress.retryAfterMs)} (retry ${progress.retryAttempt} of ${progress.maxRetries})`;
   }
   if (progress.totalPosts && progress.processedPosts) {
-    return `Read ${Math.max(0, progress.processedPosts - 1)} of ${Math.max(0, progress.totalPosts - 1)} replies`;
+    const read = `Read ${Math.max(0, progress.processedPosts - 1)} of ${Math.max(0, progress.totalPosts - 1)} replies`;
+    return progress.truncatedFromPosts
+      ? `${read} (page limit; the topic has ${Math.max(0, progress.truncatedFromPosts - 1)})`
+      : read;
   }
   return `Read response page ${progress.currentPage}`;
 }
@@ -76,7 +85,33 @@ export function buildContentResult(rawPages, pagination, extra = {}) {
     rawPages,
     pagesFetched: rawPages.length,
     totalPosts: pagination?.totalPosts ?? null,
+    truncated: false,
+    coveredPosts: pagination?.totalPosts ?? null,
     ...extra
+  };
+}
+
+function normalizeMaxPages(value) {
+  const number = Number(value);
+  return Number.isInteger(number) && number > 0
+    ? number
+    : DEFAULT_PREFERENCES.topicPageLimit;
+}
+
+/**
+ * The part of a known-size topic within the page limit.
+ * @returns {{ totalPages: number, coveredPosts: number, truncated: boolean }}
+ */
+export function limitTopicPagination(pagination, maxPages) {
+  const limit = normalizeMaxPages(maxPages);
+  const totalPages = Math.min(pagination.totalPages, limit);
+  const truncated = pagination.totalPages > limit;
+  return {
+    totalPages,
+    truncated,
+    coveredPosts: truncated
+      ? Math.min(pagination.totalPosts, totalPages * (pagination.pageSize || POSTS_PER_RAW_PAGE))
+      : pagination.totalPosts
   };
 }
 
@@ -177,27 +212,42 @@ export function createTopicFetcher({
     pagination,
     cachedPages,
     knownTotalPosts,
+    maxPages,
     onProgress,
     signal
   }) {
+    const limited = limitTopicPagination(pagination, maxPages);
+    // Post counts are compared within the limit: replies added past it don't
+    // change what is read, so they don't trigger a re-read either.
+    const withinLimit = count => (Number.isInteger(count) && count > 0
+      ? Math.min(count, limited.coveredPosts)
+      : count);
     const requestPlan = planTopicPageRequests({
       cachedPages: normalizeRawPages(cachedPages),
-      knownTotalPosts,
-      currentTotalPosts: pagination.totalPosts,
-      totalPages: pagination.totalPages
+      knownTotalPosts: withinLimit(knownTotalPosts),
+      currentTotalPosts: limited.coveredPosts,
+      totalPages: limited.totalPages
     });
-    const progressAt = (currentPage, averageRequestMs) => calculateFetchProgress({
-      currentPage,
-      totalPages: pagination.totalPages,
-      totalPosts: pagination.totalPosts,
-      pageSize: pagination.pageSize,
-      averageRequestMs,
-      concurrency: config.MAX_CONCURRENT_REQUESTS
+    const coverage = {
+      truncated: limited.truncated,
+      coveredPosts: limited.coveredPosts
+    };
+    const progressAt = (currentPage, averageRequestMs) => ({
+      ...calculateFetchProgress({
+        currentPage,
+        totalPages: limited.totalPages,
+        totalPosts: limited.coveredPosts,
+        pageSize: pagination.pageSize,
+        averageRequestMs,
+        concurrency: config.MAX_CONCURRENT_REQUESTS
+      }),
+      ...(limited.truncated ? { truncatedFromPosts: pagination.totalPosts } : {})
     });
 
     if (requestPlan.unchanged) {
-      onProgress(progressAt(pagination.totalPages, 0));
+      onProgress(progressAt(limited.totalPages, 0));
       return buildContentResult(requestPlan.reusablePages, pagination, {
+        ...coverage,
         unchanged: true,
         newPosts: 0,
         networkPagesFetched: 0
@@ -232,16 +282,19 @@ export function createTopicFetcher({
       normalizeRawPages([...reusablePages, ...fetchedPages]),
       pagination,
       {
+        ...coverage,
         unchanged: false,
+        // New posts that were actually read (within the page limit).
         newPosts: Number.isInteger(knownTotalPosts)
-          ? Math.max(0, pagination.totalPosts - knownTotalPosts)
+          ? Math.max(0, limited.coveredPosts - withinLimit(knownTotalPosts))
           : null,
         networkPagesFetched
       }
     );
   }
 
-  async function fetchUnknownTopicPages(siteUrl, postId, onProgress, signal) {
+  async function fetchUnknownTopicPages(siteUrl, postId, onProgress, signal, maxPages) {
+    const pageLimit = Math.min(normalizeMaxPages(maxPages), MAX_UNKNOWN_TOPIC_PAGES);
     let totalRequestMs = 0;
     let pagesRead = 0;
     const progressAt = averageRequestMs => calculateFetchProgress({
@@ -255,6 +308,7 @@ export function createTopicFetcher({
 
     try {
       const { rawPages, truncated } = await collectRawPages({
+        maxPages: pageLimit,
         fetchPage: async page => {
           const result = await fetchRawPage(siteUrl, postId, page, signal, retry => {
             onProgress(createRateLimitProgress(
@@ -274,9 +328,12 @@ export function createTopicFetcher({
       });
 
       if (truncated) {
-        console.warn(`Background: Stopped reading topic ${postId} after ${MAX_UNKNOWN_TOPIC_PAGES} pages`);
+        console.warn(`Background: Stopped reading topic ${postId} after ${pageLimit} pages`);
       }
       return buildContentResult(rawPages, null, {
+        // The topic's size is unknown: it may continue past the last page read.
+        truncated,
+        coveredPosts: null,
         unchanged: false,
         newPosts: null,
         networkPagesFetched: rawPages.length
@@ -288,16 +345,18 @@ export function createTopicFetcher({
   }
 
   /**
+   * @param {object} [options]
+   * @param {number} [options.maxPages] page limit (the task's topicPageLimit)
    * @returns {Promise<{content: string, rawPages: Array, pagesFetched: number,
-   *   totalPosts: number|null, unchanged: boolean, newPosts: number|null,
-   *   networkPagesFetched: number}>}
+   *   totalPosts: number|null, truncated: boolean, coveredPosts: number|null,
+   *   unchanged: boolean, newPosts: number|null, networkPagesFetched: number}>}
    */
   return async function fetchTopicContent(
     siteUrl,
     postId,
     onProgress = () => {},
     signal,
-    { cachedPages = [], knownTotalPosts = null } = {}
+    { cachedPages = [], knownTotalPosts = null, maxPages } = {}
   ) {
     if (!postId) {
       throw new Error('Post ID is required');
@@ -313,10 +372,11 @@ export function createTopicFetcher({
         pagination,
         cachedPages,
         knownTotalPosts,
+        maxPages,
         onProgress,
         signal
       });
     }
-    return fetchUnknownTopicPages(siteUrl, postId, onProgress, signal);
+    return fetchUnknownTopicPages(siteUrl, postId, onProgress, signal, maxPages);
   };
 }

@@ -24,8 +24,19 @@ import {
 } from '../shared/provider-setup.mjs';
 import { RESPONSE_LANGUAGES } from '../shared/response-language.mjs';
 import { ConfigStore, PROVIDER_IDS } from '../shared/config-state.mjs';
+import { FORUM_CONTEXT_LIMIT } from '../shared/chat-context-limit.mjs';
+import {
+  DEFAULT_PREFERENCES,
+  HISTORY_RETENTION_OPTIONS,
+  POSTS_PER_RAW_PAGE,
+  researchRequestBudget,
+  resolveResearchLimits,
+  resolveRetention,
+  validatePreferences
+} from '../shared/preferences.mjs';
 import {
   dirtyIndicatorText,
+  formStateLabel,
   initialFormState,
   isFormBusy,
   transitionForm
@@ -57,6 +68,48 @@ const INPUT_FIELDS = new Map(PROVIDER_IDS.flatMap(provider => {
 
 const $ = id => document.getElementById(id);
 
+// Preference inputs (ids match the validation field names).
+const CUSTOM_RESEARCH_FIELDS = ['searchQueries', 'searchPages', 'topicsRead'];
+const PREFERENCE_NUMBER_FIELDS = [
+  ...CUSTOM_RESEARCH_FIELDS,
+  'topicPageLimit',
+  'maxSavedTopics',
+  'forumContextLimit'
+];
+const PREFERENCE_INPUT_IDS = new Set(PREFERENCE_NUMBER_FIELDS);
+
+// "Restore defaults" per section: which preferences it resets.
+const RESTORE_SECTIONS = {
+  research: {
+    label: 'Ask the forum',
+    keys: ['researchDepth', 'customResearch'],
+    fields: CUSTOM_RESEARCH_FIELDS
+  },
+  reading: {
+    label: 'Reading topics',
+    keys: ['topicPageLimit'],
+    fields: ['topicPageLimit', 'forumContextLimit'],
+    forumContextLimit: true
+  },
+  history: {
+    label: 'History & privacy',
+    keys: ['historyRetention', 'maxSavedTopics'],
+    fields: ['maxSavedTopics']
+  }
+};
+
+const plural = (count, one, many = `${one}s`) => `${count.toLocaleString('en-US')} ${count === 1 ? one : many}`;
+
+// Renders text with **bold** segments as DOM nodes (no HTML parsing).
+function setRichText(element, text) {
+  element.replaceChildren(...String(text).split(/\*\*/).map((part, index) => {
+    if (index % 2 === 0) return document.createTextNode(part);
+    const strong = document.createElement('strong');
+    strong.textContent = part;
+    return strong;
+  }));
+}
+
 class DiscourseCopilotSettings {
   constructor() {
     this.store = new ConfigStore();
@@ -82,6 +135,7 @@ class DiscourseCopilotSettings {
   async init() {
     this.renderWelcome();
     this.renderProviderLinks();
+    this.renderRetentionOptions();
     this.renderForm();
 
     let loadError = null;
@@ -93,6 +147,7 @@ class DiscourseCopilotSettings {
     }
     this.store.selectProvider(this.store.config.provider);
     this.populateAllFields();
+    this.populatePreferenceFields();
     this.setupEventListeners();
     this.renderProvider();
     this.renderFavoriteModels();
@@ -106,6 +161,10 @@ class DiscourseCopilotSettings {
       if (event.type === 'loaded') {
         this.renderSavedConfiguration();
         this.renderFavoriteModels();
+        // Preferences saved elsewhere replace the fields unless being edited.
+        if (!this.form.edited && !this.isBusy) {
+          this.populatePreferenceFields();
+        }
       }
     });
 
@@ -132,6 +191,25 @@ class DiscourseCopilotSettings {
       this.renderStatus(this.form.status);
     }
     this.renderDirtyState();
+    this.renderFieldErrors();
+  }
+
+  // Inline errors for the preference fields, from the form state.
+  renderFieldErrors() {
+    const fieldErrors = this.form.fieldErrors || {};
+    for (const field of PREFERENCE_NUMBER_FIELDS) {
+      const input = $(field);
+      const error = $(`${field}Error`);
+      if (!input || !error) continue;
+      const message = fieldErrors[field] || '';
+      error.textContent = message;
+      error.hidden = !message;
+      if (message) {
+        input.setAttribute('aria-invalid', 'true');
+      } else {
+        input.removeAttribute('aria-invalid');
+      }
+    }
   }
 
   renderStatus(status) {
@@ -154,6 +232,10 @@ class DiscourseCopilotSettings {
     indicator.textContent = dirtyIndicatorText(this.form, this.hasSavedConfiguration);
     indicator.classList.toggle('hidden', !indicator.textContent);
     indicator.classList.toggle('dirty', this.form.edited);
+    // The save bar's state, derived from the same form state.
+    const label = formStateLabel(this.form, this.hasSavedConfiguration);
+    $('formStateText').textContent = label.text;
+    $('formState').dataset.tone = label.tone;
   }
 
   renderBusy(busy) {
@@ -234,7 +316,12 @@ class DiscourseCopilotSettings {
       });
     });
 
+    this.setupPreferenceListeners();
+
     document.querySelectorAll('input, textarea').forEach(field => {
+      if (PREFERENCE_INPUT_IDS.has(field.id) || field.type === 'radio') {
+        return;
+      }
       field.addEventListener('input', () => {
         field.removeAttribute('aria-invalid');
         const target = INPUT_FIELDS.get(field.id);
@@ -249,6 +336,155 @@ class DiscourseCopilotSettings {
         }
       });
     });
+  }
+
+  // ---------- Preferences ----------
+
+  renderRetentionOptions() {
+    const container = $('historyRetentionOptions');
+    if (!container || container.childElementCount) return;
+    container.replaceChildren(...HISTORY_RETENTION_OPTIONS.map(option => {
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'historyRetention';
+      input.value = option.value;
+      const text = document.createElement('span');
+      text.textContent = option.value === DEFAULT_PREFERENCES.historyRetention
+        ? `${option.label} (default)`
+        : option.label;
+      label.append(input, text);
+      return label;
+    }));
+  }
+
+  // The chat context value being edited (string while typing).
+  get draftForumContextLimit() {
+    return this.store.draft.forumContextLimit ?? this.store.config.forumContextLimit;
+  }
+
+  populatePreferenceFields() {
+    const preferences = this.store.draftPreferences;
+    document.querySelectorAll('input[name="researchDepth"]').forEach(input => {
+      input.checked = input.value === preferences.researchDepth;
+    });
+    document.querySelectorAll('input[name="historyRetention"]').forEach(input => {
+      input.checked = input.value === preferences.historyRetention;
+    });
+    for (const field of CUSTOM_RESEARCH_FIELDS) {
+      $(field).value = String(preferences.customResearch[field]);
+    }
+    $('topicPageLimit').value = String(preferences.topicPageLimit);
+    $('maxSavedTopics').value = String(preferences.maxSavedTopics);
+    $('forumContextLimit').value = String(this.draftForumContextLimit);
+    this.renderPreferences();
+  }
+
+  setupPreferenceListeners() {
+    document.querySelectorAll('input[name="researchDepth"]').forEach(input => {
+      input.addEventListener('change', () => {
+        if (!input.checked) return;
+        this.store.updatePreferences({ researchDepth: input.value });
+        this.dispatch({ type: 'edited', clearStatus: true });
+        this.syncPreferenceErrors();
+        this.renderPreferences();
+      });
+    });
+    document.querySelectorAll('input[name="historyRetention"]').forEach(input => {
+      input.addEventListener('change', () => {
+        if (!input.checked) return;
+        this.store.updatePreferences({ historyRetention: input.value });
+        this.dispatch({ type: 'edited', clearStatus: true });
+        this.renderPreferences();
+      });
+    });
+    for (const field of PREFERENCE_NUMBER_FIELDS) {
+      const input = $(field);
+      input.addEventListener('input', () => {
+        this.updatePreferenceField(field, input.value);
+        this.dispatch({ type: 'edited' });
+        // While typing, only update an error already shown (e.g. clear it
+        // once fixed); a new error appears when the field is left.
+        this.syncPreferenceErrors();
+        this.renderPreferences();
+      });
+      input.addEventListener('change', () => {
+        this.syncPreferenceErrors(field);
+      });
+    }
+    document.querySelectorAll('[data-restore]').forEach(button => {
+      button.addEventListener('click', () => this.restoreSectionDefaults(button.dataset.restore));
+    });
+  }
+
+  updatePreferenceField(field, value) {
+    if (CUSTOM_RESEARCH_FIELDS.includes(field)) {
+      this.store.updatePreferences({ customResearch: { [field]: value } });
+    } else if (field === 'forumContextLimit') {
+      this.store.updateDraft({ forumContextLimit: value });
+    } else {
+      this.store.updatePreferences({ [field]: value });
+    }
+  }
+
+  // Re-derives inline errors from the draft: fields already showing an error
+  // (and `reveal`, a field just left) show its current error or none.
+  syncPreferenceErrors(reveal = '') {
+    const validation = this.store.validatePreferencesDraft();
+    const shown = this.form.fieldErrors || {};
+    const fields = PREFERENCE_NUMBER_FIELDS.filter(field => field === reveal || shown[field]);
+    if (!fields.length) return;
+    this.dispatch({ type: 'field-errors', fields, fieldErrors: validation.fieldErrors });
+  }
+
+  restoreSectionDefaults(section) {
+    const restore = RESTORE_SECTIONS[section];
+    if (!restore || this.isBusy) return;
+    this.store.resetPreferencesDraft(restore.keys);
+    if (restore.forumContextLimit) {
+      this.store.updateDraft({ forumContextLimit: FORUM_CONTEXT_LIMIT.default });
+    }
+    this.populatePreferenceFields();
+    this.dispatch({ type: 'defaults-restored', section: restore.label, fields: restore.fields });
+  }
+
+  // The effective values below each section, derived from the draft the way
+  // the extension will apply them once saved.
+  renderPreferences() {
+    const draft = this.store.draftPreferences;
+    const validation = validatePreferences(draft);
+    const custom = draft.researchDepth === 'custom';
+    $('customResearch').hidden = !custom;
+
+    const research = $('researchEffective');
+    const researchInvalid = CUSTOM_RESEARCH_FIELDS.some(field => validation.fieldErrors[field]);
+    if (researchInvalid) {
+      research.textContent = 'Fix the highlighted field to see what each question will do.';
+    } else {
+      const limits = resolveResearchLimits(validation.preferences || draft);
+      const pages = limits.searchPages > 1 ? ` × ${plural(limits.searchPages, 'result page')}` : '';
+      setRichText(research, `Each question: **up to ${plural(limits.searchQueries, 'search', 'searches')}${pages}**, reading **up to ${plural(limits.topicsRead, 'discussion')}** — at most ${plural(researchRequestBudget(limits), 'forum request')}.`);
+    }
+
+    const reading = $('topicPageLimitEffective');
+    if (validation.fieldErrors.topicPageLimit) {
+      reading.textContent = '';
+    } else {
+      const posts = (Number(draft.topicPageLimit) * POSTS_PER_RAW_PAGE).toLocaleString('en-US');
+      setRichText(reading, `Topics up to **${posts} posts** are read in full; longer ones are summarized from their first ${posts} posts, and the summary says so.`);
+    }
+
+    const history = $('historyEffective');
+    if (validation.fieldErrors.maxSavedTopics) {
+      history.textContent = '';
+    } else {
+      const retention = resolveRetention(validation.preferences || draft);
+      const taskDays = Math.round(retention.taskMs / 86400000);
+      const tasks = `finished tasks leave the Tasks list after ${plural(taskDays, 'day')}`;
+      setRichText(history, retention.forever
+        ? `Unkept conversations and Agent answers stay **until you delete them**; ${tasks}. Past **${retention.maxSavedTopics} saved topics**, the oldest unkept summaries are removed.`
+        : `Unkept conversations and Agent answers are removed **${retention.label} after their last activity**; ${tasks}. Up to **${retention.maxSavedTopics} saved topics** are kept.`);
+    }
   }
 
   renderProvider() {
@@ -306,12 +542,20 @@ class DiscourseCopilotSettings {
     }
   }
 
-  // Validates the draft for Save/Test; on failure the form becomes invalid.
-  checkDraft() {
-    const validation = this.store.validateDraft(this.currentProvider);
+  // Validates the draft for Save (provider + preferences) or Test (provider
+  // only); on failure the form becomes invalid and nothing is written.
+  checkDraft({ includePreferences = true } = {}) {
+    const validation = includePreferences
+      ? this.store.validateSave(this.currentProvider)
+      : this.store.validateDraft(this.currentProvider);
     this.markInvalidFields(validation);
     if (!validation.valid) {
-      this.dispatch({ type: 'invalid', errors: validation.errors });
+      this.dispatch({
+        type: 'invalid',
+        errors: validation.errors,
+        fieldErrors: Object.fromEntries(Object.entries(validation.fieldErrors)
+          .filter(([field]) => PREFERENCE_INPUT_IDS.has(field)))
+      });
       document.querySelector('[aria-invalid="true"]')?.focus();
     }
     return validation.valid;
@@ -435,6 +679,9 @@ class DiscourseCopilotSettings {
     const result = await this.store.save(this.currentProvider);
     if (result.ok) {
       this.renderSavedConfiguration();
+      if (this.form.revision === this.form.savingRevision) {
+        this.populatePreferenceFields();
+      }
       this.dispatch({ type: 'save-succeeded', welcomeMode: this.welcomeMode });
     } else {
       console.error('DiscourseCopilot Settings: Error saving settings:', result.error);
@@ -443,7 +690,7 @@ class DiscourseCopilotSettings {
   }
 
   async testConnection() {
-    if (this.isBusy || !this.checkDraft()) return;
+    if (this.isBusy || !this.checkDraft({ includePreferences: false })) return;
 
     const provider = this.currentProvider;
     const providerName = PROVIDER_CONFIGS[provider].name;
@@ -459,7 +706,7 @@ class DiscourseCopilotSettings {
 
   async resetSettings() {
     if (this.isBusy) return;
-    if (!confirm('Reset all providers, API keys, models, favorites, URLs, the custom system prompt, and the response language?')) {
+    if (!confirm('Reset all providers, API keys, models, favorites, URLs, the custom system prompt, the response language, and the research, reading and history preferences? Saved summaries and answers are not deleted.')) {
       return;
     }
 
@@ -473,6 +720,7 @@ class DiscourseCopilotSettings {
 
     this.store.selectProvider(this.store.config.provider);
     this.populateAllFields();
+    this.populatePreferenceFields();
     this.renderProvider();
     this.renderFavoriteModels();
     this.renderSavedConfiguration();

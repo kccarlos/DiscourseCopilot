@@ -95,6 +95,8 @@ function createFakeDb() {
     async cleanupStaleChats() {},
     async cleanupTasks() {},
     async cleanupAgentActivities() {},
+    async prune() {},
+    setRetention(retention) { this.retention = retention; },
     async listTasks() { return [...tasks.values()]; },
     async saveTask(task) { tasks.set(task.id, { ...task }); },
     async getAgentActivity(id) { return activities.get(id) || null; },
@@ -193,13 +195,15 @@ test('after a restart, task configuration falls back to the saved configuration'
     })
   });
   await service.ready;
-  const restored = { id: 'old', siteUrl: 'https://f.example', provider: 'openai', model: 'gpt-task', forumName: '' };
+  const restored = { id: 'old', type: 'summary', siteUrl: 'https://f.example', provider: 'openai', model: 'gpt-task', forumName: '' };
   assert.deepEqual(await service.getTaskConfiguration(restored), {
     provider: 'openai',
     settings: { apiKey: 'ok', model: 'gpt-task' },
     systemPrompt: 'S',
     responseLanguage: 'fr',
-    forumName: 'f.example'
+    forumName: 'f.example',
+    // A record from before limits existed uses the saved preferences.
+    limits: { topicPageLimit: 20 }
   });
   const noProvider = await service.getTaskConfiguration({ id: 'old2', siteUrl: 'https://f.example' });
   assert.equal(noProvider.provider, 'anthropic');
@@ -262,6 +266,8 @@ test('buildContentResult joins pages', () => {
     rawPages: [{ page: 1, content: 'a' }, { page: 2, content: 'b' }],
     pagesFetched: 2,
     totalPosts: 3,
+    truncated: false,
+    coveredPosts: 3,
     unchanged: false
   });
 });
@@ -358,9 +364,15 @@ test('agentActivityFromTask builds the initial activity for a queued Agent task'
   assert.equal(agentActivityFromTask({ id: 't3', question: 'Q' }).activityId, 't3');
 });
 
-test('agentActivityExpiry keeps kept answers forever', () => {
-  assert.equal(agentActivityExpiry({ kept: true }, 1000), 0);
-  assert.equal(agentActivityExpiry({ kept: false }, 1000), 1000 + AGENT_ACTIVITY_RETENTION_MS);
+test('agentActivityExpiry keeps kept and unfinished answers, else counts from retainedFrom', () => {
+  const done = { status: 'completed', completedAt: 1000, retainedFrom: 1000 };
+  assert.equal(agentActivityExpiry({ ...done, kept: true }), 0);
+  assert.equal(agentActivityExpiry(done), 1000 + AGENT_ACTIVITY_RETENTION_MS);
+  assert.equal(agentActivityExpiry(done, 5000), 6000);
+  assert.equal(agentActivityExpiry(done, Infinity), 0, 'no time limit');
+  assert.equal(agentActivityExpiry({ ...done, retainedFrom: 3000 }, 5000), 8000, 'unkept later');
+  assert.equal(agentActivityExpiry({ status: 'waiting_user_action', completedAt: 0 }, 5000), 0);
+  assert.equal(agentActivityExpiry({ status: 'running' }, 5000), 0);
 });
 
 test('agentFailurePatch distinguishes cancelled, waiting and failed runs', () => {
@@ -369,13 +381,15 @@ test('agentFailurePatch distinguishes cancelled, waiting and failed runs', () =>
   assert.equal(cancelled.status, 'cancelled');
   assert.equal(cancelled.error, null);
   assert.equal(cancelled.completedAt, now);
-  assert.equal(cancelled.expiresAt, now + AGENT_ACTIVITY_RETENTION_MS);
+  assert.equal(cancelled.retainedFrom, now);
+  assert.equal(agentActivityExpiry({ ...cancelled }), now + AGENT_ACTIVITY_RETENTION_MS);
 
   const waiting = agentFailurePatch(new Error('login'), { cancelled: false, needsUserAction: true }, now);
   assert.equal(waiting.status, 'waiting_user_action');
   assert.equal(waiting.statusText, 'Forum login or verification is required');
   assert.equal(waiting.completedAt, 0);
-  assert.equal(waiting.expiresAt, 0);
+  assert.equal(waiting.retainedFrom, 0);
+  assert.equal(agentActivityExpiry({ ...waiting }), 0);
 
   const failed = agentFailurePatch(Object.assign(new Error('boom'), { code: 'X', retryable: false }), { cancelled: false, needsUserAction: false }, now);
   assert.equal(failed.status, 'failed');
