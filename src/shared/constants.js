@@ -46,7 +46,16 @@ export const DiscourseCopilotConstants = {
     TASK_STREAM: 'taskStream',
     ACTIVITY_UPDATED: 'activityUpdated',
     RESUME_TASK: 'resumeTask',
-    SESSION_UPDATED: 'sessionUpdated'
+    SESSION_UPDATED: 'sessionUpdated',
+    SYNC_FORUM_ACCESS: 'syncForumAccess',
+    ACTION_CLICKED: 'actionClicked'
+  },
+
+  // chrome.storage.session keys (cleared when the browser closes).
+  SESSION_KEYS: {
+    // Tabs where the toolbar icon was clicked (activeTab was granted), so
+    // the panel can tell "not checked yet" from "checked, not a forum".
+    ACTION_CLICKED_TABS: 'actionClickedTabs'
   },
 
   PROVIDER_CONFIGS: {

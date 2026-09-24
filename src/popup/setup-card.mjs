@@ -16,6 +16,11 @@ import {
   setupSuccessMessage,
   suggestSetupModels
 } from '../shared/provider-setup.mjs';
+import {
+  requestServerAccess,
+  serverAccessDeniedText,
+  serverNeedsAccessPrompt
+} from '../shared/forum-access.mjs';
 import { announce } from './status-line.mjs';
 
 const CHOICE_LABELS = {
@@ -349,13 +354,27 @@ export class SetupCard {
       return;
     }
 
+    // A custom server on another host needs its own permission; ask now,
+    // while this is still the click (no await above this line).
+    const serverUrl = LOCAL_PROVIDER_IDS.has(provider)
+      ? this.config.draftSettings(provider).url
+      : '';
+    const serverAccess = serverNeedsAccessPrompt(serverUrl)
+      ? requestServerAccess(serverUrl)
+      : Promise.resolve(true);
+
     this.state = 'busy';
     this.setBusy(true);
+    const serverAllowed = await serverAccess;
     if (test) {
       this.setProgress(`Testing ${config.name}…`);
       const result = await this.config.test(provider);
       if (!result.ok) {
         const failure = result.failure || { field: null, message: result.error?.message || 'The test did not run.' };
+        if (!serverAllowed) {
+          failure.field = 'url';
+          failure.message = serverAccessDeniedText(serverUrl);
+        }
         this.state = 'editing';
         this.setBusy(false);
         this.setProgress('');
@@ -400,7 +419,7 @@ export class SetupCard {
     this.state = 'done';
     this.onStateChange();
     if (restoreFocus || hadFocus) {
-      const next = [$('summarizeBtn'), $('agentLaunchBtn'), $('settingsBtn')]
+      const next = [$('summarizeBtn'), $('agentLaunchBtn'), $('forumAccessBtn'), $('settingsBtn')]
         .find(button => button && !button.disabled && button.offsetParent !== null);
       next?.focus();
     }

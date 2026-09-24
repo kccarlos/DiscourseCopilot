@@ -113,9 +113,9 @@ test('chat controls follow the summary, question, running tasks and edit saves',
 test('the topic helper line explains the next step', () => {
   const topic = { isForumTopic: true, isDiscourse: true, siteUrl: 'https://meta.example', forumName: 'Meta' };
   const home = { isForumTopic: false, isDiscourse: true, siteUrl: 'https://meta.example', forumName: 'Meta' };
-  assert.equal(deriveTopicHelper({ pageContext: null, configReady: false }), 'Finish setup below, then open any Discourse topic.');
-  assert.equal(deriveTopicHelper({ pageContext: home, configReady: false }), 'Finish setup below to ask this forum.');
-  assert.equal(deriveTopicHelper({ pageContext: home, configReady: true }), 'Search across Meta discussions with Agent mode.');
+  assert.equal(deriveTopicHelper({ pageContext: null, configReady: false }), 'Open a Discourse forum topic to get started.');
+  assert.equal(deriveTopicHelper({ pageContext: home, configReady: false }), 'Connect an AI provider below, then open a topic or ask the forum a question.');
+  assert.equal(deriveTopicHelper({ pageContext: home, configReady: true }), 'Open any topic to summarize it, or ask the forum a question.');
   assert.equal(deriveTopicHelper({ pageContext: null, configReady: true }), 'Open a Discourse forum topic to get started.');
   assert.equal(deriveTopicHelper({ pageContext: topic, configReady: false }), 'Finish setup below to create a summary.');
   assert.equal(deriveTopicHelper({ pageContext: topic, configReady: true, summaryRunning: true }), 'Your summary is running safely in the background.');

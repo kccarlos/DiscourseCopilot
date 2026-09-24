@@ -142,15 +142,20 @@ export class ForumBar {
     const forumName = siteUrl ? this.forums.label(siteUrl) : '';
     const hostname = forumHostname(siteUrl);
 
-    bar.dataset.state = siteUrl ? 'forum' : 'none';
+    const hidden = !siteUrl && context.pageHidden === true;
+    bar.dataset.state = siteUrl ? 'forum' : hidden ? 'unchecked' : 'none';
     applyForumHue(bar, siteUrl);
-    name.textContent = siteUrl ? forumName : 'Not a Discourse forum';
+    name.textContent = siteUrl ? forumName : hidden ? 'Page not checked yet' : 'Not a Discourse forum';
     host.textContent = siteUrl
       ? (hostname !== forumName ? hostname : '')
       : pageHostname(context.url);
     host.classList.toggle('hidden', !host.textContent);
-    bar.title = siteUrl ? `${forumName} · ${hostname}` : 'This page is not a Discourse forum';
-    initial.textContent = siteUrl ? forumInitial(forumName) : '–';
+    bar.title = siteUrl
+      ? `${forumName} · ${hostname}`
+      : hidden
+        ? 'Click the DiscourseCopilot icon in the toolbar to check this page'
+        : 'This page is not a Discourse forum';
+    initial.textContent = siteUrl ? forumInitial(forumName) : hidden ? '?' : '–';
 
     const iconUrl = siteUrl ? `${siteUrl}/favicon.ico` : '';
     if (icon.dataset.src !== iconUrl) {
@@ -164,15 +169,15 @@ export class ForumBar {
       }
     }
 
+    // The hero shows on forum pages only; off-topic pages get their copy
+    // from the page guidance (popup.js renderGuidance).
     document.getElementById('heroEyebrow').textContent = context.isForumTopic
       ? `Topic on ${forumName}`
-      : siteUrl
-        ? `${forumName} · not a topic`
-        : 'Not a Discourse forum';
+      : 'Current page';
     // Tab titles repeat the category and forum, which the bar already shows.
     document.getElementById('currentPageTitle').textContent = context.isForumTopic
       ? cleanTopicTitle(context.title, forumName)
-      : context.title || 'Loading page…';
+      : forumName || 'This page';
 
     if (previousSiteUrl !== undefined && siteUrl && siteUrl !== previousSiteUrl) {
       bar.classList.remove('is-switched');

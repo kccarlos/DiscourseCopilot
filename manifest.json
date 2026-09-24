@@ -1,15 +1,29 @@
 {
   "manifest_version": 3,
   "name": "DiscourseCopilot",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "AI summaries and research copilot for any Discourse forum",
   "permissions": [
     "storage",
     "sidePanel",
-    "alarms"
+    "alarms",
+    "scripting",
+    "activeTab"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "https://openrouter.ai/*",
+    "https://api.openai.com/*",
+    "https://api.anthropic.com/*",
+    "https://api.groq.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.x.ai/*",
+    "https://api.deepseek.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
   ],
   "action": {
     "default_title": "DiscourseCopilot",
@@ -24,16 +38,6 @@
     "default_path": "src/popup/popup.html"
   },
   "options_page": "src/settings/settings.html",
-  "content_scripts": [
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "src/content/content.js"
-      ]
-    }
-  ],
   "background": {
     "service_worker": "src/background/background.js"
   },

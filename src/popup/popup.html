@@ -95,9 +95,15 @@
         </div>
       </section>
 
+      <section id="getStarted" class="get-started hidden" aria-labelledby="getStartedLabel">
+        <span class="eyebrow" aria-hidden="true">Get started</span>
+        <span id="getStartedLabel" class="sr-only">Step 1 of 2: Connect an AI provider</span>
+        <ol id="getStartedList" class="get-started-list"></ol>
+      </section>
+
       <section id="setupCard" class="setup-card hidden" aria-labelledby="setupHeading">
         <div id="setupIntro" class="setup-card-header">
-          <span class="eyebrow">First-time setup</span>
+          <span id="setupEyebrow" class="eyebrow">First-time setup</span>
           <h2 id="setupHeading" tabindex="-1">Connect an AI provider</h2>
           <p>DiscourseCopilot uses your own AI provider to summarize and search any Discourse forum. Your key stays in this browser.</p>
         </div>
@@ -194,7 +200,7 @@
           <span class="setup-success-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></svg>
           </span>
-          <p id="setupSuccessText">You’re set — open any Discourse topic and press Create summary.</p>
+          <p id="setupSuccessText">You’re set. Open a topic on any Discourse forum to get started.</p>
           <button id="setupDoneBtn" class="outline secondary setup-done-btn" type="button">Done</button>
         </div>
         <div class="setup-card-footer">
@@ -202,6 +208,30 @@
         </div>
       </section>
       <div id="setupAnnouncer" class="sr-only" role="status" aria-live="polite"></div>
+
+      <section id="pageGuide" class="page-guide hidden" data-state="" aria-labelledby="pageGuideHeading">
+        <span class="page-guide-icon" aria-hidden="true">
+          <picture class="page-guide-brand" data-icon="unchecked">
+            <source srcset="/brand/icon-on-dark.svg" media="(prefers-color-scheme: dark)">
+            <img src="/brand/icon-on-light.svg" alt="" width="28" height="28" draggable="false">
+          </picture>
+          <svg data-icon="not-forum" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-1.9 4.5-4.5 1.9 1.9-4.5 4.5-1.9Z"/></svg>
+          <svg data-icon="allow" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 7.6-1.7"/><path d="M12 14.5v2"/></svg>
+          <svg data-icon="maybe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6"/><path d="M12 17h.01"/></svg>
+        </span>
+        <div class="page-guide-copy">
+          <span id="pageGuideEyebrow" class="eyebrow"></span>
+          <h2 id="pageGuideHeading" tabindex="-1"></h2>
+          <p id="pageGuideText" class="page-guide-text"></p>
+          <ol id="pageGuideSteps" class="page-guide-steps hidden"></ol>
+          <ul id="pageGuideLinks" class="page-guide-links hidden"></ul>
+          <p id="forumAccessNote" class="forum-access-note hidden" role="status" aria-live="polite"></p>
+          <button id="forumAccessBtn" class="summarize-main-btn forum-access-btn hidden" type="button">Allow access</button>
+          <p id="pageGuideFootnote" class="page-guide-footnote hidden"></p>
+          <p id="pageGuideTip" class="page-guide-tip hidden"></p>
+        </div>
+      </section>
+      <div id="guideAnnouncer" class="sr-only" role="status" aria-live="polite"></div>
 
       <div id="status" class="status hidden" role="status" aria-live="polite"></div>
       <div id="agentAnnouncer" class="sr-only" role="status" aria-live="polite"></div>

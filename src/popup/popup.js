@@ -16,7 +16,12 @@
 //   session-store     topic sessions cached and saved to IndexedDB
 //   operations        the one request being submitted
 //   topic-controls    button/input state derived from all of the above
+//   page-guidance     one guidance card per page state (not checked, not a
+//                     forum, allow access, forum home, topic)
+//   forum-access-card renders that card, the "Get started" checklist and
+//                     the Allow access request
 import { DiscourseCopilotConstants } from '../shared/constants.js';
+import { subscribeForumAccess } from '../shared/forum-access.mjs';
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { ConfigStore } from '../shared/config-state.mjs';
 import { resolveRetention, retentionEqual } from '../shared/preferences.mjs';
@@ -43,6 +48,8 @@ import { TopicController } from './topic-controller.mjs';
 import { ChatView } from './chat-view.mjs';
 import { AgentController } from './agent-controller.mjs';
 import { ActivityView } from './activity-view.mjs';
+import { ForumAccessCard } from './forum-access-card.mjs';
+import { GUIDANCE_STATE, derivePageGuidance } from './page-guidance.mjs';
 import {
   applyTopicControls,
   deriveTopicControls,
@@ -82,7 +89,15 @@ class DiscourseCopilotPopup {
       onError: error => DiscourseCopilotLogger.error('Popup: Error loading provider settings:', error)
     });
     this.status = new StatusLine($('status'));
-    this.tasks = new TaskRegistry();
+    this.tasks = new TaskRegistry({
+      // A request for a forum that isn't enabled (e.g. access was removed
+      // in Settings): re-check the page so its Allow access card shows.
+      onForumAccessMissing: () => void this.page.refresh()
+    });
+    this.accessCard = new ForumAccessCard({
+      onGranted: siteUrl => this.handleForumAccessGranted(siteUrl),
+      onDenied: () => this.updateUI({ announce: false })
+    });
     this.forums = new ForumDirectory({
       getPageContext: () => state.pageContext,
       getRecords: () => [
@@ -228,6 +243,7 @@ class DiscourseCopilotPopup {
     this.forumBar.mount();
     this.header.mount();
     this.setupCard.mount();
+    this.accessCard.mount();
     this.activity.mount();
     this.summary.mount();
     this.agent.mount();
@@ -256,7 +272,20 @@ class DiscourseCopilotPopup {
         case MESSAGES.PAGE_CHANGED:
           this.page.handlePageChanged(sender);
           break;
+        case MESSAGES.ACTION_CLICKED:
+          // The toolbar icon was clicked: activeTab now lets the panel check
+          // a page it could not see.
+          if (this.started) {
+            void this.page.refresh();
+          }
+          break;
         default:
+      }
+    });
+    // A forum was enabled or removed (here, in Settings, or another window).
+    subscribeForumAccess(() => {
+      if (this.started) {
+        void this.page.refresh();
       }
     });
     // Settings changed here or in another extension page.
@@ -361,6 +390,26 @@ class DiscourseCopilotPopup {
       this.topic.refreshDetails(context);
     }
     this.updateUI({ announce: contextChanged });
+  }
+
+  // Access to a forum was just granted: the background registers the
+  // content script and injects it into the forum's open tabs, then the page
+  // is checked again and the normal view replaces the Allow access card.
+  async handleForumAccessGranted(siteUrl) {
+    const hadFocus = $('pageGuide').contains(document.activeElement);
+    this.status.show(`DiscourseCopilot can now read ${this.forums.label(siteUrl)}`, 'success', { kind: 'access' });
+    try {
+      await chrome.runtime.sendMessage({ action: MESSAGES.SYNC_FORUM_ACCESS, siteUrl });
+    } catch (error) {
+      DiscourseCopilotLogger.warn('Popup: Unable to set up the enabled forum:', error);
+    }
+    await this.page.refresh();
+    // The button that had focus is gone; continue with the next action.
+    if (hadFocus && $('pageGuide').classList.contains('hidden')) {
+      [$('summarizeBtn'), $('agentLaunchBtn'), $('setupHeading')]
+        .find(element => element && !element.disabled && element.offsetParent !== null)
+        ?.focus({ preventScroll: true });
+    }
   }
 
   // ---------- Background broadcasts ----------
@@ -474,6 +523,7 @@ class DiscourseCopilotPopup {
     this.lastSettingsValid = settingsValid;
     this.header.renderSetupState();
 
+    const guidance = this.renderGuidance();
     this.updateControls();
     this.updateBackgroundRecovery();
     // Agent state lives in its panel, so it survives re-renders and tab switches.
@@ -509,6 +559,8 @@ class DiscourseCopilotPopup {
       isDiscourse: Boolean(state.pageContext?.isDiscourse),
       // The setup success message already says what to do next.
       needsSetup: !settingsValid || this.setupCard.showsSuccess,
+      // The page guidance (card or forum hero) already says what to do.
+      guidanceShown: guidance.state !== GUIDANCE_STATE.TOPIC,
       agentPanelShown: agentView.mode === 'panel'
     });
     if (idleStatus) {
@@ -518,8 +570,34 @@ class DiscourseCopilotPopup {
     }
   }
 
+  // One guidance card per page state (page-guidance.mjs). The hero shows
+  // only on a forum (its topic or home page); #topicView's data-guidance
+  // lets the stylesheet hide what the state doesn't need (hero, welcome
+  // panel, the summary button off-topic).
+  renderGuidance() {
+    const context = this.state.pageContext;
+    const siteUrl = context?.siteUrl || '';
+    const guidance = derivePageGuidance(context, {
+      providerReady: this.config.isReady(),
+      setupShowsSuccess: this.setupCard.showsSuccess,
+      forumName: siteUrl ? this.forums.label(siteUrl, context.forumName) : '',
+      accessDenied: this.accessCard.isDenied(siteUrl)
+    });
+    this.accessCard.render(guidance);
+    const topicView = $('topicView');
+    topicView.dataset.guidance = guidance.state;
+    topicView.dataset.primary = guidance.primary;
+    if (guidance.hero) {
+      $('heroEyebrow').textContent = guidance.hero.eyebrow;
+      $('currentPageTitle').textContent = guidance.hero.title;
+    }
+    $('setupEyebrow').textContent = guidance.checklist ? 'Step 1 of 2' : 'First-time setup';
+    return guidance;
+  }
+
   updateControls() {
     const { pageContext, session } = this.state;
+    const accessReady = pageContext?.forumAccess !== 'missing';
     const topicKey = pageContext?.topicKey;
     const configReady = this.config.isReady();
     const activeSummaryTask = this.tasks.activeForTopicOfType(TASK_TYPE.SUMMARY, topicKey);
@@ -528,8 +606,9 @@ class DiscourseCopilotPopup {
       operationKind: this.operations.kind,
       backgroundAvailable: this.state.backgroundAvailable,
       configReady,
-      hasTopic: Boolean(pageContext?.isForumTopic),
-      hasForumPage: Boolean(pageContext?.isDiscourse),
+      hasTopic: Boolean(pageContext?.isForumTopic) && accessReady,
+      hasForumPage: Boolean(pageContext?.isDiscourse) && accessReady,
+      forumAccessMissing: !accessReady,
       hasSummary: Boolean(session?.summary),
       hasSource: Boolean(session?.source),
       historyLength: session?.history?.length || 0,

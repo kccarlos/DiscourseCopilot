@@ -23,6 +23,11 @@ import {
   describeSavedConfiguration
 } from '../shared/provider-setup.mjs';
 import { RESPONSE_LANGUAGES } from '../shared/response-language.mjs';
+import {
+  requestServerAccess,
+  serverAccessDeniedText,
+  serverNeedsAccessPrompt
+} from '../shared/forum-access.mjs';
 import { ConfigStore, PROVIDER_IDS } from '../shared/config-state.mjs';
 import { FORUM_CONTEXT_LIMIT } from '../shared/chat-context-limit.mjs';
 import {
@@ -34,6 +39,8 @@ import {
   resolveRetention,
   validatePreferences
 } from '../shared/preferences.mjs';
+import { topicSessionDatabase } from '../popup/topic-session-db.mjs';
+import { ForumAccessSection, customServerPatterns } from './forum-access-section.mjs';
 import {
   dirtyIndicatorText,
   formStateLabel,
@@ -43,6 +50,7 @@ import {
 } from './settings-form-state.mjs';
 
 const { PROVIDER_CONFIGS } = DiscourseCopilotConstants;
+const LOCAL_PROVIDER_IDS_LIST = [...LOCAL_PROVIDER_IDS];
 const STATUS_AUTO_HIDE_MS = 5000;
 
 // Element IDs of each provider's inputs.
@@ -155,6 +163,23 @@ class DiscourseCopilotSettings {
     this.dispatch(loadError
       ? { type: 'load-failed', message: loadError.message }
       : { type: 'loaded', welcomeMode: this.welcomeMode });
+
+    this.forumAccess = new ForumAccessSection({
+      loadRecords: async () => {
+        await topicSessionDatabase.open();
+        const [sessions, activities] = await Promise.all([
+          topicSessionDatabase.list(),
+          topicSessionDatabase.listAgentActivities()
+        ]);
+        return [...sessions, ...activities];
+      },
+      // A custom Ollama / LM Studio server is a granted host, not a forum.
+      excludedPatterns: () => customServerPatterns(
+        LOCAL_PROVIDER_IDS_LIST.map(provider => this.store.draftSettings(provider).url)
+      ),
+      notify: (message, type) => this.notify(message, type, type === 'success')
+    });
+    void this.forumAccess.mount();
 
     // Follow changes made elsewhere (e.g. the side panel's model switcher).
     this.store.subscribe(event => {
@@ -689,10 +714,27 @@ class DiscourseCopilotSettings {
 
   // ---------- Save / test / reset ----------
 
+  // A custom Ollama / LM Studio server on another host needs its own
+  // permission. Must be called before any await in the click.
+  requestCustomServerAccess() {
+    const provider = this.currentProvider;
+    const serverUrl = LOCAL_PROVIDER_IDS.has(provider)
+      ? this.store.draftSettings(provider).url
+      : '';
+    return {
+      serverUrl,
+      allowed: serverNeedsAccessPrompt(serverUrl)
+        ? requestServerAccess(serverUrl)
+        : Promise.resolve(true)
+    };
+  }
+
   async saveSettings() {
     if (this.isBusy || !this.checkDraft()) return;
+    const server = this.requestCustomServerAccess();
 
     this.dispatch({ type: 'save-started' });
+    const serverAllowed = await server.allowed;
     const result = await this.store.save(this.currentProvider);
     if (result.ok) {
       this.renderSavedConfiguration();
@@ -700,6 +742,9 @@ class DiscourseCopilotSettings {
         this.populatePreferenceFields();
       }
       this.dispatch({ type: 'save-succeeded', welcomeMode: this.welcomeMode });
+      if (!serverAllowed) {
+        this.notify(`Saved. ${serverAccessDeniedText(server.serverUrl)}`, 'warning', false);
+      }
     } else {
       console.error('DiscourseCopilot Settings: Error saving settings:', result.error);
       this.dispatch({ type: 'save-failed', message: result.error?.message || 'unknown error' });
@@ -708,16 +753,23 @@ class DiscourseCopilotSettings {
 
   async testConnection() {
     if (this.isBusy || !this.checkDraft({ includePreferences: false })) return;
+    const server = this.requestCustomServerAccess();
 
     const provider = this.currentProvider;
     const providerName = PROVIDER_CONFIGS[provider].name;
     this.dispatch({ type: 'test-started', providerName });
+    const serverAllowed = await server.allowed;
     const result = await this.store.test(provider);
     if (result.ok) {
       this.dispatch({ type: 'test-passed', providerName });
     } else {
       console.error(`DiscourseCopilot Settings: ${provider} connection test failed:`, result.error);
-      this.dispatch({ type: 'test-failed', message: result.error?.message || 'unknown error' });
+      this.dispatch({
+        type: 'test-failed',
+        message: serverAllowed
+          ? result.error?.message || 'unknown error'
+          : serverAccessDeniedText(server.serverUrl)
+      });
     }
   }
 

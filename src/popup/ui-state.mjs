@@ -416,14 +416,17 @@ export function groupByForum(items = [], currentSiteUrl = '', { names = null } =
 }
 
 // The status line shown when nothing is running. While setup is needed the
-// setup card is the call to action, so no status competes with it.
+// setup card is the call to action, and off a readable topic the page
+// guidance (page-guidance.mjs) says what to do, so no status competes.
 export function resolveIdleStatus({
   isForumTopic = false,
   isDiscourse = false,
   needsSetup = false,
+  accessPending = false,
+  guidanceShown = false,
   agentPanelShown = false
 } = {}) {
-  if (needsSetup) {
+  if (needsSetup || accessPending || guidanceShown) {
     return null;
   }
   if (!isForumTopic && isDiscourse) {

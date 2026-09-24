@@ -24,7 +24,7 @@ DiscourseCopilot is a free Chrome extension. It opens in your browser's side pan
 - **Skip the scroll.** Get the main points of a 500-reply topic without reading every post.
 - **Ask questions.** Chat about the topic: "What did people decide?" or "Is there a workaround?"
 - **Search the whole forum.** Ask a question and it looks through the forum for you, then answers with numbered sources you can click.
-- **Works on any Discourse forum.** Nothing to set up per site.
+- **Works on any Discourse forum.** Allow access once per forum you use; nothing else to set up.
 - **Use the AI you like.** OpenAI, Anthropic (Claude), Google Gemini, and more, or a free model running on your own computer.
 - **Private by design.** Your key and your history stay in your browser. No accounts and no tracking.
 - **Keep browsing.** Work runs in the background, and you can come back to it later.
@@ -48,8 +48,12 @@ A Chrome Web Store listing is coming soon. For now, install it from GitHub:
 **2. Connect an AI provider.**
 Click the DiscourseCopilot icon to open the side panel. A short setup card asks you to pick a provider, paste your API key, and pick a model (a good one is filled in for you). See [Choosing an AI provider](#choosing-an-ai-provider) if you're not sure which to pick.
 
-**3. Open a topic and click Create summary.**
-Open any topic on a Discourse forum and click **Create summary**. That's it.
+**3. Open a forum topic, allow access, then Create summary.**
+Open any topic on a Discourse forum and click the DiscourseCopilot icon. The first time you use a forum, the side panel shows **Allow DiscourseCopilot on *forum name***: click **Allow access**, then choose **Allow** when Chrome asks. Then click **Create summary**. Each forum asks only once, and after that the DiscourseCopilot button also appears in the corner of its pages.
+
+<img src="docs/screenshots/feature-allow-access.png" alt="The side panel asking to allow DiscourseCopilot on a forum, with three short steps and an Allow access button" width="420">
+
+On a page that isn't a Discourse forum, the side panel says so and suggests forums to try.
 
 ## What you can do
 
@@ -121,7 +125,7 @@ Start Ollama so the extension is allowed to reach it:
 OLLAMA_ORIGINS=chrome-extension://* ollama serve
 ```
 
-Then choose **Local (Ollama)** in setup. The address `http://localhost:11434` is filled in for you. LM Studio uses `http://localhost:1234` by default.
+Then choose **Local (Ollama)** in setup. The address `http://localhost:11434` is filled in for you. LM Studio uses `http://localhost:1234` by default. If the server runs on another computer, enter its address; Chrome asks once for permission to connect to it when you click **Test & save**.
 
 </details>
 
@@ -143,7 +147,7 @@ Open **Settings** from the side panel (or right-click the extension icon and cho
 - **Your key and history stay in your browser.** Settings, API keys, summaries, chats, and answers are saved on your computer only.
 - **Forum posts go only to the AI you chose.** When you summarize or ask something, the topic and your question are sent straight from your browser to your AI provider.
 - **No middleman.** There are no DiscourseCopilot servers, no accounts, and no analytics.
-- **It only reads the forum you're on.** On other websites, it does nothing.
+- **It only reads forums you enable.** Chrome gives it access to a forum only after you click **Allow access** for that forum, and you can remove access anytime in Settings. It can't see other websites.
 
 Read the full [privacy policy](PRIVACY.md).
 
@@ -152,11 +156,20 @@ Read the full [privacy policy](PRIVACY.md).
 **Does it work on forums where I have to log in, or on private forums?**
 Yes. It reads the forum the same way your browser does, using your login. If you're logged in, it can read what you can read. If the forum asks you to log in or pass a check, log in on that forum in a normal tab. For **Ask the forum**, the search pauses and waits: click **Continue** when you're done. For a summary, just click **Create summary** again.
 
+**Why does it ask for permission per forum?**
+Discourse forums live on thousands of different websites, so DiscourseCopilot can't know them in advance. Instead of asking to "read and change all your data on all websites" when you install it, it asks for one forum at a time, the first time you use that forum. That access lets it read topics and search the forum in the background (even after you switch tabs) using your login there. You can see and remove every forum you allowed in **Settings → Forum access**; removing access doesn't delete your saved summaries or answers.
+
+**The side panel says "Page not checked yet".**
+Chrome only lets DiscourseCopilot see forums you've allowed or pages where you clicked its icon. Click the DiscourseCopilot icon in the toolbar and the side panel checks the page. If it's a Discourse forum, you'll see **Allow DiscourseCopilot on *forum name***: click **Allow access** and choose **Allow** in Chrome's prompt. Tip: pin DiscourseCopilot from the puzzle-piece menu so the icon is always there.
+
+**I updated from an older version and the forum asks again.**
+Version 2.1 switched from access to every website to access per forum, so forums you used before need one click on **Allow access**. Your saved summaries and answers are still there.
+
 **I see a "rate limit" message. What now?**
 There are two kinds. If the *forum* asks DiscourseCopilot to slow down, the side panel shows "Forum asked us to slow down" and tries again on its own after a short wait, so you don't need to do anything. If your *AI provider* is limiting you, wait a minute and try again, and check your plan and usage with your provider.
 
 **"Ask the forum" is greyed out, or the side panel doesn't recognize the forum.**
-If the tab was already open before you installed the extension, reload the tab. Also make sure you're on a Discourse forum (most say "Powered by Discourse" at the bottom).
+Click the DiscourseCopilot icon in the toolbar while the forum is open, and click **Allow access** if the side panel asks (then choose **Allow** in Chrome's prompt). Also make sure you're on a Discourse forum (most say "Powered by Discourse" at the bottom). If you chose **Is this a Discourse forum?** on a site that isn't one, remove it in **Settings → Forum access**.
 
 **My summary says "Page limit reached" or "first 1,999 of 2,430 replies".**
 You've set a limit on **Pages read per topic**, so a longer topic is summarized from its first pages. To include more, choose **Read every page** (or a higher limit) in Settings, then click **Check for new replies**. It will take longer and cost a bit more. By default there is no limit. On the rare forum that doesn't report a topic's length, reading stops after 100 pages (10,000 posts) as a safety net.

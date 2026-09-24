@@ -91,6 +91,14 @@ class DiscourseCopilotContent {
     );
   }
 
+  dispose() {
+    if (this.urlCheckTimer !== null) {
+      window.clearInterval(this.urlCheckTimer);
+      this.urlCheckTimer = null;
+    }
+    this.isDiscourse = false;
+  }
+
   get topicKey() {
     return this.postId ? buildTopicKey(this.siteUrl, this.postId) : '';
   }
@@ -304,12 +312,34 @@ class DiscourseCopilotContent {
   }
 }
 
-const discourseCopilot = new DiscourseCopilotContent();
-discourseCopilot.init();
+// Registered with chrome.scripting for each forum the user enabled, and
+// also injected into already-open tabs right after a grant: a second
+// injection into a page with a working instance does nothing. An instance
+// left over from before an extension reload or update (its runtime is gone)
+// is replaced, launcher included.
+const INSTANCE_KEY = '__discourseCopilotContent';
+const previous = globalThis[INSTANCE_KEY];
+if (!previous?.isAlive?.()) {
+  previous?.dispose?.();
+  document.getElementById(LAUNCHER_ID)?.remove();
+  const discourseCopilot = new DiscourseCopilotContent();
+  const runtime = chrome.runtime;
+  globalThis[INSTANCE_KEY] = {
+    isAlive: () => {
+      try {
+        return Boolean(runtime?.id);
+      } catch {
+        return false;
+      }
+    },
+    dispose: () => discourseCopilot.dispose()
+  };
+  discourseCopilot.init();
 
-chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-  if (request.action === MESSAGES.GET_POST_ID) {
-    sendResponse(discourseCopilot.getState());
-    return true;
-  }
-});
+  chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+    if (request.action === MESSAGES.GET_POST_ID) {
+      sendResponse(discourseCopilot.getState());
+      return true;
+    }
+  });
+}

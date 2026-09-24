@@ -10,6 +10,12 @@ import {
   mergeAgentActivityMarks
 } from '../shared/agent-activity.mjs';
 import { TASK_TYPE } from '../shared/task-record.mjs';
+import {
+  forumAccessHost,
+  isForumAccessError,
+  requestForumAccess
+} from '../shared/forum-access.mjs';
+import { forumAccessDeniedText } from './forum-access-card.mjs';
 import { normalizeAgentQuestion } from '../services/agent-context.mjs';
 import { topicSessionDatabase } from './topic-session-db.mjs';
 import { resolveRetention } from '../shared/preferences.mjs';
@@ -284,7 +290,9 @@ export class AgentController {
     const message = {
       [AGENT_ACTIVITY_STATUS.COMPLETED]: onThisForum ? 'Answer ready' : `Answer ready from ${forumName}`,
       [AGENT_ACTIVITY_STATUS.FAILED]: `Research on ${forumName} failed`,
-      [AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION]: `${forumName} needs you to log in before research can continue`
+      [AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION]: isForumAccessError(activity.error)
+        ? `Research on ${forumName} is waiting for you to allow access to the forum`
+        : `${forumName} needs you to log in before research can continue`
     }[activity.status];
     if (!message) {
       return;
@@ -658,7 +666,36 @@ export class AgentController {
     }
   }
 
-  async resumeTask(taskId, { root = null } = {}) {
+  // Continue and Retry read the forum again, so they first make sure it is
+  // enabled: the permission request has to start inside the click (no
+  // awaits before it); a forum that already is enabled resolves at once,
+  // without a prompt.
+  withForumAccess(siteUrl, root, run) {
+    if (!siteUrl) {
+      return run();
+    }
+    const granted = requestForumAccess(siteUrl);
+    return (async () => {
+      if (!(await granted)) {
+        this.report(forumAccessDeniedText(forumAccessHost(siteUrl)), 'warning', root);
+        return undefined;
+      }
+      // A new grant reaches the background and this panel through
+      // permissions.onAdded (content script registration, page re-check).
+      return run();
+    })();
+  }
+
+  resumeTask(taskId, { root = null } = {}) {
+    const task = this.tasks.values().find(item => item.id === taskId);
+    return this.withForumAccess(task?.siteUrl, root, () => this.resumeGrantedTask(taskId, { root }));
+  }
+
+  retryTask(value, { root = null } = {}) {
+    return this.withForumAccess(value?.siteUrl, root, () => this.retryGrantedTask(value, { root }));
+  }
+
+  async resumeGrantedTask(taskId, { root = null } = {}) {
     try {
       const task = await this.tasks.resume(taskId);
       if (task) {
@@ -669,7 +706,7 @@ export class AgentController {
     }
   }
 
-  async retryTask(value, { root = null } = {}) {
+  async retryGrantedTask(value, { root = null } = {}) {
     const activity = value?.activityType === 'agent'
       ? value
       : await this.getRecord(value);

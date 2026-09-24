@@ -28,6 +28,8 @@ test('falls back to URL parsing when no content script answered', () => {
       postId: '12345',
       topicKey: 'www.uscardforum.com/t/12345',
       isForumTopic: true,
+      forumAccess: 'granted',
+      pageHidden: false,
       pageKey: '7:www.uscardforum.com/t/12345'
     }
   );

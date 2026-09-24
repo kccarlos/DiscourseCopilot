@@ -8,6 +8,7 @@ import {
 } from '../shared/agent-activity.mjs';
 import { isTerminalTaskStatus } from '../shared/task-record.mjs';
 import { isSameForumUrl } from '../shared/forum-site.mjs';
+import { forumAccessHost, isForumAccessError } from '../shared/forum-access.mjs';
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { topicKeyFromUrl } from './conversation-state.mjs';
 import { describeAgentProgress, formatRelativeTime, retentionCopy } from './ui-state.mjs';
@@ -50,7 +51,7 @@ export class AgentAnswerView {
       case AGENT_ACTIVITY_STATUS.RUNNING:
         return 'Researching…';
       case AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION:
-        return 'Needs forum login';
+        return isForumAccessError(activity.error) ? 'Needs forum access' : 'Needs forum login';
       case AGENT_ACTIVITY_STATUS.FAILED:
         return 'Failed';
       case AGENT_ACTIVITY_STATUS.CANCELLED:
@@ -160,7 +161,16 @@ export class AgentAnswerView {
     const forumName = this.forums.label(activity.siteUrl, activity.forumName);
     let type = '';
     let message = '';
-    if (activity.status === AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION) {
+    if (
+      activity.status === AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION
+      && isForumAccessError(activity.error)
+    ) {
+      // Continue asks for access first (agent-controller withForumAccess).
+      const host = forumAccessHost(activity.siteUrl);
+      type = 'warning';
+      message = `DiscourseCopilot needs your OK to read ${host} before this research can continue. It searches the forum using your current login.`;
+      actions.push({ action: 'continue', label: `Allow access to ${host} & continue`, primary: true });
+    } else if (activity.status === AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION) {
       type = 'warning';
       message = `${forumName} asked for a login or verification before the research can continue. Log in in a browser tab, then choose Continue.`;
       actions.push(

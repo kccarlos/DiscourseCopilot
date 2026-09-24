@@ -63,7 +63,7 @@ const BUSY_PHASES = new Set([
 ]);
 
 export const WELCOME_SAVED_MESSAGE =
-  'Settings saved. You’re set — open any Discourse topic and press Create summary in the DiscourseCopilot side panel.';
+  'Settings saved. You’re set — open any Discourse topic, click the DiscourseCopilot icon, allow access to the forum, and press Create summary.';
 
 // status: null (hidden) or { message, type: info|success|error, autoHide }.
 function status(message, type = 'info', autoHide = type === 'success') {

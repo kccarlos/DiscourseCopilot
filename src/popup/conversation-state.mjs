@@ -53,7 +53,7 @@ function contextFromPageState(pageState, tabUrl) {
       siteUrl: '',
       forumName: '',
       topicId: null,
-      detectedBy: 'content'
+      detectedBy: pageState.detectedBy === 'probe' ? 'probe' : 'content'
     };
   }
   const siteUrl = normalizeSiteUrl(pageState.siteUrl);
@@ -65,7 +65,7 @@ function contextFromPageState(pageState, tabUrl) {
     siteUrl,
     forumName: forumDisplayName(siteUrl, pageState.forumName),
     topicId: buildTopicKey(siteUrl, topicId) ? topicId : null,
-    detectedBy: 'content'
+    detectedBy: pageState.detectedBy === 'probe' ? 'probe' : 'content'
   };
 }
 
@@ -85,10 +85,25 @@ function contextFromUrl(tabUrl, siteUrlHint = '') {
   };
 }
 
-// pageState is the content script's getPostId answer (preferred). Without it
-// (restricted pages, tabs opened before install) a root-path /t/.../id URL is
-// treated as a possible topic whose forum is unconfirmed.
-export function getTopicContext(tab = {}, pageState = null, { siteUrlHint = '' } = {}) {
+// pageState is the content script's getPostId answer (preferred), or the
+// panel's one-off probe of a forum not enabled yet (detectedBy 'probe').
+// Without either (restricted pages, no access to the page) a root-path
+// /t/.../id URL is treated as a possible topic whose forum is unconfirmed.
+//
+// Options:
+// - forumAccess: whether the extension may read the forum (forum-access.mjs);
+//   false marks the context `forumAccess: 'missing'` (the panel then offers
+//   "Allow access to {host}"). Omitted means granted.
+// - actionChecked: the toolbar icon was clicked on this tab. Without the
+//   "tabs" permission Chrome hides the URL of pages the extension has no
+//   access to; after a click (activeTab) a still-hidden URL means a page
+//   Chrome never lets extensions read (new tab, chrome://…), so the page is
+//   "not a forum" rather than "not checked yet".
+export function getTopicContext(tab = {}, pageState = null, {
+  siteUrlHint = '',
+  forumAccess = true,
+  actionChecked = false
+} = {}) {
   const tabId = tab.id ?? null;
   const url = tab.url || (typeof pageState?.url === 'string' ? pageState.url : '');
   const detected = contextFromPageState(pageState, tab.url || '')
@@ -100,7 +115,7 @@ export function getTopicContext(tab = {}, pageState = null, { siteUrlHint = '' }
   return {
     tabId,
     url,
-    title: tab.title || 'Unknown page',
+    title: tab.title || (url ? 'Unknown page' : ''),
     isDiscourse: detected.isDiscourse,
     detectedBy: detected.detectedBy,
     siteUrl: detected.siteUrl,
@@ -108,6 +123,11 @@ export function getTopicContext(tab = {}, pageState = null, { siteUrlHint = '' }
     postId: topicKey ? detected.topicId : null,
     topicKey,
     isForumTopic: Boolean(topicKey),
+    // '' (no forum) | 'granted' | 'missing'
+    forumAccess: detected.siteUrl ? (forumAccess === false ? 'missing' : 'granted') : '',
+    // Chrome hid the page from the extension; clicking the toolbar icon
+    // lets the panel check it.
+    pageHidden: !url && tabId !== null && !actionChecked,
     pageKey: `${tabId ?? 'none'}:${topicKey || 'none'}`
   };
 }

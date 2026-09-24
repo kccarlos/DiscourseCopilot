@@ -1090,6 +1090,123 @@
       }
     }
 
+    /* ---------- Forum access ---------- */
+
+    .forum-access-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .forum-access-list[hidden],
+    .forum-access-empty[hidden] {
+      display: none;
+    }
+
+    .forum-access-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      margin: 0;
+      padding: 10px 12px;
+      border: 1px solid var(--s-line-soft);
+      border-radius: 7px;
+      background: var(--s-surface);
+    }
+
+    .forum-access-row.is-confirming {
+      border-color: var(--s-danger-line);
+      background: var(--s-danger-bg);
+    }
+
+    .forum-access-avatar {
+      display: inline-flex;
+      width: 30px;
+      height: 30px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: var(--s-fav-bg);
+      color: var(--s-fav-ink);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .forum-access-row-copy {
+      display: grid;
+      min-width: 0;
+    }
+
+    .forum-access-row-name,
+    .forum-access-row-meta {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .forum-access-row-name {
+      color: var(--s-ink-strong);
+      font-size: 13px;
+    }
+
+    .forum-access-row-meta {
+      color: var(--s-muted);
+      font-size: 12px;
+    }
+
+    .forum-access-row-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .forum-access-confirm-text {
+      color: var(--s-danger-ink);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .btn-danger {
+      background: var(--s-danger-ink);
+      /* White on the light theme's red; dark ink on the dark theme's pink. */
+      color: var(--s-surface);
+      font-weight: 600;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      filter: brightness(0.92);
+    }
+
+    .forum-access-empty {
+      margin: 0;
+      padding: 12px 14px;
+      border: 1px dashed var(--s-line-strong);
+      border-radius: 7px;
+      color: var(--s-muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 560px) {
+      .forum-access-row {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .forum-access-row-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+      }
+    }
+
     code {
       padding: 0.05em 0.3em;
       border-radius: 4px;
@@ -1140,6 +1257,7 @@
         <a href="#researchHeading">Ask the forum</a>
         <a href="#readingHeading">Reading topics</a>
         <a href="#historyHeading">History &amp; privacy</a>
+        <a href="#forumAccessHeading">Forum access</a>
       </nav>
 
       <section class="section" aria-labelledby="providerHeading">
@@ -1498,6 +1616,17 @@
         </div>
 
         <p id="historyEffective" class="effective-value" aria-live="polite"></p>
+      </section>
+
+      <section class="section" aria-labelledby="forumAccessHeading">
+        <div class="section-head">
+          <div>
+            <h2 id="forumAccessHeading" class="section-title">Forum access</h2>
+            <p class="section-lede">Forums you enabled. DiscourseCopilot reads only these, using your login there. Removing access keeps your saved summaries and answers; you can enable a forum again from the side panel.</p>
+          </div>
+        </div>
+        <ul id="forumAccessList" class="forum-access-list" aria-labelledby="forumAccessHeading" hidden></ul>
+        <p id="forumAccessEmpty" class="forum-access-empty">Loading…</p>
       </section>
 
       <section class="section danger-zone" aria-labelledby="resetHeading">

@@ -25,6 +25,7 @@ import {
   snapshotTaskLimits
 } from '../shared/preferences.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
+import { createForumAccessError } from '../shared/forum-access.mjs';
 import { JobQueue } from './job-queue.mjs';
 
 const { MESSAGES } = DiscourseCopilotConstants;
@@ -78,6 +79,8 @@ export class TaskService {
    * @param {(message: object) => void} options.broadcast
    * @param {object} [options.alarms] chrome.alarms
    * @param {(storage?: object) => Promise<object>} [options.readConfig] config-state loadConfig
+   * @param {(siteUrl: string) => Promise<boolean>} [options.hasForumAccess] whether the
+   *   user enabled the forum (forum-access.mjs); requests for other forums are refused
    */
   constructor({
     db,
@@ -85,6 +88,7 @@ export class TaskService {
     broadcast,
     alarms = globalThis.chrome?.alarms,
     readConfig = loadConfig,
+    hasForumAccess = async () => true,
     concurrency = 2,
     maxQueued = 50
   }) {
@@ -93,6 +97,7 @@ export class TaskService {
     this.broadcast = broadcast;
     this.alarms = alarms;
     this.readConfig = readConfig;
+    this.hasForumAccess = hasForumAccess;
     this.executor = null;
     // Provider settings sent with a request; kept in memory only, never
     // persisted with the task (they include API keys).
@@ -270,6 +275,11 @@ export class TaskService {
   async enqueue(request) {
     await this.ready;
     const { type, siteUrl, topicKey } = validateEnqueueRequest(request);
+    // Nothing is queued for a forum the extension may not read; the panel
+    // shows its Allow access button for the FORUM_ACCESS_NOT_GRANTED code.
+    if (!(await this.hasForumAccess(siteUrl))) {
+      throw createForumAccessError(siteUrl);
+    }
 
     // One summary per topic at a time; a repeated request joins it.
     if (type === TASK_TYPE.SUMMARY) {

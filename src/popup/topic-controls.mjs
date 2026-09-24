@@ -1,7 +1,6 @@
 // Enabled/disabled state and labels of the topic view's controls, derived
 // from one snapshot of the panel state (pure), then applied to the DOM.
 import { getSummaryActionLabel } from './ui-state.mjs';
-import { forumDisplayName } from '../shared/forum-site.mjs';
 
 /**
  * @param {object} input
@@ -22,6 +21,8 @@ import { forumDisplayName } from '../shared/forum-site.mjs';
  * @param {boolean} input.hasAgentQuestion
  * @param {boolean} input.chatEditSaving an edited conversation is being saved
  * @param {string} input.agentSearchLabel
+ * @param {boolean} [input.forumAccessMissing] the forum isn't enabled: nothing
+ *   that reads it (summary, chat, Agent) can start
  */
 export function deriveTopicControls(input) {
   const busy = Boolean(input.operationKind);
@@ -85,6 +86,7 @@ export function deriveTopicControls(input) {
     },
     sendChat: {
       disabled: !background
+        || input.forumAccessMissing === true
         || input.chatEditSaving
         || submitting('chat')
         || !input.hasSummary
@@ -103,16 +105,16 @@ export function deriveTopicControls(input) {
  * @param {boolean} input.summaryRunning
  * @param {boolean} input.hasSummary
  */
+// The hero shows only on a forum the panel can read (and while the page
+// loads); every other page state has its own guidance card.
 export function deriveTopicHelper({ pageContext, configReady, summaryRunning, hasSummary }) {
-  if (!pageContext?.isForumTopic && !configReady) {
-    return pageContext?.isDiscourse
-      ? 'Finish setup below to ask this forum.'
-      : 'Finish setup below, then open any Discourse topic.';
+  if (!pageContext?.isForumTopic && pageContext?.isDiscourse) {
+    return configReady
+      ? 'Open any topic to summarize it, or ask the forum a question.'
+      : 'Connect an AI provider below, then open a topic or ask the forum a question.';
   }
   if (!pageContext?.isForumTopic) {
-    return pageContext?.isDiscourse
-      ? `Search across ${forumDisplayName(pageContext.siteUrl, pageContext.forumName) || 'forum'} discussions with Agent mode.`
-      : 'Open a Discourse forum topic to get started.';
+    return 'Open a Discourse forum topic to get started.';
   }
   if (!configReady) {
     return 'Finish setup below to create a summary.';

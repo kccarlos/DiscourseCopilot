@@ -33,6 +33,7 @@ pnpm clean   # remove dist/
 2. Open `chrome://extensions`, enable **Developer mode**.
 3. Click **Load unpacked** and select the `dist/` folder.
 4. After each rebuild, click the reload icon on the extension's card in `chrome://extensions` (and refresh any open forum tabs) to pick up the change.
+5. Open a Discourse forum, click the toolbar icon, and click **Allow access to …** in the side panel (then **Allow** in Chrome's prompt). Allowed forums survive reloads; remove them under **Settings → Forum access** (or the extension's **Site access** in `chrome://extensions`) to test the first-run flow again.
 
 ## Project structure
 
@@ -40,7 +41,8 @@ Plain JavaScript ES modules, bundled by Vite (`vite-plugin-web-extension` reads 
 
 ```
 manifest.json       Chrome MV3 manifest (build input)
-vite.config.js      Build configuration
+vite.config.js      Build configuration (also builds src/content/content.js, which the manifest no
+                    longer references, via additionalInputs)
 public/             Static assets copied into dist/ as-is: toolbar/store icons (icon16/32/48/128.png,
                     rendered from assets/brand/icon/sizes/*-on-light.svg) and brand/ SVGs used by the pages
 assets/brand/       Logo source of truth (icon, pixel-hinted small sizes, wordmarks; on-light/on-dark
@@ -50,18 +52,23 @@ src/
   background/       Service worker
     background.js         Entry: builds the services below and registers every Chrome listener once
     message-router.mjs    onMessage routing (action → handler table, async responses)
-    task-service.mjs      Job queue + request validation, IndexedDB persistence, broadcasts,
-                          wake-up alarm, per-task provider configuration
+    task-service.mjs      Job queue + request validation (incl. forum access), IndexedDB persistence,
+                          broadcasts, wake-up alarm, per-task provider configuration
     topic-executors.mjs   Summary and follow-up chat tasks
     agent-executor.mjs    Agent (forum research) tasks
     agent-activity-store.mjs  Agent activity records: ordered saves + broadcasts
     topic-fetcher.mjs     Reads a topic's raw posts page by page (cache reuse, rate-limit retries)
     job-queue.mjs, agent-runner.mjs, forum-tools.mjs  Queue engine, Agent loop, forum search tools
-  content/          Content script on every page: detects Discourse, topic IDs, in-page launcher
+  content/          Content script on enabled forums (registered at runtime): detects Discourse,
+                    topic IDs, in-page launcher
   popup/            Side panel (popup.html/css)
     popup.js              Entry: composes the modules below; page changes, broadcast routing,
                           panel-wide render (updateUI)
-    page-context.mjs      Active tab → page context (forum, topic)
+    page-context.mjs      Active tab → page context (forum, topic, access, hidden page)
+    page-probe.mjs        One-off Discourse check of a page not enabled yet (activeTab)
+    page-guidance.mjs     One guidance state per page (loading, unchecked, not-forum, allow,
+                          maybe, forum-home, topic), its copy and the "Get started" checklist
+    forum-access-card.mjs Renders that guidance card + checklist; the Allow access request
     topic-controller.mjs  The topic session: switch with the page, restore, reload, render
     summary-view.mjs      Summary card, reading progress, topic task status line
     chat-view.mjs         Follow-up chat, message editing, forum context limit
@@ -84,15 +91,49 @@ src/
     settings.js           Wires the form to the ConfigStore and the form state machine
     settings-form-state.mjs  Form state machine (status line, dirty indicator, busy state)
     settings-helpers.mjs  Model suggestion helpers
+    forum-access-section.mjs  "Forum access": enabled forums, Remove access
   services/         AI provider calls (ai-service, provider-config), prompts, chat/Agent context
   shared/           Used across the above
     config-state.mjs      The configuration model (see below)
     preferences.mjs       Research depth, topic page limit and history retention: defaults, ranges,
                           normalization/validation and the resolve*() helpers
     provider-setup.mjs    Provider validation, connection test, failure messages
+    forum-access.mjs      Per-forum host permissions, the access error, content script sync
     constants.js          Storage keys, message names, provider list
     task-record.mjs, agent-activity.mjs, forum-site.mjs, forum-response.mjs, …  Records and utilities
 ```
+
+### Forum access (permission model)
+
+The manifest asks only for the AI providers' API hosts and `localhost`/`127.0.0.1` (Ollama, LM Studio) as `host_permissions`. Forums are `optional_host_permissions` (`https://*/*`, plus `http://*/*` for a local-model server on another computer), granted one origin at a time (`https://forum.example.com/*`; subfolder installs and ports share it). There is no static content script and no `tabs` permission. `src/shared/forum-access.mjs` owns all of it.
+
+```
+  side panel: page without access                       background (service worker)
+  ─────────────────────────────                         ───────────────────────────
+  tab.url hidden ──▶ "Page not checked yet"
+        │ user clicks toolbar icon: action.onClicked → sidePanel.open, activeTab
+        │ granted, tab ID recorded in storage.session, ACTION_CLICKED broadcast
+        ▼
+  probeDiscoursePage() via scripting.executeScript ──▶ Discourse? ──no──▶ "Not a Discourse forum"
+        │ yes (or a /t/slug/id URL that couldn't be probed → "Is this a Discourse forum?")
+        ▼
+  Allow card  ──click──▶ permissions.request({origins:[origin/*]})   (first statement of the click)
+        │ granted                                    permissions.onAdded ─┐
+        ├──▶ SYNC_FORUM_ACCESS ─────────────────────────────────────────┤
+        │                                          syncForumContentScripts(): register/update/
+        │                                          unregister "forum-content" (matches = enabled
+        │                                          forums, persistAcrossSessions) + executeScript
+        │                                          into the forum's open tabs
+        ▼
+  page re-checked ──▶ content script answers ──▶ normal view
+```
+
+- **Page guidance.** `derivePageGuidance()` (`page-guidance.mjs`, pure and unit-tested) maps the page context to one state and one card: *Check this page* (hidden page: click the toolbar icon), *This page isn't a Discourse forum* (two example forums), *Allow DiscourseCopilot on {forum}* (3-step guide + **Allow access to {host}**), *Is this a Discourse forum?* (a `/t/…/id` URL that couldn't be probed), *You're on {forum}* (hero with **Ask the forum** only) and the normal topic view. `#topicView[data-guidance]` lets the stylesheet hide the hero and the welcome panel outside a topic. Provider setup stays first: with both setup and access pending, a "Get started" checklist shows and the access card waits as step 2. The card heading is announced (polite) when the state changes.
+- **Gating.** `TaskService.enqueue()` refuses a forum without access (`FORUM_ACCESS_NOT_GRANTED`, "Allow DiscourseCopilot on {host} in the side panel, then try again"; `respondAsync` passes the `code` through). Executors check again before fetching, and a failed fetch on a forum whose access is now gone becomes the same error. Summary/chat tasks fail with it; Agent tasks wait (`WAITING_USER_ACTION`, "Waiting for forum access") and the panel's **Allow access to {host} & continue** requests access, then resumes. Continue and Retry always request access first (no prompt when already granted).
+- **Registration** is re-synced whenever the worker starts (and on `runtime.onStartup`, `onInstalled` and `permissions.onAdded/onRemoved`), serialized because `registerContentScripts` rejects a duplicate ID. On update, any `https://*/*`/`http://*/*` grant carried over from 2.0's `<all_urls>` is removed (nothing in 2.1 requests wildcards), so every forum is enabled explicitly.
+- **"Checked" tabs.** A toolbar click records the tab ID in `storage.session` (`actionClickedTabs`) so a page that stays hidden afterwards (new tab page, `chrome://`) reads as "Not a Discourse forum" rather than "Page not checked yet". The panel drops the record when the tab starts loading another page (activeTab ends on a cross-site navigation); with the panel closed during that navigation the record can go stale until the next click. `content.js` ignores a second injection into a page that already has a live instance, and replaces an instance orphaned by an extension reload.
+- **What the panel can see.** Without `tabs`, `tab.url`/`title` exist only for enabled forums, provider hosts, and tabs where the icon was clicked (activeTab, until the tab navigates to another site). A content script already running keeps answering after access is removed; the panel checks `permissions.contains` and shows the Allow access card again. Opening a forum link from the panel still works (`tabs.create/update` need no permission), but an existing tab on a forum that isn't enabled can't be found and reused.
+- **Custom local-model servers.** Test/Save in the setup card and Settings request the server's origin in the click when it isn't `localhost`/`127.0.0.1`; Settings leaves such origins out of the forum list.
 
 ### Configuration state
 

@@ -9,12 +9,31 @@ import { TASK_STATUS } from '../shared/task-record.mjs';
 import { normalizeSiteUrl } from '../shared/forum-site.mjs';
 import { isAbortError } from '../shared/rate-limit-retry.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
-import { ForumToolClient } from './forum-tools.mjs';
+import {
+  FORUM_ACCESS_ERROR_CODE,
+  forumAccessMessage,
+  isForumAccessError
+} from '../shared/forum-access.mjs';
+import { ForumToolClient, ForumToolError } from './forum-tools.mjs';
 import { isAgentUserActionError, runAgentTask } from './agent-runner.mjs';
 
 const { MESSAGES } = DiscourseCopilotConstants;
 
 const LOGIN_REQUIRED_TEXT = 'Forum login or verification is required';
+export const FORUM_ACCESS_REQUIRED_TEXT = 'Waiting for forum access';
+
+// The run waits (WAITING_USER_ACTION) until the user enables the forum and
+// chooses Continue.
+function forumAccessToolError(siteUrl) {
+  return new ForumToolError(FORUM_ACCESS_ERROR_CODE, forumAccessMessage(siteUrl), {
+    retryable: false,
+    needsUserAction: true
+  });
+}
+
+function waitingStatusText(error) {
+  return isForumAccessError(error) ? FORUM_ACCESS_REQUIRED_TEXT : LOGIN_REQUIRED_TEXT;
+}
 
 export function agentActivityError(error, fallbackCode = 'AGENT_ERROR') {
   return {
@@ -41,7 +60,7 @@ export function agentFailurePatch(error, { cancelled, needsUserAction }, now = D
     statusText: cancelled
       ? 'Cancelled'
       : needsUserAction
-        ? LOGIN_REQUIRED_TEXT
+        ? waitingStatusText(error)
         : 'Failed',
     error: cancelled ? null : agentActivityError(error),
     // A run waiting for the user stays open and never expires on its own.
@@ -59,13 +78,16 @@ export function agentFailurePatch(error, { cancelled, needsUserAction }, now = D
  * @param {(message: object) => void} deps.broadcast
  * @param {(task: object) => Promise<object>} deps.getTaskConfiguration
  * @param {object} deps.governor ForumRequestGovernor shared by all Agent runs
+ * @param {(siteUrl: string) => Promise<boolean>} [deps.hasForumAccess] whether the
+ *   user enabled the forum (forum-access.mjs)
  */
 export function createAgentExecutor({
   aiService,
   activities,
   broadcast,
   getTaskConfiguration,
-  governor
+  governor,
+  hasForumAccess = async () => true
 }) {
   return async function executeAgentTask(task, { signal, report }) {
     let activity = await activities.get(task.agentRunId || task.id);
@@ -99,6 +121,9 @@ export function createAgentExecutor({
           new Error('This Agent task has no forum site. Ask again from the forum page.'),
           { retryable: false }
         );
+      }
+      if (!(await hasForumAccess(siteUrl))) {
+        throw forumAccessToolError(siteUrl);
       }
       const toolClient = new ForumToolClient({ siteUrl, signal, governor });
 
@@ -174,8 +199,16 @@ export function createAgentExecutor({
         statusText: activity.statusText,
         progress: activity.progress
       }, { durable: true });
-    } catch (error) {
-      const cancelled = isAbortError(error) || signal.aborted;
+    } catch (caught) {
+      const cancelled = isAbortError(caught) || signal.aborted;
+      // Access removed while the run was researching: the browser refuses
+      // the forum requests. Wait for the user instead of failing.
+      const error = !cancelled
+        && !isForumAccessError(caught)
+        && task.siteUrl
+        && !(await hasForumAccess(task.siteUrl))
+        ? forumAccessToolError(task.siteUrl)
+        : caught;
       const needsUserAction = !cancelled && (
         isAgentUserActionError(error) || error?.needsUserAction === true
       );
@@ -183,7 +216,7 @@ export function createAgentExecutor({
       if (needsUserAction) {
         throw Object.assign(error, {
           taskStatus: TASK_STATUS.WAITING_USER_ACTION,
-          statusText: LOGIN_REQUIRED_TEXT
+          statusText: waitingStatusText(error)
         });
       }
       throw error;

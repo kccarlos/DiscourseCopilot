@@ -8,6 +8,7 @@ import {
   isActiveTaskStatus,
   isTerminalTaskStatus
 } from '../shared/task-record.mjs';
+import { FORUM_ACCESS_ERROR_CODE } from '../shared/forum-access.mjs';
 import { isMissingRuntimeResponse } from './runtime-state.mjs';
 
 const { MESSAGES } = DiscourseCopilotConstants;
@@ -16,8 +17,12 @@ const HEARTBEAT_INTERVAL_MS = 15000;
 const agentRunIdOf = task => task.agentRunId || task.id;
 
 export class TaskRegistry {
-  constructor({ sendMessage = message => chrome.runtime.sendMessage(message) } = {}) {
+  constructor({
+    sendMessage = message => chrome.runtime.sendMessage(message),
+    onForumAccessMissing = () => {}
+  } = {}) {
     this.sendMessage = sendMessage;
+    this.onForumAccessMissing = onForumAccessMissing;
     this.tasks = new Map();
     this.heartbeatTimer = null;
   }
@@ -116,7 +121,13 @@ export class TaskRegistry {
       return null;
     }
     if (!response?.success || !response.task) {
-      throw new Error(response?.error || fallbackError);
+      if (response?.code === FORUM_ACCESS_ERROR_CODE) {
+        this.onForumAccessMissing();
+      }
+      throw Object.assign(
+        new Error(response?.error || fallbackError),
+        response?.code ? { code: response.code } : {}
+      );
     }
     this.set(response.task);
     this.updateHeartbeat();

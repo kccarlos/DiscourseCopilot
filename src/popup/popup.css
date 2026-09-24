@@ -2773,6 +2773,372 @@ details[open] > summary .chevron {
     }
 }
 
+/* ---------- Page guidance (one card per page state) ---------- */
+
+/* The hero shows only on a forum the panel can read (and while loading);
+   every other state has its guidance card instead. */
+#topicView[data-guidance="unchecked"] .topic-hero,
+#topicView[data-guidance="not-forum"] .topic-hero,
+#topicView[data-guidance="allow"] .topic-hero,
+#topicView[data-guidance="maybe"] .topic-hero {
+    display: none;
+}
+
+/* The welcome panel explains summaries, so it belongs to topics only. */
+#topicView[data-guidance]:not([data-guidance="topic"]) #welcomePanel {
+    display: none;
+}
+
+/* Forum home: no topic to summarize, so Ask the forum is the action. */
+#topicView[data-guidance="forum-home"] #summarizeBtn {
+    display: none;
+}
+
+#topicView[data-guidance="forum-home"] .hero-action-buttons {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+#topicView[data-guidance="forum-home"]:not(.needs-setup) .agent-launch-btn {
+    min-height: 48px;
+    border: 0;
+    background: linear-gradient(135deg, var(--uc-accent-fill), var(--uc-accent-2));
+    box-shadow: 0 7px 18px rgba(23, 105, 224, 0.22);
+    color: white;
+    font-size: 0.88rem;
+}
+
+#topicView[data-guidance="forum-home"]:not(.needs-setup) .agent-launch-btn:hover:not(:disabled) {
+    box-shadow: 0 10px 24px rgba(23, 105, 224, 0.28);
+    transform: translateY(-2px);
+}
+
+.page-guide {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.85rem;
+    align-items: start;
+    margin-top: 0.75rem;
+    padding: clamp(0.95rem, 3vw, 1.2rem);
+    border: 1px solid var(--uc-line);
+    border-radius: var(--uc-radius);
+    background: var(--uc-surface);
+    box-shadow: var(--uc-shadow);
+    animation: enter-up 260ms ease both;
+}
+
+/* Allow access is the one thing to do: the card takes the accent. */
+.page-guide[data-state="allow"],
+.page-guide[data-state="maybe"] {
+    border-color: var(--uc-accent-line-strong);
+    box-shadow: var(--uc-shadow), 0 0 0 3px var(--uc-accent-soft);
+}
+
+/* ...unless setup comes first: then it waits as step 2. */
+.page-guide[data-step="next"] {
+    border-color: var(--uc-line);
+    border-style: dashed;
+    background: var(--uc-surface-translucent);
+    box-shadow: none;
+}
+
+.page-guide-icon {
+    display: inline-grid;
+    width: 2.4rem;
+    height: 2.4rem;
+    place-items: center;
+    border-radius: 12px;
+    background: var(--uc-accent-soft);
+    color: var(--uc-accent);
+}
+
+.page-guide-icon > * {
+    display: none;
+}
+
+.page-guide[data-state="unchecked"] [data-icon="unchecked"],
+.page-guide[data-state="not-forum"] [data-icon="not-forum"],
+.page-guide[data-state="allow"] [data-icon="allow"],
+.page-guide[data-state="maybe"] [data-icon="maybe"] {
+    display: block;
+}
+
+.page-guide[data-state="unchecked"] .page-guide-icon {
+    background: var(--uc-surface-soft);
+    box-shadow: inset 0 0 0 1px var(--uc-line);
+}
+
+.page-guide[data-state="not-forum"] .page-guide-icon {
+    background: var(--uc-forum-neutral-soft);
+    color: var(--uc-forum-neutral-ink);
+}
+
+.page-guide-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+}
+
+.page-guide-brand img {
+    display: block;
+    width: 1.75rem;
+    height: 1.75rem;
+}
+
+.page-guide[data-state="not-forum"] .eyebrow {
+    color: var(--uc-muted);
+}
+
+.page-guide-copy {
+    min-width: 0;
+}
+
+.page-guide-copy h2 {
+    margin: 0.1rem 0 0.3rem;
+    color: var(--uc-ink);
+    font-size: 1.02rem;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.page-guide-copy h2:focus {
+    outline: none;
+}
+
+.page-guide-copy h2:focus-visible {
+    outline: 3px solid rgba(23, 105, 224, 0.28);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.page-guide-copy p {
+    margin: 0;
+    color: var(--uc-ink-soft);
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.page-guide-copy strong {
+    color: var(--uc-ink);
+    font-weight: 700;
+}
+
+.page-guide-steps {
+    display: grid;
+    gap: 0.45rem;
+    margin: 0.75rem 0 0.85rem;
+    padding: 0;
+    list-style: none;
+    counter-reset: guide-step;
+}
+
+.page-guide-steps li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    margin: 0;
+    color: var(--uc-ink-soft);
+    font-size: 0.77rem;
+    line-height: 1.4;
+    list-style: none;
+    counter-increment: guide-step;
+}
+
+.page-guide-steps li::before {
+    content: counter(guide-step);
+    display: inline-grid;
+    width: 1.3rem;
+    height: 1.3rem;
+    flex: 0 0 auto;
+    margin-top: -0.05rem;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--uc-accent-soft);
+    color: var(--uc-accent);
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+.page-guide-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin: 0.7rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.page-guide-links li {
+    margin: 0;
+    list-style: none;
+}
+
+.page-guide-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 36px;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--uc-accent-line);
+    border-radius: 999px;
+    background: var(--uc-accent-soft);
+    color: var(--uc-accent-ink);
+    font-size: 0.75rem;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.page-guide-links a:hover {
+    background: var(--uc-accent-soft-hover);
+    border-color: var(--uc-accent-line-strong);
+}
+
+.page-guide-links a:focus-visible {
+    outline: 3px solid rgba(23, 105, 224, 0.28);
+    outline-offset: 2px;
+}
+
+.forum-access-btn {
+    min-height: 44px;
+    overflow-wrap: anywhere;
+}
+
+.forum-access-btn[aria-busy="true"] {
+    opacity: 0.8;
+}
+
+/* Step 2 while setup is pending: available, but not competing with setup;
+   the step-by-step guide appears once it is the current step. */
+.page-guide[data-step="next"] .page-guide-steps {
+    display: none;
+}
+
+.page-guide[data-step="next"] .page-guide-text {
+    margin-bottom: 0.75rem;
+}
+
+.page-guide[data-step="next"] .forum-access-btn {
+    border: 1px solid var(--uc-accent-line-strong);
+    background: var(--uc-surface);
+    box-shadow: none;
+    color: var(--uc-accent);
+}
+
+.page-guide-copy .page-guide-footnote {
+    margin-top: 0.55rem;
+    color: var(--uc-muted);
+    font-size: 0.7rem;
+    text-align: center;
+}
+
+.page-guide-copy .page-guide-tip {
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: 10px;
+    background: var(--uc-surface-soft);
+    color: var(--uc-muted);
+    font-size: 0.72rem;
+}
+
+.page-guide-copy .forum-access-note {
+    margin: 0 0 0.7rem;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--uc-warning-line);
+    border-radius: 10px;
+    background: var(--uc-warning-soft);
+    color: var(--uc-warning-ink);
+    font-size: 0.74rem;
+}
+
+.page-guide-copy .forum-access-note strong {
+    color: inherit;
+}
+
+/* "Get started": setup, then access, when both are pending. The cards
+   below carry the matching "Step 1 of 2" / "Step 2 of 2" eyebrows. */
+.get-started {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.8rem;
+    margin-top: 0.75rem;
+    padding: 0.6rem 0.85rem;
+    border: 1px solid var(--uc-line);
+    border-radius: 14px;
+    background: var(--uc-surface-raised);
+}
+
+.get-started .eyebrow {
+    margin: 0;
+    color: var(--uc-muted);
+}
+
+.get-started-list {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.9rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.get-started-list li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+    color: var(--uc-muted);
+    font-size: 0.74rem;
+    line-height: 1.3;
+    list-style: none;
+}
+
+.get-started-list li[data-status="current"] {
+    color: var(--uc-ink);
+    font-weight: 650;
+}
+
+.get-started-list li[data-status="done"] {
+    color: var(--uc-ink-soft);
+}
+
+.get-started-number {
+    display: inline-grid;
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid var(--uc-line-strong);
+    border-radius: 50%;
+    color: var(--uc-muted);
+    font-size: 0.64rem;
+    font-weight: 800;
+}
+
+.get-started-list li[data-status="current"] .get-started-number {
+    border-color: var(--uc-accent-fill);
+    background: var(--uc-accent-fill);
+    color: white;
+}
+
+.get-started-list li[data-status="done"] .get-started-number {
+    border-color: var(--uc-success-line);
+    background: var(--uc-success-soft);
+    color: var(--uc-success);
+}
+
+@media (max-width: 390px) {
+    .page-guide {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.6rem;
+    }
+}
+
 @media (max-width: 560px) {
     .topic-hero {
         grid-template-columns: 1fr;

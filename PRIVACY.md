@@ -1,18 +1,20 @@
 # Privacy Policy for DiscourseCopilot
 
-**Last Updated:** September 22, 2026
+**Last Updated:** September 23, 2026
 
 ## Overview
 
 DiscourseCopilot is a browser extension that summarizes and answers questions about discussions on Discourse forums you visit, using an AI provider you configure. It works on any Discourse forum (for example community.openai.com or meta.discourse.org). This policy explains what data the extension handles and where it goes.
 
-## Why the extension requests access to all sites
+## Permissions and site access
 
-Discourse forums are hosted on arbitrary domains, so the extension cannot list them in advance. It therefore requests host access to all sites (`<all_urls>`). This access is used narrowly:
+Discourse forums are hosted on arbitrary domains, so the extension cannot list them in advance. Instead of asking for access to all websites, it asks for access **one forum at a time**, when you choose **Allow access** in the side panel. Chrome shows its own prompt, and nothing is read from a forum before you allow it.
 
-- **Content script activation**: On each page, the content script only checks whether the page identifies itself as a Discourse forum (the `generator` meta tag, the `discourse-base-uri` meta tag, or Discourse's setup element). On pages that are not Discourse, it does nothing further: it adds no UI, reads no page content, and sends nothing anywhere.
-- **Forum requests**: Requests to a forum go only to the forum of the current page, or to the forum an Agent task was started on. They use your existing browser session for that forum only (so login-required forums work when you are logged in). The extension never sends requests to other sites on your behalf.
-- **AI requests**: Forum content is sent only to the AI provider you configured in settings.
+- **Forums you enable** (optional host permission, per forum): the extension reads topics and search results from that forum, using your existing browser session there (so login-required forums work when you are logged in). A small content script runs on that forum's pages to detect the topic you are viewing and show the in-page DiscourseCopilot button. You can see and remove every enabled forum under **Settings → Forum access**; removing access keeps your saved summaries and answers.
+- **AI provider hosts** (requested at install): the API addresses of the supported providers (OpenRouter, OpenAI, Anthropic, Groq, Google Gemini, xAI, DeepSeek) and `localhost` / `127.0.0.1` for Ollama and LM Studio. They are used only to send your requests to the provider you configured. A local model server on another computer is added only when you enter its address and allow it.
+- **Checking the current page** (`activeTab` and `scripting`): when you click the DiscourseCopilot toolbar icon, the extension may look once at that tab to see whether it is a Discourse forum (the `generator` meta tag, the `discourse-base-uri` meta tag, or Discourse's setup element) and read its address and title. This happens only after your click, only for that tab, and nothing is stored or sent anywhere.
+- **Other permissions**: `storage` (settings on your device), `sidePanel` (the side panel), `alarms` (keeps background tasks running while you browse).
+- The extension never sends requests to sites you have not enabled, and it cannot see which websites you visit.
 
 ## Data Collection and Usage
 
@@ -23,14 +25,14 @@ Discourse forums are hosted on arbitrary domains, so the extension cannot list t
 - **API keys and settings**: Your AI provider credentials, model choices, custom system prompt, response language, and other preferences, stored in Chrome local storage.
 
 ### What the extension fetches from a forum
-Only from the forum of the current page or task:
+Only from forums you enabled, and only the forum of the current page or task:
 - Topic metadata (`/t/{id}.json`)
 - Raw topic markdown (`/raw/{id}`)
-- Search results (`/search.json`), for **Ask the forum** only
+- Search results (`/search.json`) and selected posts (`/t/{id}/posts.json`), for **Ask the forum** only
 
 ### What the extension does NOT collect
 - **Personal information**: No names, email addresses, or other personal identifiers are collected by the developer.
-- **Browsing history**: The extension does not record or transmit the sites you visit. Non-Discourse pages are ignored.
+- **Browsing history**: The extension does not record or transmit the sites you visit. It has no access to sites you have not enabled (it does not request the "tabs" permission).
 - **Analytics**: No usage statistics or telemetry.
 - **Accounts**: No user accounts are required or maintained.
 
@@ -68,6 +70,7 @@ You can:
 - Delete saved topic sessions individually
 - Cancel queued or running tasks
 - Choose which AI provider (including local ones) receives content
+- Allow forums one at a time, and remove a forum's access at any time under **Settings → Forum access** (or in Chrome's extension details)
 - Uninstall the extension to remove all data
 
 ## Third-Party Services
@@ -90,4 +93,4 @@ For questions about this policy or data handling, open an issue on the project's
 
 ## Summary
 
-**In simple terms**: DiscourseCopilot only activates on Discourse forums, reads topics from the forum you are on using your own session, stores everything locally, and sends forum content only to the AI provider you choose. It collects no personal data and does no tracking.
+**In simple terms**: DiscourseCopilot only works on Discourse forums you enable, reads topics from the forum you are on using your own session, stores everything locally, and sends forum content only to the AI provider you choose. It collects no personal data and does no tracking.

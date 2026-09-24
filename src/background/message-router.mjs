@@ -4,7 +4,8 @@
 // onMessage listener must return: true while a response is pending,
 // false/undefined otherwise. `respondAsync` covers the common case of an
 // async result answered as { success: true, ...result } or
-// { success: false, error }.
+// { success: false, error, code? } (code: a machine-readable reason such as
+// FORUM_ACCESS_NOT_GRANTED).
 
 export function createMessageRouter(routes) {
   return (request, sender, sendResponse) => {
@@ -19,7 +20,11 @@ export function respondAsync(run) {
       .then(() => run(request, sender))
       .then(
         result => sendResponse({ success: true, ...result }),
-        error => sendResponse({ success: false, error: error?.message })
+        error => sendResponse({
+          success: false,
+          error: error?.message,
+          ...(error?.code ? { code: error.code } : {})
+        })
       );
     return true;
   };

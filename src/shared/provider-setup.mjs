@@ -287,13 +287,19 @@ export function describeSavedConfiguration(provider, settings, providerConfigs) 
 
 // Success copy for the side panel's setup card, adapted to the page.
 export function setupSuccessMessage(pageContext = {}) {
+  if (pageContext?.forumAccess === 'missing') {
+    return 'You’re set. Next, allow access to this forum below.';
+  }
   if (pageContext?.isForumTopic) {
     return 'You’re set — press Create summary above.';
   }
   if (pageContext?.isDiscourse) {
     return 'You’re set — press Ask the forum above, or open any topic and press Create summary.';
   }
-  return 'You’re set — open any Discourse topic and press Create summary.';
+  if (pageContext?.pageHidden) {
+    return 'You’re set. Next, click the DiscourseCopilot icon in your toolbar on a Discourse forum.';
+  }
+  return 'You’re set. Open a topic on any Discourse forum to get started.';
 }
 
 const ANTHROPIC_MAX_OUTPUT_TOKENS = 16000;

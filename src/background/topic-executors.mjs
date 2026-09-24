@@ -3,6 +3,8 @@
 // pages) and save the result on the topic's session.
 import { createTopicSession } from '../popup/topic-session.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
+import { createForumAccessError } from '../shared/forum-access.mjs';
+import { isAbortError } from '../shared/rate-limit-retry.mjs';
 import { formatFetchTaskStatus } from './topic-fetcher.mjs';
 
 const { MESSAGES } = DiscourseCopilotConstants;
@@ -18,13 +20,16 @@ function pluralPosts(count) {
  * @param {(message: object) => void} deps.broadcast
  * @param {(task: object) => Promise<object>} deps.getTaskConfiguration
  * @param {Function} deps.fetchTopicContent from createTopicFetcher()
+ * @param {(siteUrl: string) => Promise<boolean>} [deps.hasForumAccess] whether the
+ *   user enabled the forum (forum-access.mjs)
  */
 export function createTopicExecutors({
   aiService,
   db,
   broadcast,
   getTaskConfiguration,
-  fetchTopicContent
+  fetchTopicContent,
+  hasForumAccess = async () => true
 }) {
   const broadcastSessionUpdated = task => {
     broadcast({
@@ -46,24 +51,39 @@ export function createTopicExecutors({
   };
 
   // Re-reads the topic, reporting fetch progress as the task status. The
-  // page limit is the one snapshotted when the task was queued.
-  const fetchTopic = (task, session, { signal, report, maxPages }) => fetchTopicContent(
-    task.siteUrl,
-    task.topicId,
-    progress => {
-      void report({
-        phase: 'fetching',
-        statusText: formatFetchTaskStatus(progress),
-        progress
-      }, { durable: progress.rateLimited === true }).catch(() => {});
-    },
-    signal,
-    {
-      cachedPages: session.rawPages,
-      knownTotalPosts: session.totalPosts,
-      maxPages
+  // page limit is the one snapshotted when the task was queued. Fails fast
+  // with FORUM_ACCESS_NOT_GRANTED when the forum isn't enabled — also when
+  // access was removed while the task ran (the browser then refuses the
+  // requests, which would otherwise read as a network error).
+  const fetchTopic = async (task, session, { signal, report, maxPages }) => {
+    if (!(await hasForumAccess(task.siteUrl))) {
+      throw createForumAccessError(task.siteUrl);
     }
-  );
+    try {
+      return await fetchTopicContent(
+        task.siteUrl,
+        task.topicId,
+        progress => {
+          void report({
+            phase: 'fetching',
+            statusText: formatFetchTaskStatus(progress),
+            progress
+          }, { durable: progress.rateLimited === true }).catch(() => {});
+        },
+        signal,
+        {
+          cachedPages: session.rawPages,
+          knownTotalPosts: session.totalPosts,
+          maxPages
+        }
+      );
+    } catch (error) {
+      if (!isAbortError(error) && !(await hasForumAccess(task.siteUrl))) {
+        throw createForumAccessError(task.siteUrl);
+      }
+      throw error;
+    }
+  };
 
   const withFetchedContent = (session, response, now) => ({
     ...session,
