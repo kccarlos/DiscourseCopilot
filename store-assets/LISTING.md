@@ -8,18 +8,20 @@ AI summaries and research copilot for any Discourse forum
 
 ## Description
 
+Kept short and free of brand-name lists: the Chrome Web Store's keyword-spam check rejected an earlier version that listed every supported AI provider in one line. Keep provider names out of the description and screenshot captions (the README can list them).
+
 DiscourseCopilot helps you catch up on any Discourse forum in seconds, right from Chrome's side panel.
 
 • Summarize long topics: the original post, how people responded, and the key takeaways, even on topics with thousands of replies.
 • Ask follow-up questions about the topic you're reading.
-• Ask the forum — searches the forum, reads the most relevant discussions, and answers with numbered sources you can click.
-• Works on any Discourse forum — meta.discourse.org, community.openai.com, or your own community. One click enables each forum you use; there's no access to other websites.
-• Bring your own AI — OpenRouter, OpenAI, Anthropic (Claude), Google Gemini, Groq, xAI, DeepSeek, or a local model with Ollama or LM Studio.
-• Your language — answers follow the language of the discussion, or one you choose.
-• Organized history — saved summaries, chats and answers, grouped by forum. Keep the ones you need.
+• Ask the forum: it searches the forum, reads the most relevant discussions, and answers with numbered sources you can click.
+• Works on any forum built with Discourse, including your own community. One click allows each forum you use; there's no access to other websites.
+• Bring your own AI: connect the AI provider you already use with your own API key, or run a model on your own computer.
+• Your language: answers follow the language of the discussion, or one you choose.
+• Organized history: saved summaries, chats and answers, grouped by forum. Keep the ones you need.
 • Light and dark mode.
 
-Private by design: your API key and history stay in your browser. Forum content is sent only to the AI provider you choose. DiscourseCopilot reads only the forums you enable, and you can remove access anytime in Settings. No accounts, no analytics, no tracking.
+Private by design: your API key and history stay in your browser. Forum content is sent only to the AI provider you choose. DiscourseCopilot reads only the forums you allow, and you can remove access anytime in Settings. No accounts, no analytics, no tracking.
 
 Free and open source (Apache-2.0): https://github.com/kccarlos/DiscourseCopilot
 
