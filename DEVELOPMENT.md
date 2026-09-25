@@ -229,7 +229,14 @@ The status line, the save bar's state label ("Unsaved changes", "Saving…", "Sa
 
 The workflow tests and builds, fails if the tag doesn't match the manifest version, zips the contents of `dist/` as `discourse-copilot-<version>.zip`, and creates a GitHub Release with the zip attached and auto-generated notes.
 
-**Optional Chrome Web Store upload:** add these repository secrets (Settings → Secrets and variables → Actions): `CWS_EXTENSION_ID`, `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, `CWS_REFRESH_TOKEN`. When all four are set, each release also uploads the zip to the store as a draft. To submit it for review automatically, also set the repository **variable** `CWS_AUTO_PUBLISH` to `true`. Without the secrets, the store step is skipped.
+**Chrome Web Store publishing:** after the GitHub Release is created, the `chrome-web-store` job uploads the zip with the [Chrome Web Store API v2](https://developer.chrome.com/docs/webstore/api) and, when `CWS_AUTO_PUBLISH` is `true`, submits it for review. It signs in to Google Cloud with [Workload Identity Federation](https://github.com/google-github-actions/auth), so no keys or refresh tokens are stored:
+
+- Google Cloud project `discoursecopilot-publish` holds a service account (`cws-publisher@…`, no IAM roles) and a workload identity pool `github` whose provider only accepts tokens where `repository == 'kccarlos/DiscourseCopilot'` and the ref starts with `refs/tags/v`. That service account is linked to the publisher in the Chrome Web Store Developer Dashboard (Account → Service account).
+- Repository variables: `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT`, `CWS_ITEM_ID`, `CWS_AUTO_PUBLISH`. Repository secret: `CWS_PUBLISHER_ID`.
+- The job runs only for tag pushes (the identity provider rejects manual runs) and skips itself if any setting is missing.
+- The store rejects a package whose version isn't higher than the last uploaded one, and every submission goes through Google's review before it reaches users.
+
+To release: bump `version` in `manifest.json` and `package.json`, commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
 
 ## Screenshots
 

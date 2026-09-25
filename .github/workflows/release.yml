@@ -87,25 +87,33 @@ jobs:
           if-no-files-found: error
 
   chrome-web-store:
+    # Uploads the release zip with the Chrome Web Store API v2, signing in to
+    # Google Cloud through Workload Identity Federation (no stored keys). The
+    # provider only trusts tag pushes from this repository, so the job is
+    # skipped for manual runs.
     needs: release
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
     env:
-      CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
-      CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
-      CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
-      CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+      WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      ITEM_ID: ${{ vars.CWS_ITEM_ID }}
+      PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
       AUTO_PUBLISH: ${{ vars.CWS_AUTO_PUBLISH }}
       ZIP: ${{ needs.release.outputs.zip }}
     steps:
-      - name: Check Chrome Web Store secrets
+      - name: Check Chrome Web Store configuration
         id: check
         run: |
-          if [ -n "$CWS_EXTENSION_ID" ] && [ -n "$CWS_CLIENT_ID" ] && [ -n "$CWS_CLIENT_SECRET" ] && [ -n "$CWS_REFRESH_TOKEN" ]; then
+          if [ -n "$WIF_PROVIDER" ] && [ -n "$SERVICE_ACCOUNT" ] && [ -n "$ITEM_ID" ] && [ -n "$PUBLISHER_ID" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Chrome Web Store secrets not configured; skipping store upload."
+            echo "::notice::Chrome Web Store publishing is not configured; skipping store upload."
           fi
 
       - uses: actions/download-artifact@v8
@@ -113,46 +121,66 @@ jobs:
         with:
           name: extension-zip
 
+      - name: Authenticate to Google Cloud
+        id: auth
+        if: steps.check.outputs.enabled == 'true'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/chromewebstore
+          access_token_lifetime: 900s
+
       - name: Upload to Chrome Web Store
         if: steps.check.outputs.enabled == 'true'
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
         run: |
           set -euo pipefail
-          ACCESS_TOKEN=$(curl -fsS https://oauth2.googleapis.com/token \
-            -d client_id="$CWS_CLIENT_ID" \
-            -d client_secret="$CWS_CLIENT_SECRET" \
-            -d refresh_token="$CWS_REFRESH_TOKEN" \
-            -d grant_type=refresh_token | jq -r '.access_token')
-          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
-            echo "::error::Failed to obtain OAuth access token"; exit 1
-          fi
-          echo "::add-mask::$ACCESS_TOKEN"
-          echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> "$GITHUB_ENV"
+          ITEM="publishers/$PUBLISHER_ID/items/$ITEM_ID"
+          API="https://chromewebstore.googleapis.com"
 
-          RESP=$(curl -sS -X PUT \
+          HTTP=$(curl -sS -o upload.json -w '%{http_code}' -X POST \
             -H "Authorization: Bearer $ACCESS_TOKEN" \
-            -H "x-goog-api-version: 2" \
-            -T "$ZIP" \
-            "https://www.googleapis.com/upload/chromewebstore/v1.1/items/$CWS_EXTENSION_ID")
-          echo "$RESP" | jq .
-          STATE=$(echo "$RESP" | jq -r '.uploadState // empty')
-          if [ "$STATE" != "SUCCESS" ]; then
-            echo "::error::Chrome Web Store upload failed (uploadState=${STATE:-none})"; exit 1
+            -H "Content-Type: application/zip" \
+            --data-binary "@$ZIP" \
+            "$API/upload/v2/$ITEM:upload?uploadType=media")
+          jq . upload.json || cat upload.json
+          if [ "$HTTP" -lt 200 ] || [ "$HTTP" -ge 300 ]; then
+            echo "::error::Chrome Web Store upload failed (HTTP $HTTP)"; exit 1
           fi
 
-      - name: Publish on Chrome Web Store
+          STATE=$(jq -r '.uploadState // empty' upload.json)
+          for i in $(seq 1 30); do
+            [ "$STATE" = "IN_PROGRESS" ] || break
+            sleep 10
+            STATE=$(curl -fsS -H "Authorization: Bearer $ACCESS_TOKEN" \
+              "$API/v2/$ITEM:fetchStatus" | jq -r '.lastAsyncUploadState // empty')
+            echo "Upload state: $STATE"
+          done
+          if [ "$STATE" != "SUCCEEDED" ]; then
+            echo "::error::Chrome Web Store upload did not succeed (uploadState=${STATE:-none})"; exit 1
+          fi
+          echo "::notice::Uploaded $ZIP to the Chrome Web Store."
+
+      - name: Submit for review
         if: steps.check.outputs.enabled == 'true' && env.AUTO_PUBLISH == 'true'
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
         run: |
           set -euo pipefail
-          RESP=$(curl -sS -X POST \
+          HTTP=$(curl -sS -o publish.json -w '%{http_code}' -X POST \
             -H "Authorization: Bearer $ACCESS_TOKEN" \
-            -H "x-goog-api-version: 2" \
-            -H "Content-Length: 0" \
-            "https://www.googleapis.com/chromewebstore/v1.1/items/$CWS_EXTENSION_ID/publish")
-          echo "$RESP" | jq .
-          if ! echo "$RESP" | jq -e '.status | index("OK") or index("ITEM_PENDING_REVIEW")' > /dev/null; then
-            echo "::error::Chrome Web Store publish failed"; exit 1
+            -H "Content-Type: application/json" \
+            -d '{"publishType":"DEFAULT_PUBLISH"}' \
+            "https://chromewebstore.googleapis.com/v2/publishers/$PUBLISHER_ID/items/$ITEM_ID:publish")
+          jq . publish.json || cat publish.json
+          if [ "$HTTP" -lt 200 ] || [ "$HTTP" -ge 300 ]; then
+            echo "::error::Chrome Web Store submission failed (HTTP $HTTP)"; exit 1
           fi
+          echo "::notice::Submitted for review (state: $(jq -r '.state // "unknown"' publish.json))."
 
       - name: Draft only
         if: steps.check.outputs.enabled == 'true' && env.AUTO_PUBLISH != 'true'
-        run: echo "::notice::Uploaded as draft. Set repo variable CWS_AUTO_PUBLISH=true to auto-publish, or submit for review in the developer dashboard."
+        run: echo "::notice::Uploaded as a draft. Submit it for review in the developer dashboard, or set the repository variable CWS_AUTO_PUBLISH to true."
