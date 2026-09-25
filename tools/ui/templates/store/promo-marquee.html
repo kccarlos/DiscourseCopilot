@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- Chrome Web Store marquee promo tile (1400x560). Rendered by tools/ui/store-shots.mjs;
+     the two cards are side-panel captures from /panels/. -->
+<html><head><meta charset="utf-8"><title>Marquee promo tile</title><link rel="stylesheet" href="/templates/store/promo.css"><style>
+.tile { width: 1400px; height: 560px; display: flex; }
+.left { width: 700px; padding: 0 0 0 84px; display: flex; flex-direction: column; justify-content: center; }
+.left img { width: 470px; height: auto; display: block; margin-left: -6px; }
+.left h1 { margin: 34px 0 0; font-size: 46px; line-height: 1.12; font-weight: 800; letter-spacing: -0.025em; color: #1b1f3a; }
+.left ul { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 12px; }
+.left li { font-size: 21px; color: #3b4163; font-weight: 550; display: flex; align-items: center; gap: 12px; }
+.left li::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg, #3A5BE0, #8E2DB5); flex: 0 0 10px; }
+.right { position: relative; flex: 1; margin: 0; background:
+    radial-gradient(circle at 10% 0%, rgba(255,255,255,0.22), transparent 40%),
+    linear-gradient(125deg, #3A5BE0 0%, #6440CC 50%, #8E2DB5 100%);
+  clip-path: polygon(70px 0, 100% 0, 100% 100%, 0 100%); }
+.card { position: absolute; width: 330px; border-radius: 16px; overflow: hidden; box-shadow: 0 28px 60px -12px rgba(15,5,50,0.6), 0 0 0 1px rgba(255,255,255,0.25); }
+.card img { display: block; width: 100%; }
+.c1 { left: 100px; top: 46px; height: 560px; }
+.c2 { left: 350px; top: 96px; height: 560px; }
+</style></head><body><div class="tile">
+<div class="left">
+  <img src="/brand/wordmark/discoursecopilot-wordmark-horizontal-on-light.svg" alt="DiscourseCopilot">
+  <h1>Catch up on any Discourse<br>forum <span class="grad-text">in seconds</span></h1>
+  <ul><li>Summaries and follow-up chat</li><li>Ask the forum, with cited sources</li><li>Bring your own AI provider</li></ul>
+</div>
+<div class="right">
+  <div class="card c1"><img src="/panels/marquee-summary.png" alt=""></div>
+  <div class="card c2"><img src="/panels/marquee-agent.png" alt=""></div>
+</div></div></body></html>

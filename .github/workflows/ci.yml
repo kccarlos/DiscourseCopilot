@@ -58,3 +58,51 @@ jobs:
           path: dist/
           retention-days: 7
           if-no-files-found: error
+
+  ui:
+    name: UI flows
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6 # version read from package.json "packageManager"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p 'require("playwright/package.json").version')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps --only-shell chromium
+
+      - name: Install Chromium system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      - name: UI flows (light and dark)
+        run: pnpm test:ui
+
+      - name: Upload flow screenshots
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-flows-${{ github.sha }}
+          path: tools/ui/out/flows/
+          retention-days: 7
+          if-no-files-found: ignore

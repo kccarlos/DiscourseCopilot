@@ -8,7 +8,10 @@
     "build": "vite build",
     "dev": "vite build --watch",
     "clean": "rm -rf dist/",
-    "test": "node --test"
+    "test": "node --test",
+    "test:ui": "vite build && node tools/ui/flows.mjs --theme=both",
+    "shots:readme": "vite build && node tools/ui/readme-shots.mjs",
+    "shots:store": "vite build && node tools/ui/store-shots.mjs"
   },
   "keywords": [
     "chrome-extension",
@@ -35,6 +38,8 @@
   },
   "devDependencies": {
     "fake-indexeddb": "6.2.5",
+    "playwright": "1.63.0",
+    "sharp": "0.35.4",
     "vite": "^7.3.6",
     "vite-plugin-web-extension": "^4.5.1"
   }

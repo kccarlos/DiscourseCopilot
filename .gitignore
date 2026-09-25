@@ -119,3 +119,6 @@ public/Screenshot.png
 # Local browser test artifacts
 .playwright-cli/
 output/
+
+# UI tooling output (tools/ui): flow screenshots and screenshot drafts
+tools/ui/out/

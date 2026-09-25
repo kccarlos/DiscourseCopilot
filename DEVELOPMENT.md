@@ -23,9 +23,14 @@ pnpm install
 ```bash
 pnpm build   # build the extension into dist/
 pnpm dev     # rebuild on change (vite build --watch)
-pnpm test    # run unit tests (node --test)
-pnpm clean   # remove dist/
+pnpm test          # run unit tests (node --test)
+pnpm test:ui       # build, then run the UI flows in Chromium (light and dark)
+pnpm shots:readme  # build, then render the README screenshots into tools/ui/out/readme/
+pnpm shots:store   # build, then render the Chrome Web Store images into tools/ui/out/store/
+pnpm clean         # remove dist/
 ```
+
+The UI commands need Playwright's Chromium once: `pnpm exec playwright install chromium` (see [UI tests and screenshots](#ui-tests-and-screenshots)).
 
 ## Running it locally
 
@@ -48,6 +53,7 @@ public/             Static assets copied into dist/ as-is: toolbar/store icons (
 assets/brand/       Logo source of truth (icon, pixel-hinted small sizes, wordmarks; on-light/on-dark
                     variants). Not shipped; the README wordmark is served from here
 test/               Unit tests (node --test)
+tools/ui/           Playwright UI flows and the README / store screenshot pipelines (not shipped)
 src/
   background/       Service worker
     background.js         Entry: builds the services below and registers every Chrome listener once
@@ -220,7 +226,7 @@ The status line, the save bar's state label ("Unsaved changes", "Saving…", "Sa
 
 ## CI/CD & releases
 
-**CI** (`.github/workflows/ci.yml`) runs on every push to `main` and every pull request: `pnpm install --frozen-lockfile`, a check that `manifest.json` and `package.json` have the same version, `pnpm test`, `pnpm build`, and uploads `dist/` as a workflow artifact (kept 7 days).
+**CI** (`.github/workflows/ci.yml`) runs on every push to `main` and every pull request: `pnpm install --frozen-lockfile`, a check that `manifest.json` and `package.json` have the same version, `pnpm test`, `pnpm build`, and uploads `dist/` as a workflow artifact (kept 7 days). A second job, **UI flows**, runs `pnpm test:ui` in headless Chromium (see below).
 
 **Cutting a release** (`.github/workflows/release.yml`):
 
@@ -238,6 +244,51 @@ The workflow tests and builds, fails if the tag doesn't match the manifest versi
 
 To release: bump `version` in `manifest.json` and `package.json`, commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
 
-## Screenshots
+## UI tests and screenshots
 
-The images in `docs/screenshots/` (used by the README) are produced with a Playwright harness that renders the real side-panel markup and CSS with fixture data, then composes the results into framed, captioned images. The harness itself lives outside this repository (it's a throwaway tool, not part of the extension); only its output is checked in.
+`tools/ui/` drives the **built** pages in `dist/` (side panel and settings page) in Playwright's Chromium, as ordinary web pages with a stand-in for the `chrome.*` APIs. Nothing in `src/` is aware of it.
+
+```
+tools/ui/
+  flows.mjs           UI regression suite: ~30 scenarios, ~340 checks per theme
+  readme-shots.mjs    docs/screenshots/*.png: panels → framed composition → palette PNG
+  store-shots.mjs     store-assets/*.png: 1280x800 screenshots and promo tiles (24-bit, no alpha)
+  pixdiff.mjs         compare two PNGs or two folders of PNGs
+  lib/
+    chrome-stub.mjs   chrome.* stand-in (storage with onChanged, permissions, scripting probe,
+                      runtime messages, tabs); options and test hooks documented in the file
+    extension-page.mjs  open a dist/ page in its own context: stub installed, network sealed off
+                      (model lists get an empty answer), page errors collected; IndexedDB seeding
+    static-server.mjs, env.mjs, pixdiff.mjs  Static server, repo paths/arguments, pixel comparison
+  fixtures/           Fixture data: forums.mjs (Discourse Meta and OpenAI Developer Community,
+                      record builders), readme.mjs, store.mjs (incl. the mock forum pages), flows.mjs
+  templates/          Composition templates: readme-showcase.html (browser frame, gradient,
+                      shadow) and store/ (screenshot page builder + CSS, promo tiles)
+  out/                Everything the runners write (gitignored)
+```
+
+The forums are real public Discourse sites so the images look familiar; every topic, post, username and answer in the fixtures is invented and in English. Fixture timestamps are relative to the run ("12m ago", "expires in 23h"), so the output doesn't drift with the date.
+
+**Setup** (once, and again after a Playwright upgrade): `pnpm install`, then `pnpm exec playwright install chromium`.
+
+**Flows.** `pnpm test:ui` builds and runs every scenario in light and dark mode (both at once, one browser context per scenario). It exits non-zero on any failed check, any page error or `console.error`, and any brand image or favicon that doesn't load. Screenshots of every step go to `tools/ui/out/flows/<theme>-<width>/`. To iterate, skip the build and pick scenarios, theme or panel width:
+
+```bash
+node tools/ui/flows.mjs --theme=dark --only=popup-agent,access-enable
+node tools/ui/flows.mjs --theme=light --width=360
+```
+
+Scenarios live in `flows.mjs` (`scenario(name, page, stubOptions, steps)`); a scenario simulates the background by answering `chrome.runtime.sendMessage` and by firing broadcasts with `window.__fire('onMessage', …)`, and seeds saved sessions/Agent answers into IndexedDB before a reload.
+
+**README and store images.** Both pipelines render the real panels at 2x with their fixtures, then compose them with the templates. By default the results go to `tools/ui/out/readme/` and `tools/ui/out/store/`, so a run never touches the committed images:
+
+```bash
+pnpm shots:readme --check     # render, then pixel-compare with docs/screenshots/
+pnpm shots:store --check      # same for store-assets/
+pnpm shots:readme --write     # render and overwrite docs/screenshots/*.png
+pnpm shots:store --write --only=01,promo-marquee
+```
+
+`--check` reports each image as a match or with the size of the difference (pixels differing by more than a small anti-aliasing threshold), and exits non-zero on a material difference. Run it after a UI change to see which committed images went stale, look at the new ones in `tools/ui/out/`, then `--write` those. Rendering uses the system font stack, so regenerate the committed images on macOS (where they were made); other systems render text slightly differently.
+
+**CI.** The `UI flows` job in `.github/workflows/ci.yml` installs Chromium (headless shell, cached per Playwright version) and runs `pnpm test:ui` on every push to `main` and every pull request. When it fails, the flow screenshots are uploaded as the `ui-flows-<sha>` artifact. Screenshot pipelines don't run in CI.

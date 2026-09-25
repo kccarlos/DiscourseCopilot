@@ -1,0 +1,10 @@
+/* Chrome Web Store promo tiles: shared background and gradient text. */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+.tile { position: relative; overflow: hidden;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(58,91,224,0.16), transparent 45%),
+    radial-gradient(circle at 100% 100%, rgba(142,45,181,0.18), transparent 50%),
+    #f7f7fd; }
+.grad-text { background: linear-gradient(100deg, #3A5BE0, #8E2DB5); -webkit-background-clip: text; background-clip: text; color: transparent; }

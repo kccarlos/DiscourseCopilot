@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<!-- README screenshots: each element with an id is captured as one image by
+     tools/ui/readme-shots.mjs; the panels/*.png it frames are rendered from dist/. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>README screenshots</title>
+<style>
+  :root {
+    --accent: #1769e0;
+    --agent: #7254e8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  .stage {
+    display: inline-block;
+    padding: 64px;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(23,105,224,0.16), transparent 42%),
+      radial-gradient(circle at 88% 82%, rgba(114,84,232,0.18), transparent 46%),
+      linear-gradient(160deg, #eef3fc 0%, #f3f0fc 55%, #eef6fb 100%);
+  }
+
+  /* ---- browser-style frame ---- */
+  .frame {
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 30px 60px -20px rgba(23, 35, 64, 0.35), 0 10px 24px -8px rgba(23, 35, 64, 0.18);
+    overflow: hidden;
+    border: 1px solid rgba(20, 30, 60, 0.06);
+  }
+  .frame.dark { background: #171d26; }
+  .frame-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    background: #eef1f6;
+    border-bottom: 1px solid rgba(20, 30, 60, 0.06);
+  }
+  .frame.dark .frame-bar {
+    background: #11151c;
+    border-bottom-color: rgba(255,255,255,0.06);
+  }
+  .frame-dot { width: 9px; height: 9px; border-radius: 50%; }
+  .frame-dot.red { background: #ff5f57; }
+  .frame-dot.yellow { background: #febc2e; }
+  .frame-dot.green { background: #28c840; }
+  .frame-url {
+    margin-left: 10px;
+    flex: 1;
+    background: #fff;
+    border-radius: 7px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: #5b667a;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .frame.dark .frame-url { background: #1e2530; color: #9aa6b8; }
+  .frame-body { display: block; width: 100%; }
+  .frame-body img { display: block; width: 100%; height: auto; }
+
+  /* ---- hero ---- */
+  .hero {
+    display: flex;
+    align-items: flex-end;
+    gap: 26px;
+  }
+  .hero .frame { width: 272px; flex: 0 0 auto; }
+  .hero .frame-body { height: 640px; overflow: hidden; position: relative; }
+  .hero .frame-body img { position: absolute; top: 0; left: 0; }
+  .hero .frame-body::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 120px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.94));
+    pointer-events: none;
+  }
+  .hero .frame.dark .frame-body::after {
+    background: linear-gradient(to bottom, rgba(23,29,38,0), rgba(23,29,38,0.94));
+  }
+  .hero .frame.raised { transform: translateY(-28px); }
+  .hero .frame.raised .frame-body { height: 692px; }
+
+  /* ---- single feature frame ---- */
+  .feature .frame { width: 400px; }
+  .feature .frame-body img { width: 100%; height: auto; }
+  .feature.wide .frame { width: 620px; }
+</style>
+</head>
+<body>
+
+  <div class="stage" id="heroStage">
+    <div class="hero">
+      <div class="frame">
+        <div class="frame-bar">
+          <span class="frame-dot red"></span><span class="frame-dot yellow"></span><span class="frame-dot green"></span>
+          <span class="frame-url">meta.discourse.org</span>
+        </div>
+        <div class="frame-body"><img src="panels/meta-summary-chat-light.png" alt=""></div>
+      </div>
+      <div class="frame raised">
+        <div class="frame-bar">
+          <span class="frame-dot red"></span><span class="frame-dot yellow"></span><span class="frame-dot green"></span>
+          <span class="frame-url">community.openai.com</span>
+        </div>
+        <div class="frame-body"><img src="panels/openai-agent-answer-light.png" alt=""></div>
+      </div>
+      <div class="frame dark">
+        <div class="frame-bar">
+          <span class="frame-dot red"></span><span class="frame-dot yellow"></span><span class="frame-dot green"></span>
+          <span class="frame-url">meta.discourse.org</span>
+        </div>
+        <div class="frame-body"><img src="panels/meta-summary-chat-dark.png" alt=""></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage feature" id="featureSummary">
+    <div class="frame">
+      <div class="frame-bar">
+        <span class="frame-dot red"></span><span class="frame-dot yellow"></span><span class="frame-dot green"></span>
+        <span class="frame-url">meta.discourse.org</span>
+      </div>
+      <div class="frame-body"><img src="panels/meta-long-summary-light.png" alt=""></div>
+    </div>
+  </div>
+
+  <div class="stage feature" id="featureAgent">
+    <div class="frame">
+      <div class="frame-bar">
+        <span class="frame-dot red"></span><span class="frame-dot yellow"></span><span class="frame-dot green"></span>
+        <span class="frame-url">community.openai.com</span>
+      </div>
+      <div class="frame-body"><img src="panels/openai-agent-answer-light.png" alt=""></div>
+    </div>
+  </div>
+
+  <div class="stage feature" id="featureActivity">
+    <div class="frame">
+      <div class="frame-bar">
+        <span class="frame-dot red"></span><span class="frame-dot yellow"></span><span class="frame-dot green"></span>
+        <span class="frame-url">DiscourseCopilot</span>
+      </div>
+      <div class="frame-body"><img src="panels/activity-grouped-light.png" alt=""></div>
+    </div>
+  </div>
+
+  <div class="stage feature" id="featureSetup">
+    <div class="frame">
+      <div class="frame-bar">
+        <span class="frame-dot red"></span><span class="frame-dot yellow"></span><span class="frame-dot green"></span>
+        <span class="frame-url">community.openai.com</span>
+      </div>
+      <div class="frame-body"><img src="panels/setup-card-light.png" alt=""></div>
+    </div>
+  </div>
+
+  <div class="stage feature" id="featureAllow">
+    <div class="frame">
+      <div class="frame-bar">
+        <span class="frame-dot red"></span><span class="frame-dot yellow"></span><span class="frame-dot green"></span>
+        <span class="frame-url">community.openai.com</span>
+      </div>
+      <div class="frame-body"><img src="panels/allow-access-light.png" alt=""></div>
+    </div>
+  </div>
+
+  <div class="stage feature" id="featureDark">
+    <div class="frame dark">
+      <div class="frame-bar">
+        <span class="frame-dot red"></span><span class="frame-dot yellow"></span><span class="frame-dot green"></span>
+        <span class="frame-url">community.openai.com</span>
+      </div>
+      <div class="frame-body"><img src="panels/openai-agent-answer-dark.png" alt=""></div>
+    </div>
+  </div>
+
+  <div class="stage feature wide" id="featureSettings">
+    <div class="frame">
+      <div class="frame-bar">
+        <span class="frame-dot red"></span><span class="frame-dot yellow"></span><span class="frame-dot green"></span>
+        <span class="frame-url">DiscourseCopilot · Settings</span>
+      </div>
+      <div class="frame-body"><img src="panels/settings-light.png" alt=""></div>
+    </div>
+  </div>
+
+</body>
+</html>
