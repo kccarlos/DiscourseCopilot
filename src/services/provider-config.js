@@ -12,6 +12,10 @@ import { createOllama } from 'ollama-ai-provider-v2';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createXai } from '@ai-sdk/xai';
 import { createDeepSeek } from '@ai-sdk/deepseek';
+import { DiscourseCopilotConstants } from '../shared/constants.js';
+
+// Curated defaults live in constants.js (with their sources).
+const defaultModelOf = provider => DiscourseCopilotConstants.PROVIDER_CONFIGS[provider].defaultModel;
 
 /**
  * Provider configuration map
@@ -20,17 +24,17 @@ import { createDeepSeek } from '@ai-sdk/deepseek';
 const PROVIDER_CONFIG = {
   openai: {
     requiresApiKey: true,
-    defaultModel: 'gpt-4o-mini',
+    defaultModel: defaultModelOf('openai'),
     createClient: (settings, http) => createOpenAI({ apiKey: settings.apiKey, ...http })
   },
   openrouter: {
     requiresApiKey: true,
-    defaultModel: 'moonshotai/kimi-k2',
+    defaultModel: defaultModelOf('openrouter'),
     createClient: (settings, http) => createOpenRouter({ apiKey: settings.apiKey, ...http })
   },
   anthropic: {
     requiresApiKey: true,
-    defaultModel: 'claude-sonnet-5',
+    defaultModel: defaultModelOf('anthropic'),
     // The SDK doesn't add Anthropic's browser (CORS) opt-in header itself.
     createClient: (settings, http) => createAnthropic({
       apiKey: settings.apiKey,
@@ -40,17 +44,17 @@ const PROVIDER_CONFIG = {
   },
   groq: {
     requiresApiKey: true,
-    defaultModel: 'llama-3.1-8b-instant',
+    defaultModel: defaultModelOf('groq'),
     createClient: (settings, http) => createGroq({ apiKey: settings.apiKey, ...http })
   },
   gemini: {
     requiresApiKey: true,
-    defaultModel: 'gemini-1.5-flash',
+    defaultModel: defaultModelOf('gemini'),
     createClient: (settings, http) => createGoogleGenerativeAI({ apiKey: settings.apiKey, ...http })
   },
   ollama: {
     requiresApiKey: false,
-    defaultModel: 'llama3.2',
+    defaultModel: defaultModelOf('ollama'),
     createClient: (settings, http) => {
       const baseUrl = settings.url || 'http://localhost:11434';
       return createOllama({ baseURL: `${baseUrl}/api`, ...http });
@@ -58,17 +62,17 @@ const PROVIDER_CONFIG = {
   },
   xai: {
     requiresApiKey: true,
-    defaultModel: 'grok-3',
+    defaultModel: defaultModelOf('xai'),
     createClient: (settings, http) => createXai({ apiKey: settings.apiKey, ...http })
   },
   deepseek: {
     requiresApiKey: true,
-    defaultModel: 'deepseek-chat',
+    defaultModel: defaultModelOf('deepseek'),
     createClient: (settings, http) => createDeepSeek({ apiKey: settings.apiKey, ...http })
   },
   lmstudio: {
     requiresApiKey: false,
-    defaultModel: 'local-model',
+    defaultModel: defaultModelOf('lmstudio'),
     createClient: (settings, http) => {
       const baseUrl = settings.url || 'http://localhost:1234';
       return createOpenAICompatible({

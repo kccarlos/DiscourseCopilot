@@ -4,7 +4,13 @@
 // settings-form-state.mjs. This file wires DOM events to those two and
 // renders their state.
 import { DiscourseCopilotConstants } from '../shared/constants.js';
-import { DiscourseCopilotModels } from '../shared/model-service.js';
+import {
+  isModelOffered,
+  modelCatalog,
+  modelMissingText,
+  orderModelChoices,
+  pickDefaultModel
+} from '../shared/model-catalog.mjs';
 import {
   MAX_FAVORITE_MODELS,
   addFavoriteModel,
@@ -52,6 +58,8 @@ import {
 const { PROVIDER_CONFIGS } = DiscourseCopilotConstants;
 const LOCAL_PROVIDER_IDS_LIST = [...LOCAL_PROVIDER_IDS];
 const STATUS_AUTO_HIDE_MS = 5000;
+// Wait for a pause in typing before reading a provider's model list.
+const MODEL_LIST_DEBOUNCE_MS = 700;
 
 // Element IDs of each provider's inputs.
 const PROVIDER_FIELDS = Object.fromEntries(PROVIDER_IDS.map(provider => [
@@ -61,7 +69,8 @@ const PROVIDER_FIELDS = Object.fromEntries(PROVIDER_IDS.map(provider => [
     credentialField: LOCAL_PROVIDER_IDS.has(provider) ? 'url' : 'apiKey',
     model: `${provider}Model`,
     modelList: `${provider}ModelList`,
-    modelStatus: `${provider}ModelStatus`
+    modelStatus: `${provider}ModelStatus`,
+    modelWarning: `${provider}ModelWarning`
   }
 ]));
 
@@ -127,6 +136,11 @@ class DiscourseCopilotSettings {
     this.hasSavedConfiguration = false;
     this.modelRequestIds = {};
     this.loadingModelProviders = new Set();
+    // The last model list each provider returned (for the "no longer
+    // offered" warning), and the model fields the user has edited.
+    this.modelLists = {};
+    this.touchedModelFields = new Set();
+    this.modelListTimers = {};
     this.statusTimer = null;
     this.welcomeMode = new URLSearchParams(location.search).get('welcome') === '1';
   }
@@ -183,6 +197,9 @@ class DiscourseCopilotSettings {
 
     // Follow changes made elsewhere (e.g. the side panel's model switcher).
     this.store.subscribe(event => {
+      if (event.type === 'loaded' || event.type === 'saved' || event.type === 'active-model') {
+        this.renderModelWarning(this.currentProvider);
+      }
       if (event.type === 'loaded') {
         this.renderSavedConfiguration();
         this.renderFavoriteModels();
@@ -356,11 +373,31 @@ class DiscourseCopilotSettings {
           this.store.updateDraft({ systemPrompt: field.value });
         }
         this.dispatch({ type: 'edited' });
+        if (target?.field === 'model') {
+          this.touchedModelFields.add(target.provider);
+          this.renderModelWarning(target.provider);
+        }
         if (field.id === PROVIDER_FIELDS[this.currentProvider]?.model) {
           this.renderFavoriteModels();
         }
+        // A new key or server URL: read that provider's model list once
+        // typing pauses (and at once when the field loses focus).
+        if (target && target.field !== 'model') {
+          this.scheduleModelList(target.provider);
+        }
       });
+      const target = INPUT_FIELDS.get(field.id);
+      if (target && target.field !== 'model') {
+        field.addEventListener('change', () => this.scheduleModelList(target.provider, 0));
+      }
     });
+  }
+
+  scheduleModelList(provider, delay = MODEL_LIST_DEBOUNCE_MS) {
+    clearTimeout(this.modelListTimers[provider]);
+    this.modelListTimers[provider] = setTimeout(() => {
+      if (provider === this.currentProvider) void this.loadModelsForProvider(provider);
+    }, delay);
   }
 
   // ---------- Preferences ----------
@@ -793,14 +830,16 @@ class DiscourseCopilotSettings {
     this.renderProvider();
     this.renderFavoriteModels();
     this.renderSavedConfiguration();
-    for (const provider of PROVIDER_IDS) DiscourseCopilotModels.clearCache(provider);
+    modelCatalog.clear();
+    this.modelLists = {};
+    this.touchedModelFields.clear();
     this.dispatch({ type: 'reset-succeeded' });
     void this.loadModelsForProvider(this.currentProvider);
   }
 
   // ---------- Model suggestions ----------
 
-  async loadModelsForProvider(provider) {
+  async loadModelsForProvider(provider, { force = false } = {}) {
     const fields = PROVIDER_FIELDS[provider];
     const input = $(fields.model);
     const list = $(fields.modelList);
@@ -809,47 +848,80 @@ class DiscourseCopilotSettings {
 
     const requestId = (this.modelRequestIds[provider] || 0) + 1;
     this.modelRequestIds[provider] = requestId;
-    const selectedModel = input.value;
     const settings = normalizeProviderSettings(provider, this.getFormValues(provider));
     const providerConfig = PROVIDER_CONFIGS[provider];
-    // Known-good models stay offered even before (or without) a live model list.
-    const suggested = (providerConfig.suggestedModels || []).map(id => ({ id }));
+    // Curated models stay offered even before (or without) a live model list.
+    const curated = (providerConfig.recommendedModels || providerConfig.suggestedModels || [])
+      .map(id => ({ id, name: 'Recommended' }));
+    delete this.modelLists[provider];
+    this.renderModelWarning(provider);
 
-    if (providerConfig.requiresApiKey && !settings.apiKey.trim()) {
-      this.populateModelChoices(list, suggested, selectedModel);
-      modelStatus.textContent = 'Enter an API key, then refresh model suggestions.';
+    if (providerConfig.requiresApiKey && !settings.apiKey) {
+      this.populateModelChoices(list, curated, input.value);
+      modelStatus.textContent = 'Enter an API key to load the models it can use.';
       this.setModelLoading(provider, false);
       return;
     }
 
     this.setModelLoading(provider, true);
-    modelStatus.textContent = 'Loading model suggestions…';
+    modelStatus.textContent = `Loading ${providerConfig.name} models…`;
 
     try {
-      const models = await DiscourseCopilotModels.getModels(provider, settings);
+      const { models } = await modelCatalog.list(provider, settings, { force });
       if (!isLatestRequest(this.modelRequestIds, provider, requestId)) return;
 
-      this.populateModelChoices(list, [...suggested, ...models], selectedModel);
+      this.modelLists[provider] = models;
+      // A provider whose model was never saved gets the best available
+      // default, unless the user already picked one. Saved models are
+      // never replaced.
+      if (models.length && this.canPreselectModel(provider)) {
+        const pick = pickDefaultModel(provider, models);
+        if (pick && pick !== input.value) {
+          input.value = pick;
+          this.store.updateField(provider, 'model', pick);
+          if (provider === this.currentProvider) this.renderFavoriteModels();
+        }
+      }
+      const choices = models.length ? orderModelChoices(provider, models) : curated;
+      this.populateModelChoices(list, choices, input.value);
+      const listsRecommended = choices.some(choice => choice.recommended);
       modelStatus.textContent = models.length
-        ? `${models.length} model suggestion${models.length === 1 ? '' : 's'} loaded. You can also enter a custom model.`
-        : 'No models were returned. The current value is still available.';
+        ? `${plural(models.length, 'model')} available from ${providerConfig.name}${listsRecommended ? '; recommended (fast, low-cost) ones are listed first' : ''}. You can also enter any model ID.`
+        : `${providerConfig.name} returned no models. You can enter a model ID yourself.`;
+      this.renderModelWarning(provider);
     } catch (error) {
       if (!isLatestRequest(this.modelRequestIds, provider, requestId)) return;
 
-      this.populateModelChoices(list, suggested, selectedModel);
-      modelStatus.textContent = `Suggestions unavailable: ${error.message}. The current value was preserved.`;
-      if (provider === this.currentProvider) {
-        this.notify(
-          `Could not load ${providerConfig.name} models. You can keep or enter a model manually.`,
-          'error',
-          false
-        );
-      }
+      this.populateModelChoices(list, curated, input.value);
+      modelStatus.textContent = `Couldn’t load the model list: ${error.message} You can keep or enter a model ID; Test Connection checks it.`;
     } finally {
       if (isLatestRequest(this.modelRequestIds, provider, requestId)) {
         this.setModelLoading(provider, false);
       }
     }
+  }
+
+  // Only a provider without a saved model whose field the user hasn't edited.
+  canPreselectModel(provider) {
+    return !this.store.config.savedModels?.[provider]
+      && !this.touchedModelFields.has(provider);
+  }
+
+  // "No longer offered": the saved model, still in the field, is missing from
+  // the list the provider just returned. Nothing is said without a list.
+  renderModelWarning(provider) {
+    const fields = PROVIDER_FIELDS[provider];
+    const warning = fields && $(fields.modelWarning);
+    if (!warning) return;
+    const models = this.modelLists[provider];
+    const saved = this.store.config.savedModels?.[provider]
+      ? this.store.config.providers[provider]?.model || ''
+      : '';
+    const shown = $(fields.model)?.value.trim() || '';
+    const missing = Boolean(models?.length && saved && shown === saved
+      && !isModelOffered(provider, saved, models));
+    warning.textContent = missing ? modelMissingText(provider) : '';
+    warning.hidden = !missing;
   }
 
   populateModelChoices(list, models, selectedModel) {
@@ -864,8 +936,7 @@ class DiscourseCopilotSettings {
 
   async refreshModels(provider) {
     if (!provider || this.isBusy) return;
-    DiscourseCopilotModels.clearCache(provider);
-    await this.loadModelsForProvider(provider);
+    await this.loadModelsForProvider(provider, { force: true });
   }
 
   setModelLoading(provider, loading) {

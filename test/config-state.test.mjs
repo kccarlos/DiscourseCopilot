@@ -94,7 +94,7 @@ test('reads defaults for a fresh install', () => {
   const config = readConfig({});
   assert.equal(config.provider, 'openrouter');
   assert.equal(config.providerChoice, '');
-  assert.deepEqual(config.providers.openrouter, { apiKey: '', model: 'moonshotai/kimi-k2' });
+  assert.deepEqual(config.providers.openrouter, { apiKey: '', model: 'openai/gpt-6-luna' });
   assert.deepEqual(config.providers.ollama, { url: 'http://localhost:11434', model: 'llama3.2' });
   assert.deepEqual(config.providers.lmstudio, { url: 'http://localhost:1234', model: 'local-model' });
   assert.deepEqual(config.favorites, []);
@@ -113,8 +113,8 @@ test('reads stored provider settings over defaults and ignores empty or non-stri
     ollamaUrl: 'http://box:11434'
   });
   assert.equal(config.provider, 'openai');
-  assert.deepEqual(config.providers.openai, { apiKey: 'sk-1', model: 'gpt-4o-mini' });
-  assert.deepEqual(config.providers.anthropic, { apiKey: '', model: 'claude-sonnet-5' });
+  assert.deepEqual(config.providers.openai, { apiKey: 'sk-1', model: 'gpt-6-luna' });
+  assert.deepEqual(config.providers.anthropic, { apiKey: '', model: 'claude-haiku-4-5' });
   assert.deepEqual(config.providers.ollama, { url: 'http://box:11434', model: 'llama3.2' });
 });
 
@@ -176,7 +176,7 @@ test('a chosen provider without a key is incomplete with a field error', () => {
   const status = deriveConfigStatus(readConfig({ selectedProvider: 'anthropic' }));
   assert.equal(status.status, CONFIG_STATUS.INCOMPLETE);
   assert.equal(status.fieldErrors.apiKey, 'Anthropic API key is required.');
-  assert.equal(status.model, 'claude-sonnet-5');
+  assert.equal(status.model, 'claude-haiku-4-5');
 });
 
 test('a local provider with an invalid URL is incomplete on the url field', () => {
@@ -270,7 +270,7 @@ test('load() reads storage, derives status and notifies subscribers', async () =
   await store.load();
   assert.equal(store.status.status, CONFIG_STATUS.READY);
   assert.equal(store.isReady(), true);
-  assert.deepEqual(store.activeSettings, { apiKey: 'sk', model: 'gpt-4o-mini' });
+  assert.deepEqual(store.activeSettings, { apiKey: 'sk', model: 'gpt-6-luna' });
   assert.deepEqual(events, ['loaded']);
 });
 
@@ -443,7 +443,7 @@ test('test(): testing → passed with normalized settings and API headers', asyn
   assert.equal(result.ok, true);
   assert.deepEqual(phases, ['testing', 'passed']);
   assert.equal(calls[0][0], 'openai');
-  assert.deepEqual(calls[0][1], { apiKey: 'sk', model: 'gpt-4o-mini' });
+  assert.deepEqual(calls[0][1], { apiKey: 'sk', model: 'gpt-6-luna' });
   assert.deepEqual(calls[0][3], { apiHeaders: { TITLE: 'T' } });
 });
 

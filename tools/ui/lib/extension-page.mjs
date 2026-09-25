@@ -6,12 +6,18 @@ import { installChromeStub } from './chrome-stub.mjs';
 export const POPUP = 'src/popup/popup.html';
 export const SETTINGS = 'src/settings/settings.html';
 
+// `routes` answer chosen network requests instead: each is
+// (url, request) => ({ status, body }) | null, tried in order (runs in Node,
+// so it may inspect request headers). `requests` records every non-page
+// request (method and URL) for assertions.
 export async function openExtensionPage(browser, base, {
-  pagePath = POPUP, theme = 'light', width = 460, height = 1000, deviceScaleFactor = 1, stub = {}, settle = 700
+  pagePath = POPUP, theme = 'light', width = 460, height = 1000, deviceScaleFactor = 1, stub = {}, settle = 700,
+  routes = []
 } = {}) {
   const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor, colorScheme: theme });
   const page = await ctx.newPage();
   const errors = [];
+  const requests = [];
   page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
   page.on('console', m => { if (m.type() === 'error') errors.push(`console.error: ${m.text()}`); });
   // Never reach the real network: model lists and connection tests get a
@@ -20,12 +26,23 @@ export async function openExtensionPage(browser, base, {
     const url = route.request().url();
     if (url.startsWith(base)) return route.continue();
     if (/favicon|\.png|\.ico|\.svg/.test(url)) return route.fulfill({ status: 404, body: '' });
+    requests.push({ method: route.request().method(), url });
+    for (const answer of routes) {
+      const response = answer(url, route.request());
+      if (response) {
+        return route.fulfill({
+          status: response.status ?? 200,
+          contentType: 'application/json',
+          body: typeof response.body === 'string' ? response.body : JSON.stringify(response.body ?? {})
+        });
+      }
+    }
     return route.fulfill({ status: 200, contentType: 'application/json', body: '{"data":[],"models":[]}' });
   });
   await page.addInitScript(installChromeStub, stub);
   await page.goto(`${base}/${pagePath}`);
   await page.waitForTimeout(settle);
-  return { ctx, page, errors };
+  return { ctx, page, errors, requests };
 }
 
 // Writes records the way the background saves them. The page must already

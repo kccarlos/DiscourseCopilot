@@ -50,7 +50,7 @@ Open [DiscourseCopilot in the Chrome Web Store](https://chromewebstore.google.co
 </details>
 
 **2. Connect an AI provider.**
-Click the DiscourseCopilot icon to open the side panel. A short setup card asks you to pick a provider, paste your API key, and pick a model (a good one is filled in for you). See [Choosing an AI provider](#choosing-an-ai-provider) if you're not sure which to pick.
+Click the DiscourseCopilot icon to open the side panel. A short setup card asks you to pick a provider, paste your API key, and pick a model (a fast, low-cost one from your provider's current list is filled in for you). See [Choosing an AI provider](#choosing-an-ai-provider) if you're not sure which to pick.
 
 **3. Open a forum topic, allow access, then Create summary.**
 Open any topic on a Discourse forum and click the DiscourseCopilot icon. The first time you use a forum, the side panel shows **Allow DiscourseCopilot on *forum name***: click **Allow access**, then choose **Allow** when Chrome asks. Then click **Create summary**. Each forum asks only once, and after that the DiscourseCopilot button also appears in the corner of its pages.
@@ -119,6 +119,8 @@ DiscourseCopilot doesn't come with its own AI. You connect one you already use, 
 | LM Studio | LM Studio installed on your computer | Runs on your computer. No key and no usage bill |
 
 **Not sure?** If you already pay for one of these, use that one. If you want to try many models with one key, OpenRouter is an easy start.
+
+Once you paste a key, the model field lists the models your provider offers today and picks a fast, low-cost one for summaries. You can pick another any time.
 
 <details>
 <summary>Using Ollama on your computer</summary>

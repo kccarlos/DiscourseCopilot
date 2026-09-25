@@ -12,7 +12,7 @@ import { DIST, OUT, onlyFilter, parseArgs, relative, requireDist } from './lib/e
 import { startServer } from './lib/static-server.mjs';
 import { brandImagesLoaded, brokenIconLinks, openExtensionPage, seedHistory } from './lib/extension-page.mjs';
 import {
-  SITE, TOPIC_KEY, OAI, OAI_TOPIC, accessOptions, configuredStore, defaultStub, forumHomeState, savedSessionHistory
+  SITE, TOPIC_KEY, OAI, OAI_TOPIC, accessOptions, configuredStore, defaultStub, forumHomeState, modelRoutes, savedSessionHistory
 } from './fixtures/flows.mjs';
 
 const args = parseArgs();
@@ -81,6 +81,66 @@ scenario('popup-setup', 'src/popup/popup.html', { store: {} }, async ({ page, ch
   await page.waitForTimeout(300);
   check('setup reopens when key removed', await visible(page, '#setupCard'));
   await shot('reopened');
+});
+
+// The live model list after a key is entered: pre-selection, the datalist,
+// a model the user typed, and a key the provider refuses.
+const datalistOptions = (page, sel) => page.$$eval(`${sel} option`, options => options.map(o => ({ value: o.value, label: o.label })));
+scenario('popup-setup-models', 'src/popup/popup.html', { store: {}, routes: modelRoutes }, async ({ page, check, shot, requests }) => {
+  await page.click('label.setup-provider-option[data-provider="anthropic"]');
+  check('curated default before a key', (await page.inputValue('#setupModel')) === 'claude-haiku-4-5', await page.inputValue('#setupModel'));
+  check('curated hint', (await text(page, '#setupModelHint')).startsWith('Prefilled with a fast, low-cost default'), await text(page, '#setupModelHint'));
+  check('no list request without a key', !requests.some(r => r.url.includes('/v1/models')));
+  await page.fill('#setupApiKey', 'sk-ant-good');
+  await page.waitForTimeout(1000);
+  check('list requested once after typing pauses', requests.filter(r => r.url.startsWith('https://api.anthropic.com/v1/models')).length === 1,
+    JSON.stringify(requests.map(r => r.url)));
+  check('recommended model pre-selected', (await page.inputValue('#setupModel')) === 'claude-haiku-4-5', await page.inputValue('#setupModel'));
+  const anthropicOptions = await datalistOptions(page, '#setupModelList');
+  check('datalist: recommended first, labelled', anthropicOptions[0]?.value === 'claude-haiku-4-5' && anthropicOptions[0]?.label === 'Recommended'
+    && anthropicOptions.length === 3 && anthropicOptions.every(o => o.label === 'Recommended'), JSON.stringify(anthropicOptions));
+  check('live-list hint', (await text(page, '#setupModelHint')).includes('Anthropic’s current list'), await text(page, '#setupModelHint'));
+  await shot('anthropic');
+
+  // OpenAI lists none of the curated models: a small one is picked.
+  await page.click('label.setup-provider-option[data-provider="openai"]');
+  check('openai curated default', (await page.inputValue('#setupModel')) === 'gpt-6-luna', await page.inputValue('#setupModel'));
+  await page.fill('#setupApiKey', 'sk-good');
+  await page.locator('#setupApiKey').blur();
+  await page.waitForTimeout(400);
+  check('heuristic pick when no recommended model is listed', (await page.inputValue('#setupModel')) === 'gpt-9-mini', await page.inputValue('#setupModel'));
+  const openaiOptions = await datalistOptions(page, '#setupModelList');
+  check('datalist has chat models only', JSON.stringify(openaiOptions.map(o => o.value)) === '["gpt-9","gpt-9-mini"]', JSON.stringify(openaiOptions));
+  await shot('openai');
+  // A model the user types is kept when the key changes.
+  await page.fill('#setupModel', 'my-fine-tune');
+  await page.fill('#setupApiKey', 'sk-good-2');
+  await page.locator('#setupApiKey').blur();
+  await page.waitForTimeout(400);
+  check('typed model survives a new list', (await page.inputValue('#setupModel')) === 'my-fine-tune', await page.inputValue('#setupModel'));
+  await page.click('#setupTestSaveBtn');
+  await page.waitForTimeout(500);
+  check('saved with the typed model', await page.evaluate(() => window.__store.openaiModel === 'my-fine-tune'), await page.evaluate(() => JSON.stringify(window.__store)));
+  check('no API key in any request URL', !requests.some(r => /sk-/.test(r.url)), JSON.stringify(requests.map(r => r.url)));
+});
+
+const REFUSED_KEY_LOG = /^console\.error: Failed to load resource: the server responded with a status of 401/;
+scenario('popup-setup-models-failure', 'src/popup/popup.html', { store: {}, routes: modelRoutes, allowErrors: [REFUSED_KEY_LOG] }, async ({ page, check, shot, requests }) => {
+  await page.click('label.setup-provider-option[data-provider="openai"]');
+  await page.fill('#setupApiKey', 'sk-bad');
+  await page.locator('#setupApiKey').blur();
+  await page.waitForTimeout(400);
+  check('list was requested', requests.some(r => r.url === 'https://api.openai.com/v1/models'));
+  check('curated default kept', (await page.inputValue('#setupModel')) === 'gpt-6-luna', await page.inputValue('#setupModel'));
+  check('curated hint kept', (await text(page, '#setupModelHint')).startsWith('Prefilled with a fast, low-cost default'), await text(page, '#setupModelHint'));
+  const options = await datalistOptions(page, '#setupModelList');
+  check('curated suggestions', options[0]?.value === 'gpt-6-luna' && options[0]?.label === 'Recommended', JSON.stringify(options));
+  check('no error shown before testing', !(await visible(page, '#setupApiKeyError')) && !(await visible(page, '#setupFormError')));
+  await page.click('#setupTestSaveBtn');
+  await page.waitForTimeout(500);
+  check('test reports the key', (await text(page, '#setupApiKeyError')).includes('didn’t accept this API key') || (await text(page, '#setupApiKeyError')).includes("didn't accept this API key"), await text(page, '#setupApiKeyError'));
+  check('nothing saved', await page.evaluate(() => !window.__store.openaiApiKey));
+  await shot('bad-key');
 });
 
 scenario('popup-summary', 'src/popup/popup.html', {
@@ -508,6 +568,49 @@ scenario('settings-fresh', 'src/settings/settings.html', { store: { extensionSet
   await shot('saved');
 });
 
+// A saved model the provider no longer lists: a warning, never a change.
+scenario('settings-model-missing', 'src/settings/settings.html', {
+  store: { selectedProvider: 'openai', openaiApiKey: 'sk-good', openaiModel: 'gpt-4o-mini' }, routes: modelRoutes
+}, async ({ page, check, shot, requests }) => {
+  await page.waitForTimeout(300);
+  check('list loaded for the saved key', requests.some(r => r.url === 'https://api.openai.com/v1/models'));
+  check('saved model unchanged', (await page.inputValue('#openaiModel')) === 'gpt-4o-mini', await page.inputValue('#openaiModel'));
+  check('warning shown', (await visible(page, '#openaiModelWarning'))
+    && (await text(page, '#openaiModelWarning')) === 'This model is no longer offered by OpenAI. Choose another.', await text(page, '#openaiModelWarning'));
+  check('model field describes the warning', (await page.getAttribute('#openaiModel', 'aria-describedby')).includes('openaiModelWarning'));
+  check('status counts models', (await text(page, '#openaiModelStatus')).startsWith('2 models available from OpenAI'), await text(page, '#openaiModelStatus'));
+  check('form not dirty', (await text(page, '#formStateText')) === 'All changes saved', await text(page, '#formStateText'));
+  const listed = await page.$$eval('#openaiModelList option', options => options.map(o => o.value));
+  check('saved value stays offered', listed[0] === 'gpt-4o-mini' && listed.includes('gpt-9-mini'), JSON.stringify(listed));
+  await shot('warning');
+  await page.fill('#openaiModel', 'gpt-9-mini');
+  await page.waitForTimeout(100);
+  check('warning hidden for another model', !(await visible(page, '#openaiModelWarning')));
+  await page.click('#saveBtn');
+  await page.waitForTimeout(300);
+  check('saved the chosen model', await page.evaluate(() => window.__store.openaiModel === 'gpt-9-mini'));
+  check('no warning after saving a listed model', !(await visible(page, '#openaiModelWarning')));
+  // A provider without a saved model gets the best listed one once a key is entered.
+  await page.selectOption('#providerSelect', 'gemini');
+  check('gemini curated default', (await page.inputValue('#geminiModel')) === 'gemini-3.5-flash-lite');
+  await page.fill('#geminiApiKey', 'AIza-good');
+  await page.waitForTimeout(1000);
+  check('gemini list uses the key header, not the URL', requests.some(r => r.url === 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000') && !requests.some(r => r.url.includes('AIza')));
+  check('gemini keeps the listed recommended model', (await page.inputValue('#geminiModel')) === 'gemini-3.5-flash-lite', await page.inputValue('#geminiModel'));
+  const geminiOptions = await page.$$eval('#geminiModelList option', options => options.map(o => [o.value, o.label]));
+  check('gemini recommended first', geminiOptions[0]?.[0] === 'gemini-3.5-flash-lite' && geminiOptions[0]?.[1] === 'Recommended', JSON.stringify(geminiOptions));
+  check('no warning without a saved model', !(await visible(page, '#geminiModelWarning')));
+});
+
+scenario('settings-model-list-failure', 'src/settings/settings.html', {
+  store: { selectedProvider: 'openai', openaiApiKey: 'sk-bad', openaiModel: 'gpt-4o-mini' }, routes: modelRoutes, allowErrors: [REFUSED_KEY_LOG]
+}, async ({ page, check }) => {
+  await page.waitForTimeout(300);
+  check('no warning when the list fails', !(await visible(page, '#openaiModelWarning')));
+  check('model unchanged', (await page.inputValue('#openaiModel')) === 'gpt-4o-mini');
+  check('status explains', (await text(page, '#openaiModelStatus')).startsWith('Couldn’t load the model list: OpenAI returned HTTP 401. You can'), await text(page, '#openaiModelStatus'));
+});
+
 scenario('settings-welcome', 'src/settings/settings.html?welcome=1', { store: {} }, async ({ page, check, shot }) => {
   check('welcome header', await visible(page, '#welcomeHeader'));
   check('status cleared', !(await visible(page, '#status')));
@@ -884,8 +987,12 @@ scenario('settings-forum-access', 'src/settings/settings.html', {
 // ---------- Runner ----------
 
 async function runScenario(browser, base, { name, pagePath, options, steps }, { theme, outDir }) {
-  const { ctx, page, errors } = await openExtensionPage(browser, base, {
-    pagePath, theme, width: options.width || WIDTH, height: 1000, stub: { ...defaultStub, ...options }
+  // Network answers stay in Node (functions can't reach the page's stub).
+  // allowErrors: console messages a scenario provokes on purpose (Chrome
+  // logs every HTTP error response, e.g. a refused API key).
+  const { routes = [], allowErrors = [], ...stubOptions } = options;
+  const { ctx, page, errors, requests } = await openExtensionPage(browser, base, {
+    pagePath, theme, width: options.width || WIDTH, height: 1000, stub: { ...defaultStub, ...stubOptions }, routes
   });
   const checks = [];
   const check = (label, ok, detail = '') => { checks.push({ label, ok: Boolean(ok), detail }); };
@@ -894,13 +1001,13 @@ async function runScenario(browser, base, { name, pagePath, options, steps }, { 
     check('brand images load', await brandImagesLoaded(page));
     const brokenIcons = await brokenIconLinks(page);
     check('favicons resolve', brokenIcons.length === 0, brokenIcons.join(', '));
-    await steps({ page, check, shot, outDir });
+    await steps({ page, check, shot, outDir, requests });
   } catch (error) {
     check('steps completed', false, error.message.split('\n')[0]);
     await shot('crash').catch(() => {});
   }
   await ctx.close();
-  return { name, errors, checks };
+  return { name, errors: errors.filter(e => !allowErrors.some(pattern => pattern.test(e))), checks };
 }
 
 async function runTheme(browser, base, theme) {

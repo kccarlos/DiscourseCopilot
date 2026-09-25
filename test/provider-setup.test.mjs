@@ -44,7 +44,7 @@ test('validation reports errors per field for inline display', () => {
 });
 
 test('defaultProviderSettings gives hosted providers an empty key and local ones their URL', () => {
-  assert.deepEqual(defaultProviderSettings('openrouter', configs), { apiKey: '', model: 'moonshotai/kimi-k2' });
+  assert.deepEqual(defaultProviderSettings('openrouter', configs), { apiKey: '', model: 'openai/gpt-6-luna' });
   assert.deepEqual(defaultProviderSettings('ollama', configs), { url: 'http://localhost:11434', model: 'llama3.2' });
   assert.deepEqual(defaultProviderSettings('nope', configs), {});
   assert.equal(validateProviderSettings('openrouter', defaultProviderSettings('openrouter', configs), configs).valid, false);
@@ -63,15 +63,32 @@ test('model suggestions start with the default and add that provider’s favorit
     { provider: 'openrouter', model: 'moonshotai/kimi-k2' }
   ];
   assert.deepEqual(suggestSetupModels('openrouter', favorites, configs), [
-    'moonshotai/kimi-k2',
-    'anthropic/claude-sonnet-4.5'
+    ...configs.openrouter.recommendedModels,
+    'anthropic/claude-sonnet-4.5',
+    'moonshotai/kimi-k2'
   ]);
   assert.deepEqual(suggestSetupModels('anthropic', null, configs), [
-    'claude-sonnet-5',
     'claude-haiku-4-5',
+    'claude-sonnet-5',
     'claude-opus-5-5'
   ]);
-  assert.equal(configs.anthropic.defaultModel, 'claude-sonnet-5');
+  assert.equal(configs.anthropic.defaultModel, 'claude-haiku-4-5');
+  // Suggestions without a curated list fall back to suggestedModels.
+  assert.deepEqual(suggestSetupModels('x', [], { x: { defaultModel: 'a', suggestedModels: ['b', 'a'] } }), ['a', 'b']);
+});
+
+test('every provider’s default is the first of its curated models, cheap/fast tier first', () => {
+  for (const [provider, config] of Object.entries(configs)) {
+    assert.ok(Array.isArray(config.recommendedModels) && config.recommendedModels.length >= 1, provider);
+    assert.equal(config.defaultModel, config.recommendedModels[0], provider);
+    assert.equal(new Set(config.recommendedModels).size, config.recommendedModels.length, provider);
+  }
+  assert.deepEqual(configs.anthropic.suggestedModels, ['claude-haiku-4-5', 'claude-sonnet-5', 'claude-opus-5-5']);
+  // Retired or deprecated former defaults are gone.
+  const all = Object.values(configs).flatMap(config => config.recommendedModels);
+  for (const retired of ['gemini-1.5-flash', 'llama-3.1-8b-instant', 'grok-3', 'moonshotai/kimi-k2']) {
+    assert.equal(all.includes(retired), false, retired);
+  }
 });
 
 test('Anthropic requests leave sampling parameters to the model', () => {

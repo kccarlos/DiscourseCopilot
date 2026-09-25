@@ -213,3 +213,48 @@ system prompt above:
 
 ${phasePrompt}`, language);
 }
+
+function positiveInteger(value) {
+  const number = Number(value);
+  return Number.isInteger(number) && number > 0 ? number : null;
+}
+
+/**
+ * The part of a topic the model was given. Posts count the original post, so
+ * replies are posts − 1 (like the side panel's "first N of M replies").
+ * @param {object} [fetchResult] a topic fetch result or session-like object:
+ *   { truncated, coveredPosts, totalPosts, pagesFetched }
+ * @returns {{ truncated: boolean, coveredPosts: number|null, totalPosts: number|null, pagesRead: number|null }}
+ */
+export function describeTopicCoverage(fetchResult = {}) {
+  const source = fetchResult || {};
+  return {
+    truncated: source.truncated === true,
+    coveredPosts: positiveInteger(source.coveredPosts),
+    totalPosts: positiveInteger(source.totalPosts),
+    pagesRead: positiveInteger(source.pagesFetched ?? source.pagesRead)
+  };
+}
+
+/**
+ * A one-paragraph note telling the model that it only has the start of the
+ * topic (page limit or the safety cap on topics of unknown size). Empty when
+ * the whole topic was provided.
+ * @param {object} [coverage] describeTopicCoverage() output
+ * @param {'summary'|'answer'} [purpose]
+ * @returns {string}
+ */
+export function buildCoverageNote(coverage, purpose = 'summary') {
+  if (!coverage?.truncated) return '';
+  const covered = positiveInteger(coverage.coveredPosts);
+  const total = positiveInteger(coverage.totalPosts);
+  const action = purpose === 'answer'
+    ? 'If the answer could depend on later replies, say so, and don\'t claim to cover them.'
+    : 'Say so in the summary and don\'t claim to cover later replies.';
+  if (covered && total && total > covered) {
+    const coveredReplies = Math.max(0, covered - 1).toLocaleString('en-US');
+    const totalReplies = Math.max(0, total - 1).toLocaleString('en-US');
+    return `Note: only the first ${coveredReplies} of ${totalReplies} replies were provided. ${action}`;
+  }
+  return `Note: only the first part of this topic was provided; the topic may continue beyond the provided replies. ${action}`;
+}

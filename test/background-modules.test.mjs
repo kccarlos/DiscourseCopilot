@@ -208,7 +208,7 @@ test('after a restart, task configuration falls back to the saved configuration'
   });
   const noProvider = await service.getTaskConfiguration({ id: 'old2', siteUrl: 'https://f.example' });
   assert.equal(noProvider.provider, 'anthropic');
-  assert.deepEqual(noProvider.settings, { apiKey: 'ak', model: 'claude-sonnet-5' });
+  assert.deepEqual(noProvider.settings, { apiKey: 'ak', model: 'claude-haiku-4-5' });
 });
 
 test('runtime settings without a response language use the saved one', async () => {

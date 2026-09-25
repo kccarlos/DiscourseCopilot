@@ -164,6 +164,7 @@ function readProviderSettings(values, provider, providerConfigs) {
  * @returns {{
  *   provider: string, providerChoice: string,
  *   providers: Record<string, {apiKey?: string, url?: string, model: string}>,
+ *   savedModels: Record<string, boolean>,
  *   favorites: Array<{provider: string, model: string}>,
  *   systemPrompt: string, responseLanguage: string, forumContextLimit: number,
  *   preferences: ReturnType<typeof normalizePreferences>
@@ -180,6 +181,12 @@ export function readConfig(values = {}, providerConfigs = PROVIDER_CONFIGS) {
     providers: Object.fromEntries(Object.keys(providerConfigs).map(id => [
       id,
       readProviderSettings(raw, id, providerConfigs)
+    ])),
+    // Whether each provider's model was ever saved (else it is the curated
+    // default, which setup may replace with one from the live model list).
+    savedModels: Object.fromEntries(Object.keys(providerConfigs).map(id => [
+      id,
+      Boolean(PROVIDER_STORAGE_KEYS[id] && storedString(raw[PROVIDER_STORAGE_KEYS[id].model]))
     ])),
     favorites: normalizeFavoriteModels(raw[STORAGE_KEYS.FAVORITE_MODELS], providerConfigs),
     systemPrompt: storedString(raw[STORAGE_KEYS.SYSTEM_PROMPT]),
@@ -348,7 +355,9 @@ export class ConfigStore {
     };
     for (const [provider, keys] of Object.entries(PROVIDER_STORAGE_KEYS)) {
       for (const [field, key] of Object.entries(keys)) {
-        values[key] = this.config.providers[provider]?.[field] || '';
+        values[key] = field === 'model' && !this.config.savedModels?.[provider]
+          ? ''
+          : this.config.providers[provider]?.[field] || '';
       }
     }
     return values;

@@ -112,8 +112,8 @@ export function validateProviderSettings(provider, settings, providerConfigs) {
   };
 }
 
-// Model suggestions for the setup card: the provider default, its other
-// suggested models, then favorites.
+// Model suggestions for the setup card before (or without) a live model
+// list: the provider's curated models (default first), then favorites.
 export function suggestSetupModels(provider, favoriteModels = [], providerConfigs = {}) {
   const models = [];
   const add = model => {
@@ -121,7 +121,10 @@ export function suggestSetupModels(provider, favoriteModels = [], providerConfig
     if (id && !models.includes(id)) models.push(id);
   };
   add(providerConfigs[provider]?.defaultModel);
-  for (const model of providerConfigs[provider]?.suggestedModels || []) add(model);
+  const curated = providerConfigs[provider]?.recommendedModels
+    || providerConfigs[provider]?.suggestedModels
+    || [];
+  for (const model of curated) add(model);
   for (const favorite of Array.isArray(favoriteModels) ? favoriteModels : []) {
     if (favorite?.provider === provider) add(favorite.model);
   }

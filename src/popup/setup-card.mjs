@@ -7,6 +7,12 @@
 //      ▲                 │ invalid, test failed or save failed          │
 //      └─────────────────┘                                              │
 //      └───────────── reopen(): settings became unusable again ◀────────┘
+//
+// Once a key (or server URL) is entered, the provider's live model list
+// fills the model suggestions and, unless the user picked a model or one was
+// saved before, replaces the curated default with pickDefaultModel()'s
+// choice. A list that can't be read changes nothing: the curated default
+// stays, and "Test & save" reports a bad key as before.
 import {
   LOCAL_PROVIDER_IDS,
   PROVIDER_BLURBS,
@@ -22,6 +28,11 @@ import {
   serverNeedsAccessPrompt
 } from '../shared/forum-access.mjs';
 import { announce } from './status-line.mjs';
+import { modelCatalog, orderModelChoices, pickDefaultModel } from '../shared/model-catalog.mjs';
+
+// Wait for a pause in typing before reading the provider's model list.
+const MODEL_LIST_DEBOUNCE_MS = 600;
+const MODEL_HINT = 'Prefilled with a fast, low-cost default. You can change it any time.';
 
 const CHOICE_LABELS = {
   ollama: 'Local (Ollama)'
@@ -49,8 +60,9 @@ export class SetupCard {
    * @param {() => void|Promise<void>} options.onSaved re-renders the panel
    * @param {() => void} options.onStateChange re-renders the panel (card shown or hidden)
    * @param {() => void} options.openSettings
+   * @param {object} [options.catalog] ModelCatalog (live model lists)
    */
-  constructor({ config, getPageContext, onSaved, onStateChange, openSettings }) {
+  constructor({ config, getPageContext, onSaved, onStateChange, openSettings, catalog = modelCatalog }) {
     this.config = config;
     this.providerConfigs = config.providerConfigs;
     this.getPageContext = getPageContext;
@@ -62,6 +74,13 @@ export class SetupCard {
     this.provider = '';
     this.prepared = false;
     this.pointerChoice = false;
+    this.catalog = catalog;
+    // The live list for the provider shown (null until one was read).
+    this.models = null;
+    // The user typed a model since choosing the provider.
+    this.modelTouched = false;
+    this.modelRequestId = 0;
+    this.modelListTimer = null;
   }
 
   get showsSuccess() {
@@ -147,7 +166,16 @@ export class SetupCard {
         this.saveDraft();
         this.clearFieldError(field);
         this.clearFormError();
+        if (field === 'model') {
+          this.modelTouched = true;
+        } else {
+          this.scheduleModelList();
+        }
       });
+      if (field !== 'model') {
+        // Leaving the field reads the list at once.
+        $(id).addEventListener('change', () => this.scheduleModelList(0));
+      }
     }
 
     $('setupForm').addEventListener('submit', event => {
@@ -179,9 +207,15 @@ export class SetupCard {
   async chooseProvider(provider, { focusNext = false, syncInputs = false } = {}) {
     if (!this.providerConfigs[provider]) return;
     this.saveDraft();
+    const changed = provider !== this.provider;
     this.provider = provider;
     // The draft starts from the saved settings (or the provider defaults).
     this.config.selectProvider(provider);
+    if (changed) {
+      this.models = null;
+      this.modelTouched = false;
+      this.modelRequestId += 1;
+    }
     if (syncInputs) {
       const radio = document.querySelector(`input[name="setupProvider"][value="${provider}"]`);
       if (radio) {
@@ -195,6 +229,78 @@ export class SetupCard {
     if (focusNext) {
       this.focusCredential();
     }
+    // A key typed earlier (or a local server's default URL) is enough.
+    if (changed) this.scheduleModelList(0);
+  }
+
+  scheduleModelList(delay = MODEL_LIST_DEBOUNCE_MS) {
+    clearTimeout(this.modelListTimer);
+    this.modelListTimer = setTimeout(() => {
+      void this.loadModels();
+    }, delay);
+  }
+
+  // Reads the provider's live model list for the key/URL in the draft.
+  async loadModels() {
+    const provider = this.provider;
+    const config = this.providerConfigs[provider];
+    if (!config || this.state !== 'editing') return;
+    const draft = this.config.draftSettings(provider);
+    const credential = LOCAL_PROVIDER_IDS.has(provider) ? draft.url : draft.apiKey;
+    const requestId = ++this.modelRequestId;
+    if (!String(credential || '').trim()) {
+      this.models = null;
+      this.renderModelChoices();
+      return;
+    }
+    $('setupModelHint').textContent = `Checking ${config.name}’s current models…`;
+    let models = null;
+    try {
+      ({ models } = await this.catalog.list(provider, draft));
+    } catch {
+      // Keep the curated default; Test & save reports a bad key.
+      models = null;
+    }
+    if (requestId !== this.modelRequestId || provider !== this.provider) return;
+    this.models = models?.length ? models : null;
+    if (this.models && this.state === 'editing' && this.mayPreselect(provider)) {
+      const pick = pickDefaultModel(provider, this.models, this.providerConfigs);
+      if (pick && pick !== $('setupModel').value) {
+        $('setupModel').value = pick;
+        this.config.updateField(provider, 'model', pick);
+        this.clearFieldError('model');
+      }
+    }
+    this.renderModelChoices();
+  }
+
+  // Never replace a model the user typed or saved before.
+  mayPreselect(provider) {
+    return !this.modelTouched && !this.config.config.savedModels?.[provider];
+  }
+
+  // The datalist: the live list (recommended first) or the curated models.
+  renderModelChoices() {
+    const provider = this.provider;
+    const config = this.providerConfigs[provider];
+    if (!config) return;
+    const choices = this.models
+      ? orderModelChoices(provider, this.models, this.providerConfigs)
+      : suggestSetupModels(provider, this.config.config.favorites, this.providerConfigs)
+        .map((id, index) => ({ id, name: index === 0 ? 'Recommended' : '' }));
+    $('setupModelList').replaceChildren(...choices.map(choice => {
+      const option = document.createElement('option');
+      option.value = choice.id;
+      if (choice.name && choice.name !== choice.id) option.label = choice.name;
+      return option;
+    }));
+    const hint = $('setupModelHint');
+    hint.textContent = !this.models
+      ? MODEL_HINT
+      : this.mayPreselect(provider)
+        ? `A fast, low-cost model from ${config.name}’s current list. You can change it any time.`
+        : `Choose from ${config.name}’s current models; recommended ones are listed first.`;
+    hint.dataset.source = this.models ? 'live' : 'curated';
   }
 
   focusCredential() {
@@ -261,16 +367,7 @@ export class SetupCard {
       $('setupKeyLink').title = link ? `Get a ${config.name} API key at ${link.label}` : '';
     }
     $('setupModel').value = draft.model || '';
-    const models = suggestSetupModels(
-      provider,
-      this.config.config.favorites,
-      this.providerConfigs
-    );
-    $('setupModelList').replaceChildren(...models.map(model => {
-      const option = document.createElement('option');
-      option.value = model;
-      return option;
-    }));
+    this.renderModelChoices();
     for (const field of Object.keys(FIELD_INPUTS)) this.clearFieldError(field);
     this.clearFormError();
     this.setProgress('');
@@ -432,6 +529,9 @@ export class SetupCard {
       // Re-read the saved settings: the old draft may hold a key that was
       // just removed.
       this.provider = '';
+      this.models = null;
+      this.modelTouched = false;
+      this.modelRequestId += 1;
       this.config.discardDraft();
       this.prepared = false;
       $('setupAnnouncer').textContent = '';

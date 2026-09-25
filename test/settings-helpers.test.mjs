@@ -93,6 +93,11 @@ test('preserves a saved custom model when model discovery fails or omits it', ()
     'private/custom-model'
   );
   const failureChoices = buildModelChoices([], 'private/custom-model');
+  // A listed value keeps its place and label.
+  assert.deepEqual(
+    buildModelChoices([{ id: 'fast', name: 'Recommended' }, { id: 'big' }], 'big').map(({ id, name }) => ({ id, name })),
+    [{ id: 'fast', name: 'Recommended' }, { id: 'big', name: 'big' }]
+  );
 
   assert.deepEqual(
     choices.map(({ id, name }) => ({ id, name })),

@@ -6,6 +6,7 @@ import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { createForumAccessError } from '../shared/forum-access.mjs';
 import { isAbortError } from '../shared/rate-limit-retry.mjs';
 import { formatFetchTaskStatus } from './topic-fetcher.mjs';
+import { describeTopicCoverage } from '../services/prompts.js';
 
 const { MESSAGES } = DiscourseCopilotConstants;
 
@@ -181,7 +182,10 @@ export function createTopicExecutors({
       {
         systemPrompt: configuration.systemPrompt,
         responseLanguage: configuration.responseLanguage,
-        forumName: configuration.forumName
+        forumName: configuration.forumName,
+        // A topic cut short by the page limit (or the safety cap) is
+        // summarized as such.
+        coverage: describeTopicCoverage(response)
       }
     );
 
@@ -262,7 +266,8 @@ export function createTopicExecutors({
         systemPrompt: configuration.systemPrompt,
         responseLanguage: configuration.responseLanguage,
         forumName: configuration.forumName,
-        maxPostChars: task.maxPostChars
+        maxPostChars: task.maxPostChars,
+        coverage: describeTopicCoverage(response)
       },
       configuration.settings,
       {

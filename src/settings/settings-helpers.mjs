@@ -11,7 +11,11 @@ export function buildModelChoices(models = [], selectedModel = '') {
   const seen = new Set();
   const selected = typeof selectedModel === 'string' ? selectedModel.trim() : '';
 
-  if (selected) {
+  // A value the list doesn't have stays offered, first; a listed one keeps
+  // its place and label ("Recommended").
+  const listed = (Array.isArray(models) ? models : [])
+    .some(model => typeof model?.id === 'string' && model.id.trim() === selected);
+  if (selected && !listed) {
     choices.push({ id: selected, name: `${selected} (saved/custom)` });
     seen.add(selected);
   }

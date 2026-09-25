@@ -489,6 +489,21 @@
       color: var(--s-muted);
     }
 
+    /* A saved model the provider no longer lists. */
+    .model-warning {
+      margin: 6px 0 0;
+      padding: 6px 10px;
+      border: 1px solid var(--s-warn-line);
+      border-radius: 6px;
+      background: var(--s-warn-bg);
+      color: var(--s-warn-ink);
+      font-size: 13px;
+    }
+
+    .model-warning[hidden] {
+      display: none;
+    }
+
     .favorite-models {
       margin-top: 18px;
       padding: 16px;
@@ -1292,10 +1307,11 @@
           </div>
           <div class="form-group">
             <label for="openrouterModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="openrouterModel" list="openrouterModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <input type="text" id="openrouterModel" list="openrouterModelList" aria-describedby="openrouterModelStatus openrouterModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
             <datalist id="openrouterModelList"></datalist>
             <button type="button" class="btn-refresh" data-provider="openrouter">Refresh models</button>
             <div id="openrouterModelStatus" class="model-load-status" aria-live="polite"></div>
+            <p id="openrouterModelWarning" class="model-warning" role="status" hidden></p>
           </div>
         </div>
         
@@ -1308,10 +1324,11 @@
           </div>
           <div class="form-group">
             <label for="openaiModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="openaiModel" list="openaiModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <input type="text" id="openaiModel" list="openaiModelList" aria-describedby="openaiModelStatus openaiModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
             <datalist id="openaiModelList"></datalist>
             <button type="button" class="btn-refresh" data-provider="openai">Refresh models</button>
             <div id="openaiModelStatus" class="model-load-status" aria-live="polite"></div>
+            <p id="openaiModelWarning" class="model-warning" role="status" hidden></p>
           </div>
         </div>
         
@@ -1324,10 +1341,11 @@
           </div>
           <div class="form-group">
             <label for="anthropicModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="anthropicModel" list="anthropicModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <input type="text" id="anthropicModel" list="anthropicModelList" aria-describedby="anthropicModelStatus anthropicModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
             <datalist id="anthropicModelList"></datalist>
             <button type="button" class="btn-refresh" data-provider="anthropic">Refresh models</button>
             <div id="anthropicModelStatus" class="model-load-status" aria-live="polite"></div>
+            <p id="anthropicModelWarning" class="model-warning" role="status" hidden></p>
           </div>
         </div>
         
@@ -1340,10 +1358,11 @@
           </div>
           <div class="form-group">
             <label for="groqModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="groqModel" list="groqModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <input type="text" id="groqModel" list="groqModelList" aria-describedby="groqModelStatus groqModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
             <datalist id="groqModelList"></datalist>
             <button type="button" class="btn-refresh" data-provider="groq">Refresh models</button>
             <div id="groqModelStatus" class="model-load-status" aria-live="polite"></div>
+            <p id="groqModelWarning" class="model-warning" role="status" hidden></p>
           </div>
         </div>
         
@@ -1356,10 +1375,11 @@
           </div>
           <div class="form-group">
             <label for="geminiModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="geminiModel" list="geminiModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <input type="text" id="geminiModel" list="geminiModelList" aria-describedby="geminiModelStatus geminiModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
             <datalist id="geminiModelList"></datalist>
             <button type="button" class="btn-refresh" data-provider="gemini">Refresh models</button>
             <div id="geminiModelStatus" class="model-load-status" aria-live="polite"></div>
+            <p id="geminiModelWarning" class="model-warning" role="status" hidden></p>
           </div>
         </div>
         
@@ -1373,10 +1393,11 @@
           </div>
           <div class="form-group">
             <label for="ollamaModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="ollamaModel" list="ollamaModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <input type="text" id="ollamaModel" list="ollamaModelList" aria-describedby="ollamaModelStatus ollamaModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
             <datalist id="ollamaModelList"></datalist>
             <button type="button" class="btn-refresh" data-provider="ollama">Refresh models</button>
             <div id="ollamaModelStatus" class="model-load-status" aria-live="polite"></div>
+            <p id="ollamaModelWarning" class="model-warning" role="status" hidden></p>
             <div class="help-text">Make sure the model is downloaded: <code>ollama pull &lt;model-name&gt;</code></div>
           </div>
         </div>
@@ -1390,10 +1411,11 @@
           </div>
           <div class="form-group">
             <label for="xaiModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="xaiModel" list="xaiModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <input type="text" id="xaiModel" list="xaiModelList" aria-describedby="xaiModelStatus xaiModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
             <datalist id="xaiModelList"></datalist>
             <button type="button" class="btn-refresh" data-provider="xai">Refresh models</button>
             <div id="xaiModelStatus" class="model-load-status" aria-live="polite"></div>
+            <p id="xaiModelWarning" class="model-warning" role="status" hidden></p>
           </div>
         </div>
 
@@ -1406,10 +1428,11 @@
           </div>
           <div class="form-group">
             <label for="deepseekModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="deepseekModel" list="deepseekModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <input type="text" id="deepseekModel" list="deepseekModelList" aria-describedby="deepseekModelStatus deepseekModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
             <datalist id="deepseekModelList"></datalist>
             <button type="button" class="btn-refresh" data-provider="deepseek">Refresh models</button>
             <div id="deepseekModelStatus" class="model-load-status" aria-live="polite"></div>
+            <p id="deepseekModelWarning" class="model-warning" role="status" hidden></p>
           </div>
         </div>
 
@@ -1422,10 +1445,11 @@
           </div>
           <div class="form-group">
             <label for="lmstudioModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="lmstudioModel" list="lmstudioModelList" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <input type="text" id="lmstudioModel" list="lmstudioModelList" aria-describedby="lmstudioModelStatus lmstudioModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
             <datalist id="lmstudioModelList"></datalist>
             <button type="button" class="btn-refresh" data-provider="lmstudio">Refresh models</button>
             <div id="lmstudioModelStatus" class="model-load-status" aria-live="polite"></div>
+            <p id="lmstudioModelWarning" class="model-warning" role="status" hidden></p>
             <div class="help-text">Load a model in LM Studio and start the local server (Developer tab → Start Server)</div>
           </div>
         </div>

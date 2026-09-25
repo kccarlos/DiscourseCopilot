@@ -57,3 +57,51 @@ export const accessOptions = {
   store: configuredStore, granted: [], activeTab: true, probe: oaiProbe,
   tabUrl: OAI_TOPIC, tabTitle: 'Rate limits explained - OpenAI Developer Community', pageState: oaiState
 };
+
+// Live model lists (the model catalog's requests). A key containing "bad"
+// is refused, like a provider would with HTTP 401.
+export const modelLists = {
+  anthropic: { data: [
+    { type: 'model', id: 'claude-opus-5-5', display_name: 'Claude Opus 5.5', created_at: '2026-09-22T00:00:00Z' },
+    { type: 'model', id: 'claude-sonnet-5', display_name: 'Claude Sonnet 5', created_at: '2026-06-30T00:00:00Z' },
+    { type: 'model', id: 'claude-haiku-4-5-20251001', display_name: 'Claude Haiku 4.5', created_at: '2025-10-15T00:00:00Z' }
+  ] },
+  // None of the curated OpenAI models: the pick falls back to a small one.
+  openai: { data: [
+    { id: 'gpt-9', created: 1800000300 },
+    { id: 'gpt-9-mini', created: 1800000200 },
+    { id: 'gpt-9-realtime', created: 1800000100 },
+    { id: 'text-embedding-9', created: 1800000000 }
+  ] },
+  gemini: { models: [
+    { name: 'models/gemini-3.8-flash', supportedGenerationMethods: ['generateContent'] },
+    { name: 'models/gemini-3.5-flash-lite', supportedGenerationMethods: ['generateContent'] }
+  ] }
+};
+
+const MODEL_LIST_URLS = {
+  anthropic: /^https:\/\/api\.anthropic\.com\/v1\/models\b/,
+  openai: /^https:\/\/api\.openai\.com\/v1\/models$/,
+  gemini: /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/models\?/
+};
+
+const credentialOf = request => {
+  const headers = request.headers();
+  return headers.authorization || headers['x-api-key'] || headers['x-goog-api-key'] || '';
+};
+
+// routes for openExtensionPage(): model lists, and connection tests that
+// refuse a bad key.
+export const modelRoutes = [
+  (url, request) => {
+    for (const [provider, pattern] of Object.entries(MODEL_LIST_URLS)) {
+      if (!pattern.test(url)) continue;
+      if (/bad/.test(credentialOf(request))) return { status: 401, body: { error: { message: 'Invalid API key' } } };
+      return { status: 200, body: modelLists[provider] };
+    }
+    return null;
+  },
+  (url, request) => (request.method() === 'POST' && /bad/.test(credentialOf(request))
+    ? { status: 401, body: { error: { message: 'Incorrect API key provided' } } }
+    : null)
+];

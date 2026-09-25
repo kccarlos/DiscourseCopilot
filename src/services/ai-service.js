@@ -5,7 +5,8 @@ import {
   getMinimalPromptFor,
   getHierarchicalPrompt,
   normalizeCustomSystemPrompt,
-  resolveSummarySystemPrompt
+  resolveSummarySystemPrompt,
+  buildCoverageNote
 } from './prompts.js';
 import { buildFollowUpMessages } from './chat-context.mjs';
 import { buildAgentMessages } from './agent-context.mjs';
@@ -17,6 +18,11 @@ import { normalizeResponseLanguage } from '../shared/response-language.mjs';
  * AI SDK 7 rejects system messages inside `messages`; the system prompt goes
  * in `instructions` instead. Splits the context builders' system messages off.
  */
+// Puts the "only part of the topic was provided" note before a request.
+function withNote(text, note) {
+  return note ? `${note}\n\n${text}` : text;
+}
+
 export function toInstructionsAndMessages(messages = []) {
   const instructions = messages
     .filter(message => message.role === 'system')
@@ -162,7 +168,9 @@ export class AIService {
    * @param {string} content - Forum content to summarize
    * @param {object} settings - Provider settings (API keys, models, etc.)
    * @param {object} callbacks - Optional callbacks { onProgress, onStream, abortSignal }
-   * @param {object} options - Summary options { systemPrompt, responseLanguage, forumName }
+   * @param {object} options - Summary options { systemPrompt, responseLanguage, forumName,
+   *   coverage } — coverage (describeTopicCoverage()) says whether only the
+   *   start of the topic was provided; the model is told so
    * @returns {Promise<string>} Generated summary
    */
   async generateSummary(provider, content, settings, callbacks = {}, options = {}) {
@@ -190,7 +198,10 @@ export class AIService {
       FULL_PROMPTS.system,
       responseLanguage
     );
-    const operationState = { useMinimalPrompts: false, responseLanguage };
+    // Goes in the user message, never the system prompt: getMinimalPromptFor()
+    // matches system prompts exactly.
+    const coverageNote = buildCoverageNote(options.coverage, 'summary');
+    const operationState = { useMinimalPrompts: false, responseLanguage, coverageNote };
     
     const estimatedTokens = this.estimateTokens(content);
     console.log(`AI Service: Content length: ${content.length} chars, ~${estimatedTokens} tokens`);
@@ -206,7 +217,8 @@ export class AIService {
         systemPrompt,
         Boolean(customSystemPrompt),
         abortSignal,
-        options.forumName
+        options.forumName,
+        coverageNote
       );
       
       // Validate result
@@ -381,16 +393,18 @@ export class AIService {
     systemPrompt = this.getPrompt('system'),
     hasCustomSystemPrompt = false,
     abortSignal,
-    forumName = ''
+    forumName = '',
+    coverageNote = ''
   ) {
     this.throwIfAborted(abortSignal);
 
     const source = typeof forumName === 'string' && forumName.trim()
       ? `forum discussion from ${forumName.trim()}`
       : 'forum discussion';
-    const userContent = hasCustomSystemPrompt
-      ? `Analyze the following ${source} according to the system instructions:\n\n${content}`
-      : `Please analyze and summarize this ${source}:\n\n${content}`;
+    const request = hasCustomSystemPrompt
+      ? `Analyze the following ${source} according to the system instructions:`
+      : `Please analyze and summarize this ${source}:`;
+    const userContent = `${withNote(request, coverageNote)}\n\n${content}`;
     
     try {
       if (onStream) {
@@ -501,7 +515,8 @@ export class AIService {
       onProgress?.({ step: 'fallback', message: '📝 Summarizing content...' });
       return this.summarizeWithRetry(model, opPrompt, content, {
         abortSignal,
-        operationState
+        operationState,
+        note: operationState.coverageNote
       });
     }
 
@@ -575,7 +590,8 @@ export class AIService {
       commentsSummary,
       onStream,
       finalPrompt,
-      abortSignal
+      abortSignal,
+      operationState.coverageNote
     );
     
     return finalSummary;
@@ -603,7 +619,7 @@ export class AIService {
         model,
         commentsPrompt,
         commentsText,
-        { abortSignal, operationState }
+        { abortSignal, operationState, note: operationState.coverageNote }
       );
     } catch (error) {
       this.throwIfAborted(abortSignal);
@@ -645,7 +661,7 @@ export class AIService {
         model,
         commentsPrompt,
         comments[0],
-        { abortSignal, operationState }
+        { abortSignal, operationState, note: operationState.coverageNote }
       );
     }
 
@@ -665,7 +681,7 @@ export class AIService {
           model,
           commentsPrompt,
           halfText,
-          { abortSignal, operationState }
+          { abortSignal, operationState, note: operationState.coverageNote }
         );
       } catch (error) {
         this.throwIfAborted(abortSignal);
@@ -697,7 +713,7 @@ export class AIService {
       model,
       combinePrompt,
       combinedInput,
-      { abortSignal, operationState }
+      { abortSignal, operationState, note: operationState.coverageNote }
     );
   }
 
@@ -710,7 +726,8 @@ export class AIService {
     const {
       attempt = 1,
       operationState = { useMinimalPrompts: false },
-      abortSignal
+      abortSignal,
+      note = ''
     } = retryState;
     this.throwIfAborted(abortSignal);
     // Validate content is not empty
@@ -735,7 +752,7 @@ export class AIService {
       const { text } = await generateText({
         model,
         instructions: actualPrompt,
-        messages: [{ role: 'user', content }],
+        messages: [{ role: 'user', content: note ? `${note}\n\n${content}` : content }],
         ...samplingOptions(model, 0.7),
         abortSignal
       });
@@ -752,7 +769,8 @@ export class AIService {
         return this.summarizeWithRetry(model, systemPrompt, content, {
           attempt: 1,
           operationState,
-          abortSignal
+          abortSignal,
+          note
         });
       }
       
@@ -766,7 +784,8 @@ export class AIService {
           return this.summarizeWithRetry(model, systemPrompt, truncatedContent, {
             attempt: attempt + 1,
             operationState,
-            abortSignal
+            abortSignal,
+            note
           });
         } else if (!useMinimalPrompts) {
           // Content is already minimal, try with minimal prompts
@@ -775,7 +794,8 @@ export class AIService {
           return this.summarizeWithRetry(model, systemPrompt, content, {
             attempt: 1,
             operationState,
-            abortSignal
+            abortSignal,
+            note
           });
         }
       }
@@ -793,7 +813,8 @@ export class AIService {
     commentsSummary,
     onStream,
     finalPrompt = FULL_PROMPTS.final,
-    abortSignal
+    abortSignal,
+    coverageNote = ''
   ) {
     this.throwIfAborted(abortSignal);
     // If we only have OP or only have comments, format appropriately
@@ -810,7 +831,10 @@ export class AIService {
     }
 
     // Combine both with final takeaways
-    const combinedInput = `**ORIGINAL POST SUMMARY:**\n${opSummary}\n\n**COMMUNITY COMMENTS ANALYSIS:**\n${commentsSummary}`;
+    const combinedInput = withNote(
+      `**ORIGINAL POST SUMMARY:**\n${opSummary}\n\n**COMMUNITY COMMENTS ANALYSIS:**\n${commentsSummary}`,
+      coverageNote
+    );
     
     try {
       if (onStream) {

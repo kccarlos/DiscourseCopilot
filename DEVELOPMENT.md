@@ -104,6 +104,8 @@ src/
     preferences.mjs       Research depth, topic page limit and history retention: defaults, ranges,
                           normalization/validation and the resolve*() helpers
     provider-setup.mjs    Provider validation, connection test, failure messages
+    model-catalog.mjs     Providers' live model lists (fetch, filter, cache) and the default
+                          pick from them; curated cheap/fast models live in constants.js
     forum-access.mjs      Per-forum host permissions, the access error, content script sync
     constants.js          Storage keys, message names, provider list
     task-record.mjs, agent-activity.mjs, forum-site.mjs, forum-response.mjs, …  Records and utilities
