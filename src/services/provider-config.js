@@ -21,57 +21,60 @@ const PROVIDER_CONFIG = {
   openai: {
     requiresApiKey: true,
     defaultModel: 'gpt-4o-mini',
-    createClient: (settings) => createOpenAI({ apiKey: settings.apiKey })
+    createClient: (settings, http) => createOpenAI({ apiKey: settings.apiKey, ...http })
   },
   openrouter: {
     requiresApiKey: true,
     defaultModel: 'moonshotai/kimi-k2',
-    createClient: (settings) => createOpenRouter({ apiKey: settings.apiKey })
+    createClient: (settings, http) => createOpenRouter({ apiKey: settings.apiKey, ...http })
   },
   anthropic: {
     requiresApiKey: true,
     defaultModel: 'claude-sonnet-5',
-    createClient: (settings) => createAnthropic({
+    // The SDK doesn't add Anthropic's browser (CORS) opt-in header itself.
+    createClient: (settings, http) => createAnthropic({
       apiKey: settings.apiKey,
-      headers: { 'anthropic-dangerous-direct-browser-access': 'true' }
+      headers: { 'anthropic-dangerous-direct-browser-access': 'true' },
+      ...http
     })
   },
   groq: {
     requiresApiKey: true,
     defaultModel: 'llama-3.1-8b-instant',
-    createClient: (settings) => createGroq({ apiKey: settings.apiKey })
+    createClient: (settings, http) => createGroq({ apiKey: settings.apiKey, ...http })
   },
   gemini: {
     requiresApiKey: true,
     defaultModel: 'gemini-1.5-flash',
-    createClient: (settings) => createGoogleGenerativeAI({ apiKey: settings.apiKey })
+    createClient: (settings, http) => createGoogleGenerativeAI({ apiKey: settings.apiKey, ...http })
   },
   ollama: {
     requiresApiKey: false,
     defaultModel: 'llama3.2',
-    createClient: (settings) => {
+    createClient: (settings, http) => {
       const baseUrl = settings.url || 'http://localhost:11434';
-      return createOllama({ baseURL: `${baseUrl}/api` });
+      return createOllama({ baseURL: `${baseUrl}/api`, ...http });
     }
   },
   xai: {
     requiresApiKey: true,
     defaultModel: 'grok-3',
-    createClient: (settings) => createXai({ apiKey: settings.apiKey })
+    createClient: (settings, http) => createXai({ apiKey: settings.apiKey, ...http })
   },
   deepseek: {
     requiresApiKey: true,
     defaultModel: 'deepseek-chat',
-    createClient: (settings) => createDeepSeek({ apiKey: settings.apiKey })
+    createClient: (settings, http) => createDeepSeek({ apiKey: settings.apiKey, ...http })
   },
   lmstudio: {
     requiresApiKey: false,
     defaultModel: 'local-model',
-    createClient: (settings) => {
+    createClient: (settings, http) => {
       const baseUrl = settings.url || 'http://localhost:1234';
       return createOpenAICompatible({
         name: 'lmstudio',
-        baseURL: `${baseUrl}/v1`
+        baseURL: `${baseUrl}/v1`,
+        ...http
       });
     }
   }
@@ -81,10 +84,12 @@ const PROVIDER_CONFIG = {
  * Get the appropriate model instance based on provider and settings
  * @param {string} provider - Provider name
  * @param {object} settings - Provider settings (apiKey, model, url)
+ * @param {object} [options]
+ * @param {typeof fetch} [options.fetch] - Replaces the global fetch (tests)
  * @returns {object} Model instance
  * @throws {Error} If provider is unsupported or required API key is missing
  */
-export function getModel(provider, settings) {
+export function getModel(provider, settings, { fetch } = {}) {
   const config = PROVIDER_CONFIG[provider];
   
   if (!config) {
@@ -96,7 +101,7 @@ export function getModel(provider, settings) {
     throw new Error(`${providerName} API key is required`);
   }
   
-  const client = config.createClient(settings);
+  const client = config.createClient(settings, fetch ? { fetch } : {});
   const modelName = settings.model || config.defaultModel;
   
   if (provider === 'lmstudio') {

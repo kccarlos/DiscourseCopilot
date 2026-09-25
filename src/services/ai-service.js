@@ -14,12 +14,36 @@ import { samplingOptions } from '../shared/provider-setup.mjs';
 import { normalizeResponseLanguage } from '../shared/response-language.mjs';
 
 /**
+ * AI SDK 7 rejects system messages inside `messages`; the system prompt goes
+ * in `instructions` instead. Splits the context builders' system messages off.
+ */
+export function toInstructionsAndMessages(messages = []) {
+  const instructions = messages
+    .filter(message => message.role === 'system')
+    .map(message => message.content)
+    .join('\n\n');
+  return {
+    instructions: instructions || undefined,
+    messages: messages.filter(message => message.role !== 'system')
+  };
+}
+
+/**
  * AI Service using Vercel AI SDK
  * Supports hierarchical summarization for long content
  */
 export class AIService {
-  constructor() {
+  /**
+   * @param {object} [options]
+   * @param {typeof fetch} [options.fetch] - Replaces the global fetch for provider requests (tests)
+   */
+  constructor({ fetch } = {}) {
     this.maxRetries = 3;
+    this.fetch = fetch;
+  }
+
+  getModel(provider, settings) {
+    return getModel(provider, settings, { fetch: this.fetch });
   }
 
   /**
@@ -155,7 +179,7 @@ export class AIService {
 
     console.log('AI Service: Provider:', provider);
     console.log('AI Service: API Key present:', !!settings.apiKey);
-    const model = getModel(provider, settings);
+    const model = this.getModel(provider, settings);
     const configuredSystemPrompt = options.systemPrompt ?? settings.systemPrompt;
     const customSystemPrompt = normalizeCustomSystemPrompt(configuredSystemPrompt);
     const responseLanguage = normalizeResponseLanguage(
@@ -237,14 +261,17 @@ export class AIService {
       throw new Error('Provider and settings are required');
     }
 
-    const messages = buildFollowUpMessages(context || {});
-    const model = getModel(provider, settings);
+    const { instructions, messages } = toInstructionsAndMessages(
+      buildFollowUpMessages(context || {})
+    );
+    const model = this.getModel(provider, settings);
 
     onProgress?.({ step: 'follow-up', message: 'Generating answer…' });
 
     let callbackError = null;
     const result = streamText({
       model,
+      instructions,
       messages,
       ...samplingOptions(model, 0.5),
       abortSignal,
@@ -299,13 +326,16 @@ export class AIService {
       throw new Error('Provider and settings are required');
     }
 
-    const messages = buildAgentMessages(context || {});
-    const model = getModel(provider, settings);
+    const { instructions, messages } = toInstructionsAndMessages(
+      buildAgentMessages(context || {})
+    );
+    const model = this.getModel(provider, settings);
     onProgress?.({ step: 'agent-answer', message: 'Writing answer with sources…' });
 
     let callbackError = null;
     const result = streamText({
       model,
+      instructions,
       messages,
       ...samplingOptions(model, 0.3),
       abortSignal,
@@ -367,10 +397,8 @@ export class AIService {
         // Use streaming
         const result = streamText({
           model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userContent }
-          ],
+          instructions: systemPrompt,
+          messages: [{ role: 'user', content: userContent }],
           ...samplingOptions(model, 0.7),
           abortSignal,
           onError: (error) => {
@@ -424,10 +452,8 @@ export class AIService {
         // Non-streaming
         const { text } = await generateText({
           model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userContent }
-          ],
+          instructions: systemPrompt,
+          messages: [{ role: 'user', content: userContent }],
           ...samplingOptions(model, 0.7),
           abortSignal
         });
@@ -708,10 +734,8 @@ export class AIService {
     try {
       const { text } = await generateText({
         model,
-        messages: [
-          { role: 'system', content: actualPrompt },
-          { role: 'user', content: content }
-        ],
+        instructions: actualPrompt,
+        messages: [{ role: 'user', content }],
         ...samplingOptions(model, 0.7),
         abortSignal
       });
@@ -793,10 +817,8 @@ export class AIService {
         // Use streaming for final assembly
         const result = streamText({
           model,
-          messages: [
-            { role: 'system', content: finalPrompt },
-            { role: 'user', content: combinedInput }
-          ],
+          instructions: finalPrompt,
+          messages: [{ role: 'user', content: combinedInput }],
           ...samplingOptions(model, 0.7),
           abortSignal
         });
@@ -824,10 +846,8 @@ export class AIService {
       } else {
         const { text } = await generateText({
           model,
-          messages: [
-            { role: 'system', content: finalPrompt },
-            { role: 'user', content: combinedInput }
-          ],
+          instructions: finalPrompt,
+          messages: [{ role: 'user', content: combinedInput }],
           ...samplingOptions(model, 0.7),
           abortSignal
         });

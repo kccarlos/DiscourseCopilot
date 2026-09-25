@@ -15,16 +15,11 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     target: 'esnext',
-    minify: false,
-    rollupOptions: {
-      output: {
-        inlineDynamicImports: false
-      }
-    }
+    minify: false
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src')
+      '@': resolve(import.meta.dirname, 'src')
     }
   }
 });

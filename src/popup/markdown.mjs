@@ -12,6 +12,16 @@ const ALLOWED_TAGS = new Set([
   'TBODY', 'TD', 'TH', 'THEAD', 'TR', 'UL'
 ]);
 
+// Links may only point to the web, mail or an in-page anchor; anything else
+// (javascript:, data:, vbscript:, relative paths) loses its href.
+export function isAllowedHref(href) {
+  return /^(https?:|mailto:|#)/i.test(String(href ?? '').trim());
+}
+
+export function markdownToHtml(markdown) {
+  return marked.parse(markdown || '');
+}
+
 export function sanitizeHTML(html) {
   const template = document.createElement('template');
   template.innerHTML = html;
@@ -32,8 +42,7 @@ export function sanitizeHTML(html) {
     }
 
     if (element.hasAttribute('href')) {
-      const href = element.getAttribute('href').trim();
-      if (!/^(https?:|mailto:|#)/i.test(href)) {
+      if (!isAllowedHref(element.getAttribute('href'))) {
         element.removeAttribute('href');
       } else {
         element.setAttribute('target', '_blank');
@@ -46,7 +55,7 @@ export function sanitizeHTML(html) {
 }
 
 export function renderMarkdown(element, markdown) {
-  const html = sanitizeHTML(marked.parse(markdown || ''));
+  const html = sanitizeHTML(markdownToHtml(markdown));
   // Agent answers cite sources as [S1]; those become links to the source cards.
   const citations = element.dataset.citations;
   element.innerHTML = citations

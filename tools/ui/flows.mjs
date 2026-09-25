@@ -105,6 +105,32 @@ scenario('popup-summary', 'src/popup/popup.html', {
   check('summary streamed', (await text(page, '#summaryDisplay')).includes('caching'), await text(page, '#summaryDisplay'));
   check('generating status', (await text(page, '#status')).includes('creating your summary'), await text(page, '#status'));
   await shot('streaming');
+  // Rich markdown and hostile HTML/URLs from the model go through marked and the sanitizer.
+  await page.evaluate(() => {
+    window.__fire('onMessage', { action: 'taskStream', taskId: 'sum-1', topicKey: 'meta.discourse.org/t/12345', type: 'summary', chunk: [
+      '', '', '### Options', '', '| Option | Default |', '| --- | --- |', '| A | `1` |', '',
+      '- one', '- two', '', '```js', 'const a = "<b>";', '```', '',
+      '[docs](https://example.com) [bad](javascript:alert(1)) [data](data:text/html,x) <a href="JaVaScRiPt:alert(2)" onclick="x()">raw</a>',
+      '<img src="x" onerror="alert(3)"><script>alert(4)</script><iframe src="https://example.com"></iframe>'
+    ].join('\n') }, {});
+  });
+  await page.waitForTimeout(300);
+  const rendered = await page.$eval('#summaryDisplay', el => ({
+    h3: el.querySelectorAll('h3').length,
+    cells: el.querySelectorAll('table thead th, table tbody td').length,
+    items: el.querySelectorAll('ul > li').length,
+    code: el.querySelector('pre code')?.textContent || '',
+    hrefs: [...el.querySelectorAll('a[href]')].map(a => a.getAttribute('href')),
+    external: [...el.querySelectorAll('a[href^="https:"]')].every(a => a.target === '_blank' && a.rel === 'noopener noreferrer'),
+    blocked: el.querySelectorAll('img, script, iframe, input, [onclick], [onerror], [style]').length,
+    linkTexts: [...el.querySelectorAll('a')].map(a => a.textContent)
+  }));
+  check('markdown heading, table, list and code rendered',
+    rendered.h3 === 1 && rendered.cells === 4 && rendered.items === 2 && rendered.code.includes('const a = "<b>";'),
+    JSON.stringify(rendered));
+  check('only safe link hrefs kept', JSON.stringify(rendered.hrefs) === '["https://example.com"]' && rendered.external, JSON.stringify(rendered.hrefs));
+  check('unsafe links keep their text', ['bad', 'data', 'raw'].every(label => rendered.linkTexts.includes(label)), JSON.stringify(rendered.linkTexts));
+  check('disallowed elements and attributes removed', rendered.blocked === 0, String(rendered.blocked));
   await page.evaluate(() => {
     const task = { id: 'sum-1', type: 'summary', topicId: '12345', siteUrl: 'https://meta.discourse.org', topicKey: 'meta.discourse.org/t/12345', status: 'failed', phase: 'failed', statusText: 'Failed', progress: null, error: 'Boom', createdAt: Date.now() - 5000, updatedAt: Date.now() };
     window.__fire('onMessage', { action: 'taskUpdated', task }, {});
