@@ -16,12 +16,7 @@ import { plural } from './settings-helpers.mjs';
 
 // Preference inputs (ids match the validation field names).
 const CUSTOM_RESEARCH_FIELDS = ['searchQueries', 'searchPages', 'topicsRead'];
-export const PREFERENCE_NUMBER_FIELDS = [
-  ...CUSTOM_RESEARCH_FIELDS,
-  'topicPageLimit',
-  'maxSavedTopics',
-  'forumContextLimit'
-];
+export const PREFERENCE_NUMBER_FIELDS = [...CUSTOM_RESEARCH_FIELDS, 'topicPageLimit', 'maxSavedTopics', 'forumContextLimit'];
 export const PREFERENCE_INPUT_IDS = new Set(PREFERENCE_NUMBER_FIELDS);
 
 // "Restore defaults" per section: which preferences it resets.
@@ -46,12 +41,16 @@ const RESTORE_SECTIONS = {
 
 // Renders text with **bold** segments as DOM nodes (no HTML parsing).
 function setRichText(element, text) {
-  element.replaceChildren(...String(text).split(/\*\*/).map((part, index) => {
-    if (index % 2 === 0) return document.createTextNode(part);
-    const strong = document.createElement('strong');
-    strong.textContent = part;
-    return strong;
-  }));
+  element.replaceChildren(
+    ...String(text)
+      .split(/\*\*/)
+      .map((part, index) => {
+        if (index % 2 === 0) return document.createTextNode(part);
+        const strong = document.createElement('strong');
+        strong.textContent = part;
+        return strong;
+      })
+  );
 }
 
 const $ = id => document.getElementById(id);
@@ -74,19 +73,19 @@ export class PreferencesSection {
   renderRetentionOptions() {
     const container = $('historyRetentionOptions');
     if (!container || container.childElementCount) return;
-    container.replaceChildren(...HISTORY_RETENTION_OPTIONS.map(option => {
-      const label = document.createElement('label');
-      const input = document.createElement('input');
-      input.type = 'radio';
-      input.name = 'historyRetention';
-      input.value = option.value;
-      const text = document.createElement('span');
-      text.textContent = option.value === DEFAULT_PREFERENCES.historyRetention
-        ? `${option.label} (default)`
-        : option.label;
-      label.append(input, text);
-      return label;
-    }));
+    container.replaceChildren(
+      ...HISTORY_RETENTION_OPTIONS.map(option => {
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'historyRetention';
+        input.value = option.value;
+        const text = document.createElement('span');
+        text.textContent = option.value === DEFAULT_PREFERENCES.historyRetention ? `${option.label} (default)` : option.label;
+        label.append(input, text);
+        return label;
+      })
+    );
   }
 
   // The chat context value being edited (string while typing).
@@ -223,7 +222,10 @@ export class PreferencesSection {
     } else {
       const limits = resolveResearchLimits(validation.preferences || draft);
       const pages = limits.searchPages > 1 ? ` × ${plural(limits.searchPages, 'result page')}` : '';
-      setRichText(research, `Each question: **up to ${plural(limits.searchQueries, 'search', 'searches')}${pages}**, reading **up to ${plural(limits.topicsRead, 'discussion')}** — at most ${plural(researchRequestBudget(limits), 'forum request')}.`);
+      setRichText(
+        research,
+        `Each question: **up to ${plural(limits.searchQueries, 'search', 'searches')}${pages}**, reading **up to ${plural(limits.topicsRead, 'discussion')}** — at most ${plural(researchRequestBudget(limits), 'forum request')}.`
+      );
     }
 
     const limitMode = draft.topicPageMode === 'limit';
@@ -235,7 +237,10 @@ export class PreferencesSection {
       reading.textContent = '';
     } else {
       const posts = (Number(draft.topicPageLimit) * POSTS_PER_RAW_PAGE).toLocaleString('en-US');
-      setRichText(reading, `Topics up to **${posts} posts** are read in full; longer ones are summarized from their first ${posts} posts, and the summary says so.`);
+      setRichText(
+        reading,
+        `Topics up to **${posts} posts** are read in full; longer ones are summarized from their first ${posts} posts, and the summary says so.`
+      );
     }
 
     const history = $('historyEffective');
@@ -245,9 +250,12 @@ export class PreferencesSection {
       const retention = resolveRetention(validation.preferences || draft);
       const taskDays = Math.round(retention.taskMs / 86400000);
       const tasks = `finished tasks leave the Tasks list after ${plural(taskDays, 'day')}`;
-      setRichText(history, retention.forever
-        ? `Unkept conversations and Agent answers stay **until you delete them**; ${tasks}. Past **${retention.maxSavedTopics} saved topics**, the oldest unkept summaries are removed.`
-        : `Unkept conversations and Agent answers are removed **${retention.label} after their last activity**; ${tasks}. Up to **${retention.maxSavedTopics} saved topics** are kept.`);
+      setRichText(
+        history,
+        retention.forever
+          ? `Unkept conversations and Agent answers stay **until you delete them**; ${tasks}. Past **${retention.maxSavedTopics} saved topics**, the oldest unkept summaries are removed.`
+          : `Unkept conversations and Agent answers are removed **${retention.label} after their last activity**; ${tasks}. Up to **${retention.maxSavedTopics} saved topics** are kept.`
+      );
     }
   }
 }

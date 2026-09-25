@@ -42,9 +42,7 @@ export class TopicController {
 
   // A new page: show its topic's session (or none) and restore it.
   async open(context) {
-    this.state.session = context.isForumTopic
-      ? this.sessions.getOrCreate(context, this.forums.reportedName(context))
-      : null;
+    this.state.session = context.isForumTopic ? this.sessions.getOrCreate(context, this.forums.reportedName(context)) : null;
     this.render();
     await this.hydrate(context);
   }

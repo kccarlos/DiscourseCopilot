@@ -34,11 +34,7 @@ export class OperationTracker {
    * @param {object} snapshot provider, settings, prompt, language, limit
    */
   begin(kind, context, snapshot = {}) {
-    if (
-      this.active
-      || (kind !== 'agent' && !context?.isForumTopic)
-      || (kind === 'agent' && !context?.isDiscourse)
-    ) {
+    if (this.active || (kind !== 'agent' && !context?.isForumTopic) || (kind === 'agent' && !context?.isDiscourse)) {
       return null;
     }
     const revision = ++this.revision;
@@ -61,9 +57,9 @@ export class OperationTracker {
   isCurrent(operation) {
     return Boolean(
       operation
-      && this.active === operation
-      && operation.revision === this.revision
-      && (!operation.pageKey || operation.pageKey === this.getPageKey())
+        && this.active === operation
+        && operation.revision === this.revision
+        && (!operation.pageKey || operation.pageKey === this.getPageKey())
     );
   }
 

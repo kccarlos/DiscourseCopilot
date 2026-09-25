@@ -25,10 +25,9 @@ export const FORUM_RESPONSE_KIND = Object.freeze({
 
 export function isChallengeBody(value) {
   const body = String(value || '').toLowerCase();
-  return body.includes('cf-chl-')
-    || body.includes('cloudflare')
-    || body.includes('checking your browser')
-    || body.includes('just a moment');
+  return (
+    body.includes('cf-chl-') || body.includes('cloudflare') || body.includes('checking your browser') || body.includes('just a moment')
+  );
 }
 
 export function looksLikeHtml(body, contentType = '') {
@@ -73,13 +72,11 @@ function isNotLoggedInJson(body) {
 
 // Classifies a forum response. `expect` is 'json' or 'text'; a successful
 // text response (e.g. /raw/) that is HTML is never forum content.
-export function classifyForumResponse({
-  status = 0,
-  redirected = false,
-  url = '',
-  contentType = '',
-  body = ''
-} = {}, siteUrl = '', { expect = 'text' } = {}) {
+export function classifyForumResponse(
+  { status = 0, redirected = false, url = '', contentType = '', body = '' } = {},
+  siteUrl = '',
+  { expect = 'text' } = {}
+) {
   const ok = status >= 200 && status < 300;
   if (isLoginRedirect({ redirected, url }, siteUrl)) {
     return FORUM_RESPONSE_KIND.LOGIN_REQUIRED;
@@ -100,9 +97,7 @@ export function classifyForumResponse({
     return FORUM_RESPONSE_KIND.EMPTY;
   }
   if (expect === 'text' ? looksLikeHtml(body, contentType) : looksLikeHtml(body)) {
-    return isChallengeBody(body)
-      ? FORUM_RESPONSE_KIND.CHALLENGE
-      : FORUM_RESPONSE_KIND.LOGIN_REQUIRED;
+    return isChallengeBody(body) ? FORUM_RESPONSE_KIND.CHALLENGE : FORUM_RESPONSE_KIND.LOGIN_REQUIRED;
   }
   return FORUM_RESPONSE_KIND.OK;
 }
@@ -147,12 +142,7 @@ export function rawPageContent(snapshot, siteUrl = '') {
 
 // Reads raw pages until an empty page, stopping after `maxPages` so a forum
 // that never returns an empty page cannot loop forever.
-export async function collectRawPages({
-  fetchPage,
-  maxPages = MAX_UNKNOWN_TOPIC_PAGES,
-  onPage = () => {},
-  betweenPages = async () => {}
-}) {
+export async function collectRawPages({ fetchPage, maxPages = MAX_UNKNOWN_TOPIC_PAGES, onPage = () => {}, betweenPages = async () => {} }) {
   const rawPages = [];
   for (let page = 1; page <= maxPages; page++) {
     const content = await fetchPage(page);

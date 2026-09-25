@@ -97,7 +97,11 @@ test('chat controls follow the summary, question, running tasks and edit saves',
   assert.equal(ready.contextLimit.title, 'Choose how much forum discussion text accompanies each question');
 
   const chatRunning = deriveTopicControls({
-    ...idleTopic, hasSummary: true, historyLength: 2, hasActiveChatTask: true, activeTopicTaskCount: 1
+    ...idleTopic,
+    hasSummary: true,
+    historyLength: 2,
+    hasActiveChatTask: true,
+    activeTopicTaskCount: 1
   });
   assert.equal(chatRunning.contextLimit.disabled, true);
   assert.equal(chatRunning.contextLimit.title, 'The context limit is locked while a chat response is running');
@@ -114,19 +118,36 @@ test('the topic helper line explains the next step', () => {
   const topic = { isForumTopic: true, isDiscourse: true, siteUrl: 'https://meta.example', forumName: 'Meta' };
   const home = { isForumTopic: false, isDiscourse: true, siteUrl: 'https://meta.example', forumName: 'Meta' };
   assert.equal(deriveTopicHelper({ pageContext: null, configReady: false }), 'Open a Discourse forum topic to get started.');
-  assert.equal(deriveTopicHelper({ pageContext: home, configReady: false }), 'Connect an AI provider below, then open a topic or ask the forum a question.');
+  assert.equal(
+    deriveTopicHelper({ pageContext: home, configReady: false }),
+    'Connect an AI provider below, then open a topic or ask the forum a question.'
+  );
   assert.equal(deriveTopicHelper({ pageContext: home, configReady: true }), 'Open any topic to summarize it, or ask the forum a question.');
   assert.equal(deriveTopicHelper({ pageContext: null, configReady: true }), 'Open a Discourse forum topic to get started.');
   assert.equal(deriveTopicHelper({ pageContext: topic, configReady: false }), 'Finish setup below to create a summary.');
-  assert.equal(deriveTopicHelper({ pageContext: topic, configReady: true, summaryRunning: true }), 'Your summary is running safely in the background.');
-  assert.equal(deriveTopicHelper({ pageContext: topic, configReady: true, hasSummary: true }), 'Your saved summary and conversation are ready.');
+  assert.equal(
+    deriveTopicHelper({ pageContext: topic, configReady: true, summaryRunning: true }),
+    'Your summary is running safely in the background.'
+  );
+  assert.equal(
+    deriveTopicHelper({ pageContext: topic, configReady: true, hasSummary: true }),
+    'Your saved summary and conversation are ready.'
+  );
   assert.equal(deriveTopicHelper({ pageContext: topic, configReady: true }), 'Read every reply and create a focused overview.');
 });
 
 // ---------- operations ----------
 
 function createTracker() {
-  const context = { pageKey: '1:t/1', isForumTopic: true, isDiscourse: true, postId: '1', topicKey: 't/1', siteUrl: 'https://f.example', forumName: 'F' };
+  const context = {
+    pageKey: '1:t/1',
+    isForumTopic: true,
+    isDiscourse: true,
+    postId: '1',
+    topicKey: 't/1',
+    siteUrl: 'https://f.example',
+    forumName: 'F'
+  };
   const events = [];
   const tracker = new OperationTracker({
     getPageKey: () => context.pageKey,
@@ -185,7 +206,10 @@ test('the registry answers topic and Agent queries', () => {
     { id: 'd', type: 'agent', agentRunId: 'run-d', clientRequestId: 'req-d', status: 'waiting_user_action', createdAt: 3 },
     { id: 'e', type: 'agent', agentRunId: '', clientRequestId: '', status: 'failed', createdAt: 4 }
   ]);
-  assert.deepEqual(registry.activeForTopic('t/1').map(task => task.id), ['b', 'a']);
+  assert.deepEqual(
+    registry.activeForTopic('t/1').map(task => task.id),
+    ['b', 'a']
+  );
   assert.deepEqual(registry.activeForTopic(''), []);
   assert.equal(registry.activeForTopicOfType('summary', 't/1').id, 'a');
   assert.equal(registry.activeForTopicOfType('chat', 't/2'), null);
@@ -201,7 +225,12 @@ test('the registry answers topic and Agent queries', () => {
 test('enqueue returns the task, null without a background, or throws its error', async () => {
   const sent = [];
   let reply;
-  const registry = new TaskRegistry({ sendMessage: async message => { sent.push(message); return reply; } });
+  const registry = new TaskRegistry({
+    sendMessage: async message => {
+      sent.push(message);
+      return reply;
+    }
+  });
   reply = { success: true, task: { id: 't1', status: 'completed' } };
   assert.equal((await registry.enqueue({ taskType: 'summary' }, 'fallback')).id, 't1');
   assert.equal(sent[0].action, 'enqueueTask');
@@ -230,7 +259,11 @@ test('cancel and resume return the updated task or throw', async () => {
 
 test('the heartbeat runs only while tasks are active', () => {
   const sent = [];
-  const registry = new TaskRegistry({ sendMessage: async message => { sent.push(message.action); } });
+  const registry = new TaskRegistry({
+    sendMessage: async message => {
+      sent.push(message.action);
+    }
+  });
   registry.updateHeartbeat();
   assert.equal(registry.heartbeatTimer, null);
   registry.set({ id: 'a', status: 'running' });
@@ -254,10 +287,19 @@ function fakeTabs(existing = [], active = { id: 1, index: 4 }) {
         calls.push(['query', query]);
         return query.active ? [active] : existing;
       },
-      async update(id, props) { calls.push(['update', id, props]); },
-      async create(props) { calls.push(['create', props]); return { id: 99, ...props }; }
+      async update(id, props) {
+        calls.push(['update', id, props]);
+      },
+      async create(props) {
+        calls.push(['create', props]);
+        return { id: 99, ...props };
+      }
     },
-    windows: { async update(id, props) { calls.push(['focus', id, props]); } }
+    windows: {
+      async update(id, props) {
+        calls.push(['focus', id, props]);
+      }
+    }
   };
 }
 

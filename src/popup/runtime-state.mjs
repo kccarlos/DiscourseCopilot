@@ -23,6 +23,5 @@ export function isRuntimeDisconnectedError(error) {
 export function isDatabaseCompatibilityError(error) {
   const name = String(error?.name || '');
   const message = String(error?.message || error || '');
-  return name === 'VersionError'
-    || DATABASE_COMPATIBILITY_PATTERNS.some(pattern => pattern.test(message));
+  return name === 'VersionError' || DATABASE_COMPATIBILITY_PATTERNS.some(pattern => pattern.test(message));
 }

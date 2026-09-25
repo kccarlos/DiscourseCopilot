@@ -266,10 +266,9 @@ export class AgentController {
 
   renderDetail(activity) {
     $('agentDetailHeading').textContent = activity.title;
-    $('agentDetailMeta').textContent = [
-      this.forums.label(activity.siteUrl, activity.forumName),
-      this.view.statusSummary(activity)
-    ].filter(Boolean).join(' · ');
+    $('agentDetailMeta').textContent = [this.forums.label(activity.siteUrl, activity.forumName), this.view.statusSummary(activity)]
+      .filter(Boolean)
+      .join(' · ');
     this.view.render($('agentDetailView'), activity, { mode: 'detail' });
   }
 
@@ -427,11 +426,7 @@ export class AgentController {
         await this.nav.loadSavedList();
       }
     } catch (error) {
-      this.report(
-        `Unable to update Agent retention: ${error.message}`,
-        'error',
-        button?.closest('#agentPanel, #agentDetailView') || null
-      );
+      this.report(`Unable to update Agent retention: ${error.message}`, 'error', button?.closest('#agentPanel, #agentDetailView') || null);
     } finally {
       if (button?.isConnected) {
         button.disabled = false;

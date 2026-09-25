@@ -1,19 +1,12 @@
 // Executor for Agent tasks: researches a forum with the forum tools, writes
 // an answer, and keeps the task's activity record (progress, sources,
 // answer, outcome) up to date for the side panel.
-import {
-  AGENT_ACTIVITY_STATUS,
-  agentActivityFromTask
-} from '../shared/agent-activity.mjs';
+import { AGENT_ACTIVITY_STATUS, agentActivityFromTask } from '../shared/agent-activity.mjs';
 import { TASK_STATUS } from '../shared/task-record.mjs';
 import { normalizeSiteUrl } from '../shared/forum-site.mjs';
 import { isAbortError } from '../shared/rate-limit-retry.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
-import {
-  FORUM_ACCESS_ERROR_CODE,
-  forumAccessMessage,
-  isForumAccessError
-} from '../shared/forum-access.mjs';
+import { FORUM_ACCESS_ERROR_CODE, forumAccessMessage, isForumAccessError } from '../shared/forum-access.mjs';
 import { ForumToolClient, ForumToolError } from './forum-tools.mjs';
 import { isAgentUserActionError, runAgentTask } from './agent-runner.mjs';
 
@@ -41,9 +34,7 @@ export function agentActivityError(error, fallbackCode = 'AGENT_ERROR') {
     message: String(error?.message || error || 'Agent task failed').slice(0, 1000),
     retryable: error?.retryable !== false,
     needsUserAction: error?.needsUserAction === true,
-    retryAfterAt: error?.retryAfterMs
-      ? Date.now() + Math.max(0, error.retryAfterMs)
-      : 0
+    retryAfterAt: error?.retryAfterMs ? Date.now() + Math.max(0, error.retryAfterMs) : 0
   };
 }
 
@@ -57,11 +48,7 @@ export function agentFailurePatch(error, { cancelled, needsUserAction }, now = D
         ? AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION
         : AGENT_ACTIVITY_STATUS.FAILED,
     phase: cancelled ? 'cancelled' : needsUserAction ? 'waiting_user_action' : 'failed',
-    statusText: cancelled
-      ? 'Cancelled'
-      : needsUserAction
-        ? waitingStatusText(error)
-        : 'Failed',
+    statusText: cancelled ? 'Cancelled' : needsUserAction ? waitingStatusText(error) : 'Failed',
     error: cancelled ? null : agentActivityError(error),
     // A run waiting for the user stays open and never expires on its own.
     // Retention counts from retainedFrom; the database derives expiresAt
@@ -101,13 +88,17 @@ export function createAgentExecutor({
       return;
     }
 
-    activity = await activities.update(activity, {
-      status: AGENT_ACTIVITY_STATUS.RUNNING,
-      phase: 'starting',
-      statusText: 'Starting forum research…',
-      error: null,
-      startedAt: activity.startedAt || Date.now()
-    }, { prune: false });
+    activity = await activities.update(
+      activity,
+      {
+        status: AGENT_ACTIVITY_STATUS.RUNNING,
+        phase: 'starting',
+        statusText: 'Starting forum research…',
+        error: null,
+        startedAt: activity.startedAt || Date.now()
+      },
+      { prune: false }
+    );
 
     const updateActivity = async (patch, { durable = true } = {}) => {
       activity = await activities.update(activity, patch, { prune: durable });
@@ -117,10 +108,7 @@ export function createAgentExecutor({
     try {
       const siteUrl = normalizeSiteUrl(task.siteUrl);
       if (!siteUrl) {
-        throw Object.assign(
-          new Error('This Agent task has no forum site. Ask again from the forum page.'),
-          { retryable: false }
-        );
+        throw Object.assign(new Error('This Agent task has no forum site. Ask again from the forum page.'), { retryable: false });
       }
       if (!(await hasForumAccess(siteUrl))) {
         throw forumAccessToolError(siteUrl);
@@ -137,28 +125,23 @@ export function createAgentExecutor({
         limits: configuration.limits?.research,
         signal,
         toolClient,
-        generateAnswer: ({
-          question,
-          sources,
-          systemPrompt,
-          responseLanguage,
-          forumName,
-          signal: answerSignal,
-          onProgress,
-          onStream
-        }) => aiService.generateAgentAnswer(
-          configuration.provider,
-          { question, sources, systemPrompt, responseLanguage, forumName },
-          configuration.settings,
-          { abortSignal: answerSignal, onProgress, onStream }
-        ),
+        generateAnswer: ({ question, sources, systemPrompt, responseLanguage, forumName, signal: answerSignal, onProgress, onStream }) =>
+          aiService.generateAgentAnswer(
+            configuration.provider,
+            { question, sources, systemPrompt, responseLanguage, forumName },
+            configuration.settings,
+            { abortSignal: answerSignal, onProgress, onStream }
+          ),
         onProgress: async (patch, durable = false) => {
           await report(patch, { durable });
-          await updateActivity({
-            phase: patch.phase,
-            statusText: patch.statusText,
-            progress: patch.progress
-          }, { durable: durable || patch.phase === 'generating' }).catch(() => {});
+          await updateActivity(
+            {
+              phase: patch.phase,
+              statusText: patch.statusText,
+              progress: patch.progress
+            },
+            { durable: durable || patch.phase === 'generating' }
+          ).catch(() => {});
         },
         onActivityPatch: async (patch, durable = true) => {
           await updateActivity(patch, { durable });
@@ -175,43 +158,43 @@ export function createAgentExecutor({
       });
 
       const completedAt = Date.now();
-      activity = await updateActivity({
-        ...result,
-        status: AGENT_ACTIVITY_STATUS.COMPLETED,
-        phase: 'completed',
-        statusText: result.answerStatus === 'no_results'
-          ? 'No matching discussions found'
-          : 'Completed',
-        answer: result.answer,
-        completedAt,
-        retainedFrom: completedAt,
-        progress: {
-          percent: 100,
-          completedSteps: activity.progress?.totalSteps || null,
-          totalSteps: activity.progress?.totalSteps || null,
-          sourceCount: result.sourceRefs.length,
-          etaMs: 0
+      activity = await updateActivity(
+        {
+          ...result,
+          status: AGENT_ACTIVITY_STATUS.COMPLETED,
+          phase: 'completed',
+          statusText: result.answerStatus === 'no_results' ? 'No matching discussions found' : 'Completed',
+          answer: result.answer,
+          completedAt,
+          retainedFrom: completedAt,
+          progress: {
+            percent: 100,
+            completedSteps: activity.progress?.totalSteps || null,
+            totalSteps: activity.progress?.totalSteps || null,
+            sourceCount: result.sourceRefs.length,
+            etaMs: 0
+          },
+          error: null
         },
-        error: null
-      }, { durable: true });
-      await report({
-        phase: 'completed',
-        statusText: activity.statusText,
-        progress: activity.progress
-      }, { durable: true });
+        { durable: true }
+      );
+      await report(
+        {
+          phase: 'completed',
+          statusText: activity.statusText,
+          progress: activity.progress
+        },
+        { durable: true }
+      );
     } catch (caught) {
       const cancelled = isAbortError(caught) || signal.aborted;
       // Access removed while the run was researching: the browser refuses
       // the forum requests. Wait for the user instead of failing.
-      const error = !cancelled
-        && !isForumAccessError(caught)
-        && task.siteUrl
-        && !(await hasForumAccess(task.siteUrl))
-        ? forumAccessToolError(task.siteUrl)
-        : caught;
-      const needsUserAction = !cancelled && (
-        isAgentUserActionError(error) || error?.needsUserAction === true
-      );
+      const error =
+        !cancelled && !isForumAccessError(caught) && task.siteUrl && !(await hasForumAccess(task.siteUrl))
+          ? forumAccessToolError(task.siteUrl)
+          : caught;
+      const needsUserAction = !cancelled && (isAgentUserActionError(error) || error?.needsUserAction === true);
       await updateActivity(agentFailurePatch(error, { cancelled, needsUserAction }), { durable: true });
       if (needsUserAction) {
         throw Object.assign(error, {

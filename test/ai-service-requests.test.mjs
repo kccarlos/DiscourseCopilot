@@ -15,10 +15,14 @@ function sseResponse(events, { delayMs = 0, signal } = {}) {
   const body = new ReadableStream({
     async start(controller) {
       let aborted = false;
-      signal?.addEventListener('abort', () => {
-        aborted = true;
-        controller.error(signal.reason);
-      }, { once: true });
+      signal?.addEventListener(
+        'abort',
+        () => {
+          aborted = true;
+          controller.error(signal.reason);
+        },
+        { once: true }
+      );
       for (const event of events) {
         if (aborted) return;
         controller.enqueue(encoder.encode(event));
@@ -45,14 +49,22 @@ function anthropicSse(chunks) {
   return [
     event('message_start', {
       message: {
-        id: 'msg_1', type: 'message', role: 'assistant', model: 'claude-sonnet-5',
-        content: [], stop_reason: null, usage: { input_tokens: 10, output_tokens: 1 }
+        id: 'msg_1',
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-sonnet-5',
+        content: [],
+        stop_reason: null,
+        usage: { input_tokens: 10, output_tokens: 1 }
       }
     }),
     event('content_block_start', { index: 0, content_block: { type: 'text', text: '' } }),
-    ...chunks.map(text => event('content_block_delta', {
-      index: 0, delta: { type: 'text_delta', text }
-    })),
+    ...chunks.map(text =>
+      event('content_block_delta', {
+        index: 0,
+        delta: { type: 'text_delta', text }
+      })
+    ),
     event('content_block_stop', { index: 0 }),
     event('message_delta', { delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 5 } }),
     event('message_stop', {})
@@ -61,17 +73,25 @@ function anthropicSse(chunks) {
 
 function anthropicMessage(text) {
   return {
-    id: 'msg_2', type: 'message', role: 'assistant', model: 'claude-sonnet-5',
-    content: [{ type: 'text', text }], stop_reason: 'end_turn',
+    id: 'msg_2',
+    type: 'message',
+    role: 'assistant',
+    model: 'claude-sonnet-5',
+    content: [{ type: 'text', text }],
+    stop_reason: 'end_turn',
     usage: { input_tokens: 10, output_tokens: 5 }
   };
 }
 
 function chatCompletionsSse(chunks) {
-  const chunk = (delta, finishReason = null) => `data: ${JSON.stringify({
-    id: 'chatcmpl-1', object: 'chat.completion.chunk', created: 1, model: 'test-model',
-    choices: [{ index: 0, delta, finish_reason: finishReason }]
-  })}\n\n`;
+  const chunk = (delta, finishReason = null) =>
+    `data: ${JSON.stringify({
+      id: 'chatcmpl-1',
+      object: 'chat.completion.chunk',
+      created: 1,
+      model: 'test-model',
+      choices: [{ index: 0, delta, finish_reason: finishReason }]
+    })}\n\n`;
   return [
     ...chunks.map((content, index) => chunk(index === 0 ? { role: 'assistant', content } : { content })),
     chunk({}, 'stop'),
@@ -109,7 +129,10 @@ test('system messages move to instructions; other messages keep their order', ()
     { role: 'user', content: 'Q2' }
   ]);
   assert.equal(instructions, 'Rules');
-  assert.deepEqual(messages.map(message => message.role), ['user', 'assistant', 'user']);
+  assert.deepEqual(
+    messages.map(message => message.role),
+    ['user', 'assistant', 'user']
+  );
   assert.equal(toInstructionsAndMessages([{ role: 'user', content: 'x' }]).instructions, undefined);
 });
 
@@ -210,11 +233,17 @@ test('Agent answers through LM Studio stream with temperature 0.3 and the source
 });
 
 test('Ollama keeps the /api base path', async () => {
-  const { fetch, requests } = mockFetch(() => jsonResponse({
-    model: 'llama3.2', created_at: '2026-01-01T00:00:00Z', done: true, done_reason: 'stop',
-    message: { role: 'assistant', content: 'Ollama summary.' },
-    prompt_eval_count: 1, eval_count: 1
-  }));
+  const { fetch, requests } = mockFetch(() =>
+    jsonResponse({
+      model: 'llama3.2',
+      created_at: '2026-01-01T00:00:00Z',
+      done: true,
+      done_reason: 'stop',
+      message: { role: 'assistant', content: 'Ollama summary.' },
+      prompt_eval_count: 1,
+      eval_count: 1
+    })
+  );
   const service = new AIService({ fetch });
 
   const text = await service.summarizeWithRetry(
@@ -231,10 +260,13 @@ test('Ollama keeps the /api base path', async () => {
 test('a context-limit error on the single pass falls back to hierarchical summarization', async () => {
   const { fetch, requests } = mockFetch((request, count) => {
     if (count === 1) {
-      return jsonResponse({
-        type: 'error',
-        error: { type: 'invalid_request_error', message: 'prompt is too long: 250000 tokens > 200000 maximum' }
-      }, 400);
+      return jsonResponse(
+        {
+          type: 'error',
+          error: { type: 'invalid_request_error', message: 'prompt is too long: 250000 tokens > 200000 maximum' }
+        },
+        400
+      );
     }
     if (request.body.stream) {
       return sseResponse(anthropicSse(['## Final ', 'summary']));
@@ -257,7 +289,10 @@ test('a context-limit error on the single pass falls back to hierarchical summar
   assert.ok(progress.includes('hierarchical'), progress.join(','));
   // single pass (failed) + OP + comments + streamed final assembly
   assert.equal(requests.length, 4);
-  assert.deepEqual(requests.map(request => Boolean(request.body.stream)), [true, false, false, true]);
+  assert.deepEqual(
+    requests.map(request => Boolean(request.body.stream)),
+    [true, false, false, true]
+  );
   for (const request of requests) {
     assert.equal(request.body.max_tokens, 16000);
     assert.equal('temperature' in request.body, false);
@@ -265,13 +300,18 @@ test('a context-limit error on the single pass falls back to hierarchical summar
 });
 
 test('a prompt-too-large error retries once with the minimal prompt', async () => {
-  const { fetch, requests } = mockFetch((request, count) => (count === 1
-    ? jsonResponse({ error: { message: 'The initial prompt is greater than the context length' } }, 400)
-    : jsonResponse({
-      id: 'c1', object: 'chat.completion', created: 1, model: 'local-model',
-      choices: [{ index: 0, message: { role: 'assistant', content: 'Minimal summary.' }, finish_reason: 'stop' }],
-      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }
-    })));
+  const { fetch, requests } = mockFetch((request, count) =>
+    count === 1
+      ? jsonResponse({ error: { message: 'The initial prompt is greater than the context length' } }, 400)
+      : jsonResponse({
+          id: 'c1',
+          object: 'chat.completion',
+          created: 1,
+          model: 'local-model',
+          choices: [{ index: 0, message: { role: 'assistant', content: 'Minimal summary.' }, finish_reason: 'stop' }],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }
+        })
+  );
   const service = new AIService({ fetch });
   const operationState = { useMinimalPrompts: false };
 
@@ -291,10 +331,9 @@ test('a prompt-too-large error retries once with the minimal prompt', async () =
 
 test('aborting mid-stream rejects with the caller reason and stops the request', async () => {
   const controller = new AbortController();
-  const { fetch, requests } = mockFetch(request => sseResponse(
-    chatCompletionsSse(['one ', 'two ', 'three ', 'four']),
-    { delayMs: 20, signal: request.signal }
-  ));
+  const { fetch, requests } = mockFetch(request =>
+    sseResponse(chatCompletionsSse(['one ', 'two ', 'three ', 'four']), { delayMs: 20, signal: request.signal })
+  );
   const service = new AIService({ fetch });
   const streamed = [];
   const reason = new Error('Navigated to a different post');
@@ -326,12 +365,7 @@ test('a provider error during a follow-up surfaces through onError and rejects',
   const errors = [];
 
   await assert.rejects(
-    service.streamFollowUp(
-      'openrouter',
-      followUpContext,
-      { apiKey: 'bad', model: 'm' },
-      { onError: error => errors.push(error) }
-    ),
+    service.streamFollowUp('openrouter', followUpContext, { apiKey: 'bad', model: 'm' }, { onError: error => errors.push(error) }),
     error => /Invalid API key/.test(error.message)
   );
   assert.equal(errors.length, 1);

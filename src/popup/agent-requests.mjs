@@ -62,9 +62,7 @@ export class AgentRequests {
   }
 
   async retryGrantedTask(value, { root = null } = {}) {
-    const activity = value?.activityType === 'agent'
-      ? value
-      : await this.runs.get(value);
+    const activity = value?.activityType === 'agent' ? value : await this.runs.get(value);
     const question = activity?.question || value?.question;
     if (!question) {
       this.report('The Agent question is unavailable', 'error', root);
@@ -84,19 +82,22 @@ export class AgentRequests {
     const retryId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const { config } = this.config;
     try {
-      const task = await this.tasks.enqueue({
-        taskType: TASK_TYPE.AGENT,
-        clientRequestId: retryId,
-        retryOf: activity?.agentRunId || value?.agentRunId || '',
-        title: question,
-        question,
-        siteUrl,
-        forumName: activity?.forumName || value?.forumName || '',
-        provider: config.provider,
-        settings: this.config.activeSettings,
-        systemPrompt: config.systemPrompt,
-        responseLanguage: config.responseLanguage
-      }, 'Unable to retry Agent task');
+      const task = await this.tasks.enqueue(
+        {
+          taskType: TASK_TYPE.AGENT,
+          clientRequestId: retryId,
+          retryOf: activity?.agentRunId || value?.agentRunId || '',
+          title: question,
+          question,
+          siteUrl,
+          forumName: activity?.forumName || value?.forumName || '',
+          provider: config.provider,
+          settings: this.config.activeSettings,
+          systemPrompt: config.systemPrompt,
+          responseLanguage: config.responseLanguage
+        },
+        'Unable to retry Agent task'
+      );
       if (!task) {
         throw new Error('Unable to retry Agent task');
       }

@@ -135,9 +135,7 @@ test('background service registers queue and action listeners during startup', a
       local: {
         async get(keys) {
           return Object.fromEntries(
-            (Array.isArray(keys) ? keys : [keys])
-              .filter(key => Object.hasOwn(storage, key))
-              .map(key => [key, storage[key]])
+            (Array.isArray(keys) ? keys : [keys]).filter(key => Object.hasOwn(storage, key)).map(key => [key, storage[key]])
           );
         },
         async set(values) {
@@ -180,10 +178,7 @@ test('background service registers queue and action listeners during startup', a
   granted.add('https://meta.discourse.org/*');
   permissionListeners.added[0]({ origins: ['https://meta.discourse.org/*'] });
   await new Promise(resolve => setTimeout(resolve, 10));
-  assert.deepEqual(registered.get('forum-content').matches, [
-    'https://meta.discourse.org/*',
-    'https://www.uscardforum.com/*'
-  ]);
+  assert.deepEqual(registered.get('forum-content').matches, ['https://meta.discourse.org/*', 'https://www.uscardforum.com/*']);
   assert.deepEqual(
     scriptingCalls.filter(([kind]) => kind === 'execute').map(([, injection]) => injection),
     [{ target: { tabId: 11 }, files: ['src/content/content.js'] }]
@@ -203,17 +198,11 @@ test('background service registers queue and action listeners during startup', a
   assert.ok(granted.has('https://www.uscardforum.com/*'), 'enabled forums stay');
   assert.deepEqual(createdTabs, [], 'updates must not open the welcome page');
   installedListeners[0]({ reason: 'install' });
-  assert.deepEqual(createdTabs, [
-    { url: 'chrome-extension://test-id/src/settings/settings.html?welcome=1' }
-  ]);
+  assert.deepEqual(createdTabs, [{ url: 'chrome-extension://test-id/src/settings/settings.html?welcome=1' }]);
 
   const listener = runtimeListeners[0];
   const pageChangedResponse = new Promise(resolve => {
-    assert.equal(listener(
-      { action: 'pageChanged', postId: '517303' },
-      { tab: { id: 42 } },
-      resolve
-    ), true);
+    assert.equal(listener({ action: 'pageChanged', postId: '517303' }, { tab: { id: 42 } }, resolve), true);
   });
   assert.deepEqual(await pageChangedResponse, { success: true });
   assert.deepEqual(sidePanelCalls[0], {
@@ -226,11 +215,7 @@ test('background service registers queue and action listeners during startup', a
   });
 
   const openResponse = new Promise(resolve => {
-    assert.equal(listener(
-      { action: 'openSidePanel' },
-      { tab: { id: 42 } },
-      resolve
-    ), true);
+    assert.equal(listener({ action: 'openSidePanel' }, { tab: { id: 42 } }, resolve), true);
   });
   assert.deepEqual(await openResponse, { success: true });
   assert.deepEqual(sidePanelCalls[1], {
@@ -239,22 +224,25 @@ test('background service registers queue and action listeners during startup', a
   });
 
   const enqueueResponse = new Promise(resolve => {
-    assert.equal(listener(
-      {
-        action: 'enqueueTask',
-        taskType: 'chat',
-        topicId: '517303',
-        title: 'Context limit test',
-        siteUrl: 'https://www.uscardforum.com',
-        url: 'https://www.uscardforum.com/t/topic/517303',
-        question: 'What changed?',
-        maxPostChars: 45000,
-        provider: 'openrouter',
-        settings: { apiKey: 'runtime-only', model: 'test-model' }
-      },
-      {},
-      resolve
-    ), true);
+    assert.equal(
+      listener(
+        {
+          action: 'enqueueTask',
+          taskType: 'chat',
+          topicId: '517303',
+          title: 'Context limit test',
+          siteUrl: 'https://www.uscardforum.com',
+          url: 'https://www.uscardforum.com/t/topic/517303',
+          question: 'What changed?',
+          maxPostChars: 45000,
+          provider: 'openrouter',
+          settings: { apiKey: 'runtime-only', model: 'test-model' }
+        },
+        {},
+        resolve
+      ),
+      true
+    );
   });
   const queued = await enqueueResponse;
 

@@ -49,11 +49,7 @@ import { ForumAccessCard } from './forum-access-card.mjs';
 import { BackgroundLink } from './background-link.mjs';
 import { UndoToast } from './undo-toast.mjs';
 import { GUIDANCE_STATE, derivePageGuidance } from './page-guidance.mjs';
-import {
-  applyTopicControls,
-  deriveTopicControls,
-  deriveTopicHelper
-} from './topic-controls.mjs';
+import { applyTopicControls, deriveTopicControls, deriveTopicHelper } from './topic-controls.mjs';
 
 const { MESSAGES } = DiscourseCopilotConstants;
 // Storage changes arrive in bursts (one per key); reload settings once.
@@ -117,11 +113,7 @@ class DiscourseCopilotPopup {
     });
     this.forums = new ForumDirectory({
       getPageContext: () => state.pageContext,
-      getRecords: () => [
-        ...this.tasks.values(),
-        ...this.agent.activities.values(),
-        ...this.activity.savedRecords
-      ]
+      getRecords: () => [...this.tasks.values(), ...this.agent.activities.values(), ...this.activity.savedRecords]
     });
     this.markdown = new MarkdownScheduler({
       isNearBottom: () => this.chat.isNearBottom(),
@@ -245,12 +237,7 @@ class DiscourseCopilotPopup {
   async init() {
     this.mount();
     this.listen();
-    await Promise.all([
-      this.loadConfig(),
-      this.initializePersistence(),
-      this.background.loadTasks(),
-      this.agent.load()
-    ]);
+    await Promise.all([this.loadConfig(), this.initializePersistence(), this.background.loadTasks(), this.agent.load()]);
     this.started = true;
     await this.page.refresh();
     if (this.state.persistenceAvailable) {
@@ -587,12 +574,15 @@ class DiscourseCopilotPopup {
       chatEditSaving: this.chat.isSavingEdit,
       agentSearchLabel: this.agent.searchLabel()
     });
-    applyTopicControls(controls, deriveTopicHelper({
-      pageContext,
-      configReady,
-      summaryRunning: Boolean(activeSummaryTask),
-      hasSummary: Boolean(session?.summary)
-    }));
+    applyTopicControls(
+      controls,
+      deriveTopicHelper({
+        pageContext,
+        configReady,
+        summaryRunning: Boolean(activeSummaryTask),
+        hasSummary: Boolean(session?.summary)
+      })
+    );
   }
 }
 

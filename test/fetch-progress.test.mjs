@@ -1,11 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  calculateFetchProgress,
-  formatEta,
-  getTopicPagination
-} from '../src/shared/fetch-progress.mjs';
+import { calculateFetchProgress, formatEta, getTopicPagination } from '../src/shared/fetch-progress.mjs';
 
 test('derives total raw pages from Discourse topic metadata', () => {
   const metadata = {
@@ -31,21 +27,24 @@ test('uses the raw endpoint page size when only a post count exists', () => {
 });
 
 test('calculates percentage, processed posts, and ETA from measured timing', () => {
-  assert.deepEqual(calculateFetchProgress({
-    currentPage: 2,
-    totalPages: 5,
-    totalPosts: 483,
-    pageSize: 100,
-    averageRequestMs: 500,
-    requestDelayMs: 1000
-  }), {
-    currentPage: 2,
-    totalPages: 5,
-    totalPosts: 483,
-    processedPosts: 200,
-    percent: 40,
-    etaMs: 4500
-  });
+  assert.deepEqual(
+    calculateFetchProgress({
+      currentPage: 2,
+      totalPages: 5,
+      totalPosts: 483,
+      pageSize: 100,
+      averageRequestMs: 500,
+      requestDelayMs: 1000
+    }),
+    {
+      currentPage: 2,
+      totalPages: 5,
+      totalPosts: 483,
+      processedPosts: 200,
+      percent: 40,
+      etaMs: 4500
+    }
+  );
 });
 
 test('estimates ETA by remaining request waves when pages fetch concurrently', () => {
@@ -62,18 +61,21 @@ test('estimates ETA by remaining request waves when pages fetch concurrently', (
 });
 
 test('supports indeterminate progress when topic metadata is unavailable', () => {
-  assert.deepEqual(calculateFetchProgress({
-    currentPage: 2,
-    averageRequestMs: 500,
-    requestDelayMs: 1000
-  }), {
-    currentPage: 2,
-    totalPages: null,
-    totalPosts: null,
-    processedPosts: null,
-    percent: null,
-    etaMs: null
-  });
+  assert.deepEqual(
+    calculateFetchProgress({
+      currentPage: 2,
+      averageRequestMs: 500,
+      requestDelayMs: 1000
+    }),
+    {
+      currentPage: 2,
+      totalPages: null,
+      totalPosts: null,
+      processedPosts: null,
+      percent: null,
+      etaMs: null
+    }
+  );
 });
 
 test('formats short, long, unknown, and completed ETAs', () => {

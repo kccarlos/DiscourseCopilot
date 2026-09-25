@@ -1,12 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  CHAT_CONTEXT_LIMITS,
-  buildFollowUpMessages,
-  normalizeChatHistory,
-  truncateMiddle
-} from '../src/services/chat-context.mjs';
+import { CHAT_CONTEXT_LIMITS, buildFollowUpMessages, normalizeChatHistory, truncateMiddle } from '../src/services/chat-context.mjs';
 import {
   FULL_PROMPTS,
   MAX_CUSTOM_SYSTEM_PROMPT_CHARS,
@@ -21,10 +16,7 @@ test('keeps the beginning and end when long forum content is truncated', () => {
   // Very small limits cannot fit the omission marker, so they degrade safely.
   assert.equal(result, 'ABCDEFGH');
 
-  const longResult = truncateMiddle(
-    `OP:${'a'.repeat(100)}LATEST:${'z'.repeat(100)}`,
-    100
-  );
+  const longResult = truncateMiddle(`OP:${'a'.repeat(100)}LATEST:${'z'.repeat(100)}`, 100);
   assert.match(longResult, /^OP:/);
   assert.match(longResult, /content omitted/);
   assert.match(longResult, /zzzz$/);
@@ -51,9 +43,7 @@ test('uses a caller-selected forum discussion limit for follow-up context', () =
     question: 'What matters?',
     maxPostChars: 5000
   });
-  const originalPost = messages[1].content.match(
-    /<original_post>\n([\s\S]*)\n<\/original_post>/
-  )[1];
+  const originalPost = messages[1].content.match(/<original_post>\n([\s\S]*)\n<\/original_post>/)[1];
 
   assert.equal(originalPost.length, 5000);
   assert.match(originalPost, /^OPENING:/);
@@ -78,16 +68,19 @@ test('normalizes history roles and drops empty or unsupported messages', () => {
 });
 
 test('retains newest complete history within message and character bounds', () => {
-  const result = normalizeChatHistory([
-    { role: 'user', content: 'old-question' },
-    { role: 'assistant', content: 'old-answer' },
-    { role: 'user', content: 'new-question' },
-    { role: 'assistant', content: 'new-answer' }
-  ], {
-    maxHistoryMessages: 3,
-    maxHistoryChars: 100,
-    maxMessageChars: 100
-  });
+  const result = normalizeChatHistory(
+    [
+      { role: 'user', content: 'old-question' },
+      { role: 'assistant', content: 'old-answer' },
+      { role: 'user', content: 'new-question' },
+      { role: 'assistant', content: 'new-answer' }
+    ],
+    {
+      maxHistoryMessages: 3,
+      maxHistoryChars: 100,
+      maxMessageChars: 100
+    }
+  );
 
   // The three newest entries begin with an orphaned assistant answer, which is
   // removed so the provider sees a coherent prior exchange.
@@ -98,22 +91,28 @@ test('retains newest complete history within message and character bounds', () =
 });
 
 test('enforces a total history character budget from newest to oldest', () => {
-  const result = normalizeChatHistory([
-    { role: 'user', content: '12345' },
-    { role: 'assistant', content: '67890' },
-    { role: 'user', content: 'abcdefgh' },
-    { role: 'assistant', content: 'ABCDEFGH' }
-  ], {
-    maxHistoryMessages: 10,
-    maxHistoryChars: 16,
-    maxMessageChars: 100
-  });
+  const result = normalizeChatHistory(
+    [
+      { role: 'user', content: '12345' },
+      { role: 'assistant', content: '67890' },
+      { role: 'user', content: 'abcdefgh' },
+      { role: 'assistant', content: 'ABCDEFGH' }
+    ],
+    {
+      maxHistoryMessages: 10,
+      maxHistoryChars: 16,
+      maxMessageChars: 100
+    }
+  );
 
   assert.deepEqual(result, [
     { role: 'user', content: 'abcdefgh' },
     { role: 'assistant', content: 'ABCDEFGH' }
   ]);
-  assert.equal(result.reduce((total, message) => total + message.content.length, 0), 16);
+  assert.equal(
+    result.reduce((total, message) => total + message.content.length, 0),
+    16
+  );
 });
 
 test('builds follow-up messages with isolated reference material and latest question last', () => {
@@ -161,35 +160,29 @@ test('requires post content, summary, and a current question', () => {
     () => buildFollowUpMessages({ content: '', summary: 'summary', question: 'question' }),
     /Original post content is required/
   );
-  assert.throws(
-    () => buildFollowUpMessages({ content: 'post', summary: '', question: 'question' }),
-    /Existing summary is required/
-  );
-  assert.throws(
-    () => buildFollowUpMessages({ content: 'post', summary: 'summary', question: '  ' }),
-    /Question is required/
-  );
+  assert.throws(() => buildFollowUpMessages({ content: 'post', summary: '', question: 'question' }), /Existing summary is required/);
+  assert.throws(() => buildFollowUpMessages({ content: 'post', summary: 'summary', question: '  ' }), /Question is required/);
 });
 
 test('uses a non-empty custom summary prompt and falls back for blank input', () => {
   assert.equal(resolveSummarySystemPrompt('  My custom instructions  '), 'My custom instructions');
   assert.equal(resolveSummarySystemPrompt('   '), FULL_PROMPTS.system);
   assert.equal(resolveSummarySystemPrompt(undefined), FULL_PROMPTS.system);
-  assert.equal(
-    normalizeCustomSystemPrompt(`  ${'x'.repeat(MAX_CUSTOM_SYSTEM_PROMPT_CHARS + 5)}  `).length,
-    MAX_CUSTOM_SYSTEM_PROMPT_CHARS
-  );
+  assert.equal(normalizeCustomSystemPrompt(`  ${'x'.repeat(MAX_CUSTOM_SYSTEM_PROMPT_CHARS + 5)}  `).length, MAX_CUSTOM_SYSTEM_PROMPT_CHARS);
 });
 
 test('bounds custom chat instructions without dropping follow-up safety rules', () => {
-  const [systemMessage] = buildFollowUpMessages({
-    content: 'Original forum post',
-    summary: 'Existing summary',
-    question: 'What next?',
-    systemPrompt: 'x'.repeat(100)
-  }, {
-    maxSystemPromptChars: 20
-  });
+  const [systemMessage] = buildFollowUpMessages(
+    {
+      content: 'Original forum post',
+      summary: 'Existing summary',
+      question: 'What next?',
+      systemPrompt: 'x'.repeat(100)
+    },
+    {
+      maxSystemPromptChars: 20
+    }
+  );
 
   assert.match(systemMessage.content, /^x{20}\n\nFollow-up requirements:/);
   assert.match(systemMessage.content, /untrusted content/);

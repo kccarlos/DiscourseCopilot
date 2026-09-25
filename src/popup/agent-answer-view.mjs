@@ -2,10 +2,7 @@
 // topic view (#agentPanel) or the Activity detail view (#agentDetailView).
 // Both roots hold a copy of #agentAnswerTemplate and every element is found
 // through its data-part inside the root, so the two never share IDs.
-import {
-  AGENT_ACTIVITY_STATUS,
-  isAgentActivityTerminal
-} from '../shared/agent-activity.mjs';
+import { AGENT_ACTIVITY_STATUS, isAgentActivityTerminal } from '../shared/agent-activity.mjs';
 import { isTerminalTaskStatus } from '../shared/task-record.mjs';
 import { isSameForumUrl } from '../shared/forum-site.mjs';
 import { forumAccessHost, isForumAccessError } from '../shared/forum-access.mjs';
@@ -16,7 +13,10 @@ import { renderMarkdown } from './markdown.mjs';
 import { openForumTarget } from './forum-tabs.mjs';
 
 function trimEllipsis(value) {
-  return String(value || '').trim().replace(/(\.\.\.|…)$/u, '').trim();
+  return String(value || '')
+    .trim()
+    .replace(/(\.\.\.|…)$/u, '')
+    .trim();
 }
 
 export function describeAgentProgress(activity = {}) {
@@ -30,9 +30,7 @@ export function describeAgentProgress(activity = {}) {
   }
   const step = trimEllipsis(activity.statusText) || 'Starting forum research';
   parts.push(parts.length ? step.charAt(0).toLocaleLowerCase() + step.slice(1) : step);
-  const percent = Number.isFinite(activity.progress?.percent) && activity.phase !== 'generating'
-    ? activity.progress.percent
-    : null;
+  const percent = Number.isFinite(activity.progress?.percent) && activity.phase !== 'generating' ? activity.progress.percent : null;
   return { label: `${parts.join(' · ')}…`, percent };
 }
 
@@ -101,8 +99,7 @@ export class AgentAnswerView {
     }
 
     const status = activity.status;
-    const isActive = status === AGENT_ACTIVITY_STATUS.QUEUED
-      || status === AGENT_ACTIVITY_STATUS.RUNNING;
+    const isActive = status === AGENT_ACTIVITY_STATUS.QUEUED || status === AGENT_ACTIVITY_STATUS.RUNNING;
     this.renderProgress(root, activity, isActive);
     this.renderNotice(root, activity, mode);
     this.renderAnswer(root, activity, isActive);
@@ -153,9 +150,10 @@ export class AgentAnswerView {
       answer.dataset.renderKey = '';
       const placeholder = document.createElement('p');
       placeholder.className = 'streaming-placeholder';
-      placeholder.textContent = activity.status === AGENT_ACTIVITY_STATUS.QUEUED
-        ? 'Research starts as soon as a worker is free. You can keep browsing.'
-        : 'The answer appears here once the relevant discussions are read.';
+      placeholder.textContent =
+        activity.status === AGENT_ACTIVITY_STATUS.QUEUED
+          ? 'Research starts as soon as a worker is free. You can keep browsing.'
+          : 'The answer appears here once the relevant discussions are read.';
       answer.replaceChildren(placeholder);
     } else {
       answer.dataset.renderKey = '';
@@ -182,10 +180,7 @@ export class AgentAnswerView {
     const forumName = this.forums.label(activity.siteUrl, activity.forumName);
     let type = '';
     let message = '';
-    if (
-      activity.status === AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION
-      && isForumAccessError(activity.error)
-    ) {
+    if (activity.status === AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION && isForumAccessError(activity.error)) {
       // Continue asks for access first (agent-controller withForumAccess).
       const host = forumAccessHost(activity.siteUrl);
       type = 'warning';
@@ -194,10 +189,7 @@ export class AgentAnswerView {
     } else if (activity.status === AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION) {
       type = 'warning';
       message = `${forumName} asked for a login or verification before the research can continue. Log in in a browser tab, then choose Continue.`;
-      actions.push(
-        { action: 'login', label: `Log in to ${forumName} ↗`, primary: true },
-        { action: 'continue', label: 'Continue' }
-      );
+      actions.push({ action: 'login', label: `Log in to ${forumName} ↗`, primary: true }, { action: 'continue', label: 'Continue' });
     } else if (activity.status === AGENT_ACTIVITY_STATUS.FAILED) {
       type = 'error';
       message = activity.error?.message || 'Agent research failed.';
@@ -205,9 +197,11 @@ export class AgentAnswerView {
     } else if (activity.status === AGENT_ACTIVITY_STATUS.CANCELLED) {
       type = 'info';
       message = 'Research stopped before an answer was written.';
-      actions.push(mode === 'inline'
-        ? { action: 'ask-again', label: 'Ask again', primary: true }
-        : { action: 'retry', label: 'Ask again', primary: true });
+      actions.push(
+        mode === 'inline'
+          ? { action: 'ask-again', label: 'Ask again', primary: true }
+          : { action: 'retry', label: 'Ask again', primary: true }
+      );
     }
     notice.className = `agent-notice status ${type}${type ? '' : ' hidden'}`;
     text.textContent = message;
@@ -220,24 +214,24 @@ export class AgentAnswerView {
     if (container.dataset.signature === signature) {
       return;
     }
-    const focusedAction = container.contains(document.activeElement)
-      ? document.activeElement.dataset.agentAction
-      : '';
+    const focusedAction = container.contains(document.activeElement) ? document.activeElement.dataset.agentAction : '';
     container.dataset.signature = signature;
-    container.replaceChildren(...actions.map(item => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = item.primary ? 'secondary' : 'outline secondary';
-      button.dataset.agentAction = item.action;
-      button.textContent = item.label;
-      if (item.pressed !== undefined) {
-        button.setAttribute('aria-pressed', String(item.pressed));
-      }
-      if (item.title) {
-        button.title = item.title;
-      }
-      return button;
-    }));
+    container.replaceChildren(
+      ...actions.map(item => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = item.primary ? 'secondary' : 'outline secondary';
+        button.dataset.agentAction = item.action;
+        button.textContent = item.label;
+        if (item.pressed !== undefined) {
+          button.setAttribute('aria-pressed', String(item.pressed));
+        }
+        if (item.title) {
+          button.title = item.title;
+        }
+        return button;
+      })
+    );
     container.classList.toggle('hidden', !actions.length);
     if (focusedAction) {
       container.querySelector(`[data-agent-action="${CSS.escape(focusedAction)}"]`)?.focus();
@@ -254,17 +248,12 @@ export class AgentAnswerView {
         action: 'keep',
         label: activity.kept ? 'Kept' : 'Keep',
         pressed: activity.kept === true,
-        title: activity.kept
-          ? this.getRetentionCopy().unkeepAnswer
-          : this.getRetentionCopy().keepAnswer
+        title: activity.kept ? this.getRetentionCopy().unkeepAnswer : this.getRetentionCopy().keepAnswer
       });
     }
     if (mode === 'inline' && activity.status === AGENT_ACTIVITY_STATUS.COMPLETED) {
       // Failed and stopped runs offer Retry / Ask again in their notice instead.
-      actions.push(
-        { action: 'ask-another', label: 'Ask another' },
-        { action: 'open-activity', label: 'Open in Activity' }
-      );
+      actions.push({ action: 'ask-another', label: 'Ask another' }, { action: 'open-activity', label: 'Open in Activity' });
     } else if (isAgentActivityTerminal(activity.status)) {
       actions.push({ action: 'delete', label: 'Delete' });
     }
@@ -282,21 +271,23 @@ export class AgentAnswerView {
     if (isNewRun) {
       details.open = mode === 'detail' && !isAgentActivityTerminal(activity.status);
     }
-    list.replaceChildren(...searchQueries.map(search => {
-      const item = document.createElement('li');
-      item.className = 'agent-search-item';
-      const query = document.createElement('code');
-      query.className = 'agent-search-query';
-      query.textContent = search.query;
-      item.appendChild(query);
-      if (Number.isFinite(search.resultCount)) {
-        const resultMeta = document.createElement('span');
-        resultMeta.className = 'agent-search-meta';
-        resultMeta.textContent = plural(search.resultCount, 'match', 'es');
-        item.appendChild(resultMeta);
-      }
-      return item;
-    }));
+    list.replaceChildren(
+      ...searchQueries.map(search => {
+        const item = document.createElement('li');
+        item.className = 'agent-search-item';
+        const query = document.createElement('code');
+        query.className = 'agent-search-query';
+        query.textContent = search.query;
+        item.appendChild(query);
+        if (Number.isFinite(search.resultCount)) {
+          const resultMeta = document.createElement('span');
+          resultMeta.className = 'agent-search-meta';
+          resultMeta.textContent = plural(search.resultCount, 'match', 'es');
+          item.appendChild(resultMeta);
+        }
+        return item;
+      })
+    );
   }
 
   renderSources(root, activity, { isNewRun, mode }) {
@@ -337,9 +328,7 @@ export class AgentAnswerView {
       link.href = source.url;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      link.textContent = source.postNumber
-        ? `Open post ${source.postNumber} ↗`
-        : 'Open topic ↗';
+      link.textContent = source.postNumber ? `Open post ${source.postNumber} ↗` : 'Open topic ↗';
       link.addEventListener('click', event => {
         // Reuse a tab already on this topic (jumping to the cited post)
         // instead of piling up new tabs; fall back to the plain link.

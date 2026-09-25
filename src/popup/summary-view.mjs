@@ -197,10 +197,7 @@ export class SummaryView {
       this.streams.delete(task.id);
       void this.hooks.reloadCurrentSession();
       // #status is a polite live region: this is the one completion announcement.
-      this.status.show(
-        task.type === TASK_TYPE.CHAT ? 'Answer ready' : 'Summary ready and saved',
-        'success'
-      );
+      this.status.show(task.type === TASK_TYPE.CHAT ? 'Answer ready' : 'Summary ready and saved', 'success');
       return;
     }
 
@@ -217,13 +214,9 @@ export class SummaryView {
     if (task.phase === 'generating' && task.type === TASK_TYPE.SUMMARY) {
       this.revealSummaryCard();
       if (!this.state.session?.summary && !this.streams.get(task.id)) {
-        $('summaryDisplay').innerHTML =
-          '<p class="streaming-placeholder">Waiting for AI response…</p>';
+        $('summaryDisplay').innerHTML = '<p class="streaming-placeholder">Waiting for AI response…</p>';
       }
-      this.status.show(
-        'AI is creating your summary. You can copy the full post while you wait.',
-        'loading'
-      );
+      this.status.show('AI is creating your summary. You can copy the full post while you wait.', 'loading');
       return;
     }
     if (task.phase === 'generating' && task.type === TASK_TYPE.CHAT) {
@@ -251,19 +244,22 @@ export class SummaryView {
     try {
       this.status.show('Submitting background summary task…', 'loading');
       const session = this.state.session;
-      const task = await this.tasks.enqueue({
-        taskType: TASK_TYPE.SUMMARY,
-        topicId: operation.postId,
-        siteUrl: operation.siteUrl,
-        topicKey: operation.topicKey,
-        title: session?.title || this.state.pageContext.title,
-        url: session?.url || this.state.pageContext.url,
-        forumName: operation.forumName,
-        provider: operation.provider,
-        settings: operation.settings,
-        systemPrompt: operation.systemPrompt,
-        responseLanguage: operation.responseLanguage
-      }, 'Unable to queue summary');
+      const task = await this.tasks.enqueue(
+        {
+          taskType: TASK_TYPE.SUMMARY,
+          topicId: operation.postId,
+          siteUrl: operation.siteUrl,
+          topicKey: operation.topicKey,
+          title: session?.title || this.state.pageContext.title,
+          url: session?.url || this.state.pageContext.url,
+          forumName: operation.forumName,
+          provider: operation.provider,
+          settings: operation.settings,
+          systemPrompt: operation.systemPrompt,
+          responseLanguage: operation.responseLanguage
+        },
+        'Unable to queue summary'
+      );
       if (!task) {
         this.hooks.markBackgroundUnavailable();
         return;

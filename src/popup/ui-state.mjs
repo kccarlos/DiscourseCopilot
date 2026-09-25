@@ -65,24 +65,12 @@ export function retentionCopy(retention) {
     savedIntro: forever
       ? `Conversations and Agent answers are kept until you delete them${limit ? `; past ${limit} saved topics the oldest unkept ones are removed` : ''}. Keep one to protect it.`
       : `Conversations and Agent answers expire after ${period}. Keep one to preserve it.`,
-    keepAnswer: forever
-      ? 'Keep this answer in Saved'
-      : `Keep this answer in Saved beyond ${period}`,
-    unkeepAnswer: forever
-      ? 'Kept in Saved. Select to unkeep it.'
-      : `Kept in Saved. Select to let it expire after ${period}.`,
-    keepSavedAnswer: forever
-      ? 'Keep this answer'
-      : `Keep this answer beyond ${period}`,
-    unkeepSavedAnswer: forever
-      ? 'Unkeep this answer'
-      : `Let this answer expire ${period} from now`,
-    keepTopic: forever
-      ? 'Keep this summary and conversation'
-      : `Keep this summary and conversation beyond ${period}`,
-    unkeepTopic: forever
-      ? 'Unkeep this summary and conversation'
-      : `Resume the ${period} conversation expiry`
+    keepAnswer: forever ? 'Keep this answer in Saved' : `Keep this answer in Saved beyond ${period}`,
+    unkeepAnswer: forever ? 'Kept in Saved. Select to unkeep it.' : `Kept in Saved. Select to let it expire after ${period}.`,
+    keepSavedAnswer: forever ? 'Keep this answer' : `Keep this answer beyond ${period}`,
+    unkeepSavedAnswer: forever ? 'Unkeep this answer' : `Let this answer expire ${period} from now`,
+    keepTopic: forever ? 'Keep this summary and conversation' : `Keep this summary and conversation beyond ${period}`,
+    unkeepTopic: forever ? 'Unkeep this summary and conversation' : `Resume the ${period} conversation expiry`
   };
 }
 
@@ -101,9 +89,7 @@ export function resolveIdleStatus({
     return null;
   }
   if (!isForumTopic && isDiscourse) {
-    return agentPanelShown
-      ? null
-      : { message: 'Ask the forum to search across discussions', type: 'info' };
+    return agentPanelShown ? null : { message: 'Ask the forum to search across discussions', type: 'info' };
   }
   if (!isForumTopic) {
     return { message: 'Open a Discourse forum topic to get started', type: 'info' };
@@ -114,12 +100,7 @@ export function resolveIdleStatus({
 // Quiet re-renders (settings changes, session reloads) normally leave the
 // status line alone, but a change in whether the provider is usable must
 // re-derive it, and a "set up your provider" message must not outlive setup.
-export function shouldRederiveStatus({
-  announce = false,
-  settingsValid = false,
-  previousSettingsValid,
-  statusKind = ''
-} = {}) {
+export function shouldRederiveStatus({ announce = false, settingsValid = false, previousSettingsValid, statusKind = '' } = {}) {
   if (announce) {
     return true;
   }

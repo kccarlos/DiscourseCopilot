@@ -9,15 +9,17 @@ function evidenceToolClient(siteUrl, calls = []) {
     async searchForum(args) {
       calls.push(['searchForum', args]);
       return {
-        hits: [{
-          postId: '101',
-          topicId: '10',
-          postNumber: 3,
-          topicSlug: 'referral-bonuses',
-          topicTitle: 'Referral bonuses',
-          excerpt: 'Amex referral bonus data point',
-          text: 'Amex referral bonus data point'
-        }]
+        hits: [
+          {
+            postId: '101',
+            topicId: '10',
+            postNumber: 3,
+            topicSlug: 'referral-bonuses',
+            topicTitle: 'Referral bonuses',
+            excerpt: 'Amex referral bonus data point',
+            text: 'Amex referral bonus data point'
+          }
+        ]
       };
     },
     async getTopic(args) {
@@ -32,12 +34,14 @@ function evidenceToolClient(siteUrl, calls = []) {
       calls.push(['getPosts', args]);
       return {
         topicId: args.topicId,
-        posts: [{
-          postId: '101',
-          topicId: args.topicId,
-          postNumber: 3,
-          text: 'The useful forum evidence is here.'
-        }]
+        posts: [
+          {
+            postId: '101',
+            topicId: args.topicId,
+            postNumber: 3,
+            text: 'The useful forum evidence is here.'
+          }
+        ]
       };
     },
     async getRawPage() {
@@ -70,13 +74,10 @@ test('retrieves bounded forum evidence and passes source content to answer gener
   assert.equal(result.sourceRefs[0].siteUrl, 'https://community.openai.com');
   assert.equal(result.sourceRefs[0].topicKey, 'community.openai.com/t/10');
   assert.equal(generatedSources[0].content, 'The useful forum evidence is here.');
-  assert.deepEqual(calls.map(([name]) => name), [
-    'searchForum',
-    'searchForum',
-    'searchForum',
-    'getTopic',
-    'getPosts'
-  ]);
+  assert.deepEqual(
+    calls.map(([name]) => name),
+    ['searchForum', 'searchForum', 'searchForum', 'getTopic', 'getPosts']
+  );
   assert.ok(patches.some(patch => patch.sourceRefs?.length === 1));
 });
 
@@ -103,12 +104,11 @@ test('returns a clear no-results answer without calling the model', async () => 
   assert.match(result.answer, /could not find/i);
   assert.match(result.answer, /community\.openai\.com/);
   assert.equal(searches.length, 3);
-  assert.deepEqual(searches, [
-    'Question with no matches?',
-    'Question with no matches',
-    'Question matches'
-  ]);
-  assert.deepEqual(result.searchQueries.map(entry => entry.query), searches);
+  assert.deepEqual(searches, ['Question with no matches?', 'Question with no matches', 'Question matches']);
+  assert.deepEqual(
+    result.searchQueries.map(entry => entry.query),
+    searches
+  );
 });
 
 test('builds source links under a subfolder forum base path', async () => {
@@ -118,23 +118,18 @@ test('builds source links under a subfolder forum base path', async () => {
     generateAnswer: async () => 'Answer [S1]'
   });
 
-  assert.equal(
-    result.sourceRefs[0].url,
-    'https://example.com/forum/t/referral-bonuses/10#post_101'
-  );
+  assert.equal(result.sourceRefs[0].url, 'https://example.com/forum/t/referral-bonuses/10#post_101');
   assert.equal(result.sourceRefs[0].topicKey, 'example.com/forum/t/10');
 });
 
 test('scopes source identity to the forum so equal topic IDs stay distinct', async () => {
-  const run = siteUrl => runAgentTask({
-    question: 'What is the Amex referral bonus?',
-    toolClient: evidenceToolClient(siteUrl),
-    generateAnswer: async () => 'Answer [S1]'
-  });
-  const [first, second] = await Promise.all([
-    run('https://community.openai.com'),
-    run('https://meta.discourse.org')
-  ]);
+  const run = siteUrl =>
+    runAgentTask({
+      question: 'What is the Amex referral bonus?',
+      toolClient: evidenceToolClient(siteUrl),
+      generateAnswer: async () => 'Answer [S1]'
+    });
+  const [first, second] = await Promise.all([run('https://community.openai.com'), run('https://meta.discourse.org')]);
 
   assert.equal(first.sourceRefs[0].topicId, second.sourceRefs[0].topicId);
   assert.notEqual(first.sourceRefs[0].topicKey, second.sourceRefs[0].topicKey);
@@ -144,17 +139,18 @@ test('scopes source identity to the forum so equal topic IDs stay distinct', asy
 test('refuses to run without a valid forum site on the tool client', async () => {
   let searched = false;
   await assert.rejects(
-    () => runAgentTask({
-      question: 'What is the Amex referral bonus?',
-      toolClient: {
-        siteUrl: 'javascript:alert(1)',
-        async searchForum() {
-          searched = true;
-          return { hits: [] };
-        }
-      },
-      generateAnswer: async () => 'unused'
-    }),
+    () =>
+      runAgentTask({
+        question: 'What is the Amex referral bonus?',
+        toolClient: {
+          siteUrl: 'javascript:alert(1)',
+          async searchForum() {
+            searched = true;
+            return { hits: [] };
+          }
+        },
+        generateAnswer: async () => 'unused'
+      }),
     /valid forum site URL/
   );
   assert.equal(searched, false);

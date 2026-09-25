@@ -54,8 +54,7 @@ export class AgentPanel {
     if (showPanel) {
       if (panel.dataset.activityId !== view.activity.activityId) {
         // Answers already read on an earlier visit start collapsed.
-        this.details.open = !isAgentActivityTerminal(view.activity.status)
-          || isAgentAnswerUnopened(view.activity);
+        this.details.open = !isAgentActivityTerminal(view.activity.status) || isAgentAnswerUnopened(view.activity);
       }
       this.renderHeader(view.activity);
       this.view.render(panel, view.activity, { mode: 'inline' });

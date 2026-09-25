@@ -66,9 +66,7 @@ export class AgentComposer {
   // makes sense while a topic is open.
   renderCopy(forumName, isForumTopic) {
     $('agentComposerHeading').textContent = this.searchLabel(forumName);
-    $('agentInput').placeholder = forumName
-      ? `Ask a question about ${forumName}…`
-      : 'Ask a question about this forum…';
+    $('agentInput').placeholder = forumName ? `Ask a question about ${forumName}…` : 'Ask a question about this forum…';
     $('agentTopicSuggestion').classList.toggle('hidden', !isForumTopic);
   }
 
@@ -113,19 +111,22 @@ export class AgentComposer {
 
     try {
       this.status.show('Submitting Agent research task…', 'loading');
-      const task = await this.tasks.enqueue({
-        taskType: TASK_TYPE.AGENT,
-        agentRunId: operation.id,
-        clientRequestId: operation.id,
-        title: question,
-        question,
-        siteUrl: operation.siteUrl,
-        forumName: operation.forumName,
-        provider: operation.provider,
-        settings: operation.settings,
-        systemPrompt: operation.systemPrompt,
-        responseLanguage: operation.responseLanguage
-      }, 'Unable to queue Agent research');
+      const task = await this.tasks.enqueue(
+        {
+          taskType: TASK_TYPE.AGENT,
+          agentRunId: operation.id,
+          clientRequestId: operation.id,
+          title: question,
+          question,
+          siteUrl: operation.siteUrl,
+          forumName: operation.forumName,
+          provider: operation.provider,
+          settings: operation.settings,
+          systemPrompt: operation.systemPrompt,
+          responseLanguage: operation.responseLanguage
+        },
+        'Unable to queue Agent research'
+      );
       if (!task) {
         this.hooks.markBackgroundUnavailable();
         return;

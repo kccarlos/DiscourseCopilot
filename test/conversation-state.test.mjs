@@ -90,24 +90,16 @@ test('ignores a stale content-script answer from the previous page', () => {
 });
 
 test('uses a saved site URL hint to identify subfolder topics without a content script', () => {
-  const context = getTopicContext(
-    { id: 1, url: 'https://example.com/forum/t/slug/42' },
-    null,
-    { siteUrlHint: 'https://example.com/forum' }
-  );
+  const context = getTopicContext({ id: 1, url: 'https://example.com/forum/t/slug/42' }, null, {
+    siteUrlHint: 'https://example.com/forum'
+  });
 
   assert.equal(context.topicKey, 'example.com/forum/t/42');
 });
 
 test('rejects non-topic pages and non-https remote hosts', () => {
-  assert.equal(
-    getTopicContext({ id: 1, url: 'https://www.uscardforum.com/latest' }).isForumTopic,
-    false
-  );
-  assert.equal(
-    getTopicContext({ id: 1, url: 'http://example.com/t/topic/12' }).isForumTopic,
-    false
-  );
+  assert.equal(getTopicContext({ id: 1, url: 'https://www.uscardforum.com/latest' }).isForumTopic, false);
+  assert.equal(getTopicContext({ id: 1, url: 'http://example.com/t/topic/12' }).isForumTopic, false);
   assert.equal(getTopicContext({ id: 1, url: 'chrome://extensions' }).isForumTopic, false);
 });
 
@@ -174,10 +166,7 @@ test('derives the topic key from any URL form of a topic', () => {
   assert.equal(topicKeyFromUrl('https://other.example.com/t/slug/123', site), '');
   assert.equal(topicKeyFromUrl('https://forum.example.com/latest', site), '');
   assert.equal(topicKeyFromUrl('not a url', site), '');
-  assert.equal(
-    topicKeyFromUrl('https://example.com/forum/t/slug/9/2', 'https://example.com/forum'),
-    'example.com/forum/t/9'
-  );
+  assert.equal(topicKeyFromUrl('https://example.com/forum/t/slug/9/2', 'https://example.com/forum'), 'example.com/forum/t/9');
   assert.equal(topicKeyFromUrl('https://example.com/t/slug/9', 'https://example.com/forum'), '');
 });
 
@@ -195,9 +184,6 @@ test('finds a tab already showing the topic, else any tab on the forum', () => {
   assert.equal(findTabForForumTarget(tabs.slice(0, 3), { siteUrl: site, topicKey }).id, 3);
   assert.equal(findTabForForumTarget(tabs.slice(0, 2), { siteUrl: site, topicKey }), null);
   assert.equal(findTabForForumTarget(tabs.slice(0, 2), { siteUrl: site }).id, 1);
-  assert.equal(
-    findTabForForumTarget([{ id: 9, url: 'https://elsewhere.example.com/' }], { siteUrl: site }),
-    null
-  );
+  assert.equal(findTabForForumTarget([{ id: 9, url: 'https://elsewhere.example.com/' }], { siteUrl: site }), null);
   assert.equal(findTabForForumTarget(null, { siteUrl: site }), null);
 });

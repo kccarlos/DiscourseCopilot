@@ -1,18 +1,6 @@
-import {
-  abortableDelay,
-  fetchWithRateLimitRetry,
-  parseRetryAfter
-} from '../shared/rate-limit-retry.mjs';
-import {
-  isSameForumUrl,
-  normalizeSiteUrl
-} from '../shared/forum-site.mjs';
-import {
-  FORUM_RESPONSE_KIND,
-  classifyForumResponse,
-  forumAccessMessage,
-  readForumResponse
-} from '../shared/forum-response.mjs';
+import { abortableDelay, fetchWithRateLimitRetry, parseRetryAfter } from '../shared/rate-limit-retry.mjs';
+import { isSameForumUrl, normalizeSiteUrl } from '../shared/forum-site.mjs';
+import { FORUM_RESPONSE_KIND, classifyForumResponse, forumAccessMessage, readForumResponse } from '../shared/forum-response.mjs';
 
 export const FORUM_TOOL_LIMITS = Object.freeze({
   maxQueryChars: 240,
@@ -31,11 +19,7 @@ function cleanText(value, maxLength = 500) {
 function positiveId(value, fieldName) {
   const normalized = String(value ?? '').trim();
   if (!/^\d+$/.test(normalized) || Number(normalized) <= 0) {
-    throw new ForumToolError(
-      'INVALID_ARGUMENT',
-      `${fieldName} must be a positive numeric ID`,
-      { retryable: false }
-    );
+    throw new ForumToolError('INVALID_ARGUMENT', `${fieldName} must be a positive numeric ID`, { retryable: false });
   }
   return normalized;
 }
@@ -43,11 +27,7 @@ function positiveId(value, fieldName) {
 function boundedPage(value, fieldName, max) {
   const page = Number(value ?? 1);
   if (!Number.isInteger(page) || page < 1 || page > max) {
-    throw new ForumToolError(
-      'INVALID_ARGUMENT',
-      `${fieldName} must be an integer between 1 and ${max}`,
-      { retryable: false }
-    );
+    throw new ForumToolError('INVALID_ARGUMENT', `${fieldName} must be an integer between 1 and ${max}`, { retryable: false });
   }
   return page;
 }
@@ -55,11 +35,7 @@ function boundedPage(value, fieldName, max) {
 function requireSiteUrl(siteUrl) {
   const normalized = normalizeSiteUrl(siteUrl);
   if (!normalized) {
-    throw new ForumToolError(
-      'INVALID_ARGUMENT',
-      'A valid forum site URL is required',
-      { retryable: false }
-    );
+    throw new ForumToolError('INVALID_ARGUMENT', 'A valid forum site URL is required', { retryable: false });
   }
   return normalized;
 }
@@ -81,9 +57,7 @@ function topicPath(topicId, slug = '') {
   const normalizedSlug = cleanText(slug, 180)
     .replace(/^\/+|\/+$/g, '')
     .replace(/[^a-zA-Z0-9_-]+/g, '-');
-  return normalizedSlug
-    ? `/t/${encodeURIComponent(normalizedSlug)}/${normalizedId}`
-    : `/t/${normalizedId}`;
+  return normalizedSlug ? `/t/${encodeURIComponent(normalizedSlug)}/${normalizedId}` : `/t/${normalizedId}`;
 }
 
 export function buildTopicUrl({ siteUrl, topicId, slug = '', postId = '' } = {}) {
@@ -102,12 +76,7 @@ export function isAllowedForumUrl(value, siteUrl) {
 }
 
 export class ForumToolError extends Error {
-  constructor(code, message, {
-    status = 0,
-    retryable = true,
-    needsUserAction = false,
-    retryAfterMs = 0
-  } = {}) {
+  constructor(code, message, { status = 0, retryable = true, needsUserAction = false, retryAfterMs = 0 } = {}) {
     super(message);
     this.name = 'ForumToolError';
     this.code = code;
@@ -119,11 +88,7 @@ export class ForumToolError extends Error {
 }
 
 export class ForumRequestGovernor {
-  constructor({
-    minIntervalMs = 750,
-    now = () => Date.now(),
-    wait = abortableDelay
-  } = {}) {
+  constructor({ minIntervalMs = 750, now = () => Date.now(), wait = abortableDelay } = {}) {
     this.minIntervalMs = Math.max(0, Number(minIntervalMs) || 0);
     this.now = now;
     this.wait = wait;
@@ -163,9 +128,7 @@ function normalizePost(post, fallbackTopicId = '') {
   return {
     postId: /^\d+$/.test(postId) ? postId : '',
     topicId,
-    postNumber: Number.isInteger(post.post_number) && post.post_number > 0
-      ? post.post_number
-      : null,
+    postNumber: Number.isInteger(post.post_number) && post.post_number > 0 ? post.post_number : null,
     topicSlug: cleanText(post.topic_slug, 180),
     topicTitle: cleanText(post.topic_title || post.title, 500),
     username: cleanText(post.username || post.name, 120),
@@ -176,17 +139,19 @@ function normalizePost(post, fallbackTopicId = '') {
 }
 
 function normalizeSearchResponse(data) {
-  const posts = Array.isArray(data?.posts)
-    ? data.posts.map(post => normalizePost(post)).filter(Boolean)
-    : [];
+  const posts = Array.isArray(data?.posts) ? data.posts.map(post => normalizePost(post)).filter(Boolean) : [];
   const topics = Array.isArray(data?.topics)
-    ? data.topics.map(topic => normalizePost({
-        ...topic,
-        topic_id: topic.id || topic.topic_id,
-        topic_title: topic.title,
-        topic_slug: topic.slug,
-        blurb: topic.excerpt || topic.blurb
-      })).filter(Boolean)
+    ? data.topics
+        .map(topic =>
+          normalizePost({
+            ...topic,
+            topic_id: topic.id || topic.topic_id,
+            topic_title: topic.title,
+            topic_slug: topic.slug,
+            blurb: topic.excerpt || topic.blurb
+          })
+        )
+        .filter(Boolean)
     : [];
   return {
     more: data?.more_results === true,
@@ -204,17 +169,16 @@ function normalizeTopic(data, topicId) {
     lastPostedAt: cleanText(data?.last_posted_at, 80),
     category: cleanText(data?.category_name, 160),
     tags: Array.isArray(data?.tags)
-      ? data.tags.map(tag => cleanText(tag, 80)).filter(Boolean).slice(0, 20)
+      ? data.tags
+          .map(tag => cleanText(tag, 80))
+          .filter(Boolean)
+          .slice(0, 20)
       : []
   };
 }
 
 function normalizePostsResponse(data, topicId) {
-  const posts = Array.isArray(data?.post_stream?.posts)
-    ? data.post_stream.posts
-    : Array.isArray(data?.posts)
-      ? data.posts
-      : [];
+  const posts = Array.isArray(data?.post_stream?.posts) ? data.post_stream.posts : Array.isArray(data?.posts) ? data.posts : [];
   return {
     topicId,
     posts: posts.map(post => normalizePost(post, topicId)).filter(Boolean)
@@ -222,13 +186,7 @@ function normalizePostsResponse(data, topicId) {
 }
 
 export class ForumToolClient {
-  constructor({
-    siteUrl,
-    fetchImpl = globalThis.fetch,
-    signal,
-    governor = new ForumRequestGovernor(),
-    onEvent = () => {}
-  } = {}) {
+  constructor({ siteUrl, fetchImpl = globalThis.fetch, signal, governor = new ForumRequestGovernor(), onEvent = () => {} } = {}) {
     // Every request URL is built from this site URL; callers (and the model)
     // only ever supply IDs and search text.
     this.siteUrl = requireSiteUrl(siteUrl);
@@ -240,11 +198,7 @@ export class ForumToolClient {
 
   async request(toolName, url, { parse = 'json', signal = this.signal } = {}) {
     if (!isAllowedForumUrl(url, this.siteUrl)) {
-      throw new ForumToolError(
-        'INVALID_URL',
-        'Forum tools may only access the authorized forum',
-        { retryable: false }
-      );
+      throw new ForumToolError('INVALID_URL', 'Forum tools may only access the authorized forum', { retryable: false });
     }
     await this.governor.beforeRequest(signal);
     const startedAt = Date.now();
@@ -273,20 +227,14 @@ export class ForumToolClient {
       const snapshot = await readForumResponse(response);
       const kind = classifyForumResponse(snapshot, this.siteUrl, { expect: parse });
       if (kind === FORUM_RESPONSE_KIND.LOGIN_REQUIRED || kind === FORUM_RESPONSE_KIND.CHALLENGE) {
-        throw new ForumToolError(
-          'USER_ACTION_REQUIRED',
-          forumAccessMessage(kind, this.siteUrl),
-          {
-            status: response.status,
-            retryable: false,
-            needsUserAction: true
-          }
-        );
+        throw new ForumToolError('USER_ACTION_REQUIRED', forumAccessMessage(kind, this.siteUrl), {
+          status: response.status,
+          retryable: false,
+          needsUserAction: true
+        });
       }
       if (!response.ok) {
-        const retryAfterMs = parseRetryAfter(
-          response.headers?.get?.('Retry-After')
-        ) || 0;
+        const retryAfterMs = parseRetryAfter(response.headers?.get?.('Retry-After')) || 0;
         throw new ForumToolError(
           response.status === 429 ? 'RATE_LIMITED' : 'HTTP_ERROR',
           `Forum request failed with HTTP ${response.status}`,
@@ -303,10 +251,7 @@ export class ForumToolClient {
         try {
           result = JSON.parse(snapshot.body);
         } catch {
-          throw new ForumToolError(
-            'INVALID_RESPONSE',
-            'The forum returned an unexpected response.'
-          );
+          throw new ForumToolError('INVALID_RESPONSE', 'The forum returned an unexpected response.');
         }
       } else {
         result = snapshot.body;
@@ -336,10 +281,7 @@ export class ForumToolClient {
       });
     }
     const normalizedPage = boundedPage(page, 'page', FORUM_TOOL_LIMITS.maxSearchPage);
-    const data = await this.request(
-      'searchForum',
-      requestUrl(this.siteUrl, '/search.json', { q: normalizedQuery, page: normalizedPage })
-    );
+    const data = await this.request('searchForum', requestUrl(this.siteUrl, '/search.json', { q: normalizedQuery, page: normalizedPage }));
     return {
       query: normalizedQuery,
       page: normalizedPage,
@@ -349,25 +291,16 @@ export class ForumToolClient {
 
   async getTopic({ topicId } = {}) {
     const normalizedTopicId = positiveId(topicId, 'topicId');
-    const data = await this.request(
-      'getTopic',
-      requestUrl(this.siteUrl, `/t/${normalizedTopicId}.json`)
-    );
+    const data = await this.request('getTopic', requestUrl(this.siteUrl, `/t/${normalizedTopicId}.json`));
     return normalizeTopic(data, normalizedTopicId);
   }
 
   async getPosts({ topicId, postIds = [] } = {}) {
     const normalizedTopicId = positiveId(topicId, 'topicId');
-    if (
-      !Array.isArray(postIds)
-      || postIds.length < 1
-      || postIds.length > FORUM_TOOL_LIMITS.maxPostIds
-    ) {
-      throw new ForumToolError(
-        'INVALID_ARGUMENT',
-        `postIds must contain between 1 and ${FORUM_TOOL_LIMITS.maxPostIds} IDs`,
-        { retryable: false }
-      );
+    if (!Array.isArray(postIds) || postIds.length < 1 || postIds.length > FORUM_TOOL_LIMITS.maxPostIds) {
+      throw new ForumToolError('INVALID_ARGUMENT', `postIds must contain between 1 and ${FORUM_TOOL_LIMITS.maxPostIds} IDs`, {
+        retryable: false
+      });
     }
     const normalizedPostIds = [...new Set(postIds.map(postId => positiveId(postId, 'postId')))];
     const url = new URL(requestUrl(this.siteUrl, `/t/${normalizedTopicId}/posts.json`));
@@ -381,11 +314,9 @@ export class ForumToolClient {
   async getRawPage({ topicId, page = 1 } = {}) {
     const normalizedTopicId = positiveId(topicId, 'topicId');
     const normalizedPage = boundedPage(page, 'page', FORUM_TOOL_LIMITS.maxRawPage);
-    const content = await this.request(
-      'getRawPage',
-      requestUrl(this.siteUrl, `/raw/${normalizedTopicId}`, { page: normalizedPage }),
-      { parse: 'text' }
-    );
+    const content = await this.request('getRawPage', requestUrl(this.siteUrl, `/raw/${normalizedTopicId}`, { page: normalizedPage }), {
+      parse: 'text'
+    });
     return {
       topicId: normalizedTopicId,
       page: normalizedPage,

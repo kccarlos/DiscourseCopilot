@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  setPostCopyAvailability,
-  writeClipboardText
-} from '../src/popup/clipboard.mjs';
+import { setPostCopyAvailability, writeClipboardText } from '../src/popup/clipboard.mjs';
 
 test('enables full-post copying when the fetched content is ready', () => {
   const button = { disabled: true };
@@ -44,7 +41,7 @@ test('waits for the clipboard write to complete', async () => {
   let settled = false;
   const clipboard = {
     writeText() {
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         finishWrite = resolve;
       });
     }
@@ -63,15 +60,9 @@ test('waits for the clipboard write to complete', async () => {
 });
 
 test('reports when clipboard access is unavailable', async () => {
-  await assert.rejects(
-    writeClipboardText('post', null),
-    /Clipboard access is unavailable/
-  );
+  await assert.rejects(writeClipboardText('post', null), /Clipboard access is unavailable/);
 });
 
 test('rejects non-string clipboard content', async () => {
-  await assert.rejects(
-    writeClipboardText(null, { writeText() {} }),
-    /Clipboard text must be a string/
-  );
+  await assert.rejects(writeClipboardText(null, { writeText() {} }), /Clipboard text must be a string/);
 });

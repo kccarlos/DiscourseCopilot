@@ -8,11 +8,8 @@ function toPositiveInteger(value) {
 
 export function getTopicPagination(metadata) {
   const postStream = metadata?.post_stream;
-  const streamCount = Array.isArray(postStream?.stream)
-    ? postStream.stream.length
-    : null;
-  const totalPosts = toPositiveInteger(streamCount)
-    ?? toPositiveInteger(metadata?.posts_count);
+  const streamCount = Array.isArray(postStream?.stream) ? postStream.stream.length : null;
+  const totalPosts = toPositiveInteger(streamCount) ?? toPositiveInteger(metadata?.posts_count);
 
   if (!totalPosts) {
     return null;
@@ -36,22 +33,12 @@ export function calculateFetchProgress({
 }) {
   const hasKnownTotal = Number.isInteger(totalPages) && totalPages > 0;
   const completedPages = Math.max(0, Number(currentPage) || 0);
-  const remainingPages = hasKnownTotal
-    ? Math.max(0, totalPages - completedPages)
-    : null;
-  const percent = hasKnownTotal
-    ? Math.min(100, Math.round((completedPages / totalPages) * 100))
-    : null;
-  const processedPosts = totalPosts && pageSize
-    ? Math.min(totalPosts, completedPages * pageSize)
-    : null;
+  const remainingPages = hasKnownTotal ? Math.max(0, totalPages - completedPages) : null;
+  const percent = hasKnownTotal ? Math.min(100, Math.round((completedPages / totalPages) * 100)) : null;
+  const processedPosts = totalPosts && pageSize ? Math.min(totalPosts, completedPages * pageSize) : null;
   const parallelRequests = Math.max(1, Math.floor(Number(concurrency) || 1));
-  const remainingWaves = remainingPages === null
-    ? null
-    : Math.ceil(remainingPages / parallelRequests);
-  const etaMs = remainingWaves !== null && averageRequestMs >= 0
-    ? Math.ceil(remainingWaves * (averageRequestMs + requestDelayMs))
-    : null;
+  const remainingWaves = remainingPages === null ? null : Math.ceil(remainingPages / parallelRequests);
+  const etaMs = remainingWaves !== null && averageRequestMs >= 0 ? Math.ceil(remainingWaves * (averageRequestMs + requestDelayMs)) : null;
 
   return {
     currentPage: completedPages,

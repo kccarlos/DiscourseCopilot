@@ -115,10 +115,12 @@ function syncContentScripts() {
 }
 void syncContentScripts();
 subscribeForumAccess(({ type, origins }) => {
-  void syncContentScripts().then(() => (type === 'added'
-    // Show the launcher in tabs already open on a newly enabled forum.
-    ? injectForumContentScript(origins)
-    : undefined));
+  void syncContentScripts().then(() =>
+    type === 'added'
+      ? // Show the launcher in tabs already open on a newly enabled forum.
+        injectForumContentScript(origins)
+      : undefined
+  );
 });
 
 // Browser start: make sure the registration matches the granted forums.
@@ -154,10 +156,9 @@ chrome.runtime.onInstalled?.addListener(details => {
     return;
   }
   const optionsPage = chrome.runtime.getManifest?.().options_page || 'src/settings/settings.html';
-  Promise.resolve(chrome.tabs.create({ url: `${chrome.runtime.getURL(optionsPage)}?welcome=1` }))
-    .catch(error => {
-      console.warn('Background: Unable to open the welcome page:', error);
-    });
+  Promise.resolve(chrome.tabs.create({ url: `${chrome.runtime.getURL(optionsPage)}?welcome=1` })).catch(error => {
+    console.warn('Background: Unable to open the welcome page:', error);
+  });
 });
 
 // Clicking the toolbar icon grants activeTab for that tab, which lets the
@@ -182,59 +183,59 @@ chrome.action.onClicked.addListener(tab => {
     .then(() => broadcast({ action: MESSAGES.ACTION_CLICKED, tabId: tab.id }));
 });
 
-chrome.runtime.onMessage.addListener(createMessageRouter({
-  // Content script: enable the side panel on forum pages.
-  [MESSAGES.PAGE_CHANGED]: (request, sender, sendResponse) => {
-    if (!sender.tab?.id) {
-      return undefined;
-    }
-    return respondAsync(() => chrome.sidePanel.setOptions({
-      tabId: sender.tab.id,
-      path: SIDE_PANEL_PATH,
-      enabled: request.isDiscourse === true
-        || request.isForumPage === true
-        || Boolean(request.postId)
-    }))(request, sender, sendResponse);
-  },
+chrome.runtime.onMessage.addListener(
+  createMessageRouter({
+    // Content script: enable the side panel on forum pages.
+    [MESSAGES.PAGE_CHANGED]: (request, sender, sendResponse) => {
+      if (!sender.tab?.id) {
+        return undefined;
+      }
+      return respondAsync(() =>
+        chrome.sidePanel.setOptions({
+          tabId: sender.tab.id,
+          path: SIDE_PANEL_PATH,
+          enabled: request.isDiscourse === true || request.isForumPage === true || Boolean(request.postId)
+        })
+      )(request, sender, sendResponse);
+    },
 
-  // Content script: the in-page launcher button.
-  [MESSAGES.OPEN_SIDE_PANEL]: (request, sender, sendResponse) => {
-    if (!sender.tab?.id) {
-      sendResponse({ success: false, error: 'No forum tab is available' });
-      return false;
-    }
-    return respondAsync(() => chrome.sidePanel.open({ tabId: sender.tab.id }))(
-      request, sender, sendResponse
-    );
-  },
+    // Content script: the in-page launcher button.
+    [MESSAGES.OPEN_SIDE_PANEL]: (request, sender, sendResponse) => {
+      if (!sender.tab?.id) {
+        sendResponse({ success: false, error: 'No forum tab is available' });
+        return false;
+      }
+      return respondAsync(() => chrome.sidePanel.open({ tabId: sender.tab.id }))(request, sender, sendResponse);
+    },
 
-  // Side panel: the user just enabled a forum. Register the content script
-  // and inject it into the forum's open tabs before the panel re-checks the
-  // page (permissions.onAdded does the same; both are idempotent).
-  [MESSAGES.SYNC_FORUM_ACCESS]: respondAsync(async request => {
-    const granted = await hasForumAccess(request.siteUrl);
-    await syncContentScripts();
-    const origin = originFromPattern(forumOriginPattern(request.siteUrl));
-    const injected = granted && origin ? await injectForumContentScript([origin]) : 0;
-    return { granted, injected };
-  }),
+    // Side panel: the user just enabled a forum. Register the content script
+    // and inject it into the forum's open tabs before the panel re-checks the
+    // page (permissions.onAdded does the same; both are idempotent).
+    [MESSAGES.SYNC_FORUM_ACCESS]: respondAsync(async request => {
+      const granted = await hasForumAccess(request.siteUrl);
+      await syncContentScripts();
+      const origin = originFromPattern(forumOriginPattern(request.siteUrl));
+      const injected = granted && origin ? await injectForumContentScript([origin]) : 0;
+      return { granted, injected };
+    }),
 
-  // Side panel: task queue.
-  [MESSAGES.ENQUEUE_TASK]: respondAsync(async request => ({
-    task: await taskService.enqueue(request)
-  })),
-  [MESSAGES.CANCEL_TASK]: respondAsync(async request => ({
-    task: await taskService.cancel(request.taskId)
-  })),
-  [MESSAGES.RESUME_TASK]: respondAsync(async request => ({
-    task: await taskService.resume(request.taskId)
-  })),
-  [MESSAGES.LIST_TASKS]: respondAsync(async () => {
-    await taskService.ready;
-    return { tasks: taskService.list() };
-  }),
-  [MESSAGES.TASK_HEARTBEAT]: respondAsync(async () => {
-    await taskService.ready;
-    return { activeTasks: taskService.activeTaskCount() };
+    // Side panel: task queue.
+    [MESSAGES.ENQUEUE_TASK]: respondAsync(async request => ({
+      task: await taskService.enqueue(request)
+    })),
+    [MESSAGES.CANCEL_TASK]: respondAsync(async request => ({
+      task: await taskService.cancel(request.taskId)
+    })),
+    [MESSAGES.RESUME_TASK]: respondAsync(async request => ({
+      task: await taskService.resume(request.taskId)
+    })),
+    [MESSAGES.LIST_TASKS]: respondAsync(async () => {
+      await taskService.ready;
+      return { tasks: taskService.list() };
+    }),
+    [MESSAGES.TASK_HEARTBEAT]: respondAsync(async () => {
+      await taskService.ready;
+      return { activeTasks: taskService.activeTaskCount() };
+    })
   })
-}));
+);

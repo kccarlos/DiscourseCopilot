@@ -8,10 +8,7 @@ import test from 'node:test';
 import { TaskService } from '../src/background/task-service.mjs';
 import { AgentActivityStore } from '../src/background/agent-activity-store.mjs';
 import { createTopicExecutors } from '../src/background/topic-executors.mjs';
-import {
-  FORUM_ACCESS_REQUIRED_TEXT,
-  createAgentExecutor
-} from '../src/background/agent-executor.mjs';
+import { FORUM_ACCESS_REQUIRED_TEXT, createAgentExecutor } from '../src/background/agent-executor.mjs';
 import { ForumRequestGovernor } from '../src/background/forum-tools.mjs';
 import { JobQueue } from '../src/background/job-queue.mjs';
 import { readConfig } from '../src/shared/config-state.mjs';
@@ -34,17 +31,38 @@ function fakeDb() {
     async cleanupAgentActivities() {},
     async prune() {},
     setRetention() {},
-    async listTasks() { return [...tasks.values()]; },
-    async saveTask(task) { tasks.set(task.id, { ...task }); },
-    async getAgentActivity(id) { return activities.get(id) || null; },
-    async saveAgentActivity(activity) { activities.set(activity.activityId, { ...activity }); return { ...activity }; },
-    async deleteAgentActivity(id) { activities.delete(id); },
-    async get(key) { return sessions.get(key) || null; },
-    async save(session) { sessions.set(session.topicKey, { ...session }); }
+    async listTasks() {
+      return [...tasks.values()];
+    },
+    async saveTask(task) {
+      tasks.set(task.id, { ...task });
+    },
+    async getAgentActivity(id) {
+      return activities.get(id) || null;
+    },
+    async saveAgentActivity(activity) {
+      activities.set(activity.activityId, { ...activity });
+      return { ...activity };
+    },
+    async deleteAgentActivity(id) {
+      activities.delete(id);
+    },
+    async get(key) {
+      return sessions.get(key) || null;
+    },
+    async save(session) {
+      sessions.set(session.topicKey, { ...session });
+    }
   };
 }
 
-const alarms = { async get() {}, create() {}, async clear() { return true; } };
+const alarms = {
+  async get() {},
+  create() {},
+  async clear() {
+    return true;
+  }
+};
 
 test('enqueue refuses a forum that is not enabled, before queuing anything', async () => {
   const db = fakeDb();
@@ -81,7 +99,9 @@ test('enqueue refuses a forum that is not enabled, before queuing anything', asy
 function topicExecutors({ access, fetchTopicContent }) {
   return createTopicExecutors({
     aiService: {
-      async generateSummary() { return 'summary'; }
+      async generateSummary() {
+        return 'summary';
+      }
     },
     db: fakeDb(),
     broadcast: () => {},
@@ -98,7 +118,9 @@ test('a summary for a forum without access fails fast with the actionable error'
   let fetched = 0;
   const { executeSummaryTask } = topicExecutors({
     access: () => false,
-    fetchTopicContent: async () => { fetched++; }
+    fetchTopicContent: async () => {
+      fetched++;
+    }
   });
   await assert.rejects(
     executeSummaryTask(summaryTask, { signal: new AbortController().signal, report: noopReport }),
@@ -124,7 +146,9 @@ test('access removed while reading turns the refused request into the access err
   // A network error with access still granted stays what it is.
   const { executeSummaryTask: other } = topicExecutors({
     access: () => true,
-    fetchTopicContent: async () => { throw new TypeError('Failed to fetch'); }
+    fetchTopicContent: async () => {
+      throw new TypeError('Failed to fetch');
+    }
   });
   await assert.rejects(
     other(summaryTask, { signal: new AbortController().signal, report: noopReport }),
@@ -147,7 +171,11 @@ test('an Agent run waits for access, then Continue finishes it', async () => {
   };
   try {
     const execute = createAgentExecutor({
-      aiService: { async generateAgentAnswer() { return 'answer'; } },
+      aiService: {
+        async generateAgentAnswer() {
+          return 'answer';
+        }
+      },
       activities,
       broadcast: () => {},
       getTaskConfiguration: async () => ({
@@ -162,15 +190,19 @@ test('an Agent run waits for access, then Continue finishes it', async () => {
     const transitions = [];
     const queue = new JobQueue({
       execute,
-      onTransition: async task => { transitions.push({ ...task }); }
+      onTransition: async task => {
+        transitions.push({ ...task });
+      }
     });
-    await queue.enqueue(createTaskRecord({
-      id: 'a1',
-      type: 'agent',
-      siteUrl: SITE,
-      agentRunId: 'a1',
-      question: 'How do I reset my password?'
-    }));
+    await queue.enqueue(
+      createTaskRecord({
+        id: 'a1',
+        type: 'agent',
+        siteUrl: SITE,
+        agentRunId: 'a1',
+        question: 'How do I reset my password?'
+      })
+    );
     await queue.waitForIdle();
 
     const waiting = queue.list().find(task => task.id === 'a1');
@@ -193,7 +225,10 @@ test('an Agent run waits for access, then Continue finishes it', async () => {
     await queue.waitForIdle();
     const done = queue.list().find(task => task.id === 'a1');
     assert.equal(done.status, TASK_STATUS.COMPLETED);
-    assert.ok(requests.some(url => url.startsWith(`${SITE}/search.json`)), requests.join(','));
+    assert.ok(
+      requests.some(url => url.startsWith(`${SITE}/search.json`)),
+      requests.join(',')
+    );
     assert.equal((await activities.get('a1')).status, AGENT_ACTIVITY_STATUS.COMPLETED);
   } finally {
     globalThis.fetch = previousFetch;
@@ -211,7 +246,11 @@ test('access removed during Agent research waits instead of failing', async () =
   };
   try {
     const execute = createAgentExecutor({
-      aiService: { async generateAgentAnswer() { return 'answer'; } },
+      aiService: {
+        async generateAgentAnswer() {
+          return 'answer';
+        }
+      },
       activities,
       broadcast: () => {},
       getTaskConfiguration: async () => ({ provider: 'openai', settings: {}, limits: {} }),

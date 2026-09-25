@@ -57,9 +57,7 @@ export function deriveModelSwitcher({ ready, provider, model, favorites, provide
     options,
     selectedValue,
     selectTitle: mode === 'select' ? `${label}\nSwitch to another favorite model` : 'Switch to a favorite model',
-    selectAriaLabel: mode === 'select'
-      ? `AI model: ${label}. Switch favorite model`
-      : 'Switch to a favorite model',
+    selectAriaLabel: mode === 'select' ? `AI model: ${label}. Switch favorite model` : 'Switch to a favorite model',
     chipTitle: `${label}\n${MODEL_SWITCHER_HINT}`,
     chipAriaLabel: `AI model: ${label}. Open AI provider settings`
   };
@@ -159,9 +157,7 @@ export class ProviderHeader {
   }
 
   async switchFavoriteModel(key) {
-    const favorite = this.config.config.favorites.find(
-      item => favoriteModelKey(item.provider, item.model) === key
-    );
+    const favorite = this.config.config.favorites.find(item => favoriteModelKey(item.provider, item.model) === key);
     if (!favorite) {
       this.renderSwitcher();
       return;

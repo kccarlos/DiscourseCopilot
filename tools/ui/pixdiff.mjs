@@ -12,7 +12,12 @@ if (!a || !b) {
 }
 
 if (fs.statSync(a).isDirectory()) {
-  const files = names.length ? names : fs.readdirSync(a).filter(f => f.endsWith('.png')).sort();
+  const files = names.length
+    ? names
+    : fs
+        .readdirSync(a)
+        .filter(f => f.endsWith('.png'))
+        .sort();
   process.exit((await compareDirs(a, b, files)) ? 0 : 1);
 } else {
   const result = await compareImages(a, b);

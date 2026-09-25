@@ -20,11 +20,12 @@ export function respondAsync(run) {
       .then(() => run(request, sender))
       .then(
         result => sendResponse({ success: true, ...result }),
-        error => sendResponse({
-          success: false,
-          error: error?.message,
-          ...(error?.code ? { code: error.code } : {})
-        })
+        error =>
+          sendResponse({
+            success: false,
+            error: error?.message,
+            ...(error?.code ? { code: error.code } : {})
+          })
       );
     return true;
   };

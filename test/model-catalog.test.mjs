@@ -24,10 +24,24 @@ const { PROVIDER_CONFIGS: configs } = DiscourseCopilotConstants;
 const FIXTURES = {
   openrouter: {
     data: [
-      { id: 'openai/gpt-6-luna', name: 'OpenAI: GPT-6 Luna', created: 1790100786, architecture: { input_modalities: ['text', 'image'], output_modalities: ['text'] } },
-      { id: 'google/gemini-3.1-flash-image', name: 'Nano Banana 2', created: 1788000000, architecture: { input_modalities: ['text', 'image'], output_modalities: ['image', 'text'] } },
+      {
+        id: 'openai/gpt-6-luna',
+        name: 'OpenAI: GPT-6 Luna',
+        created: 1790100786,
+        architecture: { input_modalities: ['text', 'image'], output_modalities: ['text'] }
+      },
+      {
+        id: 'google/gemini-3.1-flash-image',
+        name: 'Nano Banana 2',
+        created: 1788000000,
+        architecture: { input_modalities: ['text', 'image'], output_modalities: ['image', 'text'] }
+      },
       { id: 'black-forest-labs/flux-3', created: 1789000000, architecture: { input_modalities: ['text'], output_modalities: ['image'] } },
-      { id: 'openai/text-embedding-4', created: 1787000000, architecture: { input_modalities: ['text'], output_modalities: ['embeddings'] } },
+      {
+        id: 'openai/text-embedding-4',
+        created: 1787000000,
+        architecture: { input_modalities: ['text'], output_modalities: ['embeddings'] }
+      },
       { id: 'deepseek/deepseek-v4.1-flash', created: 1789021285, architecture: { input_modalities: ['text'], output_modalities: ['text'] } }
     ]
   },
@@ -89,7 +103,13 @@ const FIXTURES = {
       { id: 'grok-imagine-image', object: 'model', created: 1780000000 }
     ]
   },
-  deepseek: { object: 'list', data: [{ id: 'deepseek-flash', object: 'model' }, { id: 'deepseek-v4-pro', object: 'model' }] },
+  deepseek: {
+    object: 'list',
+    data: [
+      { id: 'deepseek-flash', object: 'model' },
+      { id: 'deepseek-v4-pro', object: 'model' }
+    ]
+  },
   lmstudio: {
     object: 'list',
     data: [
@@ -106,7 +126,11 @@ const ids = models => models.map(model => model.id);
 test('normalizeModelList keeps chat models only, newest first where dated', () => {
   assert.deepEqual(ids(normalizeModelList('openrouter', FIXTURES.openrouter)), ['openai/gpt-6-luna', 'deepseek/deepseek-v4.1-flash']);
   assert.deepEqual(ids(normalizeModelList('openai', FIXTURES.openai)), ['gpt-6-luna', 'o4-mini', 'gpt-4o-mini']);
-  assert.deepEqual(ids(normalizeModelList('anthropic', FIXTURES.anthropic)), ['claude-opus-5-5', 'claude-sonnet-5', 'claude-haiku-4-5-20251001']);
+  assert.deepEqual(ids(normalizeModelList('anthropic', FIXTURES.anthropic)), [
+    'claude-opus-5-5',
+    'claude-sonnet-5',
+    'claude-haiku-4-5-20251001'
+  ]);
   assert.deepEqual(normalizeModelList('anthropic', FIXTURES.anthropic)[0].name, 'Claude Opus 5.5');
   assert.deepEqual(ids(normalizeModelList('groq', FIXTURES.groq)), ['openai/gpt-oss-120b', 'openai/gpt-oss-20b']);
   assert.deepEqual(ids(normalizeModelList('gemini', FIXTURES.gemini)), ['gemini-3.8-flash', 'gemini-3.5-flash-lite']);
@@ -128,8 +152,20 @@ test('isChatModelId rejects speech, image, embedding and moderation models', () 
   for (const id of ['gpt-6-luna', 'gemini-3.5-flash-lite', 'claude-haiku-4-5', 'llama3.2:latest', 'olive-7b', 'imagination-2']) {
     assert.equal(isChatModelId(id), true, id);
   }
-  for (const id of ['', 'text-embedding-3-small', 'nomic-embed-text', 'gpt-4o-mini-tts', 'whisper-1', 'gpt-image-2',
-    'gpt-realtime', 'gemini-3.8-live', 'llama-guard-4-12b', 'omni-moderation-latest', 'dall-e-3', 'sora-2']) {
+  for (const id of [
+    '',
+    'text-embedding-3-small',
+    'nomic-embed-text',
+    'gpt-4o-mini-tts',
+    'whisper-1',
+    'gpt-image-2',
+    'gpt-realtime',
+    'gemini-3.8-live',
+    'llama-guard-4-12b',
+    'omni-moderation-latest',
+    'dall-e-3',
+    'sora-2'
+  ]) {
     assert.equal(isChatModelId(id), false, id);
   }
 });
@@ -182,8 +218,14 @@ test('pickDefaultModel falls back through the curated list, then a small/fast mo
   assert.equal(pickDefaultModel('openai', ['gpt-6-sol', 'gpt-5.4-mini', 'gpt-5.6-luna']), 'gpt-5.6-luna');
   assert.equal(pickDefaultModel('anthropic', ['claude-opus-5-5', 'claude-sonnet-5']), 'claude-sonnet-5');
   // No curated model left: the first small/fast-looking one that isn't a preview.
-  assert.equal(pickDefaultModel('gemini', ['gemini-9-pro', 'gemini-9-flash-preview', 'gemini-9-flash', 'gemini-9-flash-lite']), 'gemini-9-flash');
-  assert.equal(pickDefaultModel('openrouter', ['~vendor/fast-latest', 'vendor/big-model', 'vendor/tiny-mini:free', 'vendor/tiny-mini']), 'vendor/tiny-mini');
+  assert.equal(
+    pickDefaultModel('gemini', ['gemini-9-pro', 'gemini-9-flash-preview', 'gemini-9-flash', 'gemini-9-flash-lite']),
+    'gemini-9-flash'
+  );
+  assert.equal(
+    pickDefaultModel('openrouter', ['~vendor/fast-latest', 'vendor/big-model', 'vendor/tiny-mini:free', 'vendor/tiny-mini']),
+    'vendor/tiny-mini'
+  );
   assert.equal(pickDefaultModel('xai', ['grok-9', 'grok-9-fast']), 'grok-9-fast');
   // Nothing small: the first usable one.
   assert.equal(pickDefaultModel('deepseek', ['deepseek-vision-exp', 'deepseek-v9', 'deepseek-v9-pro']), 'deepseek-v9');
@@ -219,14 +261,23 @@ test('findOfferedModel matches aliases, dated snapshots and Ollama tags', () => 
 
 test('orderModelChoices puts offered recommended models first, labelled', () => {
   const choices = orderModelChoices('anthropic', normalizeModelList('anthropic', FIXTURES.anthropic));
-  assert.deepEqual(choices.map(choice => [choice.id, choice.name, choice.recommended]), [
-    ['claude-haiku-4-5', 'Recommended', true],
-    ['claude-sonnet-5', 'Recommended', true],
-    ['claude-opus-5-5', 'Recommended', true]
-  ]);
+  assert.deepEqual(
+    choices.map(choice => [choice.id, choice.name, choice.recommended]),
+    [
+      ['claude-haiku-4-5', 'Recommended', true],
+      ['claude-sonnet-5', 'Recommended', true],
+      ['claude-opus-5-5', 'Recommended', true]
+    ]
+  );
   const openai = orderModelChoices('openai', normalizeModelList('openai', FIXTURES.openai));
-  assert.deepEqual(openai.map(choice => choice.id), ['gpt-6-luna', 'o4-mini', 'gpt-4o-mini']);
-  assert.deepEqual(openai.map(choice => choice.recommended), [true, false, false]);
+  assert.deepEqual(
+    openai.map(choice => choice.id),
+    ['gpt-6-luna', 'o4-mini', 'gpt-4o-mini']
+  );
+  assert.deepEqual(
+    openai.map(choice => choice.recommended),
+    [true, false, false]
+  );
   assert.deepEqual(orderModelChoices('openai', null), []);
 });
 
@@ -248,7 +299,13 @@ function catalogWith(handler, options = {}) {
     },
     ...options
   });
-  return { catalog, calls, advance: ms => { time += ms; } };
+  return {
+    catalog,
+    calls,
+    advance: ms => {
+      time += ms;
+    }
+  };
 }
 
 test('list() fetches, normalizes and caches per provider and key', async () => {
@@ -283,8 +340,12 @@ test('list() fetches, normalizes and caches per provider and key', async () => {
 test('the cache stores no API key', async () => {
   const written = [];
   const storage = {
-    async get() { return {}; },
-    async set(values) { written.push(values); }
+    async get() {
+      return {};
+    },
+    async set(values) {
+      written.push(values);
+    }
   };
   const { catalog } = catalogWith(() => jsonResponse(FIXTURES.anthropic), { storage });
   await catalog.list('anthropic', { apiKey: 'sk-ant-SECRET' });
@@ -296,8 +357,13 @@ test('the cache stores no API key', async () => {
 
 test('concurrent list() calls share one request', async () => {
   let release;
-  const gate = new Promise(resolve => { release = resolve; });
-  const { catalog, calls } = catalogWith(async () => { await gate; return jsonResponse(FIXTURES.groq); });
+  const gate = new Promise(resolve => {
+    release = resolve;
+  });
+  const { catalog, calls } = catalogWith(async () => {
+    await gate;
+    return jsonResponse(FIXTURES.groq);
+  });
   const both = Promise.all([catalog.list('groq', { apiKey: 'k' }), catalog.list('groq', { apiKey: 'k' })]);
   await new Promise(resolve => setTimeout(resolve, 0));
   release();
@@ -315,10 +381,12 @@ test('failures reject with a ModelListError that names the provider, not the key
     return true;
   });
 
-  const offline = catalogWith(() => { throw new TypeError('Failed to fetch'); });
+  const offline = catalogWith(() => {
+    throw new TypeError('Failed to fetch');
+  });
   await assert.rejects(offline.catalog.list('gemini', { apiKey: 'AIza-SECRET' }), error => {
     assert.equal(error.status, 0);
-    assert.equal(error.message, 'Couldn\'t reach Google Gemini.');
+    assert.equal(error.message, "Couldn't reach Google Gemini.");
     assert.equal(error.message.includes('SECRET'), false);
     return true;
   });
@@ -344,16 +412,23 @@ test('failures reject with a ModelListError that names the provider, not the key
 
 test('a slow provider times out', async () => {
   assert.equal(MODEL_LIST_TIMEOUT_MS, 8000);
-  const { catalog } = catalogWith((url, init) => new Promise((resolve, reject) => {
-    init.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
-  }), { timeoutMs: 20 });
+  const { catalog } = catalogWith(
+    (url, init) =>
+      new Promise((resolve, reject) => {
+        init.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      }),
+    { timeoutMs: 20 }
+  );
   await assert.rejects(catalog.list('ollama', { url: 'http://localhost:11434' }), /didn't answer in time/);
 });
 
 test('the caller can abort a fetch', async () => {
-  const { catalog } = catalogWith((url, init) => new Promise((resolve, reject) => {
-    init.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
-  }));
+  const { catalog } = catalogWith(
+    (url, init) =>
+      new Promise((resolve, reject) => {
+        init.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      })
+  );
   const controller = new AbortController();
   const pending = catalog.list('lmstudio', { url: 'http://localhost:1234' }, { signal: controller.signal });
   const reason = new Error('provider changed');
@@ -381,8 +456,12 @@ test('readConfig records which providers have a saved model', () => {
 test('local writes keep unsaved models unsaved; save() marks the model saved', async () => {
   const values = { selectedProvider: 'openai', openaiApiKey: 'k', openaiModel: 'gpt-4o-mini' };
   const storageArea = {
-    async get() { return { ...values }; },
-    async set(entries) { Object.assign(values, entries); },
+    async get() {
+      return { ...values };
+    },
+    async set(entries) {
+      Object.assign(values, entries);
+    },
     async remove() {}
   };
   const store = new ConfigStore({ storageArea, onChanged: null, testConnection: async () => true });
@@ -402,5 +481,5 @@ test('local writes keep unsaved models unsaved; save() marks the model saved', a
 test('modelMissingText names the provider', () => {
   const { modelMissingText } = catalogModule;
   assert.equal(modelMissingText('openai'), 'This model is no longer offered by OpenAI. Choose another.');
-  assert.equal(modelMissingText('ollama'), 'This model isn\'t available on your Ollama server. Choose another.');
+  assert.equal(modelMissingText('ollama'), "This model isn't available on your Ollama server. Choose another.");
 });

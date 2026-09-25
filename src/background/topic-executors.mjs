@@ -65,11 +65,14 @@ export function createTopicExecutors({
         task.siteUrl,
         task.topicId,
         progress => {
-          void report({
-            phase: 'fetching',
-            statusText: formatFetchTaskStatus(progress),
-            progress
-          }, { durable: progress.rateLimited === true }).catch(() => {});
+          void report(
+            {
+              phase: 'fetching',
+              statusText: formatFetchTaskStatus(progress),
+              progress
+            },
+            { durable: progress.rateLimited === true }
+          ).catch(() => {});
         },
         signal,
         {
@@ -115,13 +118,14 @@ export function createTopicExecutors({
       session.forumName = task.forumName;
     }
 
-    await report({
-      phase: 'fetching',
-      statusText: session.summary
-        ? 'Checking for new replies…'
-        : 'Reading forum responses…',
-      progress: null
-    }, { durable: true });
+    await report(
+      {
+        phase: 'fetching',
+        statusText: session.summary ? 'Checking for new replies…' : 'Reading forum responses…',
+        progress: null
+      },
+      { durable: true }
+    );
 
     const response = await fetchTopic(task, session, { signal, report, maxPages });
     session = {
@@ -135,34 +139,35 @@ export function createTopicExecutors({
     // topic past the page limit) the same covered part.
     const summaryAlreadyCurrent = Boolean(
       response.unchanged
-      && session.summary
-      && session.summaryPostCount
-      && (
-        session.summaryPostCount === response.totalPosts
-        || (response.truncated
-          && session.summaryTruncated
-          && session.summaryCoveredPosts === response.coveredPosts)
-      )
+        && session.summary
+        && session.summaryPostCount
+        && (session.summaryPostCount === response.totalPosts
+          || (response.truncated && session.summaryTruncated && session.summaryCoveredPosts === response.coveredPosts))
     );
     if (summaryAlreadyCurrent) {
-      await report({
-        phase: 'saving',
-        statusText: response.truncated
-          ? `Saved summary already covers the first ${Math.max(0, (response.coveredPosts || 0) - 1)} replies (page limit).`
-          : 'Saved summary already includes every reply.',
-        progress: { ...response.progress, percent: 100, etaMs: 0 }
-      }, { durable: true });
+      await report(
+        {
+          phase: 'saving',
+          statusText: response.truncated
+            ? `Saved summary already covers the first ${Math.max(0, (response.coveredPosts || 0) - 1)} replies (page limit).`
+            : 'Saved summary already includes every reply.',
+          progress: { ...response.progress, percent: 100, etaMs: 0 }
+        },
+        { durable: true }
+      );
       broadcastSessionUpdated(task);
       return;
     }
 
-    await report({
-      phase: 'generating',
-      statusText: response.newPosts > 0 && session.summary
-        ? `Updating summary with ${pluralPosts(response.newPosts)}…`
-        : 'Generating summary…',
-      progress: null
-    }, { durable: true });
+    await report(
+      {
+        phase: 'generating',
+        statusText:
+          response.newPosts > 0 && session.summary ? `Updating summary with ${pluralPosts(response.newPosts)}…` : 'Generating summary…',
+        progress: null
+      },
+      { durable: true }
+    );
 
     const summary = await aiService.generateSummary(
       configuration.provider,
@@ -211,20 +216,21 @@ export function createTopicExecutors({
       throw new Error('The saved post and summary are required before chatting');
     }
 
-    const hasMessage = role => session.history.some(
-      message => message.taskId === task.id && message.role === role
-    );
+    const hasMessage = role => session.history.some(message => message.taskId === task.id && message.role === role);
     // A restarted task whose answer was already saved is done.
     if (hasMessage('assistant')) {
       broadcastSessionUpdated(task);
       return;
     }
 
-    await report({
-      phase: 'fetching',
-      statusText: 'Checking for new replies before answering…',
-      progress: null
-    }, { durable: true });
+    await report(
+      {
+        phase: 'fetching',
+        statusText: 'Checking for new replies before answering…',
+        progress: null
+      },
+      { durable: true }
+    );
     const response = await fetchTopic(task, session, {
       signal,
       report,
@@ -248,13 +254,14 @@ export function createTopicExecutors({
       broadcastSessionUpdated(task);
     }
 
-    await report({
-      phase: 'generating',
-      statusText: response.newPosts > 0
-        ? `Answering with ${pluralPosts(response.newPosts)} included…`
-        : 'Answering follow-up question…',
-      progress: null
-    }, { durable: true });
+    await report(
+      {
+        phase: 'generating',
+        statusText: response.newPosts > 0 ? `Answering with ${pluralPosts(response.newPosts)} included…` : 'Answering follow-up question…',
+        progress: null
+      },
+      { durable: true }
+    );
 
     const answer = await aiService.streamFollowUp(
       configuration.provider,
@@ -282,7 +289,7 @@ export function createTopicExecutors({
       }
     );
 
-    session = await db.get(task.topicKey) || session;
+    session = (await db.get(task.topicKey)) || session;
     if (!hasMessage('assistant')) {
       const completedAt = Date.now();
       session.history.push({

@@ -5,25 +5,14 @@
 //   summary-strategies.mjs  single pass, hierarchical fallback, retries
 //   text-stream.mjs         streamed chat/Agent answers, system messages
 //   ai-errors.mjs           cancellation and token-limit classification
-import {
-  FULL_PROMPTS,
-  getPrompt,
-  normalizeCustomSystemPrompt,
-  resolveSummarySystemPrompt,
-  buildCoverageNote
-} from './prompts.js';
+import { FULL_PROMPTS, getPrompt, normalizeCustomSystemPrompt, resolveSummarySystemPrompt, buildCoverageNote } from './prompts.js';
 import { buildFollowUpMessages } from './chat-context.mjs';
 import { buildAgentMessages } from './agent-context.mjs';
 import { getModel } from './provider-config.js';
 import { normalizeResponseLanguage } from '../shared/response-language.mjs';
 import { estimateTokens, isTokenLimitError, throwIfAborted } from './ai-errors.mjs';
 import { streamAnswer } from './text-stream.mjs';
-import {
-  DEFAULT_MAX_RETRIES,
-  hierarchicalSummary,
-  singlePassSummary,
-  summarizeWithRetry
-} from './summary-strategies.mjs';
+import { DEFAULT_MAX_RETRIES, hierarchicalSummary, singlePassSummary, summarizeWithRetry } from './summary-strategies.mjs';
 
 export { toInstructionsAndMessages } from './text-stream.mjs';
 
@@ -76,27 +65,22 @@ export class AIService {
     const model = this.getModel(provider, settings);
     const configuredSystemPrompt = options.systemPrompt ?? settings.systemPrompt;
     const customSystemPrompt = normalizeCustomSystemPrompt(configuredSystemPrompt);
-    const responseLanguage = normalizeResponseLanguage(
-      options.responseLanguage ?? settings.responseLanguage
-    );
-    const systemPrompt = resolveSummarySystemPrompt(
-      customSystemPrompt,
-      FULL_PROMPTS.system,
-      responseLanguage
-    );
+    const responseLanguage = normalizeResponseLanguage(options.responseLanguage ?? settings.responseLanguage);
+    const systemPrompt = resolveSummarySystemPrompt(customSystemPrompt, FULL_PROMPTS.system, responseLanguage);
     // Goes in the user message, never the system prompt: getMinimalPromptFor()
     // matches system prompts exactly.
     const coverageNote = buildCoverageNote(options.coverage, 'summary');
     // Shared by this summary's requests (the switch to minimal prompts sticks).
     const operationState = { useMinimalPrompts: false, responseLanguage, coverageNote };
-    const hierarchical = () => hierarchicalSummary(model, content, {
-      onProgress,
-      onStream,
-      customSystemPrompt,
-      abortSignal,
-      operationState,
-      maxRetries: this.maxRetries
-    });
+    const hierarchical = () =>
+      hierarchicalSummary(model, content, {
+        onProgress,
+        onStream,
+        customSystemPrompt,
+        abortSignal,
+        operationState,
+        maxRetries: this.maxRetries
+      });
 
     const estimatedTokens = estimateTokens(content);
     console.log(`AI Service: Content length: ${content.length} chars, ~${estimatedTokens} tokens`);

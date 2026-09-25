@@ -10,10 +10,7 @@
 // before the grant or install) gets it injected here.
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { DiscourseCopilotLogger } from '../shared/logger.js';
-import {
-  FORUM_CONTENT_SCRIPT_FILE,
-  hasForumAccess
-} from '../shared/forum-access.mjs';
+import { FORUM_CONTENT_SCRIPT_FILE, hasForumAccess } from '../shared/forum-access.mjs';
 import { getTopicContext } from './conversation-state.mjs';
 import { pageStateFromProbe, probeDiscoursePage } from './page-probe.mjs';
 
@@ -48,10 +45,7 @@ export class PageContextController {
         // navigations keep activeTab and the URL stays visible anyway.)
         void this.forgetActionClick(tabId);
       }
-      if (
-        tabId === this.state.pageContext?.tabId
-        && (changeInfo.url || changeInfo.title || changeInfo.status === 'complete')
-      ) {
+      if (tabId === this.state.pageContext?.tabId && (changeInfo.url || changeInfo.title || changeInfo.status === 'complete')) {
         void this.apply(tab);
       }
     });
@@ -152,8 +146,8 @@ export class PageContextController {
       tab = { ...tab, url: tab.pendingUrl };
     }
     const revision = ++this.revision;
-    const pageState = await this.queryPageState(tab) || await this.probePageState(tab);
-    const actionChecked = !tab?.url && await this.wasActionClicked(tab?.id);
+    const pageState = (await this.queryPageState(tab)) || (await this.probePageState(tab));
+    const actionChecked = !tab?.url && (await this.wasActionClicked(tab?.id));
     if (revision !== this.revision) {
       return;
     }

@@ -20,9 +20,19 @@ import { brandImagesLoaded, openExtensionPage, seedHistory } from './lib/extensi
 import { compareDirs } from './lib/pixdiff.mjs';
 import { META, OPENAI, OPENAI_STORE, ANTHROPIC_STORE, history, onTopic } from './fixtures/forums.mjs';
 import {
-  FORUM_LOOKS, LONG_THREADS_TOPIC, META_TIPS_TOPIC, STREAMING_TOPIC,
-  agentRun, keptAgentRun, longThreadsForumTopic, metaTips, metaTipsForumTopic, metaTipsOpenAI,
-  openaiLatest, savedTopics, streamingForumTopic
+  FORUM_LOOKS,
+  LONG_THREADS_TOPIC,
+  META_TIPS_TOPIC,
+  STREAMING_TOPIC,
+  agentRun,
+  keptAgentRun,
+  longThreadsForumTopic,
+  metaTips,
+  metaTipsForumTopic,
+  metaTipsOpenAI,
+  openaiLatest,
+  savedTopics,
+  streamingForumTopic
 } from './fixtures/store.mjs';
 import { screenshotPage, topicList, topicView } from './templates/store/screenshot.mjs';
 
@@ -52,10 +62,20 @@ const openSources = async page => {
 
 // Each panel is the side-panel viewport, scrolled so `scrollTo` sits `offset` px from the top.
 const PANELS = {
-  'summary-light': { stub: { ...metaTipsTab, store: ANTHROPIC_STORE }, data: history({ sessions: [metaTips] }), scrollTo: '#summaryContainer' },
-  'agent-light': { stub: { ...streamingTab, store: OPENAI_STORE }, data: history({ activities: [agentRun] }), prepare: openSources, scrollTo: '#agentPanel' },
+  'summary-light': {
+    stub: { ...metaTipsTab, store: ANTHROPIC_STORE },
+    data: history({ sessions: [metaTips] }),
+    scrollTo: '#summaryContainer'
+  },
+  'agent-light': {
+    stub: { ...streamingTab, store: OPENAI_STORE },
+    data: history({ activities: [agentRun] }),
+    prepare: openSources,
+    scrollTo: '#agentPanel'
+  },
   'activity-light': {
-    stub: { ...streamingTab, store: OPENAI_STORE }, data: history({ sessions: savedTopics, activities: [keptAgentRun] }),
+    stub: { ...streamingTab, store: OPENAI_STORE },
+    data: history({ sessions: savedTopics, activities: [keptAgentRun] }),
     prepare: async page => {
       await page.click('#savedBtn');
       await page.waitForTimeout(400);
@@ -74,11 +94,25 @@ const PANELS = {
   'summary-dark': { theme: 'dark', stub: { ...metaTipsTab, store: OPENAI_STORE }, data: history({ sessions: [metaTipsOpenAI] }) },
   // Marquee tile cards: top of the panel, taller viewport.
   'marquee-summary': { height: 760, stub: { ...metaTipsTab, store: OPENAI_STORE }, data: history({ sessions: [metaTipsOpenAI] }) },
-  'marquee-agent': { height: 760, stub: { ...streamingTab, store: OPENAI_STORE }, data: history({ activities: [agentRun] }), prepare: openSources, scrollTo: '#agentPanel', offset: 12 }
+  'marquee-agent': {
+    height: 760,
+    stub: { ...streamingTab, store: OPENAI_STORE },
+    data: history({ activities: [agentRun] }),
+    prepare: openSources,
+    scrollTo: '#agentPanel',
+    offset: 12
+  }
 };
 
 async function renderPanel(browser, base, name, { theme = 'light', height = PANEL_H, stub, data, prepare, scrollTo, offset = 10 }) {
-  const { ctx, page, errors } = await openExtensionPage(browser, base, { theme, width: PANEL_W, height, deviceScaleFactor: 2, stub, settle: 600 });
+  const { ctx, page, errors } = await openExtensionPage(browser, base, {
+    theme,
+    width: PANEL_W,
+    height,
+    deviceScaleFactor: 2,
+    stub,
+    settle: 600
+  });
   if (data) {
     await seedHistory(page, data);
     await page.reload();
@@ -89,11 +123,16 @@ async function renderPanel(browser, base, name, { theme = 'light', height = PANE
   await page.mouse.move(0, 0);
   if (scrollTo) {
     // Let the target reach the top even when the content below it is shorter than the viewport.
-    await page.evaluate(() => { document.body.style.paddingBottom = '400px'; });
-    await page.evaluate(({ sel, offset }) => {
-      const el = document.querySelector(sel);
-      window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - offset);
-    }, { sel: scrollTo, offset });
+    await page.evaluate(() => {
+      document.body.style.paddingBottom = '400px';
+    });
+    await page.evaluate(
+      ({ sel, offset }) => {
+        const el = document.querySelector(sel);
+        window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - offset);
+      },
+      { sel: scrollTo, offset }
+    );
     await page.waitForTimeout(200);
   }
   if (!(await brandImagesLoaded(page))) errors.push('broken brand image');
@@ -108,41 +147,85 @@ async function renderPanel(browser, base, name, { theme = 'light', height = PANE
 // ---------- Compositions ----------
 
 const SHOTS = [
-  { id: '01', file: '01-summarize-topics.png', panels: ['summary-light'],
-    html: () => screenshotPage({ panel: 'summary-light',
-      url: `meta.discourse.org/t/${META_TIPS_TOPIC.slug}/${META_TIPS_TOPIC.topicId}`,
-      forumHtml: topicView(FORUM_LOOKS.meta, metaTipsForumTopic),
-      title: 'Summarize any Discourse topic in seconds',
-      sub: 'Get the main points of a long thread, then ask follow-up questions about it.' }) },
-  { id: '02', file: '02-ask-the-forum.png', panels: ['agent-light'],
-    html: () => screenshotPage({ panel: 'agent-light',
-      url: `community.openai.com/t/${STREAMING_TOPIC.slug}/${STREAMING_TOPIC.topicId}`,
-      forumHtml: topicView(FORUM_LOOKS.openai, streamingForumTopic),
-      title: 'Ask the whole forum — answers with sources',
-      sub: 'It searches the forum, reads the best matches, and cites the posts it used.' }) },
-  { id: '03', file: '03-every-discourse-forum.png', panels: ['activity-light'],
-    html: () => screenshotPage({ panel: 'activity-light',
-      url: 'community.openai.com/latest',
-      forumHtml: topicList(FORUM_LOOKS.openai, openaiLatest, '#0e76bd'),
-      title: 'Works on every Discourse forum',
-      sub: 'One click enables each forum you use. Saved summaries and answers stay grouped by forum.' }) },
-  { id: '04', file: '04-bring-your-own-ai.png', panels: ['setup-light'],
-    html: () => screenshotPage({ panel: 'setup-light',
-      url: `community.openai.com/t/${LONG_THREADS_TOPIC.slug}/${LONG_THREADS_TOPIC.topicId}`,
-      forumHtml: topicView(FORUM_LOOKS.openai, longThreadsForumTopic),
-      title: 'Bring your own AI',
-      sub: 'Connect the AI provider you already use, or run a model on your own computer. Your key stays in your browser.' }) },
-  { id: '05', file: '05-light-and-dark-mode.png', panels: ['summary-dark'],
-    html: () => screenshotPage({ panel: 'summary-dark', theme: 'dark',
-      url: `meta.discourse.org/t/${META_TIPS_TOPIC.slug}/${META_TIPS_TOPIC.topicId}`,
-      forumHtml: topicView(FORUM_LOOKS.meta, metaTipsForumTopic),
-      title: 'Light and dark mode',
-      sub: 'The side panel follows your system theme automatically.' }) }
+  {
+    id: '01',
+    file: '01-summarize-topics.png',
+    panels: ['summary-light'],
+    html: () =>
+      screenshotPage({
+        panel: 'summary-light',
+        url: `meta.discourse.org/t/${META_TIPS_TOPIC.slug}/${META_TIPS_TOPIC.topicId}`,
+        forumHtml: topicView(FORUM_LOOKS.meta, metaTipsForumTopic),
+        title: 'Summarize any Discourse topic in seconds',
+        sub: 'Get the main points of a long thread, then ask follow-up questions about it.'
+      })
+  },
+  {
+    id: '02',
+    file: '02-ask-the-forum.png',
+    panels: ['agent-light'],
+    html: () =>
+      screenshotPage({
+        panel: 'agent-light',
+        url: `community.openai.com/t/${STREAMING_TOPIC.slug}/${STREAMING_TOPIC.topicId}`,
+        forumHtml: topicView(FORUM_LOOKS.openai, streamingForumTopic),
+        title: 'Ask the whole forum — answers with sources',
+        sub: 'It searches the forum, reads the best matches, and cites the posts it used.'
+      })
+  },
+  {
+    id: '03',
+    file: '03-every-discourse-forum.png',
+    panels: ['activity-light'],
+    html: () =>
+      screenshotPage({
+        panel: 'activity-light',
+        url: 'community.openai.com/latest',
+        forumHtml: topicList(FORUM_LOOKS.openai, openaiLatest, '#0e76bd'),
+        title: 'Works on every Discourse forum',
+        sub: 'One click enables each forum you use. Saved summaries and answers stay grouped by forum.'
+      })
+  },
+  {
+    id: '04',
+    file: '04-bring-your-own-ai.png',
+    panels: ['setup-light'],
+    html: () =>
+      screenshotPage({
+        panel: 'setup-light',
+        url: `community.openai.com/t/${LONG_THREADS_TOPIC.slug}/${LONG_THREADS_TOPIC.topicId}`,
+        forumHtml: topicView(FORUM_LOOKS.openai, longThreadsForumTopic),
+        title: 'Bring your own AI',
+        sub: 'Connect the AI provider you already use, or run a model on your own computer. Your key stays in your browser.'
+      })
+  },
+  {
+    id: '05',
+    file: '05-light-and-dark-mode.png',
+    panels: ['summary-dark'],
+    html: () =>
+      screenshotPage({
+        panel: 'summary-dark',
+        theme: 'dark',
+        url: `meta.discourse.org/t/${META_TIPS_TOPIC.slug}/${META_TIPS_TOPIC.topicId}`,
+        forumHtml: topicView(FORUM_LOOKS.meta, metaTipsForumTopic),
+        title: 'Light and dark mode',
+        sub: 'The side panel follows your system theme automatically.'
+      })
+  }
 ];
 const JOBS = [
   ...SHOTS.map(s => ({ ...s, w: 1280, h: 800, sel: '.stage' })),
   { id: 'promo-small', file: 'promo-small-440x280.png', template: 'store/promo-small.html', panels: [], w: 440, h: 280, sel: '.tile' },
-  { id: 'promo-marquee', file: 'promo-marquee-1400x560.png', template: 'store/promo-marquee.html', panels: ['marquee-summary', 'marquee-agent'], w: 1400, h: 560, sel: '.tile' }
+  {
+    id: 'promo-marquee',
+    file: 'promo-marquee-1400x560.png',
+    template: 'store/promo-marquee.html',
+    panels: ['marquee-summary', 'marquee-agent'],
+    w: 1400,
+    h: 560,
+    sel: '.tile'
+  }
 ];
 
 async function compose(browser, base, job) {
@@ -157,18 +240,26 @@ async function compose(browser, base, job) {
   const page = await ctx.newPage();
   const bad = [];
   page.on('requestfailed', r => bad.push(r.url()));
-  page.on('response', r => { if (r.status() >= 400) bad.push(`${r.status()} ${r.url()}`); });
+  page.on('response', r => {
+    if (r.status() >= 400) bad.push(`${r.status()} ${r.url()}`);
+  });
   await page.goto(url);
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(200);
-  bad.push(...await page.evaluate(() => [...document.images].filter(i => !(i.complete && i.naturalWidth > 0)).map(i => i.src)));
+  bad.push(...(await page.evaluate(() => [...document.images].filter(i => !(i.complete && i.naturalWidth > 0)).map(i => i.src))));
   const buf = await page.locator(job.sel).screenshot();
   await ctx.close();
   const outPath = path.join(outDir, job.file);
-  await sharp(buf).resize(job.w, job.h, { kernel: 'lanczos3' }).flatten({ background: '#ffffff' }).removeAlpha()
-    .png({ compressionLevel: 9, adaptiveFiltering: true }).toFile(outPath);
+  await sharp(buf)
+    .resize(job.w, job.h, { kernel: 'lanczos3' })
+    .flatten({ background: '#ffffff' })
+    .removeAlpha()
+    .png({ compressionLevel: 9, adaptiveFiltering: true })
+    .toFile(outPath);
   const meta = await sharp(outPath).metadata();
-  console.log(`${bad.length ? 'FAIL' : 'ok  '} ${relative(outPath)} ${meta.width}x${meta.height} alpha=${meta.hasAlpha} ${(fs.statSync(outPath).size / 1024).toFixed(0)} KB`);
+  console.log(
+    `${bad.length ? 'FAIL' : 'ok  '} ${relative(outPath)} ${meta.width}x${meta.height} alpha=${meta.hasAlpha} ${(fs.statSync(outPath).size / 1024).toFixed(0)} KB`
+  );
   for (const b of bad) console.log(`     broken: ${b}`);
   return bad.length;
 }

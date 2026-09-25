@@ -62,12 +62,7 @@ export const FORM_PHASE = Object.freeze({
   ERROR: 'error'
 });
 
-const BUSY_PHASES = new Set([
-  FORM_PHASE.LOADING,
-  FORM_PHASE.TESTING,
-  FORM_PHASE.SAVING,
-  FORM_PHASE.RESETTING
-]);
+const BUSY_PHASES = new Set([FORM_PHASE.LOADING, FORM_PHASE.TESTING, FORM_PHASE.SAVING, FORM_PHASE.RESETTING]);
 
 export const WELCOME_SAVED_MESSAGE =
   'Settings saved. You’re set — open any Discourse topic, click the DiscourseCopilot icon, allow access to the forum, and press Create summary.';
@@ -160,8 +155,7 @@ export function transitionForm(state, event) {
         edited: true,
         confirmingReset: false,
         revision: state.revision + 1,
-        fieldErrors: Object.fromEntries(Object.entries(state.fieldErrors || {})
-          .filter(([field]) => !(event.fields || []).includes(field))),
+        fieldErrors: Object.fromEntries(Object.entries(state.fieldErrors || {}).filter(([field]) => !(event.fields || []).includes(field))),
         status: status(`${event.section || 'Section'} restored to defaults. Save to apply.`, 'info', false)
       };
     case 'field-errors': {
@@ -223,9 +217,7 @@ export function transitionForm(state, event) {
         edited,
         savingRevision: null,
         fieldErrors: {},
-        status: event.welcomeMode
-          ? status(WELCOME_SAVED_MESSAGE, 'success', false)
-          : status('Settings saved successfully.', 'success')
+        status: event.welcomeMode ? status(WELCOME_SAVED_MESSAGE, 'success', false) : status('Settings saved successfully.', 'success')
       };
     }
     case 'save-failed':
@@ -236,9 +228,7 @@ export function transitionForm(state, event) {
         status: status(`Could not save settings: ${event.message}`, 'error', false)
       };
     case 'reset-requested':
-      return isFormBusy(state) || state.confirmingReset
-        ? state
-        : { ...state, confirmingReset: true, status: null };
+      return isFormBusy(state) || state.confirmingReset ? state : { ...state, confirmingReset: true, status: null };
     case 'reset-cancelled':
       return state.confirmingReset ? { ...state, confirmingReset: false } : state;
     case 'reset-started':
@@ -297,9 +287,7 @@ export function formStateLabel(state, hasSavedConfiguration) {
     case FORM_PHASE.INVALID:
       return { text: 'Fix the highlighted fields', tone: 'error' };
     case FORM_PHASE.ERROR:
-      return state.edited
-        ? { text: 'Unsaved changes · last action failed', tone: 'error' }
-        : { text: 'Last action failed', tone: 'error' };
+      return state.edited ? { text: 'Unsaved changes · last action failed', tone: 'error' } : { text: 'Last action failed', tone: 'error' };
     default:
   }
   if (hasFieldErrors(state)) {
@@ -311,9 +299,7 @@ export function formStateLabel(state, hasSavedConfiguration) {
   if (state.phase === FORM_PHASE.SAVED) {
     return { text: 'Saved', tone: 'success' };
   }
-  return hasSavedConfiguration
-    ? { text: 'All changes saved', tone: 'neutral' }
-    : { text: 'Not set up yet', tone: 'neutral' };
+  return hasSavedConfiguration ? { text: 'All changes saved', tone: 'neutral' } : { text: 'Not set up yet', tone: 'neutral' };
 }
 
 // "All changes saved" would be misleading before anything usable is saved.

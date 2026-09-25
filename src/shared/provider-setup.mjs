@@ -52,13 +52,9 @@ export function normalizeProviderSettings(provider, settings = {}) {
   };
 
   if (LOCAL_PROVIDER_IDS.has(provider)) {
-    normalized.url = typeof settings.url === 'string'
-      ? settings.url.trim().replace(/\/+$/, '')
-      : '';
+    normalized.url = typeof settings.url === 'string' ? settings.url.trim().replace(/\/+$/, '') : '';
   } else {
-    normalized.apiKey = typeof settings.apiKey === 'string'
-      ? settings.apiKey.trim()
-      : '';
+    normalized.apiKey = typeof settings.apiKey === 'string' ? settings.apiKey.trim() : '';
   }
 
   return normalized;
@@ -121,9 +117,7 @@ export function suggestSetupModels(provider, favoriteModels = [], providerConfig
     if (id && !models.includes(id)) models.push(id);
   };
   add(providerConfigs[provider]?.defaultModel);
-  const curated = providerConfigs[provider]?.recommendedModels
-    || providerConfigs[provider]?.suggestedModels
-    || [];
+  const curated = providerConfigs[provider]?.recommendedModels || providerConfigs[provider]?.suggestedModels || [];
   for (const model of curated) add(model);
   for (const favorite of Array.isArray(favoriteModels) ? favoriteModels : []) {
     if (favorite?.provider === provider) add(favorite.model);
@@ -188,10 +182,7 @@ export class ConnectionTestError extends Error {
 
 // Sends one tiny request with the given settings. Throws ConnectionTestError
 // with the HTTP status (0 for network failures) and the start of the body.
-export async function runConnectionTest(provider, settings, providerConfigs, {
-  apiHeaders = {},
-  fetchImpl
-} = {}) {
+export async function runConnectionTest(provider, settings, providerConfigs, { apiHeaders = {}, fetchImpl } = {}) {
   const request = buildConnectionTest(provider, settings, providerConfigs, apiHeaders);
   // Resolved per call so tests and the screenshot harness can replace fetch.
   const doFetch = fetchImpl || globalThis.fetch;
@@ -203,10 +194,7 @@ export async function runConnectionTest(provider, settings, providerConfigs, {
   }
   if (!response.ok) {
     const detail = (await response.text().catch(() => '')).slice(0, 300).trim();
-    throw new ConnectionTestError(
-      `HTTP ${response.status}${detail ? `: ${detail}` : ''}`,
-      { status: response.status, body: detail }
-    );
+    throw new ConnectionTestError(`HTTP ${response.status}${detail ? `: ${detail}` : ''}`, { status: response.status, body: detail });
   }
   return true;
 }

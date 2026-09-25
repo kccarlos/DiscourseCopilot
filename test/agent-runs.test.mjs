@@ -13,17 +13,20 @@ const SITE = 'https://forum.example.com';
 const NOW = Date.now();
 
 function completedRun(id) {
-  return normalizeAgentActivity({
-    activityId: id,
-    taskId: `task-${id}`,
-    agentRunId: id,
-    question: `Question ${id}`,
-    siteUrl: SITE,
-    status: AGENT_ACTIVITY_STATUS.COMPLETED,
-    createdAt: NOW - 5000,
-    completedAt: NOW - 1000,
-    answer: 'An answer.'
-  }, NOW);
+  return normalizeAgentActivity(
+    {
+      activityId: id,
+      taskId: `task-${id}`,
+      agentRunId: id,
+      question: `Question ${id}`,
+      siteUrl: SITE,
+      status: AGENT_ACTIVITY_STATUS.COMPLETED,
+      createdAt: NOW - 5000,
+      completedAt: NOW - 1000,
+      answer: 'An answer.'
+    },
+    NOW
+  );
 }
 
 // The finished queue task stays in the panel's task list for days.
@@ -81,7 +84,10 @@ test('a finished task without an activity (deleted, expired or pruned) is no run
   assert.deepEqual(fresh.records(), []);
   // An unfinished task whose activity wasn't broadcast yet still shows.
   tasks.set({ ...finishedTask('run-2'), status: 'running', completedAt: 0 });
-  assert.deepEqual(fresh.records().map(record => [record.activityId, record.status]), [['run-2', 'running']]);
+  assert.deepEqual(
+    fresh.records().map(record => [record.activityId, record.status]),
+    [['run-2', 'running']]
+  );
 });
 
 test('restore() puts the run back once, in IndexedDB and in the panel', async () => {
@@ -90,7 +96,13 @@ test('restore() puts the run back once, in IndexedDB and in the panel', async ()
   const restored = await runs.restore(copy);
   assert.equal(restored.activityId, 'run-1');
   assert.equal((await db.getAgentActivity('run-1')).answer, 'An answer.');
-  assert.deepEqual(runs.records().map(record => record.activityId).sort(), ['run-1', 'run-2']);
+  assert.deepEqual(
+    runs
+      .records()
+      .map(record => record.activityId)
+      .sort(),
+    ['run-1', 'run-2']
+  );
   // Broadcasts reach it again.
   assert.notEqual(runs.update({ ...completedRun('run-1'), lastOpenedAt: NOW }), undefined);
   assert.equal(runs.records().filter(record => record.activityId === 'run-1').length, 1, 'not duplicated');

@@ -10,10 +10,7 @@ const hrefs = html => [...html.matchAll(/href="([^"]*)"/g)].map(match => match[1
 
 test('headings, including emoji section headings from the summary prompts', () => {
   const html = markdownToHtml('# Title\n\n## 📝 Original Post Summary\nThe OP asks about X.\n\n### Sub\n\n###### H6');
-  assert.equal(
-    html,
-    '<h1>Title</h1>\n<h2>📝 Original Post Summary</h2>\n<p>The OP asks about X.</p>\n<h3>Sub</h3>\n<h6>H6</h6>\n'
-  );
+  assert.equal(html, '<h1>Title</h1>\n<h2>📝 Original Post Summary</h2>\n<p>The OP asks about X.</p>\n<h3>Sub</h3>\n<h6>H6</h6>\n');
 });
 
 test('tight, nested, ordered and loose lists', () => {
@@ -21,10 +18,7 @@ test('tight, nested, ordered and loose lists', () => {
     markdownToHtml('- one\n- two\n  - nested\n- three\n\n1. first\n2. second'),
     '<ul>\n<li>one</li>\n<li>two<ul>\n<li>nested</li>\n</ul>\n</li>\n<li>three</li>\n</ul>\n<ol>\n<li>first</li>\n<li>second</li>\n</ol>\n'
   );
-  assert.equal(
-    markdownToHtml('- loose a\n\n- loose b'),
-    '<ul>\n<li><p>loose a</p>\n</li>\n<li><p>loose b</p>\n</li>\n</ul>\n'
-  );
+  assert.equal(markdownToHtml('- loose a\n\n- loose b'), '<ul>\n<li><p>loose a</p>\n</li>\n<li><p>loose b</p>\n</li>\n</ul>\n');
   assert.equal(
     markdownToHtml('* **Point:** detail\n  continued line\n* Another with `code`'),
     '<ul>\n<li><strong>Point:</strong> detail\ncontinued line</li>\n<li>Another with <code>code</code></li>\n</ul>\n'
@@ -58,22 +52,31 @@ test('quotes, rules, strikethrough and no soft line breaks', () => {
 test('links: only web, mail and anchor hrefs survive the link policy', () => {
   const html = markdownToHtml(
     '[ok](https://example.com "t") [mail](mailto:a@b.c) [hash](#x) '
-    + '[js](javascript:alert(1)) [JS2](JaVaScRiPt:alert(1)) [data](data:text/html,x) '
-    + '<https://auto.example.com> <a href="javascript:alert(2)" onclick="x()">raw</a>'
+      + '[js](javascript:alert(1)) [JS2](JaVaScRiPt:alert(1)) [data](data:text/html,x) '
+      + '<https://auto.example.com> <a href="javascript:alert(2)" onclick="x()">raw</a>'
   );
   const found = hrefs(html);
   // marked passes unsafe URLs and raw HTML through; the sanitizer is the guard.
-  assert.ok(found.some(href => /^javascript:/i.test(href)), found.join(' '));
-  assert.deepEqual(
-    found.filter(isAllowedHref),
-    ['https://example.com', 'mailto:a@b.c', '#x', 'https://auto.example.com']
+  assert.ok(
+    found.some(href => /^javascript:/i.test(href)),
+    found.join(' ')
   );
+  assert.deepEqual(found.filter(isAllowedHref), ['https://example.com', 'mailto:a@b.c', '#x', 'https://auto.example.com']);
 });
 
 test('isAllowedHref rejects script-like and relative URLs', () => {
   for (const href of [
-    'javascript:alert(1)', ' JavaScript:alert(1)', '\tjavascript:x', 'data:text/html,x',
-    'vbscript:x', 'file:///etc/passwd', 'chrome://settings', '/relative', '//evil.example', '', null
+    'javascript:alert(1)',
+    ' JavaScript:alert(1)',
+    '\tjavascript:x',
+    'data:text/html,x',
+    'vbscript:x',
+    'file:///etc/passwd',
+    'chrome://settings',
+    '/relative',
+    '//evil.example',
+    '',
+    null
   ]) {
     assert.equal(isAllowedHref(href), false, String(href));
   }
@@ -83,10 +86,7 @@ test('isAllowedHref rejects script-like and relative URLs', () => {
 });
 
 test('Agent citations are linked in text but not inside code', () => {
-  const html = linkifyCitations(
-    markdownToHtml('Enable caching [S1]. See [S2, S9] and `[S1]`.\n\n```\n[S1] in code\n```'),
-    ['S1', 'S2']
-  );
+  const html = linkifyCitations(markdownToHtml('Enable caching [S1]. See [S2, S9] and `[S1]`.\n\n```\n[S1] in code\n```'), ['S1', 'S2']);
   assert.equal((html.match(/class="agent-citation"/g) || []).length, 2);
   assert.match(html, /data-citation="S1"/);
   assert.match(html, /data-citation="S2"[^>]*>S2<\/a> \[S9\]/);

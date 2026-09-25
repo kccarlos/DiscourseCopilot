@@ -1,9 +1,4 @@
-import {
-  buildTopicKey,
-  buildTopicUrl,
-  normalizeSiteUrl,
-  siteUrlFromPageUrl
-} from './forum-site.mjs';
+import { buildTopicKey, buildTopicUrl, normalizeSiteUrl, siteUrlFromPageUrl } from './forum-site.mjs';
 
 export const CHAT_RETENTION_MS = 24 * 60 * 60 * 1000;
 export const MAX_SAVED_TOPICS = 40;
@@ -39,8 +34,7 @@ export function canonicalizeTopicUrl(value, topicId, siteUrl = '') {
 
 function sessionSiteUrl(value) {
   // Sessions saved before siteUrl existed only know their topic URL.
-  return normalizeSiteUrl(value?.siteUrl)
-    || siteUrlFromPageUrl(trimmedString(value?.url));
+  return normalizeSiteUrl(value?.siteUrl) || siteUrlFromPageUrl(trimmedString(value?.url));
 }
 
 export function normalizeRawPages(pages) {
@@ -67,24 +61,15 @@ export function normalizeSavedHistory(history) {
     .filter(message => message && CHAT_ROLES.has(message.role))
     .map(message => ({
       role: message.role,
-      content: typeof message.content === 'string'
-        ? message.content.slice(0, 20000)
-        : '',
-      ...(trimmedString(message.taskId)
-        ? { taskId: trimmedString(message.taskId).slice(0, 120) }
-        : {}),
-      ...(finiteTimestamp(message.createdAt)
-        ? { createdAt: finiteTimestamp(message.createdAt) }
-        : {})
+      content: typeof message.content === 'string' ? message.content.slice(0, 20000) : '',
+      ...(trimmedString(message.taskId) ? { taskId: trimmedString(message.taskId).slice(0, 120) } : {}),
+      ...(finiteTimestamp(message.createdAt) ? { createdAt: finiteTimestamp(message.createdAt) } : {})
     }))
     .filter(message => message.content.trim())
     .slice(-MAX_SAVED_CHAT_MESSAGES);
 }
 
-export function createTopicSession(
-  { topicId, siteUrl, url, title, forumName },
-  now = Date.now()
-) {
+export function createTopicSession({ topicId, siteUrl, url, title, forumName }, now = Date.now()) {
   const normalizedTopicId = String(topicId || '');
   const normalizedSiteUrl = sessionSiteUrl({ siteUrl, url });
   return {
@@ -140,23 +125,14 @@ export function normalizeTopicSession(value, now = Date.now()) {
     summary: typeof value.summary === 'string' ? value.summary : '',
     history: normalizeSavedHistory(value.history),
     kept: value.kept === true,
-    totalPosts: Number.isInteger(value.totalPosts) && value.totalPosts > 0
-      ? value.totalPosts
-      : null,
-    summaryPostCount:
-      Number.isInteger(value.summaryPostCount) && value.summaryPostCount > 0
-        ? value.summaryPostCount
-        : null,
+    totalPosts: Number.isInteger(value.totalPosts) && value.totalPosts > 0 ? value.totalPosts : null,
+    summaryPostCount: Number.isInteger(value.summaryPostCount) && value.summaryPostCount > 0 ? value.summaryPostCount : null,
     sourceTruncated: value.sourceTruncated === true,
     coveredPosts: positiveIntegerOrNull(value.coveredPosts),
     summaryTruncated: value.summaryTruncated === true,
     summaryCoveredPosts: positiveIntegerOrNull(value.summaryCoveredPosts),
-    summaryPagesRead: Number.isInteger(value.summaryPagesRead) && value.summaryPagesRead >= 0
-      ? value.summaryPagesRead
-      : 0,
-    pagesFetched: Number.isInteger(value.pagesFetched) && value.pagesFetched >= 0
-      ? value.pagesFetched
-      : 0,
+    summaryPagesRead: Number.isInteger(value.summaryPagesRead) && value.summaryPagesRead >= 0 ? value.summaryPagesRead : 0,
+    pagesFetched: Number.isInteger(value.pagesFetched) && value.pagesFetched >= 0 ? value.pagesFetched : 0,
     provider: trimmedString(value.provider),
     model: trimmedString(value.model),
     createdAt,
@@ -168,24 +144,11 @@ export function normalizeTopicSession(value, now = Date.now()) {
   };
 }
 
-export function isChatExpired(
-  session,
-  now = Date.now(),
-  retentionMs = CHAT_RETENTION_MS
-) {
-  return Boolean(
-    session?.history?.length
-    && !session.kept
-    && session.chatUpdatedAt > 0
-    && now - session.chatUpdatedAt >= retentionMs
-  );
+export function isChatExpired(session, now = Date.now(), retentionMs = CHAT_RETENTION_MS) {
+  return Boolean(session?.history?.length && !session.kept && session.chatUpdatedAt > 0 && now - session.chatUpdatedAt >= retentionMs);
 }
 
-export function expireChatHistory(
-  value,
-  now = Date.now(),
-  retentionMs = CHAT_RETENTION_MS
-) {
+export function expireChatHistory(value, now = Date.now(), retentionMs = CHAT_RETENTION_MS) {
   const session = normalizeTopicSession(value, now);
   if (!session || !isChatExpired(session, now, retentionMs)) {
     return { session, expired: false };
@@ -237,12 +200,8 @@ export function buildTopicIndexEntry(value) {
 
 export function getRefreshPlan({ cachedPages, knownTotalPosts, currentTotalPosts }) {
   const pages = normalizeRawPages(cachedPages);
-  const knownCount = Number.isInteger(knownTotalPosts) && knownTotalPosts > 0
-    ? knownTotalPosts
-    : 0;
-  const currentCount = Number.isInteger(currentTotalPosts) && currentTotalPosts > 0
-    ? currentTotalPosts
-    : 0;
+  const knownCount = Number.isInteger(knownTotalPosts) && knownTotalPosts > 0 ? knownTotalPosts : 0;
+  const currentCount = Number.isInteger(currentTotalPosts) && currentTotalPosts > 0 ? currentTotalPosts : 0;
 
   if (!pages.length || !knownCount || !currentCount) {
     return { unchanged: false, reusablePages: [], firstPageToFetch: 1 };
@@ -268,19 +227,11 @@ export function getRefreshPlan({ cachedPages, knownTotalPosts, currentTotalPosts
   };
 }
 
-export function planTopicPageRequests({
-  cachedPages,
-  knownTotalPosts,
-  currentTotalPosts,
-  totalPages
-}) {
+export function planTopicPageRequests({ cachedPages, knownTotalPosts, currentTotalPosts, totalPages }) {
   const pageCount = Number.isInteger(totalPages) && totalPages > 0 ? totalPages : 0;
   const normalizedCache = normalizeRawPages(cachedPages);
   const cacheByPage = new Map(normalizedCache.map(entry => [entry.page, entry]));
-  const hasCompleteCache = pageCount > 0 && Array.from(
-    { length: pageCount },
-    (_, index) => index + 1
-  ).every(page => cacheByPage.has(page));
+  const hasCompleteCache = pageCount > 0 && Array.from({ length: pageCount }, (_, index) => index + 1).every(page => cacheByPage.has(page));
   const refresh = getRefreshPlan({
     cachedPages: normalizedCache,
     knownTotalPosts,
@@ -300,9 +251,6 @@ export function planTopicPageRequests({
   return {
     unchanged: false,
     reusablePages,
-    pagesToFetch: Array.from(
-      { length: Math.max(0, pageCount - firstPage + 1) },
-      (_, index) => firstPage + index
-    )
+    pagesToFetch: Array.from({ length: Math.max(0, pageCount - firstPage + 1) }, (_, index) => firstPage + index)
   };
 }

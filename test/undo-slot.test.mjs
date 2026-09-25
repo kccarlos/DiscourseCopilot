@@ -43,8 +43,12 @@ function slotWith(clock, changes = []) {
 function action(log, name) {
   return {
     message: `Deleted ${name}`,
-    undo: async () => { log.push(`undo ${name}`); },
-    expire: () => { log.push(`expire ${name}`); }
+    undo: async () => {
+      log.push(`undo ${name}`);
+    },
+    expire: () => {
+      log.push(`expire ${name}`);
+    }
   };
 }
 
@@ -117,7 +121,12 @@ test('pausing keeps the offer open; resuming continues with the time left', () =
 test('a failing undo still ends the offer and reports the error', async () => {
   const clock = fakeClock();
   const slot = slotWith(clock);
-  slot.offer({ message: 'Deleted A', undo: async () => { throw new Error('disk full'); } });
+  slot.offer({
+    message: 'Deleted A',
+    undo: async () => {
+      throw new Error('disk full');
+    }
+  });
   await assert.rejects(slot.undo(), /disk full/);
   assert.equal(slot.pending, null);
   assert.equal(clock.pendingTimers, 0);

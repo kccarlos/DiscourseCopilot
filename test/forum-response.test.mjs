@@ -28,10 +28,7 @@ test('detects redirects to login, SSO, or another origin', () => {
   assert.equal(isLoginRedirect({ redirected: true, url: `${SITE}/session/sso` }, SITE), true);
   assert.equal(isLoginRedirect({ redirected: true, url: `${SITE}/auth/google_oauth2` }, SITE), true);
   assert.equal(isLoginRedirect({ redirected: true, url: 'https://idp.example.com/sso' }, SITE), true);
-  assert.equal(
-    isLoginRedirect({ redirected: true, url: 'https://example.com/forum/login' }, 'https://example.com/forum'),
-    true
-  );
+  assert.equal(isLoginRedirect({ redirected: true, url: 'https://example.com/forum/login' }, 'https://example.com/forum'), true);
   assert.equal(isLoginRedirect({ redirected: true, url: `${SITE}/t/slug/12.json` }, SITE), false);
   assert.equal(isLoginRedirect({ redirected: false, url: `${SITE}/login` }, SITE), false);
 });
@@ -42,32 +39,38 @@ test('classifies Discourse login_required and private-topic responses', () => {
   assert.equal(classify({ status: 200, body: RAW, contentType: 'text/plain' }), FORUM_RESPONSE_KIND.OK);
   assert.equal(classify({ status: 200, body: '' }), FORUM_RESPONSE_KIND.EMPTY);
   // Anonymous /raw/ on a login_required site follows a redirect to /login.
-  assert.equal(classify({
-    status: 200,
-    redirected: true,
-    url: `${SITE}/login`,
-    contentType: 'text/html',
-    body: '<!DOCTYPE html><html></html>'
-  }), FORUM_RESPONSE_KIND.LOGIN_REQUIRED);
+  assert.equal(
+    classify({
+      status: 200,
+      redirected: true,
+      url: `${SITE}/login`,
+      contentType: 'text/html',
+      body: '<!DOCTYPE html><html></html>'
+    }),
+    FORUM_RESPONSE_KIND.LOGIN_REQUIRED
+  );
   assert.equal(
     classify({ status: 200, contentType: 'text/html', body: '<!DOCTYPE html><html>Log in</html>' }),
     FORUM_RESPONSE_KIND.LOGIN_REQUIRED
   );
   // Maintenance or overload 503s are transient; only challenge pages need the user.
-  assert.equal(
-    classify({ status: 503, contentType: 'text/html', body: '<html>Maintenance</html>' }),
-    FORUM_RESPONSE_KIND.HTTP_ERROR
-  );
+  assert.equal(classify({ status: 503, contentType: 'text/html', body: '<html>Maintenance</html>' }), FORUM_RESPONSE_KIND.HTTP_ERROR);
   assert.equal(
     classify({ status: 503, contentType: 'text/html', body: '<html>Just a moment... cf-chl-</html>' }),
     FORUM_RESPONSE_KIND.CHALLENGE
   );
   // Anonymous JSON on a login_required site is a 403 not_logged_in error.
-  assert.equal(classify({
-    status: 403,
-    contentType: 'application/json',
-    body: JSON.stringify({ error_type: 'not_logged_in' })
-  }, 'json'), FORUM_RESPONSE_KIND.LOGIN_REQUIRED);
+  assert.equal(
+    classify(
+      {
+        status: 403,
+        contentType: 'application/json',
+        body: JSON.stringify({ error_type: 'not_logged_in' })
+      },
+      'json'
+    ),
+    FORUM_RESPONSE_KIND.LOGIN_REQUIRED
+  );
   assert.equal(classify({ status: 403, body: '{"error_type":"invalid_access"}' }, 'json'), FORUM_RESPONSE_KIND.LOGIN_REQUIRED);
   assert.equal(classify({ status: 404, body: '' }), FORUM_RESPONSE_KIND.NOT_FOUND);
   assert.equal(classify({ status: 403, body: 'Just a moment... cf-chl-' }), FORUM_RESPONSE_KIND.CHALLENGE);
@@ -79,8 +82,7 @@ test('turns raw responses into content or actionable errors', () => {
   assert.equal(rawPageContent({ status: 200, body: '  ' }, SITE), '');
   assert.throws(
     () => rawPageContent({ status: 200, redirected: true, url: `${SITE}/login`, body: '<html>' }, SITE),
-    error => error.needsUserAction === true
-      && /Log in to community\.openai\.com in this browser/.test(error.message)
+    error => error.needsUserAction === true && /Log in to community\.openai\.com in this browser/.test(error.message)
   );
   assert.throws(
     () => rawPageContent({ status: 502, body: 'bad gateway' }, SITE),
@@ -126,18 +128,22 @@ test('caps raw page reading when a forum never returns an empty page', async () 
 test('propagates access failures instead of looping', async () => {
   let requests = 0;
   await assert.rejects(
-    () => collectRawPages({
-      fetchPage: async () => {
-        requests++;
-        return rawPageContent({
-          status: 200,
-          redirected: true,
-          url: `${SITE}/login`,
-          contentType: 'text/html',
-          body: '<!DOCTYPE html>'
-        }, SITE);
-      }
-    }),
+    () =>
+      collectRawPages({
+        fetchPage: async () => {
+          requests++;
+          return rawPageContent(
+            {
+              status: 200,
+              redirected: true,
+              url: `${SITE}/login`,
+              contentType: 'text/html',
+              body: '<!DOCTYPE html>'
+            },
+            SITE
+          );
+        }
+      }),
     error => error.needsUserAction === true
   );
   assert.equal(requests, 1);

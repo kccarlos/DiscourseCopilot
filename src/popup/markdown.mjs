@@ -15,36 +15,63 @@ export function linkifyCitations(html, sourceIds = []) {
     return html || '';
   }
   let skipDepth = 0;
-  return html.split(/(<[^>]*>)/).map(chunk => {
-    if (chunk.startsWith('<')) {
-      const tag = CITATION_SKIP_TAG.exec(chunk);
-      if (tag) {
-        skipDepth = Math.max(0, skipDepth + (tag[1] ? -1 : 1));
+  return html
+    .split(/(<[^>]*>)/)
+    .map(chunk => {
+      if (chunk.startsWith('<')) {
+        const tag = CITATION_SKIP_TAG.exec(chunk);
+        if (tag) {
+          skipDepth = Math.max(0, skipDepth + (tag[1] ? -1 : 1));
+        }
+        return chunk;
       }
-      return chunk;
-    }
-    if (skipDepth) {
-      return chunk;
-    }
-    return chunk.replace(CITATION_PATTERN, (match, ids) => {
-      const list = ids.split(/\s*[,;]\s*/);
-      if (!list.some(id => known.has(id))) {
-        return match;
+      if (skipDepth) {
+        return chunk;
       }
-      // Known sources become chips; an unknown ID keeps its brackets as text.
-      return list.map(id => known.has(id)
-        ? `<a href="#" class="agent-citation" data-citation="${id}" aria-label="Source ${id}">${id}</a>`
-        : `[${id}]`).join(' ');
-    });
-  }).join('');
+      return chunk.replace(CITATION_PATTERN, (match, ids) => {
+        const list = ids.split(/\s*[,;]\s*/);
+        if (!list.some(id => known.has(id))) {
+          return match;
+        }
+        // Known sources become chips; an unknown ID keeps its brackets as text.
+        return list
+          .map(id =>
+            known.has(id) ? `<a href="#" class="agent-citation" data-citation="${id}" aria-label="Source ${id}">${id}</a>` : `[${id}]`
+          )
+          .join(' ');
+      });
+    })
+    .join('');
 }
 
 marked.setOptions({ breaks: false, gfm: true });
 
 const ALLOWED_TAGS = new Set([
-  'A', 'BLOCKQUOTE', 'BR', 'CODE', 'DEL', 'EM', 'H1', 'H2', 'H3',
-  'H4', 'H5', 'H6', 'HR', 'LI', 'OL', 'P', 'PRE', 'STRONG', 'TABLE',
-  'TBODY', 'TD', 'TH', 'THEAD', 'TR', 'UL'
+  'A',
+  'BLOCKQUOTE',
+  'BR',
+  'CODE',
+  'DEL',
+  'EM',
+  'H1',
+  'H2',
+  'H3',
+  'H4',
+  'H5',
+  'H6',
+  'HR',
+  'LI',
+  'OL',
+  'P',
+  'PRE',
+  'STRONG',
+  'TABLE',
+  'TBODY',
+  'TD',
+  'TH',
+  'THEAD',
+  'TR',
+  'UL'
 ]);
 
 // Links may only point to the web, mail or an in-page anchor; anything else
@@ -69,8 +96,7 @@ export function sanitizeHTML(html) {
 
     for (const attribute of [...element.attributes]) {
       const name = attribute.name.toLowerCase();
-      const allowedAttribute = element.tagName === 'A'
-        && (name === 'href' || name === 'title');
+      const allowedAttribute = element.tagName === 'A' && (name === 'href' || name === 'title');
       if (!allowedAttribute) {
         element.removeAttribute(attribute.name);
       }
@@ -93,9 +119,7 @@ export function renderMarkdown(element, markdown) {
   const html = sanitizeHTML(markdownToHtml(markdown));
   // Agent answers cite sources as [S1]; those become links to the source cards.
   const citations = element.dataset.citations;
-  element.innerHTML = citations
-    ? linkifyCitations(html, citations.split(','))
-    : html;
+  element.innerHTML = citations ? linkifyCitations(html, citations.split(',')) : html;
 }
 
 // Batches streaming renders: the latest markdown per element, once per frame.

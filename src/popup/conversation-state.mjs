@@ -37,9 +37,10 @@ function describesTab(pageState, tabUrl) {
   }
   // Discourse rewrites the post number while scrolling, so compare topics.
   const site = parseSiteUrl(pageState.siteUrl);
-  return pageOrigin(pageState.url) === pageOrigin(tabUrl)
-    && extractForumTopicId(tabUrl, site?.basePath || '')
-      === (pageState.topicId ? String(pageState.topicId) : null);
+  return (
+    pageOrigin(pageState.url) === pageOrigin(tabUrl)
+    && extractForumTopicId(tabUrl, site?.basePath || '') === (pageState.topicId ? String(pageState.topicId) : null)
+  );
 }
 
 function contextFromPageState(pageState, tabUrl) {
@@ -57,9 +58,7 @@ function contextFromPageState(pageState, tabUrl) {
     };
   }
   const siteUrl = normalizeSiteUrl(pageState.siteUrl);
-  const topicId = pageState.topicId
-    ? String(pageState.topicId)
-    : extractForumTopicId(tabUrl || pageState.url, site.basePath);
+  const topicId = pageState.topicId ? String(pageState.topicId) : extractForumTopicId(tabUrl || pageState.url, site.basePath);
   return {
     isDiscourse: true,
     siteUrl,
@@ -71,9 +70,7 @@ function contextFromPageState(pageState, tabUrl) {
 
 function contextFromUrl(tabUrl, siteUrlHint = '') {
   const hint = parseSiteUrl(siteUrlHint);
-  const basePath = hint && pageOrigin(tabUrl) === hint.origin
-    ? normalizeBasePath(hint.basePath)
-    : '';
+  const basePath = hint && pageOrigin(tabUrl) === hint.origin ? normalizeBasePath(hint.basePath) : '';
   const topicId = extractForumTopicId(tabUrl, basePath);
   const siteUrl = topicId ? siteUrlFromPageUrl(tabUrl, basePath) : '';
   return {
@@ -99,18 +96,11 @@ function contextFromUrl(tabUrl, siteUrlHint = '') {
 //   access to; after a click (activeTab) a still-hidden URL means a page
 //   Chrome never lets extensions read (new tab, chrome://…), so the page is
 //   "not a forum" rather than "not checked yet".
-export function getTopicContext(tab = {}, pageState = null, {
-  siteUrlHint = '',
-  forumAccess = true,
-  actionChecked = false
-} = {}) {
+export function getTopicContext(tab = {}, pageState = null, { siteUrlHint = '', forumAccess = true, actionChecked = false } = {}) {
   const tabId = tab.id ?? null;
   const url = tab.url || (typeof pageState?.url === 'string' ? pageState.url : '');
-  const detected = contextFromPageState(pageState, tab.url || '')
-    || contextFromUrl(url, siteUrlHint);
-  const topicKey = detected.topicId
-    ? buildTopicKey(detected.siteUrl, detected.topicId)
-    : '';
+  const detected = contextFromPageState(pageState, tab.url || '') || contextFromUrl(url, siteUrlHint);
+  const topicKey = detected.topicId ? buildTopicKey(detected.siteUrl, detected.topicId) : '';
 
   return {
     tabId,
@@ -145,11 +135,8 @@ export function topicKeyFromUrl(url, siteUrl) {
 // Picks the tab to reuse for a forum target: one already showing the topic,
 // or (without a topic) any tab on the forum. The active tab wins ties.
 export function findTabForForumTarget(tabs, { siteUrl = '', topicKey = '' } = {}) {
-  const matches = (Array.isArray(tabs) ? tabs : []).filter(tab =>
-    Number.isInteger(tab?.id)
-    && (topicKey
-      ? topicKeyFromUrl(tab.url, siteUrl) === topicKey
-      : isSameForumUrl(tab.url, siteUrl))
+  const matches = (Array.isArray(tabs) ? tabs : []).filter(
+    tab => Number.isInteger(tab?.id) && (topicKey ? topicKeyFromUrl(tab.url, siteUrl) === topicKey : isSameForumUrl(tab.url, siteUrl))
   );
   return matches.find(tab => tab.active) || matches[0] || null;
 }
@@ -188,10 +175,6 @@ export function prepareChatEdit(history, messageIndex) {
   return {
     prompt: typeof editedMessage.content === 'string' ? editedMessage.content : '',
     history: safeHistory.slice(0, messageIndex).map(message => ({ ...message })),
-    removedTaskIds: [...new Set(
-      removed
-        .map(message => typeof message?.taskId === 'string' ? message.taskId : '')
-        .filter(Boolean)
-    )]
+    removedTaskIds: [...new Set(removed.map(message => (typeof message?.taskId === 'string' ? message.taskId : '')).filter(Boolean))]
   };
 }

@@ -2,19 +2,19 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { JobQueue } from '../src/background/job-queue.mjs';
-import {
-  TASK_STATUS,
-  createTaskRecord
-} from '../src/shared/task-record.mjs';
+import { TASK_STATUS, createTaskRecord } from '../src/shared/task-record.mjs';
 
 function task(id, topicId = id, now = 1) {
-  return createTaskRecord({
-    id,
-    type: 'summary',
-    topicId,
-    title: `Topic ${topicId}`,
-    url: `https://www.uscardforum.com/t/topic/${topicId}`
-  }, now);
+  return createTaskRecord(
+    {
+      id,
+      type: 'summary',
+      topicId,
+      title: `Topic ${topicId}`,
+      url: `https://www.uscardforum.com/t/topic/${topicId}`
+    },
+    now
+  );
 }
 
 test('caps global concurrency and serializes jobs for the same topic', async () => {
@@ -81,9 +81,7 @@ test('cancels queued and running work with durable terminal states', async () =>
   assert.equal(queue.get('queued').status, TASK_STATUS.CANCELLED);
   assert.equal(queue.get('running').status, TASK_STATUS.CANCELLED);
   assert.equal(
-    transitions.some(record =>
-      record.id === 'running' && record.status === TASK_STATUS.CANCELLED
-    ),
+    transitions.some(record => record.id === 'running' && record.status === TASK_STATUS.CANCELLED),
     true
   );
 });

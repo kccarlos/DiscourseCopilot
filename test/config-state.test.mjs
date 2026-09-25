@@ -39,9 +39,7 @@ function createFakeStorage(initialValues = {}) {
     area: {
       async get(keys) {
         const list = keys == null ? Object.keys(values) : [].concat(keys);
-        return Object.fromEntries(
-          list.filter(key => Object.hasOwn(values, key)).map(key => [key, values[key]])
-        );
+        return Object.fromEntries(list.filter(key => Object.hasOwn(values, key)).map(key => [key, values[key]]));
       },
       async set(update) {
         writes.push({ ...update });
@@ -65,8 +63,12 @@ function createFakeStorage(initialValues = {}) {
       }
     },
     onChanged: {
-      addListener(listener) { listeners.add(listener); },
-      removeListener(listener) { listeners.delete(listener); }
+      addListener(listener) {
+        listeners.add(listener);
+      },
+      removeListener(listener) {
+        listeners.delete(listener);
+      }
     },
     // Simulates another extension page writing storage.
     externalSet(update) {
@@ -81,7 +83,9 @@ function createStore(storage, options = {}) {
     storageArea: storage.area,
     onChanged: storage.onChanged,
     reloadDelayMs: 0,
-    onError: error => { throw error; },
+    onError: error => {
+      throw error;
+    },
     ...options
   });
 }
@@ -120,10 +124,7 @@ test('reads stored provider settings over defaults and ignores empty or non-stri
 
 test('keeps the legacy OpenRouter API key as a fallback only', () => {
   assert.equal(readConfig({ apiKey: 'legacy-key' }).providers.openrouter.apiKey, 'legacy-key');
-  assert.equal(
-    readConfig({ apiKey: 'legacy-key', openrouterApiKey: 'new-key' }).providers.openrouter.apiKey,
-    'new-key'
-  );
+  assert.equal(readConfig({ apiKey: 'legacy-key', openrouterApiKey: 'new-key' }).providers.openrouter.apiKey, 'new-key');
   assert.equal(readConfig({ apiKey: 'legacy-key' }).providers.openai.apiKey, '');
 });
 
@@ -183,7 +184,10 @@ test('a local provider with an invalid URL is incomplete on the url field', () =
   const status = deriveConfigStatus(readConfig({ selectedProvider: 'ollama', ollamaUrl: 'ftp://box' }));
   assert.equal(status.status, CONFIG_STATUS.INCOMPLETE);
   assert.match(status.fieldErrors.url, /must use http or https/);
-  const emptyUrl = deriveConfigStatus({ ...readConfig({ selectedProvider: 'ollama' }), providers: { ollama: { url: '', model: 'llama3.2' } } });
+  const emptyUrl = deriveConfigStatus({
+    ...readConfig({ selectedProvider: 'ollama' }),
+    providers: { ollama: { url: '', model: 'llama3.2' } }
+  });
   assert.equal(emptyUrl.status, CONFIG_STATUS.INCOMPLETE);
   assert.match(emptyUrl.fieldErrors.url, /server URL is required/);
 });
@@ -202,9 +206,13 @@ test('a legacy-only OpenRouter key is ready without an explicit provider choice'
 });
 
 test('a hosted provider with key and model is ready', () => {
-  const status = deriveConfigStatus(readConfig({
-    selectedProvider: 'openai', openaiApiKey: 'sk', openaiModel: 'gpt-x'
-  }));
+  const status = deriveConfigStatus(
+    readConfig({
+      selectedProvider: 'openai',
+      openaiApiKey: 'sk',
+      openaiModel: 'gpt-x'
+    })
+  );
   assert.equal(status.status, CONFIG_STATUS.READY);
   assert.equal(status.providerName, 'OpenAI');
   assert.equal(status.model, 'gpt-x');
@@ -213,22 +221,20 @@ test('a hosted provider with key and model is ready', () => {
 // ---------- write builders ----------
 
 test('buildConfigurationWrite writes provider, fields and prompt in one object', () => {
-  assert.deepEqual(
-    buildConfigurationWrite('openai', { apiKey: 'secret', model: 'gpt-custom' }, { systemPrompt: 'Custom prompt' }),
-    { selectedProvider: 'openai', systemPrompt: 'Custom prompt', openaiApiKey: 'secret', openaiModel: 'gpt-custom' }
-  );
-  assert.equal(
-    buildConfigurationWrite('openai', { apiKey: 'k', model: 'm' }, { responseLanguage: 'ja' }).responseLanguage,
-    'ja'
-  );
-  assert.equal(
-    buildConfigurationWrite('openai', { apiKey: 'k', model: 'm' }, { responseLanguage: 'nope' }).responseLanguage,
-    'auto'
-  );
-  assert.deepEqual(
-    buildConfigurationWrite('ollama', { url: 'http://x', model: 'm' }),
-    { selectedProvider: 'ollama', systemPrompt: '', ollamaUrl: 'http://x', ollamaModel: 'm' }
-  );
+  assert.deepEqual(buildConfigurationWrite('openai', { apiKey: 'secret', model: 'gpt-custom' }, { systemPrompt: 'Custom prompt' }), {
+    selectedProvider: 'openai',
+    systemPrompt: 'Custom prompt',
+    openaiApiKey: 'secret',
+    openaiModel: 'gpt-custom'
+  });
+  assert.equal(buildConfigurationWrite('openai', { apiKey: 'k', model: 'm' }, { responseLanguage: 'ja' }).responseLanguage, 'ja');
+  assert.equal(buildConfigurationWrite('openai', { apiKey: 'k', model: 'm' }, { responseLanguage: 'nope' }).responseLanguage, 'auto');
+  assert.deepEqual(buildConfigurationWrite('ollama', { url: 'http://x', model: 'm' }), {
+    selectedProvider: 'ollama',
+    systemPrompt: '',
+    ollamaUrl: 'http://x',
+    ollamaModel: 'm'
+  });
   assert.throws(() => buildConfigurationWrite('missing', {}), /Unsupported provider: missing/);
 });
 
@@ -252,7 +258,12 @@ test('reset covers every live key and the legacy extensionSettings key', () => {
 test('loadConfig reads the configuration in a single storage call', async () => {
   const storage = createFakeStorage({ selectedProvider: 'groq', groqApiKey: 'g' });
   let calls = 0;
-  const area = { get: async keys => { calls += 1; return storage.area.get(keys); } };
+  const area = {
+    get: async keys => {
+      calls += 1;
+      return storage.area.get(keys);
+    }
+  };
   const config = await loadConfig(area);
   assert.equal(calls, 1);
   assert.equal(config.provider, 'groq');
@@ -286,7 +297,10 @@ test('subscribers are told about external storage changes and can unsubscribe', 
   await settle();
   storage.externalSet({ openaiApiKey: 'sk' });
   await settle();
-  assert.deepEqual(seen, [['loaded', 'incomplete'], ['loaded', 'ready']]);
+  assert.deepEqual(seen, [
+    ['loaded', 'incomplete'],
+    ['loaded', 'ready']
+  ]);
 
   unsubscribe();
   assert.equal(storage.listeners.size, 0, 'watching stops with the last subscriber');
@@ -299,7 +313,9 @@ test('storage changes to unrelated keys or other areas do not reload', async () 
   const storage = createFakeStorage({});
   const store = createStore(storage);
   let loads = 0;
-  store.subscribe(event => { if (event.type === 'loaded') loads += 1; });
+  store.subscribe(event => {
+    if (event.type === 'loaded') loads += 1;
+  });
   storage.externalSet({ somethingElse: 1 });
   for (const listener of storage.listeners) listener({ selectedProvider: {} }, 'sync');
   await settle();
@@ -310,7 +326,9 @@ test('bursts of external changes reload once after the debounce', async () => {
   const storage = createFakeStorage({});
   const store = createStore(storage, { reloadDelayMs: 20 });
   let loads = 0;
-  store.subscribe(event => { if (event.type === 'loaded') loads += 1; });
+  store.subscribe(event => {
+    if (event.type === 'loaded') loads += 1;
+  });
   storage.externalSet({ selectedProvider: 'openai' });
   storage.externalSet({ openaiApiKey: 'a' });
   storage.externalSet({ openaiModel: 'b' });
@@ -365,7 +383,11 @@ test('setForumContextLimit persists a normalized value', async () => {
 
 test('local writes keep unrelated persisted values', async () => {
   const storage = createFakeStorage({
-    selectedProvider: 'openai', openaiApiKey: 'sk', systemPrompt: 'P', responseLanguage: 'ja', forumContextLimit: 45000
+    selectedProvider: 'openai',
+    openaiApiKey: 'sk',
+    systemPrompt: 'P',
+    responseLanguage: 'ja',
+    forumContextLimit: 45000
   });
   const store = createStore(storage);
   await store.load();
@@ -420,7 +442,11 @@ test('validateDraft reports field errors for the draft', () => {
 
 test('test(): invalid draft → invalid, without a network call', async () => {
   let calls = 0;
-  const store = createStore(createFakeStorage({}), { testConnection: async () => { calls += 1; } });
+  const store = createStore(createFakeStorage({}), {
+    testConnection: async () => {
+      calls += 1;
+    }
+  });
   store.selectProvider('openai');
   const result = await store.test();
   assert.equal(result.ok, false);
@@ -434,9 +460,13 @@ test('test(): testing → passed with normalized settings and API headers', asyn
   const phases = [];
   const store = createStore(createFakeStorage({}), {
     apiHeaders: { TITLE: 'T' },
-    testConnection: async (...args) => { calls.push(args); }
+    testConnection: async (...args) => {
+      calls.push(args);
+    }
   });
-  store.subscribe(event => { if (event.type === 'operation') phases.push(event.operation.phase); });
+  store.subscribe(event => {
+    if (event.type === 'operation') phases.push(event.operation.phase);
+  });
   store.selectProvider('openai');
   store.updateField('openai', 'apiKey', ' sk ');
   const result = await store.test();
@@ -449,7 +479,9 @@ test('test(): testing → passed with normalized settings and API headers', asyn
 
 test('test(): testing → failed with a classified failure', async () => {
   const store = createStore(createFakeStorage({}), {
-    testConnection: async () => { throw new ConnectionTestError('HTTP 401', { status: 401 }); }
+    testConnection: async () => {
+      throw new ConnectionTestError('HTTP 401', { status: 401 });
+    }
   });
   store.selectProvider('openai');
   store.updateField('openai', 'apiKey', 'bad');
@@ -464,7 +496,10 @@ test('test(): testing → failed with a classified failure', async () => {
 test('operations refuse to start while another is running', async () => {
   let release;
   const store = createStore(createFakeStorage({}), {
-    testConnection: () => new Promise(resolve => { release = resolve; })
+    testConnection: () =>
+      new Promise(resolve => {
+        release = resolve;
+      })
   });
   store.selectProvider('lmstudio');
   const first = store.test();
@@ -535,7 +570,9 @@ test('save(): a drafted system prompt and response language are saved with the p
 
 test('save(): a storage failure → error and the persisted snapshot is unchanged', async () => {
   const storage = createFakeStorage({});
-  storage.area.set = async () => { throw new Error('quota'); };
+  storage.area.set = async () => {
+    throw new Error('quota');
+  };
   const store = createStore(storage);
   store.selectProvider('lmstudio');
   const result = await store.save();
@@ -560,15 +597,22 @@ test('the storage echo of a save reloads the same configuration', async () => {
 
 test('reset(): removes live and legacy keys and returns to unconfigured', async () => {
   const storage = createFakeStorage({
-    selectedProvider: 'openai', openaiApiKey: 'sk', apiKey: 'legacy', extensionSettings: { old: true },
-    favoriteModels: [{ provider: 'openai', model: 'm' }], forumContextLimit: 45000, unrelated: 'keep'
+    selectedProvider: 'openai',
+    openaiApiKey: 'sk',
+    apiKey: 'legacy',
+    extensionSettings: { old: true },
+    favoriteModels: [{ provider: 'openai', model: 'm' }],
+    forumContextLimit: 45000,
+    unrelated: 'keep'
   });
   const store = createStore(storage);
   await store.load();
   store.selectProvider('openai');
   store.updateField('openai', 'apiKey', 'draft');
   const phases = [];
-  store.subscribe(event => { if (event.type === 'operation') phases.push(event.operation.phase); });
+  store.subscribe(event => {
+    if (event.type === 'operation') phases.push(event.operation.phase);
+  });
   const result = await store.reset();
   assert.equal(result.ok, true);
   assert.deepEqual(phases, ['resetting', 'idle']);
@@ -582,7 +626,9 @@ test('reset(): removes live and legacy keys and returns to unconfigured', async 
 
 test('reset(): a storage failure → error', async () => {
   const storage = createFakeStorage({ selectedProvider: 'openai' });
-  storage.area.remove = async () => { throw new Error('nope'); };
+  storage.area.remove = async () => {
+    throw new Error('nope');
+  };
   const store = createStore(storage);
   await store.load();
   const result = await store.reset();

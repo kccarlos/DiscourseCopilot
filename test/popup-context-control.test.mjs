@@ -3,13 +3,8 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 test('forum context slider is collapsed by default but remains discoverable', async () => {
-  const html = await readFile(
-    new URL('../src/popup/popup.html', import.meta.url),
-    'utf8'
-  );
-  const control = html.match(
-    /<details class="chat-context-control"[^>]*>([\s\S]*?)<\/details>/
-  );
+  const html = await readFile(new URL('../src/popup/popup.html', import.meta.url), 'utf8');
+  const control = html.match(/<details class="chat-context-control"[^>]*>([\s\S]*?)<\/details>/);
 
   assert.ok(control, 'expected a collapsible forum context control');
   assert.doesNotMatch(control[0], /<details[^>]*\sopen(?:\s|>)/);
@@ -19,10 +14,7 @@ test('forum context slider is collapsed by default but remains discoverable', as
 });
 
 test('exposes Agent entry, composer, and Activity detail controls', async () => {
-  const html = await readFile(
-    new URL('../src/popup/popup.html', import.meta.url),
-    'utf8'
-  );
+  const html = await readFile(new URL('../src/popup/popup.html', import.meta.url), 'utf8');
 
   assert.match(html, /id="agentLaunchBtn"/);
   assert.match(html, /id="agentForm"/);
@@ -33,13 +25,8 @@ test('exposes Agent entry, composer, and Activity detail controls', async () => 
 });
 
 test('inline and detail Agent answers share one template without fixed IDs', async () => {
-  const html = await readFile(
-    new URL('../src/popup/popup.html', import.meta.url),
-    'utf8'
-  );
-  const template = html.match(
-    /<template id="agentAnswerTemplate">([\s\S]*?)<\/template>/
-  );
+  const html = await readFile(new URL('../src/popup/popup.html', import.meta.url), 'utf8');
+  const template = html.match(/<template id="agentAnswerTemplate">([\s\S]*?)<\/template>/);
   assert.ok(template, 'expected a shared Agent answer template');
   assert.doesNotMatch(template[1], /\sid="/);
   assert.doesNotMatch(template[1], /aria-live/);
@@ -53,10 +40,7 @@ test('inline and detail Agent answers share one template without fixed IDs', asy
 });
 
 test('live regions announce status, not streaming or re-rendered content', async () => {
-  const html = await readFile(
-    new URL('../src/popup/popup.html', import.meta.url),
-    'utf8'
-  );
+  const html = await readFile(new URL('../src/popup/popup.html', import.meta.url), 'utf8');
   assert.match(html, /id="status"[^>]*role="status"/);
   assert.match(html, /<section class="topic-hero">/);
   for (const id of ['chatMessages', 'fetchProgress', 'activeTaskList', 'savedList']) {
@@ -65,10 +49,7 @@ test('live regions announce status, not streaming or re-rendered content', async
 });
 
 test('follows the browser color scheme and keeps copy forum-neutral', async () => {
-  const html = await readFile(
-    new URL('../src/popup/popup.html', import.meta.url),
-    'utf8'
-  );
+  const html = await readFile(new URL('../src/popup/popup.html', import.meta.url), 'utf8');
   assert.doesNotMatch(html, /data-theme=/);
   assert.doesNotMatch(html, /retention|credit card/i);
 });

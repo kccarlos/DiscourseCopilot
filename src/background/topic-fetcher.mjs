@@ -9,25 +9,11 @@
 // Whenever a limit cuts the read short the result says so (`truncated`,
 // `coveredPosts` of `totalPosts`); the summary and the progress line report
 // it instead of implying every reply was read.
-import {
-  calculateFetchProgress,
-  getTopicPagination
-} from '../shared/fetch-progress.mjs';
+import { calculateFetchProgress, getTopicPagination } from '../shared/fetch-progress.mjs';
 import { mapWithConcurrency } from '../shared/bounded-map.mjs';
-import {
-  abortableDelay,
-  fetchWithRateLimitRetry,
-  formatRetryDelay,
-  isAbortError
-} from '../shared/rate-limit-retry.mjs';
-import {
-  normalizeRawPages,
-  planTopicPageRequests
-} from '../shared/topic-session.mjs';
-import {
-  buildRawPageUrl,
-  buildTopicJsonUrl
-} from '../shared/forum-site.mjs';
+import { abortableDelay, fetchWithRateLimitRetry, formatRetryDelay, isAbortError } from '../shared/rate-limit-retry.mjs';
+import { normalizeRawPages, planTopicPageRequests } from '../shared/topic-session.mjs';
+import { buildRawPageUrl, buildTopicJsonUrl } from '../shared/forum-site.mjs';
 import { POSTS_PER_RAW_PAGE } from '../shared/preferences.mjs';
 import {
   FORUM_RESPONSE_KIND,
@@ -45,7 +31,7 @@ export const FORUM_FETCH_CONFIG = Object.freeze({
   REQUEST_DELAY: 1000,
   MAX_CONCURRENT_REQUESTS: 4,
   HEADERS: Object.freeze({
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.5',
     'Cache-Control': 'no-cache'
   })
@@ -54,16 +40,12 @@ export const FORUM_FETCH_CONFIG = Object.freeze({
 // The task status line for a fetch progress update.
 export function formatFetchTaskStatus(progress) {
   if (progress.rateLimited) {
-    const page = progress.retryPage
-      ? ` page ${progress.retryPage}`
-      : '';
+    const page = progress.retryPage ? ` page ${progress.retryPage}` : '';
     return `Forum rate limit reached. Retrying${page} in ${formatRetryDelay(progress.retryAfterMs)} (retry ${progress.retryAttempt} of ${progress.maxRetries})`;
   }
   if (progress.totalPosts && progress.processedPosts) {
     const read = `Read ${Math.max(0, progress.processedPosts - 1)} of ${Math.max(0, progress.totalPosts - 1)} replies`;
-    return progress.truncatedFromPosts
-      ? `${read} (page limit; the topic has ${Math.max(0, progress.truncatedFromPosts - 1)})`
-      : read;
+    return progress.truncatedFromPosts ? `${read} (page limit; the topic has ${Math.max(0, progress.truncatedFromPosts - 1)})` : read;
   }
   return `Read response page ${progress.currentPage}`;
 }
@@ -76,9 +58,7 @@ export function createRateLimitProgress(progress, retry, page = null) {
     retryAttempt: retry.retryAttempt,
     maxRetries: retry.maxRetries,
     retryAfterMs: retry.delayMs,
-    etaMs: Number.isFinite(progress.etaMs)
-      ? progress.etaMs + retry.delayMs
-      : retry.delayMs
+    etaMs: Number.isFinite(progress.etaMs) ? progress.etaMs + retry.delayMs : retry.delayMs
   };
 }
 
@@ -130,11 +110,7 @@ export function limitTopicPagination(pagination, maxPages) {
  * @param {object} [options.config] FORUM_FETCH_CONFIG overrides (tests)
  * @param {(ms: number, signal?: AbortSignal) => Promise<void>} [options.wait]
  */
-export function createTopicFetcher({
-  fetchImpl,
-  config = FORUM_FETCH_CONFIG,
-  wait = abortableDelay
-} = {}) {
+export function createTopicFetcher({ fetchImpl, config = FORUM_FETCH_CONFIG, wait = abortableDelay } = {}) {
   const retryOptions = extra => (fetchImpl ? { fetchImpl, ...extra } : extra);
 
   // Returns pagination, or null when the topic size is genuinely unknown
@@ -150,22 +126,25 @@ export function createTopicFetcher({
           signal,
           headers: {
             ...config.HEADERS,
-            'Accept': 'application/json'
+            Accept: 'application/json'
           }
         },
         retryOptions({
           signal,
-          onRetry: retry => onProgress?.(createRateLimitProgress(
-            {
-              currentPage: 0,
-              totalPages: null,
-              totalPosts: null,
-              processedPosts: null,
-              percent: null,
-              etaMs: null
-            },
-            retry
-          ))
+          onRetry: retry =>
+            onProgress?.(
+              createRateLimitProgress(
+                {
+                  currentPage: 0,
+                  totalPages: null,
+                  totalPosts: null,
+                  processedPosts: null,
+                  percent: null,
+                  etaMs: null
+                },
+                retry
+              )
+            )
         })
       );
       snapshot = await readForumResponse(response);
@@ -178,11 +157,7 @@ export function createTopicFetcher({
     }
 
     const kind = classifyForumResponse(snapshot, siteUrl, { expect: 'json' });
-    if (
-      kind === FORUM_RESPONSE_KIND.LOGIN_REQUIRED
-      || kind === FORUM_RESPONSE_KIND.CHALLENGE
-      || kind === FORUM_RESPONSE_KIND.NOT_FOUND
-    ) {
+    if (kind === FORUM_RESPONSE_KIND.LOGIN_REQUIRED || kind === FORUM_RESPONSE_KIND.CHALLENGE || kind === FORUM_RESPONSE_KIND.NOT_FOUND) {
       throw forumAccessError(kind, siteUrl, { status: snapshot.status });
     }
     if (kind !== FORUM_RESPONSE_KIND.OK) {
@@ -215,22 +190,11 @@ export function createTopicFetcher({
     };
   }
 
-  async function fetchKnownTopicPages({
-    siteUrl,
-    postId,
-    pagination,
-    cachedPages,
-    knownTotalPosts,
-    maxPages,
-    onProgress,
-    signal
-  }) {
+  async function fetchKnownTopicPages({ siteUrl, postId, pagination, cachedPages, knownTotalPosts, maxPages, onProgress, signal }) {
     const limited = limitTopicPagination(pagination, maxPages);
     // Post counts are compared within the limit: replies added past it don't
     // change what is read, so they don't trigger a re-read either.
-    const withinLimit = count => (Number.isInteger(count) && count > 0
-      ? Math.min(count, limited.coveredPosts)
-      : count);
+    const withinLimit = count => (Number.isInteger(count) && count > 0 ? Math.min(count, limited.coveredPosts) : count);
     const requestPlan = planTopicPageRequests({
       cachedPages: normalizeRawPages(cachedPages),
       knownTotalPosts: withinLimit(knownTotalPosts),
@@ -268,67 +232,49 @@ export function createTopicFetcher({
     let completedRequestMs = 0;
     let networkPagesFetched = 0;
 
-    const fetchedPages = await mapWithConcurrency(
-      requestPlan.pagesToFetch,
-      config.MAX_CONCURRENT_REQUESTS,
-      async page => {
-        const result = await fetchRawPage(siteUrl, postId, page, signal, retry => {
-          const progress = progressAt(
-            completedPages,
-            networkPagesFetched ? completedRequestMs / networkPagesFetched : 0
-          );
-          onProgress(createRateLimitProgress(progress, retry, page));
-        });
-        completedPages++;
-        networkPagesFetched++;
-        completedRequestMs += result.requestMs;
-        onProgress(progressAt(completedPages, completedRequestMs / networkPagesFetched));
-        return { page: result.page, content: result.content };
-      }
-    );
+    const fetchedPages = await mapWithConcurrency(requestPlan.pagesToFetch, config.MAX_CONCURRENT_REQUESTS, async page => {
+      const result = await fetchRawPage(siteUrl, postId, page, signal, retry => {
+        const progress = progressAt(completedPages, networkPagesFetched ? completedRequestMs / networkPagesFetched : 0);
+        onProgress(createRateLimitProgress(progress, retry, page));
+      });
+      completedPages++;
+      networkPagesFetched++;
+      completedRequestMs += result.requestMs;
+      onProgress(progressAt(completedPages, completedRequestMs / networkPagesFetched));
+      return { page: result.page, content: result.content };
+    });
 
-    return buildContentResult(
-      normalizeRawPages([...reusablePages, ...fetchedPages]),
-      pagination,
-      {
-        ...coverage,
-        unchanged: false,
-        // New posts that were actually read (within the page limit).
-        newPosts: Number.isInteger(knownTotalPosts)
-          ? Math.max(0, limited.coveredPosts - withinLimit(knownTotalPosts))
-          : null,
-        networkPagesFetched
-      }
-    );
+    return buildContentResult(normalizeRawPages([...reusablePages, ...fetchedPages]), pagination, {
+      ...coverage,
+      unchanged: false,
+      // New posts that were actually read (within the page limit).
+      newPosts: Number.isInteger(knownTotalPosts) ? Math.max(0, limited.coveredPosts - withinLimit(knownTotalPosts)) : null,
+      networkPagesFetched
+    });
   }
 
   async function fetchUnknownTopicPages(siteUrl, postId, onProgress, signal, maxPages) {
     // The safety cap applies even when every page is requested.
     const limit = normalizeMaxPages(maxPages);
-    const pageLimit = limit === null
-      ? MAX_UNKNOWN_TOPIC_PAGES
-      : Math.min(limit, MAX_UNKNOWN_TOPIC_PAGES);
+    const pageLimit = limit === null ? MAX_UNKNOWN_TOPIC_PAGES : Math.min(limit, MAX_UNKNOWN_TOPIC_PAGES);
     let totalRequestMs = 0;
     let pagesRead = 0;
-    const progressAt = averageRequestMs => calculateFetchProgress({
-      currentPage: pagesRead,
-      totalPages: null,
-      totalPosts: null,
-      pageSize: null,
-      averageRequestMs,
-      requestDelayMs: config.REQUEST_DELAY
-    });
+    const progressAt = averageRequestMs =>
+      calculateFetchProgress({
+        currentPage: pagesRead,
+        totalPages: null,
+        totalPosts: null,
+        pageSize: null,
+        averageRequestMs,
+        requestDelayMs: config.REQUEST_DELAY
+      });
 
     try {
       const { rawPages, truncated } = await collectRawPages({
         maxPages: pageLimit,
         fetchPage: async page => {
           const result = await fetchRawPage(siteUrl, postId, page, signal, retry => {
-            onProgress(createRateLimitProgress(
-              progressAt(pagesRead ? totalRequestMs / pagesRead : 0),
-              retry,
-              page
-            ));
+            onProgress(createRateLimitProgress(progressAt(pagesRead ? totalRequestMs / pagesRead : 0), retry, page));
           });
           totalRequestMs += result.requestMs;
           return result.content;

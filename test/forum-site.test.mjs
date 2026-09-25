@@ -53,43 +53,25 @@ test('parses only clean site URLs', () => {
 });
 
 test('derives the site URL from a page URL and base path', () => {
-  assert.equal(
-    siteUrlFromPageUrl('https://community.openai.com/t/topic/1?x=1'),
-    'https://community.openai.com'
-  );
-  assert.equal(
-    siteUrlFromPageUrl('https://example.com/forum/t/slug/42', '/forum'),
-    'https://example.com/forum'
-  );
+  assert.equal(siteUrlFromPageUrl('https://community.openai.com/t/topic/1?x=1'), 'https://community.openai.com');
+  assert.equal(siteUrlFromPageUrl('https://example.com/forum/t/slug/42', '/forum'), 'https://example.com/forum');
   assert.equal(siteUrlFromPageUrl('https://example.com/other/t/42', '/forum'), '');
   assert.equal(siteUrlFromPageUrl('http://example.com/t/42'), '');
 });
 
 test('builds forum-scoped topic keys that differ across forums', () => {
-  assert.equal(
-    buildTopicKey('https://community.openai.com', '123'),
-    'community.openai.com/t/123'
-  );
+  assert.equal(buildTopicKey('https://community.openai.com', '123'), 'community.openai.com/t/123');
   assert.equal(buildTopicKey('https://Example.com/forum', 42), 'example.com/forum/t/42');
   assert.equal(buildTopicKey('https://example.com:8443', '1'), 'example.com:8443/t/1');
-  assert.notEqual(
-    buildTopicKey('https://community.openai.com', '123'),
-    buildTopicKey('https://www.uscardforum.com', '123')
-  );
+  assert.notEqual(buildTopicKey('https://community.openai.com', '123'), buildTopicKey('https://www.uscardforum.com', '123'));
   assert.equal(buildTopicKey('https://example.com', 'abc'), '');
   assert.equal(buildTopicKey('https://example.com', '0'), '');
   assert.equal(buildTopicKey('', '123'), '');
 });
 
 test('builds topic JSON and raw URLs under the base path and rejects bad identities', () => {
-  assert.equal(
-    buildTopicJsonUrl('https://example.com/forum', '42'),
-    'https://example.com/forum/t/42.json'
-  );
-  assert.equal(
-    buildRawPageUrl('https://community.openai.com', '42', 3),
-    'https://community.openai.com/raw/42?page=3'
-  );
+  assert.equal(buildTopicJsonUrl('https://example.com/forum', '42'), 'https://example.com/forum/t/42.json');
+  assert.equal(buildRawPageUrl('https://community.openai.com', '42', 3), 'https://community.openai.com/raw/42?page=3');
   assert.throws(() => buildTopicJsonUrl('', '42'), /forum site URL/);
   assert.throws(() => buildRawPageUrl('https://example.com', 'x', 1), /topic ID/);
   assert.throws(() => buildRawPageUrl('https://example.com', '42', 0), /page/);
@@ -114,10 +96,7 @@ test('matches forum URLs strictly by origin and base path', () => {
 });
 
 test('uses the forum name when present and falls back to the hostname', () => {
-  assert.equal(
-    forumDisplayName('https://community.openai.com', ' OpenAI Developer Community '),
-    'OpenAI Developer Community'
-  );
+  assert.equal(forumDisplayName('https://community.openai.com', ' OpenAI Developer Community '), 'OpenAI Developer Community');
   assert.equal(forumDisplayName('https://example.com/forum', ''), 'example.com');
   assert.equal(forumDisplayName('', ''), '');
 });

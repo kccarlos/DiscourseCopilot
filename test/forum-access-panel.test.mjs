@@ -38,19 +38,25 @@ const meta = content => ({ getAttribute: name => (name === 'content' ? content :
 // ---------- probing a page without access ----------
 
 test('the probe detects Discourse from server-rendered tags', () => {
-  const found = withDocument({
-    'meta[name="generator"]': meta('Discourse 3.4.0 - https://github.com/discourse/discourse'),
-    'meta[property="og:site_name"]': meta(' OpenAI Developer Community ')
-  }, probeDiscoursePage);
+  const found = withDocument(
+    {
+      'meta[name="generator"]': meta('Discourse 3.4.0 - https://github.com/discourse/discourse'),
+      'meta[property="og:site_name"]': meta(' OpenAI Developer Community ')
+    },
+    probeDiscoursePage
+  );
   assert.deepEqual(found, {
     url: TOPIC_URL,
     isDiscourse: true,
     basePath: '',
     forumName: 'OpenAI Developer Community'
   });
-  const subfolder = withDocument({
-    '#data-discourse-setup': { dataset: { baseUri: '/forum' } }
-  }, probeDiscoursePage);
+  const subfolder = withDocument(
+    {
+      '#data-discourse-setup': { dataset: { baseUri: '/forum' } }
+    },
+    probeDiscoursePage
+  );
   assert.equal(subfolder.isDiscourse, true);
   assert.equal(subfolder.basePath, '/forum');
   const other = withDocument({ 'meta[name="generator"]': meta('WordPress 6.5') }, probeDiscoursePage);
@@ -68,11 +74,9 @@ test('a probe result becomes page state; the forum is marked as needing access',
   assert.equal(pageState.siteUrl, 'https://community.openai.com');
   assert.equal(pageState.topicId, '12345');
 
-  const context = getTopicContext(
-    { id: 4, url: TOPIC_URL, title: 'Some topic - OpenAI Developer Community' },
-    pageState,
-    { forumAccess: false }
-  );
+  const context = getTopicContext({ id: 4, url: TOPIC_URL, title: 'Some topic - OpenAI Developer Community' }, pageState, {
+    forumAccess: false
+  });
   assert.equal(context.isDiscourse, true);
   assert.equal(context.detectedBy, 'probe');
   assert.equal(context.forumAccess, 'missing');
@@ -80,7 +84,9 @@ test('a probe result becomes page state; the forum is marked as needing access',
   assert.equal(context.pageHidden, false);
 
   assert.deepEqual(pageStateFromProbe({ url: 'https://example.com/', isDiscourse: false }), {
-    url: 'https://example.com/', isDiscourse: false, detectedBy: 'probe'
+    url: 'https://example.com/',
+    isDiscourse: false,
+    detectedBy: 'probe'
   });
   assert.equal(pageStateFromProbe(null), null);
   assert.equal(pageStateFromProbe({ isDiscourse: true }), null);

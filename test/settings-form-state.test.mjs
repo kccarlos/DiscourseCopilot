@@ -13,8 +13,7 @@ import {
   transitionForm
 } from '../src/settings/settings-form-state.mjs';
 
-const run = (events, state = initialFormState()) =>
-  events.reduce((current, event) => transitionForm(current, event), state);
+const run = (events, state = initialFormState()) => events.reduce((current, event) => transitionForm(current, event), state);
 
 test('starts loading and busy with a loading message', () => {
   const state = initialFormState();
@@ -64,7 +63,10 @@ test('testing → passed returns to pristine or dirty', () => {
   const passed = transitionForm(testing, { type: 'test-passed', providerName: 'OpenAI' });
   assert.equal(passed.phase, FORM_PHASE.PRISTINE);
   assert.deepEqual(passed.status, { message: 'OpenAI connection successful.', type: 'success', autoHide: true });
-  const dirtyPassed = run([{ type: 'edited' }, { type: 'test-started', providerName: 'X' }, { type: 'test-passed', providerName: 'X' }], passed);
+  const dirtyPassed = run(
+    [{ type: 'edited' }, { type: 'test-started', providerName: 'X' }, { type: 'test-passed', providerName: 'X' }],
+    passed
+  );
   assert.equal(dirtyPassed.phase, FORM_PHASE.DIRTY);
 });
 
@@ -180,7 +182,11 @@ test('invalid carries field errors; fixing the last one returns to dirty and cle
 });
 
 test('field-errors only touches the listed fields and never the phase otherwise', () => {
-  let state = transitionForm(pristineForm(), { type: 'field-errors', fields: ['maxSavedTopics'], fieldErrors: { maxSavedTopics: 'x', other: 'y' } });
+  let state = transitionForm(pristineForm(), {
+    type: 'field-errors',
+    fields: ['maxSavedTopics'],
+    fieldErrors: { maxSavedTopics: 'x', other: 'y' }
+  });
   assert.equal(state.phase, FORM_PHASE.PRISTINE);
   assert.deepEqual(state.fieldErrors, { maxSavedTopics: 'x' });
 });

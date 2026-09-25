@@ -1,19 +1,7 @@
-import {
-  buildTopicUrl,
-  FORUM_TOOL_LIMITS,
-  ForumToolError
-} from './forum-tools.mjs';
+import { buildTopicUrl, FORUM_TOOL_LIMITS, ForumToolError } from './forum-tools.mjs';
 import { PREFERENCE_RANGES, RESEARCH_PRESETS } from '../shared/preferences.mjs';
-import {
-  buildTopicKey,
-  forumDisplayName,
-  normalizeSiteUrl
-} from '../shared/forum-site.mjs';
-import {
-  buildAgentSourceContext,
-  deriveSearchQueries,
-  rankSearchResults
-} from '../services/agent-context.mjs';
+import { buildTopicKey, forumDisplayName, normalizeSiteUrl } from '../shared/forum-site.mjs';
+import { buildAgentSourceContext, deriveSearchQueries, rankSearchResults } from '../services/agent-context.mjs';
 
 // Sources handed to the model; matches AGENT_CONTEXT_LIMITS.maxSourceCount.
 const MAX_SELECTED_SOURCES = 12;
@@ -33,17 +21,19 @@ function boundedCount(value, fallback, min, max) {
 // preference ranges, and the forum tools' own search page limit.
 export function effectiveResearchLimits(limits = {}) {
   const ranges = PREFERENCE_RANGES;
-  const topicsRead = boundedCount(
-    limits.topicsRead, DEFAULT_RESEARCH_LIMITS.topicsRead, ranges.topicsRead.min, ranges.topicsRead.max
-  );
+  const topicsRead = boundedCount(limits.topicsRead, DEFAULT_RESEARCH_LIMITS.topicsRead, ranges.topicsRead.min, ranges.topicsRead.max);
   return {
     searchQueries: boundedCount(
-      limits.searchQueries, DEFAULT_RESEARCH_LIMITS.searchQueries,
-      ranges.searchQueries.min, ranges.searchQueries.max
+      limits.searchQueries,
+      DEFAULT_RESEARCH_LIMITS.searchQueries,
+      ranges.searchQueries.min,
+      ranges.searchQueries.max
     ),
     searchPages: boundedCount(
-      limits.searchPages, DEFAULT_RESEARCH_LIMITS.searchPages,
-      ranges.searchPages.min, Math.min(ranges.searchPages.max, FORUM_TOOL_LIMITS.maxSearchPage)
+      limits.searchPages,
+      DEFAULT_RESEARCH_LIMITS.searchPages,
+      ranges.searchPages.min,
+      Math.min(ranges.searchPages.max, FORUM_TOOL_LIMITS.maxSearchPage)
     ),
     topicsRead,
     rawFallbacks: boundedCount(limits.rawFallbacks, Math.ceil(topicsRead / 2), 0, topicsRead)
@@ -123,9 +113,7 @@ function progressPatch(phase, statusText, completedSteps, totalSteps, sourceCoun
     phase,
     statusText,
     progress: {
-      percent: totalSteps > 0
-        ? Math.min(100, Math.round((completedSteps / totalSteps) * 100))
-        : null,
+      percent: totalSteps > 0 ? Math.min(100, Math.round((completedSteps / totalSteps) * 100)) : null,
       completedSteps,
       totalSteps,
       sourceCount,
@@ -177,10 +165,7 @@ export async function runAgentTask({
       callId: `${name}-${now()}-${toolCalls.length + 1}`,
       name,
       argumentSummary: Object.fromEntries(
-        Object.entries(args || {}).map(([key, value]) => [
-          key,
-          Array.isArray(value) ? value.join(',') : String(value ?? '')
-        ])
+        Object.entries(args || {}).map(([key, value]) => [key, Array.isArray(value) ? value.join(',') : String(value ?? '')])
       ),
       status: 'running',
       startedAt: now(),
@@ -194,11 +179,7 @@ export async function runAgentTask({
       const result = await fn();
       call.status = 'completed';
       call.completedAt = now();
-      call.resultCount = Array.isArray(result?.hits)
-        ? result.hits.length
-        : Array.isArray(result?.posts)
-          ? result.posts.length
-          : null;
+      call.resultCount = Array.isArray(result?.hits) ? result.hits.length : Array.isArray(result?.posts) ? result.posts.length : null;
       await onActivityPatch({ toolCalls: [...toolCalls] }, true);
       return result;
     } catch (error) {
@@ -214,11 +195,7 @@ export async function runAgentTask({
   for (const query of queries) {
     for (let page = 1; page <= budget.searchPages; page++) {
       const startedAt = now();
-      const result = await invoke(
-        'searchForum',
-        { query, page },
-        () => toolClient.searchForum({ query, page })
-      );
+      const result = await invoke('searchForum', { query, page }, () => toolClient.searchForum({ query, page }));
       searchHits.push(...result.hits);
       searchQueries.push({
         query,
@@ -229,12 +206,7 @@ export async function runAgentTask({
       });
       completedSteps++;
       await onActivityPatch({ searchQueries: [...searchQueries] }, true);
-      await report(progressPatch(
-        'searching',
-        `Found ${searchHits.length} search matches…`,
-        completedSteps,
-        totalSteps
-      ));
+      await report(progressPatch('searching', `Found ${searchHits.length} search matches…`, completedSteps, totalSteps));
       // No further result pages for this query.
       if (result.more !== true) {
         completedSteps += budget.searchPages - page;
@@ -254,28 +226,16 @@ export async function runAgentTask({
     };
   }
 
-  await report(progressPatch(
-    'ranking',
-    `Comparing ${ranked.length} relevant discussions…`,
-    completedSteps,
-    totalSteps
-  ), true);
+  await report(progressPatch('ranking', `Comparing ${ranked.length} relevant discussions…`, completedSteps, totalSteps), true);
 
   const topics = [];
   for (const hit of ranked) {
-    const topic = await invoke(
-      'getTopic',
-      { topicId: hit.topicId },
-      () => toolClient.getTopic({ topicId: hit.topicId })
-    );
+    const topic = await invoke('getTopic', { topicId: hit.topicId }, () => toolClient.getTopic({ topicId: hit.topicId }));
     topics.push({ topic, hit });
     completedSteps++;
-    await report(progressPatch(
-      'fetching_metadata',
-      `Checking discussion ${topics.length} of ${ranked.length}…`,
-      completedSteps,
-      totalSteps
-    ));
+    await report(
+      progressPatch('fetching_metadata', `Checking discussion ${topics.length} of ${ranked.length}…`, completedSteps, totalSteps)
+    );
   }
 
   const sourceCandidates = [];
@@ -284,25 +244,23 @@ export async function runAgentTask({
     const postIds = hit.postId ? [hit.postId] : [];
     let posts = [];
     if (postIds.length) {
-      const result = await invoke(
-        'getPosts',
-        { topicId: topic.topicId, postIds },
-        () => toolClient.getPosts({ topicId: topic.topicId, postIds })
+      const result = await invoke('getPosts', { topicId: topic.topicId, postIds }, () =>
+        toolClient.getPosts({ topicId: topic.topicId, postIds })
       );
       posts = result.posts;
     }
 
     if (posts.length) {
-      sourceCandidates.push(...posts.map(post => ({
-        ...sourceRefFromPost(siteUrl, post, topic, `S${sourceCandidates.length + 1}`),
-        score: hit.score
-      })));
+      sourceCandidates.push(
+        ...posts.map(post => ({
+          ...sourceRefFromPost(siteUrl, post, topic, `S${sourceCandidates.length + 1}`),
+          score: hit.score
+        }))
+      );
     } else if (rawFallbacks < budget.rawFallbacks) {
       rawFallbacks++;
-      const raw = await invoke(
-        'getRawPage',
-        { topicId: topic.topicId, page: 1 },
-        () => toolClient.getRawPage({ topicId: topic.topicId, page: 1 })
+      const raw = await invoke('getRawPage', { topicId: topic.topicId, page: 1 }, () =>
+        toolClient.getRawPage({ topicId: topic.topicId, page: 1 })
       );
       if (raw.content) {
         sourceCandidates.push({
@@ -333,19 +291,11 @@ export async function runAgentTask({
     }
 
     completedSteps++;
-    await report(progressPatch(
-      'fetching_posts',
-      `Reading selected discussions…`,
-      completedSteps,
-      totalSteps,
-      sourceCandidates.length
-    ));
+    await report(progressPatch('fetching_posts', `Reading selected discussions…`, completedSteps, totalSteps, sourceCandidates.length));
   }
 
   const sources = uniqueBy(
-    sourceCandidates
-      .sort((left, right) => right.score - left.score)
-      .slice(0, MAX_SELECTED_SOURCES),
+    sourceCandidates.sort((left, right) => right.score - left.score).slice(0, MAX_SELECTED_SOURCES),
     source => `${source.topicKey}:${source.postId || source.sourceId}`
   ).map((source, index) => ({
     ...source,
@@ -367,13 +317,10 @@ export async function runAgentTask({
 
   const sourceContext = buildAgentSourceContext(sources);
   completedSteps++;
-  await report(progressPatch(
-    'generating',
-    `Writing an answer from ${sources.length} sources…`,
-    completedSteps,
-    totalSteps,
-    sources.length
-  ), true);
+  await report(
+    progressPatch('generating', `Writing an answer from ${sources.length} sources…`, completedSteps, totalSteps, sources.length),
+    true
+  );
 
   const answer = await generateAnswer({
     question,
@@ -382,28 +329,23 @@ export async function runAgentTask({
     responseLanguage,
     forumName: forumLabel,
     signal,
-    onProgress: progress => onProgress({
-      phase: 'generating',
-      statusText: progress?.message || 'Writing an answer with sources…',
-      progress: {
-        percent: null,
-        completedSteps,
-        totalSteps,
-        sourceCount: sources.length,
-        etaMs: null
-      }
-    }),
+    onProgress: progress =>
+      onProgress({
+        phase: 'generating',
+        statusText: progress?.message || 'Writing an answer with sources…',
+        progress: {
+          percent: null,
+          completedSteps,
+          totalSteps,
+          sourceCount: sources.length,
+          etaMs: null
+        }
+      }),
     onStream
   });
 
   completedSteps = totalSteps;
-  await report(progressPatch(
-    'saving',
-    'Saving answer and sources…',
-    completedSteps,
-    totalSteps,
-    sources.length
-  ), true);
+  await report(progressPatch('saving', 'Saving answer and sources…', completedSteps, totalSteps, sources.length), true);
   return {
     answer,
     answerStatus: 'answered',

@@ -12,11 +12,7 @@ export function throwIfAborted(abortSignal) {
     throw abortSignal.reason;
   }
 
-  const error = new Error(
-    typeof abortSignal.reason === 'string'
-      ? abortSignal.reason
-      : 'Operation was aborted'
-  );
+  const error = new Error(typeof abortSignal.reason === 'string' ? abortSignal.reason : 'Operation was aborted');
   error.name = 'AbortError';
   throw error;
 }
@@ -25,9 +21,8 @@ export function throwIfAborted(abortSignal) {
  * Whether the error says the prompt itself is too large.
  */
 export function isPromptTooLargeError(error) {
-  const errorMsg = (error.message?.toLowerCase() || '');
-  return errorMsg.includes('initial prompt') ||
-         errorMsg.includes('prompt is greater than');
+  const errorMsg = error.message?.toLowerCase() || '';
+  return errorMsg.includes('initial prompt') || errorMsg.includes('prompt is greater than');
 }
 
 /**
@@ -41,18 +36,19 @@ export function isTokenLimitError(error) {
   }
 
   const errorMsg = (error.message?.toLowerCase() || '') + ' ' + (error.originalError?.message?.toLowerCase() || '');
-  const isTokenError = errorMsg.includes('context') ||
-         errorMsg.includes('token') ||
-         errorMsg.includes('length') ||
-         errorMsg.includes('too long') ||
-         errorMsg.includes('maximum') ||
-         errorMsg.includes('limit') ||
-         errorMsg.includes('exceeded') ||
-         errorMsg.includes('channel') ||  // LM Studio "Channel Error"
-         errorMsg.includes('initial prompt') ||  // LM Studio specific
-         errorMsg.includes('shorter input') ||  // LM Studio specific
-         errorMsg.includes('bad request') ||  // Often indicates payload too large
-         errorMsg.includes('no content generated');  // Fallback when SDK doesn't propagate error
+  const isTokenError =
+    errorMsg.includes('context')
+    || errorMsg.includes('token')
+    || errorMsg.includes('length')
+    || errorMsg.includes('too long')
+    || errorMsg.includes('maximum')
+    || errorMsg.includes('limit')
+    || errorMsg.includes('exceeded')
+    || errorMsg.includes('channel') // LM Studio "Channel Error"
+    || errorMsg.includes('initial prompt') // LM Studio specific
+    || errorMsg.includes('shorter input') // LM Studio specific
+    || errorMsg.includes('bad request') // Often indicates payload too large
+    || errorMsg.includes('no content generated'); // Fallback when SDK doesn't propagate error
 
   if (isTokenError) {
     console.log('AI Service: Detected token limit error:', errorMsg.substring(0, 200));
@@ -92,7 +88,8 @@ export function parseForumContent(content) {
   }
 
   const op = sections[0].trim();
-  const comments = sections.slice(1)
+  const comments = sections
+    .slice(1)
     .map(s => s.trim())
     .filter(s => s.length > 0);
 

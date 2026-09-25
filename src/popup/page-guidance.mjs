@@ -52,9 +52,7 @@ function pageState(context) {
 }
 
 function accessCard(state, context, { forumName, host, nextStep }) {
-  const finalStep = context.isForumTopic
-    ? 'Then click **Create summary**.'
-    : 'Then open a topic, or ask the forum a question.';
+  const finalStep = context.isForumTopic ? 'Then click **Create summary**.' : 'Then open a topic, or ask the forum a question.';
   const maybe = state === GUIDANCE_STATE.MAYBE;
   return {
     eyebrow: nextStep ? 'Step 2 of 2 · Next' : maybe ? 'Looks like a Discourse topic' : 'Discourse forum found',
@@ -66,9 +64,9 @@ function accessCard(state, context, { forumName, host, nextStep }) {
       'Click **Allow access** below.',
       'Chrome asks for permission. Choose **Allow**.',
       maybe
-        ? (context.isForumTopic
-            ? 'If it’s a Discourse forum, click **Create summary**.'
-            : 'If it’s a Discourse forum, open a topic or ask it a question.')
+        ? context.isForumTopic
+          ? 'If it’s a Discourse forum, click **Create summary**.'
+          : 'If it’s a Discourse forum, open a topic or ask it a question.'
         : finalStep
     ],
     button: `Allow access to ${host}`,
@@ -97,12 +95,10 @@ function accessCard(state, context, { forumName, host, nextStep }) {
  *   showHero: boolean, showWelcome: boolean
  * }}
  */
-export function derivePageGuidance(context, {
-  providerReady = true,
-  setupShowsSuccess = false,
-  forumName = '',
-  accessDenied = false
-} = {}) {
+export function derivePageGuidance(
+  context,
+  { providerReady = true, setupShowsSuccess = false, forumName = '', accessDenied = false } = {}
+) {
   const state = pageState(context);
   const siteUrl = context?.siteUrl || '';
   const host = siteUrl ? forumAccessHost(siteUrl) : '';
@@ -187,9 +183,7 @@ export function derivePageGuidance(context, {
     card,
     hero,
     checklist,
-    showHero: state === GUIDANCE_STATE.LOADING
-      || state === GUIDANCE_STATE.FORUM_HOME
-      || state === GUIDANCE_STATE.TOPIC,
+    showHero: state === GUIDANCE_STATE.LOADING || state === GUIDANCE_STATE.FORUM_HOME || state === GUIDANCE_STATE.TOPIC,
     showWelcome: state === GUIDANCE_STATE.TOPIC
   };
 }

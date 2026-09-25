@@ -6,12 +6,7 @@
 // toolbar icon on that tab (activeTab). Its result becomes the same page
 // state the content script reports, marked detectedBy: 'probe'.
 import { extractForumTopicId } from '../shared/topic-route.mjs';
-import {
-  buildTopicKey,
-  forumDisplayName,
-  normalizeBasePath,
-  siteUrlFromPageUrl
-} from '../shared/forum-site.mjs';
+import { buildTopicKey, forumDisplayName, normalizeBasePath, siteUrlFromPageUrl } from '../shared/forum-site.mjs';
 
 /**
  * Runs in the page (serialized by executeScript): must not reference

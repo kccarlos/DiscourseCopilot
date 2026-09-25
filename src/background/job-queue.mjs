@@ -1,8 +1,4 @@
-import {
-  TASK_STATUS,
-  isTerminalTaskStatus,
-  normalizeTaskRecord
-} from '../shared/task-record.mjs';
+import { TASK_STATUS, isTerminalTaskStatus, normalizeTaskRecord } from '../shared/task-record.mjs';
 
 function abortError() {
   const error = new Error('Task cancelled');
@@ -11,13 +7,7 @@ function abortError() {
 }
 
 export class JobQueue {
-  constructor({
-    concurrency = 2,
-    maxQueued = 50,
-    execute,
-    onTransition = async () => {},
-    now = () => Date.now()
-  }) {
+  constructor({ concurrency = 2, maxQueued = 50, execute, onTransition = async () => {}, now = () => Date.now() }) {
     if (typeof execute !== 'function') {
       throw new TypeError('A task executor is required');
     }
@@ -55,9 +45,7 @@ export class JobQueue {
       }
       task.status = TASK_STATUS.QUEUED;
       task.phase = 'queued';
-      task.statusText = record.status === TASK_STATUS.RUNNING
-        ? 'Resuming after extension restart…'
-        : 'Waiting for an available worker…';
+      task.statusText = record.status === TASK_STATUS.RUNNING ? 'Resuming after extension restart…' : 'Waiting for an available worker…';
       task.updatedAt = this.now();
       this.tasks.set(task.id, task);
       this.pending.push(task.id);
@@ -94,16 +82,11 @@ export class JobQueue {
   }
 
   list() {
-    return [...this.tasks.values()]
-      .map(task => ({ ...task }))
-      .sort((left, right) => right.createdAt - left.createdAt);
+    return [...this.tasks.values()].map(task => ({ ...task })).sort((left, right) => right.createdAt - left.createdAt);
   }
 
   findActive(predicate) {
-    return this.list().find(task =>
-      !isTerminalTaskStatus(task.status)
-      && predicate(task)
-    ) || null;
+    return this.list().find(task => !isTerminalTaskStatus(task.status) && predicate(task)) || null;
   }
 
   async cancel(taskId) {
@@ -158,9 +141,7 @@ export class JobQueue {
       const pendingIndex = this.pending.findIndex(id => {
         const task = this.tasks.get(id);
         if (!task) return false;
-        return ![...this.running.values()].some(
-          running => running.task.resourceKey === task.resourceKey
-        );
+        return ![...this.running.values()].some(running => running.task.resourceKey === task.resourceKey);
       });
       if (pendingIndex < 0) {
         break;
@@ -194,10 +175,13 @@ export class JobQueue {
         await this.onTransition({ ...task }, options);
       };
 
-      const result = await this.execute({ ...task }, {
-        signal: controller.signal,
-        report
-      });
+      const result = await this.execute(
+        { ...task },
+        {
+          signal: controller.signal,
+          report
+        }
+      );
       if (controller.signal.aborted) {
         throw abortError();
       }
@@ -216,27 +200,12 @@ export class JobQueue {
       });
     } catch (error) {
       const cancelled = controller.signal.aborted || error?.name === 'AbortError';
-      const waitingForUser = !cancelled
-        && error?.taskStatus === TASK_STATUS.WAITING_USER_ACTION;
-      const status = cancelled
-        ? TASK_STATUS.CANCELLED
-        : waitingForUser
-          ? TASK_STATUS.WAITING_USER_ACTION
-          : TASK_STATUS.FAILED;
+      const waitingForUser = !cancelled && error?.taskStatus === TASK_STATUS.WAITING_USER_ACTION;
+      const status = cancelled ? TASK_STATUS.CANCELLED : waitingForUser ? TASK_STATUS.WAITING_USER_ACTION : TASK_STATUS.FAILED;
       const patch = {
-        phase: cancelled
-          ? 'cancelled'
-          : waitingForUser
-            ? 'waiting_user_action'
-            : 'failed',
-        statusText: cancelled
-          ? 'Cancelled'
-          : waitingForUser
-            ? (error.statusText || 'Waiting for your action…')
-            : 'Failed',
-        error: cancelled || waitingForUser
-          ? (waitingForUser ? String(error?.message || error) : '')
-          : String(error?.message || error)
+        phase: cancelled ? 'cancelled' : waitingForUser ? 'waiting_user_action' : 'failed',
+        statusText: cancelled ? 'Cancelled' : waitingForUser ? error.statusText || 'Waiting for your action…' : 'Failed',
+        error: cancelled || waitingForUser ? (waitingForUser ? String(error?.message || error) : '') : String(error?.message || error)
       };
       try {
         await this.finishTask(task, status, patch);
@@ -258,9 +227,7 @@ export class JobQueue {
     Object.assign(task, patch, {
       status,
       updatedAt: this.now(),
-      completedAt: isTerminalTaskStatus(status)
-        ? this.now()
-        : (task.completedAt || 0)
+      completedAt: isTerminalTaskStatus(status) ? this.now() : task.completedAt || 0
     });
     await this.onTransition({ ...task }, { durable: true });
   }

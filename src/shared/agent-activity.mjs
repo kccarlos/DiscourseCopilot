@@ -1,14 +1,5 @@
-import {
-  TASK_STATUS,
-  isTerminalTaskStatus
-} from './task-record.mjs';
-import {
-  buildTopicKey,
-  forumDisplayName,
-  isSameForumUrl,
-  normalizeSiteUrl,
-  siteUrlFromPageUrl
-} from './forum-site.mjs';
+import { TASK_STATUS, isTerminalTaskStatus } from './task-record.mjs';
+import { buildTopicKey, forumDisplayName, isSameForumUrl, normalizeSiteUrl, siteUrlFromPageUrl } from './forum-site.mjs';
 
 // Default retention (the "1 day" history setting); the effective value comes
 // from resolveRetention(preferences).agentMs.
@@ -52,31 +43,15 @@ function normalizeProgress(value) {
   }
 
   return {
-    percent: Number.isFinite(value.percent)
-      ? Math.max(0, Math.min(100, value.percent))
-      : null,
-    completedSteps: Number.isFinite(value.completedSteps)
-      ? Math.max(0, value.completedSteps)
-      : null,
-    totalSteps: Number.isFinite(value.totalSteps)
-      ? Math.max(0, value.totalSteps)
-      : null,
-    sourceCount: Number.isFinite(value.sourceCount)
-      ? Math.max(0, value.sourceCount)
-      : null,
-    currentPage: Number.isFinite(value.currentPage)
-      ? Math.max(0, value.currentPage)
-      : null,
-    totalPages: Number.isFinite(value.totalPages)
-      ? Math.max(0, value.totalPages)
-      : null,
-    etaMs: Number.isFinite(value.etaMs)
-      ? Math.max(0, value.etaMs)
-      : null,
+    percent: Number.isFinite(value.percent) ? Math.max(0, Math.min(100, value.percent)) : null,
+    completedSteps: Number.isFinite(value.completedSteps) ? Math.max(0, value.completedSteps) : null,
+    totalSteps: Number.isFinite(value.totalSteps) ? Math.max(0, value.totalSteps) : null,
+    sourceCount: Number.isFinite(value.sourceCount) ? Math.max(0, value.sourceCount) : null,
+    currentPage: Number.isFinite(value.currentPage) ? Math.max(0, value.currentPage) : null,
+    totalPages: Number.isFinite(value.totalPages) ? Math.max(0, value.totalPages) : null,
+    etaMs: Number.isFinite(value.etaMs) ? Math.max(0, value.etaMs) : null,
     rateLimited: value.rateLimited === true,
-    retryAfterMs: Number.isFinite(value.retryAfterMs)
-      ? Math.max(0, value.retryAfterMs)
-      : null
+    retryAfterMs: Number.isFinite(value.retryAfterMs) ? Math.max(0, value.retryAfterMs) : null
   };
 }
 
@@ -121,9 +96,7 @@ function normalizeSearchQuery(value) {
   return {
     query,
     page: Number.isInteger(value.page) && value.page > 0 ? value.page : 1,
-    resultCount: Number.isFinite(value.resultCount)
-      ? Math.max(0, value.resultCount)
-      : null,
+    resultCount: Number.isFinite(value.resultCount) ? Math.max(0, value.resultCount) : null,
     startedAt: timestamp(value.startedAt),
     completedAt: timestamp(value.completedAt)
   };
@@ -137,14 +110,15 @@ function normalizeToolCall(value) {
   if (!name) {
     return null;
   }
-  const argumentSummary = value.argumentSummary && typeof value.argumentSummary === 'object'
-    ? Object.fromEntries(
-        Object.entries(value.argumentSummary)
-          .slice(0, 12)
-          .map(([key, entry]) => [text(key, 80), text(entry, 240)])
-          .filter(([key]) => key)
-      )
-    : {};
+  const argumentSummary =
+    value.argumentSummary && typeof value.argumentSummary === 'object'
+      ? Object.fromEntries(
+          Object.entries(value.argumentSummary)
+            .slice(0, 12)
+            .map(([key, entry]) => [text(key, 80), text(entry, 240)])
+            .filter(([key]) => key)
+        )
+      : {};
   return {
     callId: text(value.callId, 120),
     name,
@@ -152,9 +126,7 @@ function normalizeToolCall(value) {
     status: text(value.status, 40) || 'completed',
     startedAt: timestamp(value.startedAt),
     completedAt: timestamp(value.completedAt),
-    resultCount: Number.isFinite(value.resultCount)
-      ? Math.max(0, value.resultCount)
-      : null,
+    resultCount: Number.isFinite(value.resultCount) ? Math.max(0, value.resultCount) : null,
     error: text(value.error, 500)
   };
 }
@@ -169,15 +141,11 @@ function normalizeSource(value, index, activitySiteUrl = '') {
   }
   const postId = positiveInteger(value.postId);
   const requestedSourceId = text(value.sourceId, 20);
-  const sourceId = /^S\d+$/.test(requestedSourceId)
-    ? requestedSourceId
-    : `S${index + 1}`;
+  const sourceId = /^S\d+$/.test(requestedSourceId) ? requestedSourceId : `S${index + 1}`;
   const url = text(value.url, 2000);
   // Older sources had no site URL; their stored link was built for a root
   // install, so it identifies the forum.
-  const siteUrl = normalizeSiteUrl(value.siteUrl)
-    || activitySiteUrl
-    || siteUrlFromPageUrl(url);
+  const siteUrl = normalizeSiteUrl(value.siteUrl) || activitySiteUrl || siteUrlFromPageUrl(url);
   const source = {
     sourceId,
     topicId,
@@ -186,9 +154,7 @@ function normalizeSource(value, index, activitySiteUrl = '') {
     title: text(value.title, 500) || `Topic ${topicId}`,
     // Links are only kept when they point at the source's own forum.
     url: siteUrl && isSameForumUrl(url, siteUrl) ? url : '',
-    postNumber: Number.isInteger(value.postNumber) && value.postNumber > 0
-      ? value.postNumber
-      : null,
+    postNumber: Number.isInteger(value.postNumber) && value.postNumber > 0 ? value.postNumber : null,
     excerpt: text(value.excerpt, 5000),
     evidenceType: text(value.evidenceType, 40) || 'post',
     retrievedAt: timestamp(value.retrievedAt)
@@ -200,11 +166,13 @@ function normalizeSource(value, index, activitySiteUrl = '') {
 }
 
 export function isAgentActivityTerminal(status) {
-  return status === AGENT_ACTIVITY_STATUS.COMPLETED
+  return (
+    status === AGENT_ACTIVITY_STATUS.COMPLETED
     || status === AGENT_ACTIVITY_STATUS.FAILED
     || status === AGENT_ACTIVITY_STATUS.CANCELLED
     || status === AGENT_ACTIVITY_STATUS.EXPIRED
-    || isTerminalTaskStatus(status);
+    || isTerminalTaskStatus(status)
+  );
 }
 
 export function createAgentActivity(value, now = Date.now()) {
@@ -225,9 +193,7 @@ export function createAgentActivity(value, now = Date.now()) {
   // expiry under the old fixed one-day retention.
   const retainedFrom = timestamp(
     value?.retainedFrom,
-    legacyExpiresAt > AGENT_ACTIVITY_RETENTION_MS
-      ? legacyExpiresAt - AGENT_ACTIVITY_RETENTION_MS
-      : completedAt
+    legacyExpiresAt > AGENT_ACTIVITY_RETENTION_MS ? legacyExpiresAt - AGENT_ACTIVITY_RETENTION_MS : completedAt
   );
   return {
     schemaVersion: 1,
@@ -259,12 +225,7 @@ export function createAgentActivity(value, now = Date.now()) {
     // Informational copy of agentActivityExpiry() under the retention that
     // was in force when the record was last saved; cleanup and labels always
     // recompute it from retainedFrom and the current retention.
-    expiresAt: timestamp(
-      value?.expiresAt,
-      terminal && retainedFrom > 0
-        ? retainedFrom + AGENT_ACTIVITY_RETENTION_MS
-        : 0
-    ),
+    expiresAt: timestamp(value?.expiresAt, terminal && retainedFrom > 0 ? retainedFrom + AGENT_ACTIVITY_RETENTION_MS : 0),
     kept: value?.kept === true,
     retryOf: text(value?.retryOf, 120),
     lastOpenedAt: timestamp(value?.lastOpenedAt),
@@ -314,33 +275,23 @@ export function isAgentActivityExpired(activity, retentionMs, now = Date.now()) 
 
 export function normalizeAgentActivity(value, now = Date.now()) {
   const base = createAgentActivity(value, timestamp(value?.createdAt, now));
-  const status = VALID_STATUSES.has(value?.status)
-    ? value.status
-    : base.status;
+  const status = VALID_STATUSES.has(value?.status) ? value.status : base.status;
   const searchQueries = Array.isArray(value?.searchQueries)
-    ? value.searchQueries
-      .map(normalizeSearchQuery)
-      .filter(Boolean)
-      .slice(0, MAX_AGENT_SEARCH_QUERIES)
+    ? value.searchQueries.map(normalizeSearchQuery).filter(Boolean).slice(0, MAX_AGENT_SEARCH_QUERIES)
     : [];
   const toolCalls = Array.isArray(value?.toolCalls)
-    ? value.toolCalls
-      .map(normalizeToolCall)
-      .filter(Boolean)
-      .slice(0, MAX_AGENT_TOOL_CALLS)
+    ? value.toolCalls.map(normalizeToolCall).filter(Boolean).slice(0, MAX_AGENT_TOOL_CALLS)
     : [];
   const sourceRefs = Array.isArray(value?.sourceRefs)
     ? value.sourceRefs
-      .map((source, index) => normalizeSource(source, index, base.siteUrl))
-      .filter(Boolean)
-      .slice(0, MAX_AGENT_SOURCES)
+        .map((source, index) => normalizeSource(source, index, base.siteUrl))
+        .filter(Boolean)
+        .slice(0, MAX_AGENT_SOURCES)
     : [];
 
   return {
     ...base,
-    schemaVersion: Number.isInteger(value?.schemaVersion) && value.schemaVersion > 0
-      ? value.schemaVersion
-      : base.schemaVersion,
+    schemaVersion: Number.isInteger(value?.schemaVersion) && value.schemaVersion > 0 ? value.schemaVersion : base.schemaVersion,
     title: text(value?.title, 500) || base.title,
     question: text(value?.question, 4000) || base.question,
     searchQueries,
@@ -394,7 +345,8 @@ export function buildAgentActivityIndexEntry(value) {
     forumName: activity.forumName,
     status: activity.status,
     answerStatus: activity.answerStatus,
-    answerExcerpt: activity.answer.replace(/[#*_>`~[\]]/g, ' ')
+    answerExcerpt: activity.answer
+      .replace(/[#*_>`~[\]]/g, ' ')
       .replace(/\s+/g, ' ')
       .replace(/\s+([.,!?;:])/g, '$1')
       .trim()

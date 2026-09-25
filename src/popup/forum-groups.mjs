@@ -42,16 +42,12 @@ export class ForumGroups {
       return true;
     }
     const stored = this.groupState.get(`${listKey}:${group.siteUrl}`);
-    return typeof stored === 'boolean'
-      ? stored
-      : group.isCurrent || groupCount <= 3;
+    return typeof stored === 'boolean' ? stored : group.isCurrent || groupCount <= 3;
   }
 
   render(container, items, listKey, createCard) {
     const filter = this.filter;
-    const visible = filter
-      ? items.filter(item => item.siteUrl === filter)
-      : items;
+    const visible = filter ? items.filter(item => item.siteUrl === filter) : items;
     const groups = groupByForum(visible, this.state.pageContext?.siteUrl, {
       names: this.forums.names
     });
@@ -132,15 +128,16 @@ export class ForumGroups {
     if (this.filter && !groups.some(group => group.siteUrl === this.filter)) {
       this.filter = '';
     }
-    const options = groups.length >= 2
-      ? [
-          { siteUrl: '', label: 'All' },
-          ...groups.map(group => ({
-            siteUrl: group.siteUrl,
-            label: this.forums.label(group.siteUrl, group.forumName)
-          }))
-        ]
-      : [];
+    const options =
+      groups.length >= 2
+        ? [
+            { siteUrl: '', label: 'All' },
+            ...groups.map(group => ({
+              siteUrl: group.siteUrl,
+              label: this.forums.label(group.siteUrl, group.forumName)
+            }))
+          ]
+        : [];
     const signature = JSON.stringify([this.filter, options]);
     if (signature === this.filterSignature) {
       return;

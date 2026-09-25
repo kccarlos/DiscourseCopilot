@@ -19,49 +19,33 @@ export const AGENT_RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
 // when history is kept for a shorter time than that.
 export function agentRecentWindowMs(retention) {
   const agentMs = retention?.agentMs;
-  return Number.isFinite(agentMs) || agentMs === Infinity
-    ? Math.min(AGENT_RECENT_WINDOW_MS, agentMs)
-    : AGENT_RECENT_WINDOW_MS;
+  return Number.isFinite(agentMs) || agentMs === Infinity ? Math.min(AGENT_RECENT_WINDOW_MS, agentMs) : AGENT_RECENT_WINDOW_MS;
 }
 
 const AGENT_ACTIVE_STATUSES = new Set(['queued', 'running', 'waiting_user_action']);
-const AGENT_SETTLED_STATUSES = new Set([
-  'waiting_user_action',
-  'completed',
-  'failed',
-  'cancelled',
-  'expired'
-]);
+const AGENT_SETTLED_STATUSES = new Set(['waiting_user_action', 'completed', 'failed', 'cancelled', 'expired']);
 
 function agentRunTime(activity) {
   return Number(activity?.completedAt || activity?.updatedAt || activity?.createdAt || 0);
 }
 
 function isRecentAgentRun(activity, now, windowMs) {
-  return AGENT_ACTIVE_STATUSES.has(activity?.status)
-    || now - agentRunTime(activity) <= windowMs;
+  return AGENT_ACTIVE_STATUSES.has(activity?.status) || now - agentRunTime(activity) <= windowMs;
 }
 
 // A finished run counts as unopened until its answer is viewed after it ended.
 export function isAgentAnswerUnopened(activity = {}) {
   const completedAt = Number(activity.completedAt || 0);
-  return (activity.status === 'completed' || activity.status === 'failed')
-    && completedAt > 0
-    && Number(activity.lastOpenedAt || 0) < completedAt;
+  return (
+    (activity.status === 'completed' || activity.status === 'failed') && completedAt > 0 && Number(activity.lastOpenedAt || 0) < completedAt
+  );
 }
 
-export function getDefaultActivityTab(tasks = [], activities = [], {
-  now = Date.now(),
-  windowMs = AGENT_RECENT_WINDOW_MS
-} = {}) {
+export function getDefaultActivityTab(tasks = [], activities = [], { now = Date.now(), windowMs = AGENT_RECENT_WINDOW_MS } = {}) {
   if (tasks.some(task => !isTerminalTaskStatus(task.status))) {
     return 'tasks';
   }
-  return activities.some(activity =>
-    isAgentAnswerUnopened(activity)
-    && !activity.dismissedAt
-    && isRecentAgentRun(activity, now, windowMs)
-  )
+  return activities.some(activity => isAgentAnswerUnopened(activity) && !activity.dismissedAt && isRecentAgentRun(activity, now, windowMs))
     ? 'tasks'
     : 'saved';
 }
@@ -75,9 +59,7 @@ export function mergeAgentRunState(activity, task = null) {
   const merged = {
     ...activity,
     status: task.status || activity.status,
-    statusText: activity.status === 'queued' && task.statusText
-      ? task.statusText
-      : activity.statusText || task.statusText || '',
+    statusText: activity.status === 'queued' && task.statusText ? task.statusText : activity.statusText || task.statusText || '',
     progress: activity.progress || task.progress || null
   };
   if (task.status === 'failed' && !activity.error) {
@@ -101,18 +83,16 @@ function agentPillKind(activity) {
 // Chooses what the topic view shows for Agent research: the latest recent,
 // undismissed run on the current forum as an inline panel, otherwise a pill
 // pointing at a run on another forum that still needs attention.
-export function selectAgentRunView(activities = [], currentSiteUrl = '', {
-  now = Date.now(),
-  preferredId = '',
-  windowMs = AGENT_RECENT_WINDOW_MS
-} = {}) {
+export function selectAgentRunView(
+  activities = [],
+  currentSiteUrl = '',
+  { now = Date.now(), preferredId = '', windowMs = AGENT_RECENT_WINDOW_MS } = {}
+) {
   const current = normalizeSiteUrl(currentSiteUrl);
   const candidates = activities
-    .filter(activity =>
-      activity?.activityId
-      && !activity.dismissedAt
-      && activity.status !== 'expired'
-      && isRecentAgentRun(activity, now, windowMs)
+    .filter(
+      activity =>
+        activity?.activityId && !activity.dismissedAt && activity.status !== 'expired' && isRecentAgentRun(activity, now, windowMs)
     )
     .sort((left, right) => Number(right.createdAt || 0) - Number(left.createdAt || 0));
 
@@ -137,17 +117,12 @@ export function selectAgentRunView(activities = [], currentSiteUrl = '', {
 // Saved lists finished answers until they expire under the history setting
 // (`windowMs` = retention; the same rule cleanup applies), and kept ones
 // until unkept.
-export function selectSavedAgentActivities(activities = [], {
-  now = Date.now(),
-  windowMs = AGENT_RECENT_WINDOW_MS
-} = {}) {
-  return activities.filter(activity =>
-    activity?.status === 'completed'
-    && (activity.kept === true || !isAgentActivityExpired(
-      { ...activity, retainedFrom: activity.retainedFrom || agentRunTime(activity) },
-      windowMs,
-      now
-    ))
+export function selectSavedAgentActivities(activities = [], { now = Date.now(), windowMs = AGENT_RECENT_WINDOW_MS } = {}) {
+  return activities.filter(
+    activity =>
+      activity?.status === 'completed'
+      && (activity.kept === true
+        || !isAgentActivityExpired({ ...activity, retainedFrom: activity.retainedFrom || agentRunTime(activity) }, windowMs, now))
   );
 }
 
@@ -184,18 +159,11 @@ export class AgentRuns {
   // has its activity written by the worker; without one it was deleted,
   // expired or pruned, and its task (listed for days) must not rebuild it.
   records() {
-    const records = [...this.activities.values()].map(activity =>
-      mergeAgentRunState(activity, this.tasks.findAgentTask(activity))
-    );
+    const records = [...this.activities.values()].map(activity => mergeAgentRunState(activity, this.tasks.findAgentTask(activity)));
     const known = new Set(records.map(record => record.agentRunId));
     for (const task of this.tasks.values()) {
       const runId = task.agentRunId || task.id;
-      if (
-        task.type !== TASK_TYPE.AGENT
-        || isTerminalTaskStatus(task.status)
-        || known.has(runId)
-        || this.deletedRunIds.has(runId)
-      ) {
+      if (task.type !== TASK_TYPE.AGENT || isTerminalTaskStatus(task.status) || known.has(runId) || this.deletedRunIds.has(runId)) {
         continue;
       }
       const activity = this.fromTask(task);
@@ -239,10 +207,7 @@ export class AgentRuns {
   // Merges freshly listed activities, keeping this panel's open/dismiss marks.
   absorb(activities) {
     for (const activity of activities) {
-      this.activities.set(
-        activity.activityId,
-        mergeAgentActivityMarks(activity, this.activities.get(activity.activityId))
-      );
+      this.activities.set(activity.activityId, mergeAgentActivityMarks(activity, this.activities.get(activity.activityId)));
     }
   }
 

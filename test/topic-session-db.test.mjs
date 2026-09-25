@@ -3,21 +3,10 @@ import test from 'node:test';
 import { IDBKeyRange, indexedDB } from 'fake-indexeddb';
 
 import { TopicSessionDatabase } from '../src/shared/topic-session-db.mjs';
-import {
-  CHAT_RETENTION_MS,
-  createTopicSession
-} from '../src/shared/topic-session.mjs';
+import { CHAT_RETENTION_MS, createTopicSession } from '../src/shared/topic-session.mjs';
 import { buildTopicKey } from '../src/shared/forum-site.mjs';
-import {
-  TASK_RETENTION_MS,
-  TASK_STATUS,
-  createTaskRecord
-} from '../src/shared/task-record.mjs';
-import {
-  AGENT_ACTIVITY_STATUS,
-  createAgentActivity,
-  normalizeAgentActivity
-} from '../src/shared/agent-activity.mjs';
+import { TASK_RETENTION_MS, TASK_STATUS, createTaskRecord } from '../src/shared/task-record.mjs';
+import { AGENT_ACTIVITY_STATUS, createAgentActivity, normalizeAgentActivity } from '../src/shared/agent-activity.mjs';
 
 function createDatabase(name, options = {}) {
   return new TopicSessionDatabase({
@@ -36,11 +25,14 @@ function key(topicId, siteUrl = USC_SITE) {
 
 function savedSession(topicId, updatedAt) {
   return {
-    ...createTopicSession({
-      topicId,
-      url: `https://www.uscardforum.com/t/topic-${topicId}/${topicId}`,
-      title: `Topic ${topicId}`
-    }, 1),
+    ...createTopicSession(
+      {
+        topicId,
+        url: `https://www.uscardforum.com/t/topic-${topicId}/${topicId}`,
+        title: `Topic ${topicId}`
+      },
+      1
+    ),
     source: `source ${topicId}`,
     rawPages: [{ page: 1, content: `source ${topicId}` }],
     summary: `summary ${topicId}`,
@@ -162,11 +154,14 @@ test('hides cache-only sessions from history while counting them for pruning', a
     now: () => 1000
   });
   const cacheOnly = {
-    ...createTopicSession({
-      topicId: '10',
-      url: 'https://www.uscardforum.com/t/cache/10',
-      title: 'Cache only'
-    }, 1),
+    ...createTopicSession(
+      {
+        topicId: '10',
+        url: 'https://www.uscardforum.com/t/cache/10',
+        title: 'Cache only'
+      },
+      1
+    ),
     source: 'fetched source',
     rawPages: [{ page: 1, content: 'fetched source' }],
     updatedAt: 200
@@ -184,14 +179,17 @@ test('persists task progress separately without storing runtime credentials', as
     now: () => 1000
   });
   const task = {
-    ...createTaskRecord({
-      id: 'task-1',
-      type: 'summary',
-      topicId: '123',
-      siteUrl: USC_SITE,
-      provider: 'openrouter',
-      model: 'test/model'
-    }, 100),
+    ...createTaskRecord(
+      {
+        id: 'task-1',
+        type: 'summary',
+        topicId: '123',
+        siteUrl: USC_SITE,
+        provider: 'openrouter',
+        model: 'test/model'
+      },
+      100
+    ),
     status: TASK_STATUS.RUNNING,
     phase: 'fetching',
     progress: { percent: 50, currentPage: 2, totalPages: 4 },
@@ -213,22 +211,28 @@ test('cleans terminal task records after one day but preserves queued work', asy
     now: () => now
   });
   const completed = {
-    ...createTaskRecord({
-      id: 'done',
-      type: 'summary',
-      topicId: '1',
-      siteUrl: USC_SITE
-    }, now),
+    ...createTaskRecord(
+      {
+        id: 'done',
+        type: 'summary',
+        topicId: '1',
+        siteUrl: USC_SITE
+      },
+      now
+    ),
     status: TASK_STATUS.COMPLETED,
     completedAt: now,
     updatedAt: now
   };
-  const queued = createTaskRecord({
-    id: 'queued',
-    type: 'summary',
-    topicId: '2',
-    siteUrl: USC_SITE
-  }, now);
+  const queued = createTaskRecord(
+    {
+      id: 'queued',
+      type: 'summary',
+      topicId: '2',
+      siteUrl: USC_SITE
+    },
+    now
+  );
   await database.saveTask(completed);
   await database.saveTask(queued);
 
@@ -267,18 +271,21 @@ test('take() deletes a saved topic and restore() puts back exactly what was stor
 
 test('takeAgentActivity() and restoreAgentActivity() round-trip the stored record', async () => {
   const database = createDatabase(`agent-take-${crypto.randomUUID()}`, { now: () => 1000 });
-  const activity = normalizeAgentActivity({
-    activityId: 'run-9',
-    taskId: 'task-9',
-    agentRunId: 'run-9',
-    question: 'Where is the FAQ?',
-    status: AGENT_ACTIVITY_STATUS.COMPLETED,
-    completedAt: 900,
-    lastOpenedAt: 950,
-    kept: true,
-    answer: 'Here [S1].',
-    sourceRefs: [{ sourceId: 'S1', topicId: '1', title: 'FAQ', url: 'https://www.uscardforum.com/t/faq/1' }]
-  }, 1000);
+  const activity = normalizeAgentActivity(
+    {
+      activityId: 'run-9',
+      taskId: 'task-9',
+      agentRunId: 'run-9',
+      question: 'Where is the FAQ?',
+      status: AGENT_ACTIVITY_STATUS.COMPLETED,
+      completedAt: 900,
+      lastOpenedAt: 950,
+      kept: true,
+      answer: 'Here [S1].',
+      sourceRefs: [{ sourceId: 'S1', topicId: '1', title: 'FAQ', url: 'https://www.uscardforum.com/t/faq/1' }]
+    },
+    1000
+  );
   await database.saveAgentActivity(activity);
   const before = await database.getAgentActivity('run-9');
 
@@ -301,22 +308,27 @@ test('persists, indexes, keeps, and expires Agent activities independently', asy
     agentActivityRetentionMs: 100,
     maxAgentActivities: 10
   });
-  const activity = normalizeAgentActivity({
-    activityId: 'activity-1',
-    taskId: 'task-1',
-    agentRunId: 'run-1',
-    question: 'What changed?',
-    status: AGENT_ACTIVITY_STATUS.COMPLETED,
-    completedAt: now,
-    expiresAt: now + 100,
-    answer: 'The answer is [S1].',
-    sourceRefs: [{
-      sourceId: 'S1',
-      topicId: '123',
-      title: 'A topic',
-      url: 'https://www.uscardforum.com/t/a-topic/123'
-    }]
-  }, now);
+  const activity = normalizeAgentActivity(
+    {
+      activityId: 'activity-1',
+      taskId: 'task-1',
+      agentRunId: 'run-1',
+      question: 'What changed?',
+      status: AGENT_ACTIVITY_STATUS.COMPLETED,
+      completedAt: now,
+      expiresAt: now + 100,
+      answer: 'The answer is [S1].',
+      sourceRefs: [
+        {
+          sourceId: 'S1',
+          topicId: '123',
+          title: 'A topic',
+          url: 'https://www.uscardforum.com/t/a-topic/123'
+        }
+      ]
+    },
+    now
+  );
 
   await database.saveAgentActivity(activity);
   const restored = await database.getAgentActivity('activity-1');
@@ -338,12 +350,15 @@ test('persists, indexes, keeps, and expires Agent activities independently', asy
 
 test('viewer marks on Agent activities survive later background snapshots', async () => {
   const database = createDatabase(`agent-marks-${crypto.randomUUID()}`, { now: () => 1000 });
-  const running = createAgentActivity({
-    activityId: 'run-1',
-    taskId: 'task-1',
-    question: 'What changed?',
-    siteUrl: USC_SITE
-  }, 1000);
+  const running = createAgentActivity(
+    {
+      activityId: 'run-1',
+      taskId: 'task-1',
+      question: 'What changed?',
+      siteUrl: USC_SITE
+    },
+    1000
+  );
   await database.saveAgentActivity(running);
 
   assert.equal(await database.markAgentActivity('missing', { dismissedAt: 5 }), null);
@@ -392,22 +407,28 @@ test('stores equal topic IDs from different forums as distinct sessions', async 
     now: () => 1000
   });
   await database.save({
-    ...createTopicSession({
-      topicId: '123',
-      siteUrl: 'https://community.openai.com',
-      url: 'https://community.openai.com/t/openai-topic/123',
-      title: 'OpenAI topic'
-    }, 1),
+    ...createTopicSession(
+      {
+        topicId: '123',
+        siteUrl: 'https://community.openai.com',
+        url: 'https://community.openai.com/t/openai-topic/123',
+        title: 'OpenAI topic'
+      },
+      1
+    ),
     summary: 'openai summary',
     updatedAt: 200
   });
   await database.save({
-    ...createTopicSession({
-      topicId: '123',
-      siteUrl: USC_SITE,
-      url: 'https://www.uscardforum.com/t/usc-topic/123',
-      title: 'USC topic'
-    }, 1),
+    ...createTopicSession(
+      {
+        topicId: '123',
+        siteUrl: USC_SITE,
+        url: 'https://www.uscardforum.com/t/usc-topic/123',
+        title: 'USC topic'
+      },
+      1
+    ),
     summary: 'usc summary',
     updatedAt: 100
   });
@@ -418,18 +439,12 @@ test('stores equal topic IDs from different forums as distinct sessions', async 
     ['community.openai.com/t/123', 'www.uscardforum.com/t/123']
   );
   assert.equal(entries[0].siteUrl, 'https://community.openai.com');
-  assert.equal(
-    (await database.get('community.openai.com/t/123')).summary,
-    'openai summary'
-  );
+  assert.equal((await database.get('community.openai.com/t/123')).summary, 'openai summary');
   assert.equal((await database.get(key('123'))).summary, 'usc summary');
 
   await database.delete(key('123'));
   assert.equal(await database.get(key('123')), null);
-  assert.equal(
-    (await database.get('community.openai.com/t/123')).title,
-    'OpenAI topic'
-  );
+  assert.equal((await database.get('community.openai.com/t/123')).title, 'OpenAI topic');
 });
 
 test('migrates version 3 topic stores keyed by topic ID to topic keys', async () => {
@@ -467,7 +482,10 @@ test('migrates version 3 topic stores keyed by topic ID to topic keys', async ()
 
   assert.equal(migrated.summary, 'legacy summary');
   assert.equal(migrated.siteUrl, USC_SITE);
-  assert.deepEqual(entries.map(entry => entry.topicKey), [key('123')]);
+  assert.deepEqual(
+    entries.map(entry => entry.topicKey),
+    [key('123')]
+  );
   assert.equal(await database.get('456'), null);
 
   await database.save(savedSession('789', 2000));

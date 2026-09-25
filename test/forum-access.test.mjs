@@ -146,14 +146,17 @@ test('a forum grant covers its origin: subfolders and ports share it', () => {
 });
 
 test('granted forums exclude provider hosts, wildcards and excluded servers', () => {
-  const origins = forumOriginsFromPatterns([
-    ...REQUIRED_HOST_PATTERNS,
-    'https://*/*',
-    'https://meta.discourse.org/*',
-    'https://community.openai.com/*',
-    'https://community.openai.com/*',
-    'http://192.168.1.20/*'
-  ], { exclude: ['http://192.168.1.20/*'] });
+  const origins = forumOriginsFromPatterns(
+    [
+      ...REQUIRED_HOST_PATTERNS,
+      'https://*/*',
+      'https://meta.discourse.org/*',
+      'https://community.openai.com/*',
+      'https://community.openai.com/*',
+      'http://192.168.1.20/*'
+    ],
+    { exclude: ['http://192.168.1.20/*'] }
+  );
   assert.deepEqual(origins, ['https://community.openai.com', 'https://meta.discourse.org']);
 });
 
@@ -176,9 +179,16 @@ test('hasForumAccess checks the origin and never throws', async () => {
   assert.equal(await hasForumAccess('https://other.example', { permissions }), false);
   assert.equal(await hasForumAccess('http://localhost:3000', { permissions }), true, 'manifest host');
   assert.equal(await hasForumAccess('', { permissions }), false);
-  assert.equal(await hasForumAccess('https://x.example', {
-    permissions: { contains: async () => { throw new Error('boom'); } }
-  }), false);
+  assert.equal(
+    await hasForumAccess('https://x.example', {
+      permissions: {
+        contains: async () => {
+          throw new Error('boom');
+        }
+      }
+    }),
+    false
+  );
   assert.equal(await hasForumAccess('https://x.example', { permissions: undefined }), false);
 });
 
@@ -192,12 +202,22 @@ test('requestForumAccess asks synchronously, inside the gesture', async () => {
 
   permissions.answer = false;
   assert.equal(await requestForumAccess('https://denied.example', { permissions }), false);
-  assert.equal(await requestForumAccess('https://x.example', {
-    permissions: { request: () => { throw new Error('not in a gesture'); } }
-  }), false);
-  assert.equal(await requestForumAccess('https://x.example', {
-    permissions: { request: () => Promise.reject(new Error('nope')) }
-  }), false);
+  assert.equal(
+    await requestForumAccess('https://x.example', {
+      permissions: {
+        request: () => {
+          throw new Error('not in a gesture');
+        }
+      }
+    }),
+    false
+  );
+  assert.equal(
+    await requestForumAccess('https://x.example', {
+      permissions: { request: () => Promise.reject(new Error('nope')) }
+    }),
+    false
+  );
   assert.equal(await requestForumAccess('garbage', { permissions }), false);
   const before = permissions.calls.length;
   assert.equal(await requestForumAccess('http://127.0.0.1:8080', { permissions }), true);
@@ -248,10 +268,13 @@ test('planContentScriptSync registers, updates, unregisters or leaves it', () =>
     action: 'register',
     matches: ['https://a.example/*', 'https://b.example/*']
   });
-  assert.equal(planContentScriptSync({
-    registered: { matches: ['https://b.example/*', 'https://a.example/*'] },
-    origins
-  }).action, 'none');
+  assert.equal(
+    planContentScriptSync({
+      registered: { matches: ['https://b.example/*', 'https://a.example/*'] },
+      origins
+    }).action,
+    'none'
+  );
   assert.equal(planContentScriptSync({ registered: { matches: ['https://a.example/*'] }, origins }).action, 'update');
   assert.equal(planContentScriptSync({ registered: { matches: ['https://a.example/*'] }, origins: [] }).action, 'unregister');
   assert.equal(planContentScriptSync({ registered: null, origins: [] }).action, 'none');
@@ -277,10 +300,7 @@ test('syncForumContentScripts follows the granted forums', async () => {
   await syncForumContentScripts({ scripting, permissions });
   permissions.granted.add('https://community.openai.com/*');
   await syncForumContentScripts({ scripting, permissions });
-  assert.deepEqual(scripting.registered.get('forum-content').matches, [
-    'https://community.openai.com/*',
-    'https://meta.discourse.org/*'
-  ]);
+  assert.deepEqual(scripting.registered.get('forum-content').matches, ['https://community.openai.com/*', 'https://meta.discourse.org/*']);
   permissions.granted.delete('https://community.openai.com/*');
   permissions.granted.delete('https://meta.discourse.org/*');
   await syncForumContentScripts({ scripting, permissions });

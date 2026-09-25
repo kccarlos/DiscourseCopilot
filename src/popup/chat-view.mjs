@@ -2,11 +2,7 @@
 // earlier question, sending a question, and the forum context limit slider.
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { TASK_STATUS, TASK_TYPE, isTerminalTaskStatus } from '../shared/task-record.mjs';
-import {
-  FORUM_CONTEXT_LIMIT,
-  formatForumContextLimit,
-  normalizeForumContextLimit
-} from '../shared/chat-context-limit.mjs';
+import { FORUM_CONTEXT_LIMIT, formatForumContextLimit, normalizeForumContextLimit } from '../shared/chat-context-limit.mjs';
 import { normalizeChatQuestion, prepareChatEdit } from './conversation-state.mjs';
 import { renderMarkdown } from './markdown.mjs';
 
@@ -151,9 +147,7 @@ export class ChatView {
         message.role,
         message.content,
         [],
-        message.role === 'user'
-          ? { onEdit: () => this.editMessage(index) }
-          : {}
+        message.role === 'user' ? { onEdit: () => this.editMessage(index) } : {}
       );
       if (message.taskId) {
         bubble.dataset.taskId = message.taskId;
@@ -194,9 +188,7 @@ export class ChatView {
 
   // The bubble for a task's message, created on first use.
   bubbleFor(role, taskId, createContent, extraClasses = []) {
-    let bubble = document.querySelector(
-      `.chat-message.${role}[data-task-id="${CSS.escape(taskId)}"]`
-    );
+    let bubble = document.querySelector(`.chat-message.${role}[data-task-id="${CSS.escape(taskId)}"]`);
     if (!bubble) {
       bubble = this.appendBubble(role, createContent, extraClasses);
       bubble.dataset.taskId = taskId;
@@ -212,12 +204,7 @@ export class ChatView {
 
   async editMessage(messageIndex) {
     const session = this.state.session;
-    if (
-      !session
-      || this.editPersistence
-      || this.operations.busy
-      || this.tasks.activeForTopic(this.state.pageContext?.topicKey).length
-    ) {
+    if (!session || this.editPersistence || this.operations.busy || this.tasks.activeForTopic(this.state.pageContext?.topicKey).length) {
       return;
     }
 
@@ -244,9 +231,7 @@ export class ChatView {
 
     const saved = await this.savePendingEdit();
     this.status.show(
-      saved
-        ? 'Message ready to edit. Later replies were removed.'
-        : 'Message restored, but the conversation change could not be saved.',
+      saved ? 'Message ready to edit. Later replies were removed.' : 'Message restored, but the conversation change could not be saved.',
       saved ? 'ready' : 'warning'
     );
   }
@@ -279,11 +264,8 @@ export class ChatView {
   }
 
   async send() {
-    if (!await this.savePendingEdit()) {
-      this.status.show(
-        'The edited conversation could not be saved. Try sending again.',
-        'warning'
-      );
+    if (!(await this.savePendingEdit())) {
+      this.status.show('The edited conversation could not be saved. Try sending again.', 'warning');
       return;
     }
     const question = normalizeChatQuestion(this.input.value);
@@ -302,21 +284,24 @@ export class ChatView {
     try {
       this.status.show('Submitting follow-up task…', 'loading');
       const session = this.state.session;
-      const task = await this.tasks.enqueue({
-        taskType: TASK_TYPE.CHAT,
-        topicId: operation.postId,
-        siteUrl: operation.siteUrl,
-        topicKey: operation.topicKey,
-        title: session.title,
-        url: session.url,
-        question,
-        maxPostChars: operation.forumContextLimit,
-        forumName: operation.forumName,
-        provider: operation.provider,
-        settings: operation.settings,
-        systemPrompt: operation.systemPrompt,
-        responseLanguage: operation.responseLanguage
-      }, 'Unable to queue follow-up');
+      const task = await this.tasks.enqueue(
+        {
+          taskType: TASK_TYPE.CHAT,
+          topicId: operation.postId,
+          siteUrl: operation.siteUrl,
+          topicKey: operation.topicKey,
+          title: session.title,
+          url: session.url,
+          question,
+          maxPostChars: operation.forumContextLimit,
+          forumName: operation.forumName,
+          provider: operation.provider,
+          settings: operation.settings,
+          systemPrompt: operation.systemPrompt,
+          responseLanguage: operation.responseLanguage
+        },
+        'Unable to queue follow-up'
+      );
       if (!task) {
         this.hooks.markBackgroundUnavailable();
         return;
@@ -328,9 +313,7 @@ export class ChatView {
           this.bubbleFor(
             'assistant',
             task.id,
-            task.status === TASK_STATUS.QUEUED
-              ? 'Queued. You can safely browse elsewhere.'
-              : 'Thinking…',
+            task.status === TASK_STATUS.QUEUED ? 'Queued. You can safely browse elsewhere.' : 'Thinking…',
             ['pending']
           );
         } else {
@@ -396,20 +379,15 @@ export class ChatView {
     const source = this.state.session?.source;
     const sourceLength = typeof source === 'string' ? source.trim().length : 0;
     if (!sourceLength) {
-      help.textContent =
-        `Up to ${formattedLimit} from the discussion will be sent with each question.`;
+      help.textContent = `Up to ${formattedLimit} from the discussion will be sent with each question.`;
     } else if (sourceLength <= limit) {
-      help.textContent =
-        `The full discussion fits (${sourceLength.toLocaleString()} characters).`;
+      help.textContent = `The full discussion fits (${sourceLength.toLocaleString()} characters).`;
     } else {
       const excess = sourceLength - limit;
       help.textContent =
-        `The discussion exceeds this limit by ${excess.toLocaleString()} characters. `
-        + 'The opening and latest replies will be kept.';
+        `The discussion exceeds this limit by ${excess.toLocaleString()} characters. ` + 'The opening and latest replies will be kept.';
     }
-    const includedCharacters = sourceLength
-      ? Math.min(sourceLength, limit)
-      : limit;
+    const includedCharacters = sourceLength ? Math.min(sourceLength, limit) : limit;
     warning.classList.toggle('hidden', includedCharacters <= LARGE_CONTEXT_CHARS);
   }
 

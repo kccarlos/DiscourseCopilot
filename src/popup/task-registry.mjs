@@ -3,11 +3,7 @@
 // the requests the panel sends to the queue, and the heartbeat that keeps
 // the service worker awake while tasks run.
 import { DiscourseCopilotConstants } from '../shared/constants.js';
-import {
-  TASK_TYPE,
-  isActiveTaskStatus,
-  isTerminalTaskStatus
-} from '../shared/task-record.mjs';
+import { TASK_TYPE, isActiveTaskStatus, isTerminalTaskStatus } from '../shared/task-record.mjs';
 import { FORUM_ACCESS_ERROR_CODE } from '../shared/forum-access.mjs';
 import { isMissingRuntimeResponse } from './runtime-state.mjs';
 
@@ -17,10 +13,7 @@ const HEARTBEAT_INTERVAL_MS = 15000;
 const agentRunIdOf = task => task.agentRunId || task.id;
 
 export class TaskRegistry {
-  constructor({
-    sendMessage = message => chrome.runtime.sendMessage(message),
-    onForumAccessMissing = () => {}
-  } = {}) {
+  constructor({ sendMessage = message => chrome.runtime.sendMessage(message), onForumAccessMissing = () => {} } = {}) {
     this.sendMessage = sendMessage;
     this.onForumAccessMissing = onForumAccessMissing;
     this.tasks = new Map();
@@ -58,25 +51,20 @@ export class TaskRegistry {
   // The task behind an Agent run (activity or task-shaped value).
   findAgentTask(activity) {
     const runId = activity?.agentRunId || activity?.activityId;
-    return this.values().find(task =>
-      task.type === TASK_TYPE.AGENT && agentRunIdOf(task) === runId
-    ) || null;
+    return this.values().find(task => task.type === TASK_TYPE.AGENT && agentRunIdOf(task) === runId) || null;
   }
 
   findUnfinishedAgentTask(agentRunId) {
-    return this.values().find(task =>
-      task.type === TASK_TYPE.AGENT
-      && agentRunIdOf(task) === agentRunId
-      && !isTerminalTaskStatus(task.status)
-    ) || null;
+    return (
+      this.values().find(task => task.type === TASK_TYPE.AGENT && agentRunIdOf(task) === agentRunId && !isTerminalTaskStatus(task.status))
+      || null
+    );
   }
 
   // Whether the Agent request with this client ID is still unfinished.
   isAgentRequestPending(clientRequestId) {
-    return this.values().some(task =>
-      task.type === TASK_TYPE.AGENT
-      && task.clientRequestId === clientRequestId
-      && !isTerminalTaskStatus(task.status)
+    return this.values().some(
+      task => task.type === TASK_TYPE.AGENT && task.clientRequestId === clientRequestId && !isTerminalTaskStatus(task.status)
     );
   }
 
@@ -124,10 +112,7 @@ export class TaskRegistry {
       if (response?.code === FORUM_ACCESS_ERROR_CODE) {
         this.onForumAccessMissing();
       }
-      throw Object.assign(
-        new Error(response?.error || fallbackError),
-        response?.code ? { code: response.code } : {}
-      );
+      throw Object.assign(new Error(response?.error || fallbackError), response?.code ? { code: response.code } : {});
     }
     this.set(response.task);
     this.updateHeartbeat();

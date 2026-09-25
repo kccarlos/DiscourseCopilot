@@ -22,10 +22,7 @@ export async function openForumTarget(
   }
   const existing = findTabForForumTarget(candidates, { siteUrl, topicKey });
   if (existing) {
-    await tabs.update(
-      existing.id,
-      navigateExisting && url && existing.url !== url ? { url, active: true } : { active: true }
-    );
+    await tabs.update(existing.id, navigateExisting && url && existing.url !== url ? { url, active: true } : { active: true });
     if (Number.isInteger(existing.windowId) && windows?.update) {
       try {
         await windows.update(existing.windowId, { focused: true });

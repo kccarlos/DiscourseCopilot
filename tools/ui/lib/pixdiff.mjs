@@ -6,13 +6,15 @@ import sharp from 'sharp';
 // A pixel "differs" when |ΔR|+|ΔG|+|ΔB| exceeds `threshold`; small deltas are
 // anti-aliasing and palette quantization noise.
 export async function compareImages(fileA, fileB, { threshold = 30 } = {}) {
-  const [a, b] = await Promise.all([fileA, fileB].map(f =>
-    sharp(f).ensureAlpha().raw().toBuffer({ resolveWithObject: true })));
+  const [a, b] = await Promise.all([fileA, fileB].map(f => sharp(f).ensureAlpha().raw().toBuffer({ resolveWithObject: true })));
   const size = [a.info.width, a.info.height];
   const sizeB = [b.info.width, b.info.height];
   if (size[0] !== sizeB[0] || size[1] !== sizeB[1]) return { sameSize: false, size, sizeB };
   let differing = 0;
-  let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -1,
+    maxY = -1;
   const { width, height } = a.info;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -28,7 +30,9 @@ export async function compareImages(fileA, fileB, { threshold = 30 } = {}) {
     }
   }
   return {
-    sameSize: true, size, differing,
+    sameSize: true,
+    size,
+    differing,
     ratio: differing / (width * height),
     box: differing ? [minX, minY, maxX, maxY] : null
   };

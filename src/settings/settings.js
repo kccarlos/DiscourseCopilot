@@ -12,24 +12,14 @@
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { LOCAL_PROVIDER_IDS, describeSavedConfiguration } from '../shared/provider-setup.mjs';
 import { RESPONSE_LANGUAGES } from '../shared/response-language.mjs';
-import {
-  requestServerAccess,
-  serverAccessDeniedText,
-  serverNeedsAccessPrompt
-} from '../shared/forum-access.mjs';
+import { requestServerAccess, serverAccessDeniedText, serverNeedsAccessPrompt } from '../shared/forum-access.mjs';
 import { ConfigStore } from '../shared/config-state.mjs';
 import { topicSessionDatabase } from '../shared/topic-session-db.mjs';
 import { ForumAccessSection, customServerPatterns } from './forum-access-section.mjs';
 import { INPUT_FIELDS, PROVIDER_FIELDS, ProviderSection } from './provider-section.mjs';
 import { PREFERENCE_INPUT_IDS, PreferencesSection } from './preferences-section.mjs';
 import { FavoritesSection } from './favorites-section.mjs';
-import {
-  dirtyIndicatorText,
-  formStateLabel,
-  initialFormState,
-  isFormBusy,
-  transitionForm
-} from './settings-form-state.mjs';
+import { dirtyIndicatorText, formStateLabel, initialFormState, isFormBusy, transitionForm } from './settings-form-state.mjs';
 
 const { PROVIDER_CONFIGS } = DiscourseCopilotConstants;
 const LOCAL_PROVIDER_IDS_LIST = [...LOCAL_PROVIDER_IDS];
@@ -95,23 +85,16 @@ class DiscourseCopilotSettings {
     this.provider.render();
     this.favorites.render();
     this.renderSavedConfiguration();
-    this.dispatch(loadError
-      ? { type: 'load-failed', message: loadError.message }
-      : { type: 'loaded', welcomeMode: this.welcomeMode });
+    this.dispatch(loadError ? { type: 'load-failed', message: loadError.message } : { type: 'loaded', welcomeMode: this.welcomeMode });
 
     this.forumAccess = new ForumAccessSection({
       loadRecords: async () => {
         await topicSessionDatabase.open();
-        const [sessions, activities] = await Promise.all([
-          topicSessionDatabase.list(),
-          topicSessionDatabase.listAgentActivities()
-        ]);
+        const [sessions, activities] = await Promise.all([topicSessionDatabase.list(), topicSessionDatabase.listAgentActivities()]);
         return [...sessions, ...activities];
       },
       // A custom Ollama / LM Studio server is a granted host, not a forum.
-      excludedPatterns: () => customServerPatterns(
-        LOCAL_PROVIDER_IDS_LIST.map(provider => this.store.draftSettings(provider).url)
-      ),
+      excludedPatterns: () => customServerPatterns(LOCAL_PROVIDER_IDS_LIST.map(provider => this.store.draftSettings(provider).url)),
       notify: (message, type) => this.notify(message, type, type === 'success')
     });
     void this.forumAccess.mount();
@@ -218,12 +201,14 @@ class DiscourseCopilotSettings {
 
   renderResponseLanguageOptions() {
     const select = $('responseLanguage');
-    select.replaceChildren(...RESPONSE_LANGUAGES.map(language => {
-      const option = document.createElement('option');
-      option.value = language.value;
-      option.textContent = language.label;
-      return option;
-    }));
+    select.replaceChildren(
+      ...RESPONSE_LANGUAGES.map(language => {
+        const option = document.createElement('option');
+        option.value = language.value;
+        option.textContent = language.label;
+        return option;
+      })
+    );
   }
 
   populateAllFields() {
@@ -307,11 +292,7 @@ class DiscourseCopilotSettings {
 
   renderSavedConfiguration() {
     const { config } = this.store;
-    const saved = describeSavedConfiguration(
-      config.provider,
-      config.providers[config.provider],
-      PROVIDER_CONFIGS
-    );
+    const saved = describeSavedConfiguration(config.provider, config.providers[config.provider], PROVIDER_CONFIGS);
     this.hasSavedConfiguration = saved.valid;
     $('savedConfigurationLabel').textContent = saved.label;
     $('savedConfiguration').textContent = saved.text;
@@ -322,16 +303,13 @@ class DiscourseCopilotSettings {
   // Validates the draft for Save (provider + preferences) or Test (provider
   // only); on failure the form becomes invalid and nothing is written.
   checkDraft({ includePreferences = true } = {}) {
-    const validation = includePreferences
-      ? this.store.validateSave(this.currentProvider)
-      : this.store.validateDraft(this.currentProvider);
+    const validation = includePreferences ? this.store.validateSave(this.currentProvider) : this.store.validateDraft(this.currentProvider);
     this.provider.markInvalidFields(validation);
     if (!validation.valid) {
       this.dispatch({
         type: 'invalid',
         errors: validation.errors,
-        fieldErrors: Object.fromEntries(Object.entries(validation.fieldErrors)
-          .filter(([field]) => PREFERENCE_INPUT_IDS.has(field)))
+        fieldErrors: Object.fromEntries(Object.entries(validation.fieldErrors).filter(([field]) => PREFERENCE_INPUT_IDS.has(field)))
       });
       document.querySelector('[aria-invalid="true"]')?.focus();
     }
@@ -344,14 +322,10 @@ class DiscourseCopilotSettings {
   // permission. Must be called before any await in the click.
   requestCustomServerAccess() {
     const provider = this.currentProvider;
-    const serverUrl = LOCAL_PROVIDER_IDS.has(provider)
-      ? this.store.draftSettings(provider).url
-      : '';
+    const serverUrl = LOCAL_PROVIDER_IDS.has(provider) ? this.store.draftSettings(provider).url : '';
     return {
       serverUrl,
-      allowed: serverNeedsAccessPrompt(serverUrl)
-        ? requestServerAccess(serverUrl)
-        : Promise.resolve(true)
+      allowed: serverNeedsAccessPrompt(serverUrl) ? requestServerAccess(serverUrl) : Promise.resolve(true)
     };
   }
 
@@ -392,9 +366,7 @@ class DiscourseCopilotSettings {
       console.error(`DiscourseCopilot Settings: ${provider} connection test failed:`, result.error);
       this.dispatch({
         type: 'test-failed',
-        message: serverAllowed
-          ? result.error?.message || 'unknown error'
-          : serverAccessDeniedText(server.serverUrl)
+        message: serverAllowed ? result.error?.message || 'unknown error' : serverAccessDeniedText(server.serverUrl)
       });
     }
   }

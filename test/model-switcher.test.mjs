@@ -35,7 +35,10 @@ test('with favorites the select shows the active favorite as selected', () => {
   assert.equal(view.mode, 'select');
   assert.equal(view.showSelect, true);
   assert.equal(view.showChip, false);
-  assert.deepEqual(view.options.map(o => o.label), ['OpenAI · gpt-4o-mini', 'Anthropic · claude-sonnet-5']);
+  assert.deepEqual(
+    view.options.map(o => o.label),
+    ['OpenAI · gpt-4o-mini', 'Anthropic · claude-sonnet-5']
+  );
   assert.equal(view.selectedValue, favoriteModelKey('openai', 'gpt-4o-mini'));
   assert.equal(view.options.filter(o => o.selected).length, 1);
   assert.match(view.selectAriaLabel, /AI model: OpenAI · gpt-4o-mini/);

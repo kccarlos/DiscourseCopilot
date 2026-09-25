@@ -10,25 +10,14 @@ import { createTopicSession } from '../src/shared/topic-session.mjs';
 import { TaskService } from '../src/background/task-service.mjs';
 import { AgentActivityStore } from '../src/background/agent-activity-store.mjs';
 import { effectiveResearchLimits, runAgentTask } from '../src/background/agent-runner.mjs';
-import {
-  createTopicFetcher,
-  formatFetchTaskStatus,
-  limitTopicPagination
-} from '../src/background/topic-fetcher.mjs';
+import { createTopicFetcher, formatFetchTaskStatus, limitTopicPagination } from '../src/background/topic-fetcher.mjs';
 import { createTopicExecutors } from '../src/background/topic-executors.mjs';
 import { readConfig } from '../src/shared/config-state.mjs';
-import {
-  AGENT_ACTIVITY_STATUS,
-  normalizeAgentActivity
-} from '../src/shared/agent-activity.mjs';
+import { AGENT_ACTIVITY_STATUS, normalizeAgentActivity } from '../src/shared/agent-activity.mjs';
 import { TASK_STATUS, createTaskRecord } from '../src/shared/task-record.mjs';
 import { resolveRetention } from '../src/shared/preferences.mjs';
 import { MAX_UNKNOWN_TOPIC_PAGES } from '../src/shared/forum-response.mjs';
-import {
-  describeSummaryCoverage,
-  describeSummarizedReplies,
-  retentionCopy
-} from '../src/popup/ui-state.mjs';
+import { describeSummaryCoverage, describeSummarizedReplies, retentionCopy } from '../src/popup/ui-state.mjs';
 import { agentRecentWindowMs, selectSavedAgentActivities } from '../src/popup/agent-runs.mjs';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -46,9 +35,15 @@ function database(options = {}) {
 function fakeAlarms() {
   const alarms = new Map();
   return {
-    async get(name) { return alarms.get(name); },
-    create(name, info) { alarms.set(name, info); },
-    async clear(name) { return alarms.delete(name); }
+    async get(name) {
+      return alarms.get(name);
+    },
+    create(name, info) {
+      alarms.set(name, info);
+    },
+    async clear(name) {
+      return alarms.delete(name);
+    }
   };
 }
 
@@ -77,10 +72,18 @@ test('queued and running tasks keep the limits they were queued with; new tasks 
   await service.ready;
 
   const running = await service.enqueue({
-    taskType: 'summary', siteUrl: SITE, topicId: '1', provider: 'openai', settings: { model: 'm' }
+    taskType: 'summary',
+    siteUrl: SITE,
+    topicId: '1',
+    provider: 'openai',
+    settings: { model: 'm' }
   });
   const queuedAgent = await service.enqueue({
-    taskType: 'agent', siteUrl: SITE, question: 'Q?', provider: 'openai', settings: { model: 'm' }
+    taskType: 'agent',
+    siteUrl: SITE,
+    question: 'Q?',
+    provider: 'openai',
+    settings: { model: 'm' }
   });
   assert.deepEqual(running.limits, { topicPageLimit: 5 });
   assert.deepEqual(queuedAgent.limits.research, { searchQueries: 1, searchPages: 1, topicsRead: 3, rawFallbacks: 2 });
@@ -92,14 +95,22 @@ test('queued and running tasks keep the limits they were queued with; new tasks 
   assert.equal((await service.getTaskConfiguration(queuedAgent)).limits.research.topicsRead, 3);
 
   const later = await service.enqueue({
-    taskType: 'summary', siteUrl: SITE, topicId: '2', provider: 'openai', settings: { model: 'm' }
+    taskType: 'summary',
+    siteUrl: SITE,
+    topicId: '2',
+    provider: 'openai',
+    settings: { model: 'm' }
   });
   assert.deepEqual((await service.getTaskConfiguration(later)).limits, { topicPageLimit: 50 });
 
   // Switching to every page: tasks queued before keep their limit.
   stored.preferences = { ...stored.preferences, topicPageMode: 'all' };
   const unlimited = await service.enqueue({
-    taskType: 'summary', siteUrl: SITE, topicId: '3', provider: 'openai', settings: { model: 'm' }
+    taskType: 'summary',
+    siteUrl: SITE,
+    topicId: '3',
+    provider: 'openai',
+    settings: { model: 'm' }
   });
   assert.deepEqual(unlimited.limits, { topicPageLimit: null });
   assert.deepEqual((await service.getTaskConfiguration(unlimited)).limits, { topicPageLimit: null });
@@ -123,7 +134,10 @@ function chatSession(topicId, chatUpdatedAt, kept = false) {
   return {
     ...createTopicSession({ topicId, siteUrl: SITE, url: `${SITE}/t/x/${topicId}` }, 1),
     summary: 'summary',
-    history: [{ role: 'user', content: 'q' }, { role: 'assistant', content: 'a' }],
+    history: [
+      { role: 'user', content: 'q' },
+      { role: 'assistant', content: 'a' }
+    ],
     kept,
     updatedAt: chatUpdatedAt,
     chatUpdatedAt
@@ -131,11 +145,21 @@ function chatSession(topicId, chatUpdatedAt, kept = false) {
 }
 
 function finishedActivity(id, completedAt, extra = {}) {
-  return normalizeAgentActivity({
-    activityId: id, taskId: id, agentRunId: id, question: 'Q', siteUrl: SITE,
-    status: AGENT_ACTIVITY_STATUS.COMPLETED, completedAt, retainedFrom: completedAt, answer: 'A',
-    ...extra
-  }, completedAt);
+  return normalizeAgentActivity(
+    {
+      activityId: id,
+      taskId: id,
+      agentRunId: id,
+      question: 'Q',
+      siteUrl: SITE,
+      status: AGENT_ACTIVITY_STATUS.COMPLETED,
+      completedAt,
+      retainedFrom: completedAt,
+      answer: 'A',
+      ...extra
+    },
+    completedAt
+  );
 }
 
 test('changing retention re-runs cleanup with the new value (chats, answers, tasks)', async () => {
@@ -147,8 +171,11 @@ test('changing retention re-runs cleanup with the new value (chats, answers, tas
   await db.saveAgentActivity(finishedActivity('old', now - 2 * DAY), { prune: false });
   await db.saveAgentActivity(finishedActivity('new', now - 1000), { prune: false });
   await db.saveAgentActivity(finishedActivity('kept', now - 9 * DAY, { kept: true }), { prune: false });
-  const doneTask = { ...createTaskRecord({ id: 't', type: 'summary', topicId: '1', siteUrl: SITE }, 1),
-    status: TASK_STATUS.COMPLETED, completedAt: now - 2 * DAY };
+  const doneTask = {
+    ...createTaskRecord({ id: 't', type: 'summary', topicId: '1', siteUrl: SITE }, 1),
+    status: TASK_STATUS.COMPLETED,
+    completedAt: now - 2 * DAY
+  };
   await db.saveTask(doneTask, { prune: false });
 
   const stored = { preferences: { historyRetention: '3d' } };
@@ -210,7 +237,10 @@ test('the saved-topics limit prunes the oldest unkept topics', async () => {
   }
   const entries = await db.list();
   assert.equal(entries.length, 10);
-  assert.ok(entries.some(entry => entry.topicId === '1'), 'kept topic survives');
+  assert.ok(
+    entries.some(entry => entry.topicId === '1'),
+    'kept topic survives'
+  );
   assert.ok(!entries.some(entry => entry.topicId === '2'));
 });
 
@@ -221,7 +251,10 @@ test('side panel helpers follow the retention', () => {
     { activityId: 'a', status: 'completed', completedAt: now - 3 * DAY },
     { activityId: 'b', status: 'completed', completedAt: now - 9 * DAY }
   ];
-  assert.deepEqual(selectSavedAgentActivities(activities, { now, windowMs: week.agentMs }).map(a => a.activityId), ['a']);
+  assert.deepEqual(
+    selectSavedAgentActivities(activities, { now, windowMs: week.agentMs }).map(a => a.activityId),
+    ['a']
+  );
   assert.equal(selectSavedAgentActivities(activities, { now, windowMs: Infinity }).length, 2);
   // Unkept later: listed until retention after the unkeep, like cleanup.
   const unkept = [{ activityId: 'c', status: 'completed', completedAt: now - 9 * DAY, retainedFrom: now - DAY }];
@@ -281,7 +314,10 @@ test('the Agent honors the research limits it was given', async () => {
   const { calls, progress } = await runWith({ searchQueries: 2, searchPages: 3, topicsRead: 4, rawFallbacks: 2 });
   const searches = calls.filter(call => call[0] === 'search');
   assert.equal(searches.length, 6);
-  assert.deepEqual(searches.map(call => call[2]), [1, 2, 3, 1, 2, 3]);
+  assert.deepEqual(
+    searches.map(call => call[2]),
+    [1, 2, 3, 1, 2, 3]
+  );
   assert.equal(calls.filter(call => call[0] === 'topic').length, 4);
   assert.equal(progress.at(-1).progress.totalSteps, 2 * 3 + 4 + 4);
 
@@ -300,8 +336,12 @@ test('the Agent stops paging a search with no more results and caps raw fallback
 });
 
 test('research limits are clamped to the hard caps', () => {
-  assert.deepEqual(effectiveResearchLimits({ searchQueries: 50, searchPages: 50, topicsRead: 50, rawFallbacks: 50 }),
-    { searchQueries: 4, searchPages: 3, topicsRead: 12, rawFallbacks: 12 });
+  assert.deepEqual(effectiveResearchLimits({ searchQueries: 50, searchPages: 50, topicsRead: 50, rawFallbacks: 50 }), {
+    searchQueries: 4,
+    searchPages: 3,
+    topicsRead: 12,
+    rawFallbacks: 12
+  });
   assert.deepEqual(effectiveResearchLimits(undefined), { searchQueries: 3, searchPages: 1, topicsRead: 6, rawFallbacks: 3 });
 });
 
@@ -309,7 +349,10 @@ test('research limits are clamped to the hard caps', () => {
 
 function response(status, body, contentType = 'text/plain') {
   return {
-    status, ok: status >= 200 && status < 300, redirected: false, url: '',
+    status,
+    ok: status >= 200 && status < 300,
+    redirected: false,
+    url: '',
     headers: { get: name => (name === 'Content-Type' ? contentType : null) },
     text: async () => body
   };
@@ -321,9 +364,7 @@ function topicFetcher(postsCount, requests, rawPageCount = 40) {
     fetchImpl: async url => {
       requests.push(url);
       if (url.endsWith('.json')) {
-        return postsCount === null
-          ? response(500, 'no')
-          : response(200, JSON.stringify({ posts_count: postsCount }), 'application/json');
+        return postsCount === null ? response(500, 'no') : response(200, JSON.stringify({ posts_count: postsCount }), 'application/json');
       }
       const page = Number(new URL(url).searchParams.get('page'));
       return response(200, page <= rawPageCount ? `page ${page}` : '');
@@ -349,7 +390,9 @@ test('replies past the page limit do not trigger a re-read', async () => {
   const requests = [];
   const cached = Array.from({ length: 5 }, (_, index) => ({ page: index + 1, content: `page ${index + 1}` }));
   const result = await topicFetcher(1500, requests)(SITE, '7', () => {}, undefined, {
-    maxPages: 5, cachedPages: cached, knownTotalPosts: 1234
+    maxPages: 5,
+    cachedPages: cached,
+    knownTotalPosts: 1234
   });
   assert.equal(result.unchanged, true);
   assert.equal(result.newPosts, 0);
@@ -362,8 +405,11 @@ test('a topic within the limit is read in full', async () => {
   assert.equal(result.truncated, false);
   assert.equal(result.coveredPosts, 250);
   assert.equal(result.pagesFetched, 3);
-  assert.deepEqual(limitTopicPagination({ totalPosts: 250, totalPages: 3, pageSize: 100 }, 2),
-    { totalPages: 2, truncated: true, coveredPosts: 200 });
+  assert.deepEqual(limitTopicPagination({ totalPosts: 250, totalPages: 3, pageSize: 100 }, 2), {
+    totalPages: 2,
+    truncated: true,
+    coveredPosts: 200
+  });
 });
 
 test('by default (every page) a long known-size topic is read in full', async () => {
@@ -382,8 +428,11 @@ test('by default (every page) a long known-size topic is read in full', async ()
   const omitted = await topicFetcher(14950, [], 150)(SITE, '7', () => {}, undefined, {});
   assert.equal(omitted.pagesFetched, 150);
   assert.equal(omitted.truncated, false);
-  assert.deepEqual(limitTopicPagination({ totalPosts: 14950, totalPages: 150, pageSize: 100 }, null),
-    { totalPages: 150, truncated: false, coveredPosts: 14950 });
+  assert.deepEqual(limitTopicPagination({ totalPosts: 14950, totalPages: 150, pageSize: 100 }, null), {
+    totalPages: 150,
+    truncated: false,
+    coveredPosts: 14950
+  });
 });
 
 test('switching from a limit to every page reads the rest of a topic', async () => {
@@ -391,7 +440,9 @@ test('switching from a limit to every page reads the rest of a topic', async () 
   const cached = Array.from({ length: 5 }, (_, index) => ({ page: index + 1, content: `page ${index + 1}` }));
   // Summarized earlier with a 5-page limit; the stored count is the full one.
   const result = await topicFetcher(1234, requests)(SITE, '7', () => {}, undefined, {
-    maxPages: null, cachedPages: cached, knownTotalPosts: 1234
+    maxPages: null,
+    cachedPages: cached,
+    knownTotalPosts: 1234
   });
   assert.equal(result.unchanged, false, 'not reported as already up to date');
   assert.equal(result.pagesFetched, 13);
@@ -435,8 +486,14 @@ test('the summary executor uses the task’s page limit and records the truncati
     fetchTopicContent: async (siteUrl, topicId, onProgress, signal, options) => {
       fetched.push(options.maxPages);
       return {
-        content: 'c', rawPages: [{ page: 1, content: 'c' }], pagesFetched: 2,
-        totalPosts: 900, truncated: true, coveredPosts: 200, unchanged: false, newPosts: null
+        content: 'c',
+        rawPages: [{ page: 1, content: 'c' }],
+        pagesFetched: 2,
+        totalPosts: 900,
+        truncated: true,
+        coveredPosts: 200,
+        unchanged: false,
+        newPosts: null
       };
     }
   });
@@ -465,8 +522,14 @@ test('the summary executor passes "every page" through and records no truncation
     fetchTopicContent: async (siteUrl, topicId, onProgress, signal, options) => {
       fetched.push(options.maxPages);
       return {
-        content: 'c', rawPages: [{ page: 1, content: 'c' }], pagesFetched: 10,
-        totalPosts: 900, truncated: false, coveredPosts: 900, unchanged: false, newPosts: null
+        content: 'c',
+        rawPages: [{ page: 1, content: 'c' }],
+        pagesFetched: 10,
+        totalPosts: 900,
+        truncated: false,
+        coveredPosts: 900,
+        unchanged: false,
+        newPosts: null
       };
     }
   });

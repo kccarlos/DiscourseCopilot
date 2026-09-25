@@ -10,11 +10,7 @@ import {
   getPrompt,
   resolveSummarySystemPrompt
 } from '../src/services/prompts.js';
-import {
-  DEFAULT_RESPONSE_LANGUAGE,
-  RESPONSE_LANGUAGES,
-  normalizeResponseLanguage
-} from '../src/shared/response-language.mjs';
+import { DEFAULT_RESPONSE_LANGUAGE, RESPONSE_LANGUAGES, normalizeResponseLanguage } from '../src/shared/response-language.mjs';
 import { buildFollowUpMessages } from '../src/services/chat-context.mjs';
 import { buildAgentMessages } from '../src/services/agent-context.mjs';
 
@@ -38,10 +34,7 @@ test('auto language follows the discussion or the question', () => {
 test('pinned language names the chosen language', () => {
   assert.equal(buildLanguageInstruction('en'), 'Respond in English.');
   assert.match(buildLanguageInstruction('zh-Hans'), /^Respond in Simplified Chinese/);
-  assert.match(
-    buildLanguageInstruction('zh-Hant', 'question'),
-    /^Respond in Traditional Chinese .*unless the user explicitly asks/
-  );
+  assert.match(buildLanguageInstruction('zh-Hant', 'question'), /^Respond in Traditional Chinese .*unless the user explicitly asks/);
 });
 
 test('built-in prompts are forum-neutral and do not force a language', () => {

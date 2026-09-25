@@ -164,15 +164,8 @@ export function normalizeCustomSystemPrompt(customPrompt) {
   return trimmedPrompt.slice(0, MAX_CUSTOM_SYSTEM_PROMPT_CHARS);
 }
 
-export function resolveSummarySystemPrompt(
-  customPrompt,
-  fallback = FULL_PROMPTS.system,
-  language
-) {
-  return withLanguageInstruction(
-    normalizeCustomSystemPrompt(customPrompt) || fallback,
-    language
-  );
+export function resolveSummarySystemPrompt(customPrompt, fallback = FULL_PROMPTS.system, language) {
+  return withLanguageInstruction(normalizeCustomSystemPrompt(customPrompt) || fallback, language);
 }
 
 const CUSTOM_HIERARCHICAL_PHASE_INSTRUCTIONS = {
@@ -195,15 +188,12 @@ the hierarchical processing steps.`
  */
 export function getHierarchicalPrompt(promptType, customSystemPrompt, language) {
   if (!customSystemPrompt) {
-    return withLanguageInstruction(
-      FULL_PROMPTS[promptType] || FULL_PROMPTS.system,
-      language
-    );
+    return withLanguageInstruction(FULL_PROMPTS[promptType] || FULL_PROMPTS.system, language);
   }
 
-  const phasePrompt = CUSTOM_HIERARCHICAL_PHASE_INSTRUCTIONS[promptType]
-    || CUSTOM_HIERARCHICAL_PHASE_INSTRUCTIONS.final;
-  return withLanguageInstruction(`${customSystemPrompt}
+  const phasePrompt = CUSTOM_HIERARCHICAL_PHASE_INSTRUCTIONS[promptType] || CUSTOM_HIERARCHICAL_PHASE_INSTRUCTIONS.final;
+  return withLanguageInstruction(
+    `${customSystemPrompt}
 
 ---
 
@@ -211,7 +201,9 @@ The source discussion is being processed hierarchically. For this phase, follow
 the additional task instructions below while continuing to honor the custom
 system prompt above:
 
-${phasePrompt}`, language);
+${phasePrompt}`,
+    language
+  );
 }
 
 function positiveInteger(value) {
@@ -248,9 +240,10 @@ export function buildCoverageNote(coverage, purpose = 'summary') {
   if (!coverage?.truncated) return '';
   const covered = positiveInteger(coverage.coveredPosts);
   const total = positiveInteger(coverage.totalPosts);
-  const action = purpose === 'answer'
-    ? 'If the answer could depend on later replies, say so, and don\'t claim to cover them.'
-    : 'Say so in the summary and don\'t claim to cover later replies.';
+  const action =
+    purpose === 'answer'
+      ? "If the answer could depend on later replies, say so, and don't claim to cover them."
+      : "Say so in the summary and don't claim to cover later replies.";
   if (covered && total && total > covered) {
     const coveredReplies = Math.max(0, covered - 1).toLocaleString('en-US');
     const totalReplies = Math.max(0, total - 1).toLocaleString('en-US');

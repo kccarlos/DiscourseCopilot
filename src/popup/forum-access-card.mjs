@@ -17,14 +17,16 @@ const $ = id => document.getElementById(id);
 
 // Writes text with **bold** runs as text nodes and <strong> elements.
 function setRichText(element, text) {
-  element.replaceChildren(...splitEmphasis(text).map(part => {
-    if (!part.strong) {
-      return document.createTextNode(part.text);
-    }
-    const strong = document.createElement('strong');
-    strong.textContent = part.text;
-    return strong;
-  }));
+  element.replaceChildren(
+    ...splitEmphasis(text).map(part => {
+      if (!part.strong) {
+        return document.createTextNode(part.text);
+      }
+      const strong = document.createElement('strong');
+      strong.textContent = part.text;
+      return strong;
+    })
+  );
 }
 
 function setOptionalText(element, text, rich = false) {
@@ -111,24 +113,26 @@ export class ForumAccessCard {
       return;
     }
     $('getStartedLabel').textContent = checklist.label;
-    $('getStartedList').replaceChildren(...checklist.items.map((item, index) => {
-      const row = document.createElement('li');
-      row.dataset.status = item.status;
-      if (item.status === 'current') {
-        row.setAttribute('aria-current', 'step');
-      }
-      const number = document.createElement('span');
-      number.className = 'get-started-number';
-      number.setAttribute('aria-hidden', 'true');
-      number.textContent = item.status === 'done' ? '✓' : String(index + 1);
-      const label = document.createElement('span');
-      label.textContent = item.label;
-      const status = document.createElement('span');
-      status.className = 'sr-only';
-      status.textContent = { done: ' (done)', current: ' (current step)', next: ' (next)' }[item.status];
-      row.append(number, label, status);
-      return row;
-    }));
+    $('getStartedList').replaceChildren(
+      ...checklist.items.map((item, index) => {
+        const row = document.createElement('li');
+        row.dataset.status = item.status;
+        if (item.status === 'current') {
+          row.setAttribute('aria-current', 'step');
+        }
+        const number = document.createElement('span');
+        number.className = 'get-started-number';
+        number.setAttribute('aria-hidden', 'true');
+        number.textContent = item.status === 'done' ? '✓' : String(index + 1);
+        const label = document.createElement('span');
+        label.textContent = item.label;
+        const status = document.createElement('span');
+        status.className = 'sr-only';
+        status.textContent = { done: ' (done)', current: ' (current step)', next: ' (next)' }[item.status];
+        row.append(number, label, status);
+        return row;
+      })
+    );
   }
 
   /**
@@ -150,32 +154,36 @@ export class ForumAccessCard {
       $('pageGuideHeading').textContent = card.title;
       setRichText($('pageGuideText'), card.text);
       const steps = $('pageGuideSteps');
-      steps.replaceChildren(...card.steps.map(step => {
-        const item = document.createElement('li');
-        const content = document.createElement('span');
-        setRichText(content, step);
-        item.append(content);
-        return item;
-      }));
+      steps.replaceChildren(
+        ...card.steps.map(step => {
+          const item = document.createElement('li');
+          const content = document.createElement('span');
+          setRichText(content, step);
+          item.append(content);
+          return item;
+        })
+      );
       steps.classList.toggle('hidden', !card.steps.length);
       const links = $('pageGuideLinks');
-      links.replaceChildren(...card.links.map(link => {
-        const item = document.createElement('li');
-        const anchor = document.createElement('a');
-        anchor.href = link.href;
-        anchor.target = '_blank';
-        anchor.rel = 'noopener noreferrer';
-        anchor.textContent = link.label;
-        const external = document.createElement('span');
-        external.setAttribute('aria-hidden', 'true');
-        external.textContent = '↗';
-        const hint = document.createElement('span');
-        hint.className = 'sr-only';
-        hint.textContent = ' (opens in a new tab)';
-        anchor.append(external, hint);
-        item.append(anchor);
-        return item;
-      }));
+      links.replaceChildren(
+        ...card.links.map(link => {
+          const item = document.createElement('li');
+          const anchor = document.createElement('a');
+          anchor.href = link.href;
+          anchor.target = '_blank';
+          anchor.rel = 'noopener noreferrer';
+          anchor.textContent = link.label;
+          const external = document.createElement('span');
+          external.setAttribute('aria-hidden', 'true');
+          external.textContent = '↗';
+          const hint = document.createElement('span');
+          hint.className = 'sr-only';
+          hint.textContent = ' (opens in a new tab)';
+          anchor.append(external, hint);
+          item.append(anchor);
+          return item;
+        })
+      );
       links.classList.toggle('hidden', !card.links.length);
       setOptionalText($('forumAccessNote'), card.notice, true);
       setOptionalText($('pageGuideFootnote'), card.footnote);

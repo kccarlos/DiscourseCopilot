@@ -28,7 +28,8 @@ const LOCAL_PROVIDERS = new Set(['ollama', 'lmstudio']);
 
 // Models that can't answer a chat request: embeddings, speech, images,
 // video, moderation, realtime/live voice.
-const NON_CHAT_PATTERN = /(^|[^a-z])(embed\w*|tts|whisper|transcribe|audio|realtime|live|image|images|imagine|dall-e|sora|video|veo|imagen|lyria|moderation|guard|rerank|computer-use|aqa|babbage|davinci)([^a-z]|$)/i;
+const NON_CHAT_PATTERN =
+  /(^|[^a-z])(embed\w*|tts|whisper|transcribe|audio|realtime|live|image|images|imagine|dall-e|sora|video|veo|imagen|lyria|moderation|guard|rerank|computer-use|aqa|babbage|davinci)([^a-z]|$)/i;
 // Listed and selectable, but never picked automatically.
 const AVOID_PATTERN = /(^~)|(:)|(^|[^a-z])(preview|exp|experimental|vision|beta|alpha|test|deprecated)([^a-z]|$)/i;
 // What a small, fast, cheap tier tends to be called.
@@ -111,15 +112,16 @@ export function normalizeModelList(provider, data) {
   let entries = [];
   if (provider === 'gemini') {
     entries = (Array.isArray(data?.models) ? data.models : [])
-      .filter(model => !Array.isArray(model?.supportedGenerationMethods)
-        || model.supportedGenerationMethods.includes('generateContent'))
+      .filter(model => !Array.isArray(model?.supportedGenerationMethods) || model.supportedGenerationMethods.includes('generateContent'))
       .map(model => ({
         id: trimmed(model?.name).replace(/^models\//, ''),
         name: trimmed(model?.displayName)
       }));
   } else if (provider === 'ollama') {
-    entries = (Array.isArray(data?.models) ? data.models : [])
-      .map(model => ({ id: trimmed(model?.name) || trimmed(model?.model), created: createdAt(model) }));
+    entries = (Array.isArray(data?.models) ? data.models : []).map(model => ({
+      id: trimmed(model?.name) || trimmed(model?.model),
+      created: createdAt(model)
+    }));
   } else {
     const list = Array.isArray(data?.data) ? data.data : [];
     entries = list
@@ -153,7 +155,7 @@ export function normalizeModelList(provider, data) {
     seen.add(entry.id);
     models.push({ id: entry.id, name: entry.name || entry.id, created: entry.created || 0, index });
   });
-  models.sort((a, b) => (b.created - a.created) || (a.index - b.index));
+  models.sort((a, b) => b.created - a.created || a.index - b.index);
   return models.map(({ index, ...model }) => model);
 }
 
@@ -177,15 +179,19 @@ export function findOfferedModel(provider, model, available) {
   if (ids.includes(wanted)) return wanted;
   if (provider === 'ollama') {
     const base = wanted.replace(/:latest$/, '');
-    return ids.find(id => id === `${base}:latest`)
+    return (
+      ids.find(id => id === `${base}:latest`)
       || (wanted.includes(':') ? '' : ids.find(id => id.startsWith(`${base}:`)))
       || (wanted.endsWith(':latest') ? ids.find(id => id === base) : '')
-      || '';
+      || ''
+    );
   }
   // A dated snapshot of an alias, or the alias of a dated snapshot.
-  return ids.find(id => id.startsWith(wanted) && DATED_SUFFIX.test(id.slice(wanted.length)))
+  return (
+    ids.find(id => id.startsWith(wanted) && DATED_SUFFIX.test(id.slice(wanted.length)))
     || ids.find(id => wanted.startsWith(id) && DATED_SUFFIX.test(wanted.slice(id.length)))
-    || '';
+    || ''
+  );
 }
 
 export function isModelOffered(provider, model, available) {
@@ -228,10 +234,7 @@ export function pickDefaultModel(provider, available, providerConfigs = PROVIDER
   // Ollama's ids are name:tag; only the name says what the model is.
   const nameOf = id => (provider === 'ollama' ? id.replace(/:[^:]*$/, '') : id);
   const candidates = ids.filter(id => isChatModelId(id) && !AVOID_PATTERN.test(nameOf(id)));
-  return candidates.find(id => FAST_PATTERN.test(id))
-    || candidates[0]
-    || ids.find(isChatModelId)
-    || ids[0];
+  return candidates.find(id => FAST_PATTERN.test(id)) || candidates[0] || ids.find(isChatModelId) || ids[0];
 }
 
 /**
@@ -264,19 +267,24 @@ export function orderModelChoices(provider, models, providerConfigs = PROVIDER_C
 
 // SHA-256 of the credential, so cached lists are keyed without the key itself.
 async function credentialHash(provider, settings) {
-  const credential = LOCAL_PROVIDERS.has(provider)
-    ? trimmed(settings?.url).replace(/\/+$/, '')
-    : trimmed(settings?.apiKey);
+  const credential = LOCAL_PROVIDERS.has(provider) ? trimmed(settings?.url).replace(/\/+$/, '') : trimmed(settings?.apiKey);
   const bytes = new TextEncoder().encode(`${provider}\n${credential}`);
   const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
-  return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('').slice(0, 32);
+  return [...new Uint8Array(digest)]
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 32);
 }
 
 function memoryStorage() {
   const values = new Map();
   return {
-    async get(key) { return values.has(key) ? { [key]: values.get(key) } : {}; },
-    async set(entries) { for (const [key, value] of Object.entries(entries)) values.set(key, value); }
+    async get(key) {
+      return values.has(key) ? { [key]: values.get(key) } : {};
+    },
+    async set(entries) {
+      for (const [key, value] of Object.entries(entries)) values.set(key, value);
+    }
   };
 }
 
@@ -318,7 +326,7 @@ export class ModelCatalog {
   }
 
   get store() {
-    return this.storage === undefined ? (defaultStorage() || this.memory) : (this.storage || this.memory);
+    return this.storage === undefined ? defaultStorage() || this.memory : this.storage || this.memory;
   }
 
   // Makes the next list() for the provider (or every provider) fetch again.

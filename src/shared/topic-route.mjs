@@ -12,10 +12,7 @@ export function extractForumTopicId(value, basePath = '') {
     if (!hasBasePathPrefix(url.pathname, normalizedBasePath)) {
       return null;
     }
-    const segments = url.pathname
-      .slice(normalizedBasePath.length)
-      .split('/')
-      .filter(Boolean);
+    const segments = url.pathname.slice(normalizedBasePath.length).split('/').filter(Boolean);
     if (segments[0] !== 't') {
       return null;
     }

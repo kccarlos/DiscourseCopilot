@@ -17,11 +17,7 @@ export function normalizeFavoriteModel(value, providerConfigs) {
   return { provider, model };
 }
 
-export function normalizeFavoriteModels(
-  values,
-  providerConfigs,
-  limit = MAX_FAVORITE_MODELS
-) {
+export function normalizeFavoriteModels(values, providerConfigs, limit = MAX_FAVORITE_MODELS) {
   if (!Array.isArray(values)) {
     return [];
   }
@@ -63,14 +59,12 @@ export function removeFavoriteModel(values, value, providerConfigs) {
     return normalizeFavoriteModels(values, providerConfigs);
   }
   const key = favoriteModelKey(favorite.provider, favorite.model);
-  return normalizeFavoriteModels(values, providerConfigs)
-    .filter(item => favoriteModelKey(item.provider, item.model) !== key);
+  return normalizeFavoriteModels(values, providerConfigs).filter(item => favoriteModelKey(item.provider, item.model) !== key);
 }
 
 export function hasFavoriteModel(values, value, providerConfigs) {
   const favorite = normalizeFavoriteModel(value, providerConfigs);
   if (!favorite) return false;
   const key = favoriteModelKey(favorite.provider, favorite.model);
-  return normalizeFavoriteModels(values, providerConfigs)
-    .some(item => favoriteModelKey(item.provider, item.model) === key);
+  return normalizeFavoriteModels(values, providerConfigs).some(item => favoriteModelKey(item.provider, item.model) === key);
 }

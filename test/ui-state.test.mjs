@@ -29,18 +29,9 @@ test('summary action labels describe the current state without trailing ellipses
   assert.equal(getSummaryActionLabel(), 'Create summary');
   assert.equal(getSummaryActionLabel({ hasSummary: true }), 'Check for new replies');
   assert.equal(getSummaryActionLabel({ isHydrating: true }), 'Loading saved summary');
-  assert.equal(
-    getSummaryActionLabel({ taskStatus: 'queued', taskPhase: 'queued' }),
-    'Summary queued'
-  );
-  assert.equal(
-    getSummaryActionLabel({ taskStatus: 'running', taskPhase: 'fetching' }),
-    'Reading replies'
-  );
-  assert.equal(
-    getSummaryActionLabel({ taskStatus: 'running', taskPhase: 'generating' }),
-    'Creating summary'
-  );
+  assert.equal(getSummaryActionLabel({ taskStatus: 'queued', taskPhase: 'queued' }), 'Summary queued');
+  assert.equal(getSummaryActionLabel({ taskStatus: 'running', taskPhase: 'fetching' }), 'Reading replies');
+  assert.equal(getSummaryActionLabel({ taskStatus: 'running', taskPhase: 'generating' }), 'Creating summary');
   assert.equal(getSummaryActionLabel({ isSubmitting: true }), 'Starting summary');
 });
 
@@ -69,15 +60,9 @@ test('activity opens tasks only when unfinished work needs attention', () => {
   const now = 10 * HOUR;
   const unopened = { status: 'completed', completedAt: now - HOUR, lastOpenedAt: 0 };
   assert.equal(getDefaultActivityTab([], [unopened], { now }), 'tasks');
-  assert.equal(
-    getDefaultActivityTab([], [{ ...unopened, lastOpenedAt: now - 30 * 60000 }], { now }),
-    'saved'
-  );
+  assert.equal(getDefaultActivityTab([], [{ ...unopened, lastOpenedAt: now - 30 * 60000 }], { now }), 'saved');
   assert.equal(getDefaultActivityTab([], [{ ...unopened, dismissedAt: now }], { now }), 'saved');
-  assert.equal(
-    getDefaultActivityTab([], [{ ...unopened, completedAt: now - 30 * HOUR }], { now: now + 30 * HOUR }),
-    'saved'
-  );
+  assert.equal(getDefaultActivityTab([], [{ ...unopened, completedAt: now - 30 * HOUR }], { now: now + 30 * HOUR }), 'saved');
   assert.equal(getDefaultActivityTab([], [{ status: 'cancelled', completedAt: now }], { now }), 'saved');
 });
 
@@ -110,43 +95,22 @@ test('the inline Agent panel shows the latest undismissed run for the current fo
   const older = run('older', { createdAt: 500 });
   const newer = run('newer', { createdAt: 900 });
   const otherForum = run('other', { siteUrl: FORUM_B, createdAt: 1500 });
-  assert.deepEqual(
-    selectAgentRunView([older, newer, otherForum], `${FORUM_A}/`, { now }),
-    { mode: 'panel', activity: newer, kind: '' }
-  );
-  assert.equal(
-    selectAgentRunView([older, newer], FORUM_A, { now, preferredId: 'older' }).activity,
-    older
-  );
-  assert.equal(
-    selectAgentRunView([older, { ...newer, dismissedAt: 2500 }], FORUM_A, { now }).activity,
-    older
-  );
+  assert.deepEqual(selectAgentRunView([older, newer, otherForum], `${FORUM_A}/`, { now }), { mode: 'panel', activity: newer, kind: '' });
+  assert.equal(selectAgentRunView([older, newer], FORUM_A, { now, preferredId: 'older' }).activity, older);
+  assert.equal(selectAgentRunView([older, { ...newer, dismissedAt: 2500 }], FORUM_A, { now }).activity, older);
   // Finished runs age out after a day; running ones never do.
   const later = 2000 + 25 * HOUR;
   assert.equal(selectAgentRunView([newer], FORUM_A, { now: later }).mode, 'none');
-  assert.equal(
-    selectAgentRunView([run('live', { status: 'running', completedAt: 0 })], FORUM_A, { now: later }).mode,
-    'panel'
-  );
+  assert.equal(selectAgentRunView([run('live', { status: 'running', completedAt: 0 })], FORUM_A, { now: later }).mode, 'panel');
   assert.equal(selectAgentRunView([run('gone', { status: 'expired' })], FORUM_A, { now }).mode, 'none');
 });
 
 test('other forums surface as a pill only while their run needs attention', () => {
   const now = 3000;
-  assert.deepEqual(
-    selectAgentRunView([run('ready')], FORUM_B, { now }),
-    { mode: 'pill', activity: run('ready'), kind: 'ready' }
-  );
+  assert.deepEqual(selectAgentRunView([run('ready')], FORUM_B, { now }), { mode: 'pill', activity: run('ready'), kind: 'ready' });
   assert.equal(selectAgentRunView([run('seen', { lastOpenedAt: 2500 })], FORUM_B, { now }).mode, 'none');
-  assert.equal(
-    selectAgentRunView([run('live', { status: 'running', completedAt: 0 })], FORUM_B, { now }).kind,
-    'running'
-  );
-  assert.equal(
-    selectAgentRunView([run('login', { status: 'waiting_user_action', completedAt: 0 })], '', { now }).kind,
-    'waiting'
-  );
+  assert.equal(selectAgentRunView([run('live', { status: 'running', completedAt: 0 })], FORUM_B, { now }).kind, 'running');
+  assert.equal(selectAgentRunView([run('login', { status: 'waiting_user_action', completedAt: 0 })], '', { now }).kind, 'waiting');
   assert.equal(selectAgentRunView([run('broke', { status: 'failed' })], FORUM_B, { now }).kind, 'failed');
   assert.equal(selectAgentRunView([run('stopped', { status: 'cancelled' })], FORUM_B, { now }).mode, 'none');
   assert.equal(selectAgentRunView([run('hidden', { dismissedAt: 2500 })], FORUM_B, { now }).mode, 'none');
@@ -163,16 +127,10 @@ test('queue status fills in until the Agent activity settles', () => {
   assert.equal(merged.statusText, 'Searching…');
   assert.deepEqual(merged.progress, { percent: 10 });
 
-  const cancelled = mergeAgentRunState(
-    { ...activity, status: 'running' },
-    { status: 'cancelled', updatedAt: 4000 }
-  );
+  const cancelled = mergeAgentRunState({ ...activity, status: 'running' }, { status: 'cancelled', updatedAt: 4000 });
   assert.equal(cancelled.status, 'cancelled');
   assert.equal(cancelled.completedAt, 4000);
-  assert.equal(
-    mergeAgentRunState({ ...activity, status: 'running' }, { status: 'failed', error: 'Boom' }).error.message,
-    'Boom'
-  );
+  assert.equal(mergeAgentRunState({ ...activity, status: 'running' }, { status: 'failed', error: 'Boom' }).error.message, 'Boom');
 
   const settled = run('b');
   assert.equal(mergeAgentRunState(settled, { status: 'running' }), settled);
@@ -237,10 +195,7 @@ test('chat count uses clear singular and plural labels', () => {
   assert.equal(getChatCountLabel([]), 'Start a conversation');
   assert.equal(getChatCountLabel([{ role: 'assistant' }]), 'Start a conversation');
   assert.equal(getChatCountLabel([{ role: 'user' }]), '1 question asked');
-  assert.equal(
-    getChatCountLabel([{ role: 'user' }, { role: 'assistant' }, { role: 'user' }]),
-    '2 questions asked'
-  );
+  assert.equal(getChatCountLabel([{ role: 'user' }, { role: 'assistant' }, { role: 'user' }]), '2 questions asked');
 });
 
 test('resolves forum names, preferring real names over hostname fallbacks', () => {
@@ -290,18 +245,31 @@ test('groups activity by forum with the current forum first', () => {
   const a = 'https://www.uscardforum.com';
   const b = 'https://meta.discourse.org';
   const c = 'https://community.openai.com';
-  const groups = groupByForum([
-    { id: 1, siteUrl: b, forumName: 'meta.discourse.org', updatedAt: 50 },
-    { id: 2, siteUrl: a, forumName: 'US Card Forum', updatedAt: 10 },
-    { id: 3, siteUrl: c, updatedAt: 90 },
-    { id: 4, siteUrl: '', updatedAt: 999 },
-    { id: 5, siteUrl: `${b}/`, forumName: 'Discourse Meta', createdAt: 20 },
-    { id: 6, siteUrl: a, updatedAt: 30 }
-  ], `${a}/`, { names: new Map([[c, 'OpenAI Developer Community']]) });
+  const groups = groupByForum(
+    [
+      { id: 1, siteUrl: b, forumName: 'meta.discourse.org', updatedAt: 50 },
+      { id: 2, siteUrl: a, forumName: 'US Card Forum', updatedAt: 10 },
+      { id: 3, siteUrl: c, updatedAt: 90 },
+      { id: 4, siteUrl: '', updatedAt: 999 },
+      { id: 5, siteUrl: `${b}/`, forumName: 'Discourse Meta', createdAt: 20 },
+      { id: 6, siteUrl: a, updatedAt: 30 }
+    ],
+    `${a}/`,
+    { names: new Map([[c, 'OpenAI Developer Community']]) }
+  );
 
-  assert.deepEqual(groups.map(group => group.siteUrl), [a, c, b, '']);
-  assert.deepEqual(groups.map(group => group.isCurrent), [true, false, false, false]);
-  assert.deepEqual(groups[0].items.map(item => item.id), [2, 6]);
+  assert.deepEqual(
+    groups.map(group => group.siteUrl),
+    [a, c, b, '']
+  );
+  assert.deepEqual(
+    groups.map(group => group.isCurrent),
+    [true, false, false, false]
+  );
+  assert.deepEqual(
+    groups[0].items.map(item => item.id),
+    [2, 6]
+  );
   assert.equal(groups[0].latestAt, 30);
   assert.equal(groups[1].forumName, 'OpenAI Developer Community');
   assert.equal(groups[2].forumName, 'Discourse Meta');
@@ -310,7 +278,10 @@ test('groups activity by forum with the current forum first', () => {
   assert.equal(groups[3].hue, null);
   assert.equal(groups[0].hue, forumAccentHue(a));
   assert.deepEqual(groupByForum([], a), []);
-  assert.equal(groupByForum([{ siteUrl: b }], '').every(group => !group.isCurrent), true);
+  assert.equal(
+    groupByForum([{ siteUrl: b }], '').every(group => !group.isCurrent),
+    true
+  );
 });
 
 test('idle status stays out of the way of the setup card', () => {
@@ -333,27 +304,12 @@ test('quiet re-renders re-derive the status when provider validity changes', () 
   // First render: nothing to compare against, and nothing announced.
   assert.equal(shouldRederiveStatus({ settingsValid: false }), false);
   // Configured in the setup card or in the settings tab (storage.onChanged).
-  assert.equal(
-    shouldRederiveStatus({ settingsValid: true, previousSettingsValid: false }),
-    true
-  );
+  assert.equal(shouldRederiveStatus({ settingsValid: true, previousSettingsValid: false }), true);
   // Key removed in settings while the panel is open.
-  assert.equal(
-    shouldRederiveStatus({ settingsValid: false, previousSettingsValid: true }),
-    true
-  );
+  assert.equal(shouldRederiveStatus({ settingsValid: false, previousSettingsValid: true }), true);
   // An unrelated setting (e.g. response language) changed.
-  assert.equal(
-    shouldRederiveStatus({ settingsValid: true, previousSettingsValid: true, statusKind: 'idle' }),
-    false
-  );
+  assert.equal(shouldRederiveStatus({ settingsValid: true, previousSettingsValid: true, statusKind: 'idle' }), false);
   // A stale "configure a provider" message never outlives a valid setup.
-  assert.equal(
-    shouldRederiveStatus({ settingsValid: true, previousSettingsValid: true, statusKind: 'setup' }),
-    true
-  );
-  assert.equal(
-    shouldRederiveStatus({ settingsValid: false, previousSettingsValid: false, statusKind: 'setup' }),
-    false
-  );
+  assert.equal(shouldRederiveStatus({ settingsValid: true, previousSettingsValid: true, statusKind: 'setup' }), true);
+  assert.equal(shouldRederiveStatus({ settingsValid: false, previousSettingsValid: false, statusKind: 'setup' }), false);
 });

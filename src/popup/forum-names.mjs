@@ -25,11 +25,7 @@ export function collectForumNames(records = []) {
   const names = new Map();
   for (const record of records) {
     const siteUrl = normalizeSiteUrl(record?.siteUrl);
-    if (
-      siteUrl
-      && !names.has(siteUrl)
-      && isRealForumName(record.forumName, forumHostname(siteUrl))
-    ) {
+    if (siteUrl && !names.has(siteUrl) && isRealForumName(record.forumName, forumHostname(siteUrl))) {
       names.set(siteUrl, record.forumName.trim().slice(0, 120));
     }
   }
@@ -66,7 +62,13 @@ export function cleanTopicTitle(title, forumName) {
   }
   const separators = [...text.matchAll(TITLE_SEPARATOR)];
   const last = separators.at(-1);
-  if (!last || text.slice(last.index + last[0].length).trim().toLowerCase() !== forum) {
+  if (
+    !last
+    || text
+      .slice(last.index + last[0].length)
+      .trim()
+      .toLowerCase() !== forum
+  ) {
     return text;
   }
   const cut = separators.length >= 2 ? separators.at(-2).index : last.index;
@@ -99,19 +101,16 @@ export function groupByForum(items = [], currentSiteUrl = '', { names = null } =
         ...group,
         hostname,
         forumName: group.siteUrl
-          ? resolveForumName(
-              group.siteUrl,
-              ...group.items.map(item => item.forumName),
-              names?.get(group.siteUrl)
-            )
+          ? resolveForumName(group.siteUrl, ...group.items.map(item => item.forumName), names?.get(group.siteUrl))
           : 'Unknown forum',
         hue: forumAccentHue(group.siteUrl),
         isCurrent: Boolean(current) && group.siteUrl === current
       };
     })
-    .sort((left, right) =>
-      Number(right.isCurrent) - Number(left.isCurrent)
-      || Number(Boolean(right.siteUrl)) - Number(Boolean(left.siteUrl))
-      || right.latestAt - left.latestAt
+    .sort(
+      (left, right) =>
+        Number(right.isCurrent) - Number(left.isCurrent)
+        || Number(Boolean(right.siteUrl)) - Number(Boolean(left.siteUrl))
+        || right.latestAt - left.latestAt
     );
 }

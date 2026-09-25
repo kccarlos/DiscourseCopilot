@@ -13,9 +13,7 @@ export function parseRetryAfter(value, now = Date.now()) {
   }
 
   const retryAt = Date.parse(value);
-  return Number.isFinite(retryAt)
-    ? Math.max(0, retryAt - now)
-    : null;
+  return Number.isFinite(retryAt) ? Math.max(0, retryAt - now) : null;
 }
 
 export function calculateRateLimitDelay({
@@ -27,11 +25,8 @@ export function calculateRateLimitDelay({
 }) {
   const attempt = Math.max(1, Math.floor(Number(retryAttempt) || 1));
   const serverDelay = parseRetryAfter(retryAfter, now);
-  const fallbackDelay = Math.max(0, Number(baseDelayMs) || 0) * (2 ** (attempt - 1));
-  return Math.min(
-    Math.max(1000, serverDelay ?? fallbackDelay),
-    Math.max(1000, Number(maxDelayMs) || DEFAULT_RATE_LIMIT_MAX_DELAY_MS)
-  );
+  const fallbackDelay = Math.max(0, Number(baseDelayMs) || 0) * 2 ** (attempt - 1);
+  return Math.min(Math.max(1000, serverDelay ?? fallbackDelay), Math.max(1000, Number(maxDelayMs) || DEFAULT_RATE_LIMIT_MAX_DELAY_MS));
 }
 
 export function formatRetryDelay(milliseconds) {
@@ -98,10 +93,13 @@ export function abortableDelay(milliseconds, signal) {
   }
 
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      signal?.removeEventListener('abort', onAbort);
-      resolve();
-    }, Math.max(0, Number(milliseconds) || 0));
+    const timeout = setTimeout(
+      () => {
+        signal?.removeEventListener('abort', onAbort);
+        resolve();
+      },
+      Math.max(0, Number(milliseconds) || 0)
+    );
     const onAbort = () => {
       clearTimeout(timeout);
       reject(createAbortError());
@@ -118,7 +116,5 @@ function createAbortError() {
 
 // True for fetch/AbortController aborts and this module's cancellations.
 export function isAbortError(error) {
-  return error?.name === 'AbortError'
-    || error?.message === 'This operation was aborted'
-    || error?.message === 'Operation cancelled';
+  return error?.name === 'AbortError' || error?.message === 'This operation was aborted' || error?.message === 'Operation cancelled';
 }

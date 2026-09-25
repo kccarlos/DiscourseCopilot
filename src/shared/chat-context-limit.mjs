@@ -5,21 +5,14 @@ export const FORUM_CONTEXT_LIMIT = Object.freeze({
   default: 30000
 });
 
-export function normalizeForumContextLimit(
-  value,
-  fallback = FORUM_CONTEXT_LIMIT.default
-) {
+export function normalizeForumContextLimit(value, fallback = FORUM_CONTEXT_LIMIT.default) {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) {
     return normalizeForumContextLimit(fallback, FORUM_CONTEXT_LIMIT.default);
   }
 
-  const clamped = Math.min(
-    FORUM_CONTEXT_LIMIT.max,
-    Math.max(FORUM_CONTEXT_LIMIT.min, numericValue)
-  );
-  return Math.round(clamped / FORUM_CONTEXT_LIMIT.step)
-    * FORUM_CONTEXT_LIMIT.step;
+  const clamped = Math.min(FORUM_CONTEXT_LIMIT.max, Math.max(FORUM_CONTEXT_LIMIT.min, numericValue));
+  return Math.round(clamped / FORUM_CONTEXT_LIMIT.step) * FORUM_CONTEXT_LIMIT.step;
 }
 
 export function formatForumContextLimit(value) {

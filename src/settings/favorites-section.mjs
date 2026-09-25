@@ -47,13 +47,8 @@ export class FavoritesSection {
     const current = this.currentFavorite();
     const alreadyFavorite = hasFavoriteModel(favorites, current, PROVIDER_CONFIGS);
     const atFavoriteLimit = favorites.length >= MAX_FAVORITE_MODELS;
-    addButton.textContent = alreadyFavorite
-      ? 'Already a favorite'
-      : atFavoriteLimit
-        ? 'Favorite limit reached'
-        : 'Add current model';
-    addButton.disabled =
-      this.isBusy() || !current.model.trim() || alreadyFavorite || atFavoriteLimit;
+    addButton.textContent = alreadyFavorite ? 'Already a favorite' : atFavoriteLimit ? 'Favorite limit reached' : 'Add current model';
+    addButton.disabled = this.isBusy() || !current.model.trim() || alreadyFavorite || atFavoriteLimit;
 
     list.replaceChildren();
     empty.classList.toggle('hidden', favorites.length > 0);
@@ -90,20 +85,14 @@ export class FavoritesSection {
     const alreadyFavorite = hasFavoriteModel(favorites, favorite, PROVIDER_CONFIGS);
     if (!favorite.model.trim() || alreadyFavorite) {
       this.notify(
-        alreadyFavorite
-          ? 'This model is already in your favorites.'
-          : 'Choose or enter a model before adding a favorite.',
+        alreadyFavorite ? 'This model is already in your favorites.' : 'Choose or enter a model before adding a favorite.',
         alreadyFavorite ? 'info' : 'error',
         false
       );
       return;
     }
     if (favorites.length >= MAX_FAVORITE_MODELS) {
-      this.notify(
-        `You can save up to ${MAX_FAVORITE_MODELS} favorite models. Remove one before adding another.`,
-        'error',
-        false
-      );
+      this.notify(`You can save up to ${MAX_FAVORITE_MODELS} favorite models. Remove one before adding another.`, 'error', false);
       return;
     }
 
@@ -125,9 +114,7 @@ export class FavoritesSection {
     button.disabled = true;
     button.textContent = 'Removing…';
     try {
-      await this.store.setFavorites(
-        removeFavoriteModel(this.store.config.favorites, favorite, PROVIDER_CONFIGS)
-      );
+      await this.store.setFavorites(removeFavoriteModel(this.store.config.favorites, favorite, PROVIDER_CONFIGS));
       this.render();
       this.notify('Favorite model removed.', 'success');
     } catch (error) {

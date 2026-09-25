@@ -4,25 +4,13 @@ import test from 'node:test';
 import { extractForumTopicId } from '../src/shared/topic-route.mjs';
 
 test('detects Discourse topic routes with and without a slug', () => {
-  assert.equal(
-    extractForumTopicId('https://www.uscardforum.com/t/topic-name/517303'),
-    '517303'
-  );
-  assert.equal(
-    extractForumTopicId('https://uscardforum.com/t/517303/2?search=one#reply'),
-    '517303'
-  );
-  assert.equal(
-    extractForumTopicId('https://community.openai.com/t/some-topic/123/7'),
-    '123'
-  );
+  assert.equal(extractForumTopicId('https://www.uscardforum.com/t/topic-name/517303'), '517303');
+  assert.equal(extractForumTopicId('https://uscardforum.com/t/517303/2?search=one#reply'), '517303');
+  assert.equal(extractForumTopicId('https://community.openai.com/t/some-topic/123/7'), '123');
 });
 
 test('is host-agnostic because URL checks cannot prove a site runs Discourse', () => {
-  assert.equal(
-    extractForumTopicId('https://uscardforum.com.example/t/topic/517303'),
-    '517303'
-  );
+  assert.equal(extractForumTopicId('https://uscardforum.com.example/t/topic/517303'), '517303');
 });
 
 test('rejects forum indexes, nested paths, and malformed URLs', () => {

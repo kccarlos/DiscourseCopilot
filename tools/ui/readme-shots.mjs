@@ -19,8 +19,15 @@ import { POPUP, SETTINGS, brandImagesLoaded, openExtensionPage, seedHistory } fr
 import { compareDirs } from './lib/pixdiff.mjs';
 import { ANTHROPIC_STORE, META, OPENAI, OPENAI_STORE, history, onTopic } from './fixtures/forums.mjs';
 import {
-  LONG_THREADS_TOPIC, META_LONG_TOPIC, META_TIPS_TOPIC, STREAMING_TOPIC,
-  agentRun, keptAgentRun, metaLong, metaTips, savedTopics
+  LONG_THREADS_TOPIC,
+  META_LONG_TOPIC,
+  META_TIPS_TOPIC,
+  STREAMING_TOPIC,
+  agentRun,
+  keptAgentRun,
+  metaLong,
+  metaTips,
+  savedTopics
 } from './fixtures/readme.mjs';
 
 const args = parseArgs();
@@ -46,11 +53,17 @@ const IMAGES = [
 // capturing, so every run produces the same pixels.
 const STILL = { animations: 'disabled' };
 
-const captureUntil = (selector, pad = 14) => async (page, outPath) => {
-  const box = await page.locator(selector).boundingBox();
-  const container = await page.locator('main.container').boundingBox();
-  await page.screenshot({ ...STILL, path: outPath, clip: { x: container.x, y: container.y, width: container.width, height: box.y + box.height - container.y + pad } });
-};
+const captureUntil =
+  (selector, pad = 14) =>
+  async (page, outPath) => {
+    const box = await page.locator(selector).boundingBox();
+    const container = await page.locator('main.container').boundingBox();
+    await page.screenshot({
+      ...STILL,
+      path: outPath,
+      clip: { x: container.x, y: container.y, width: container.width, height: box.y + box.height - container.y + pad }
+    });
+  };
 
 const openSources = async page => {
   await page.evaluate(() => {
@@ -68,20 +81,27 @@ const longThreadsTab = onTopic(OPENAI, LONG_THREADS_TOPIC, `${LONG_THREADS_TOPIC
 const PANELS = {};
 for (const theme of ['light', 'dark']) {
   PANELS[`meta-summary-chat-${theme}`] = {
-    theme, stub: { ...metaTipsTab, store: ANTHROPIC_STORE }, data: history({ sessions: [metaTips] }),
+    theme,
+    stub: { ...metaTipsTab, store: ANTHROPIC_STORE },
+    data: history({ sessions: [metaTips] }),
     capture: captureUntil('#chatContainer')
   };
   PANELS[`openai-agent-answer-${theme}`] = {
-    theme, stub: { ...streamingTab, store: OPENAI_STORE }, data: history({ activities: [agentRun] }),
-    prepare: openSources, capture: captureUntil('#agentPanel')
+    theme,
+    stub: { ...streamingTab, store: OPENAI_STORE },
+    data: history({ activities: [agentRun] }),
+    prepare: openSources,
+    capture: captureUntil('#agentPanel')
   };
 }
 PANELS['meta-long-summary-light'] = {
   stub: { ...onTopic(META, META_LONG_TOPIC, `${META_LONG_TOPIC.title} - Community - ${META.name}`), store: ANTHROPIC_STORE },
-  data: history({ sessions: [metaLong] }), capture: captureUntil('#chatContainer')
+  data: history({ sessions: [metaLong] }),
+  capture: captureUntil('#chatContainer')
 };
 PANELS['activity-grouped-light'] = {
-  stub: { ...streamingTab, store: OPENAI_STORE }, data: history({ sessions: savedTopics, activities: [keptAgentRun] }),
+  stub: { ...streamingTab, store: OPENAI_STORE },
+  data: history({ sessions: savedTopics, activities: [keptAgentRun] }),
   prepare: async page => {
     await page.click('#savedBtn');
     await page.waitForTimeout(400);
@@ -92,7 +112,11 @@ PANELS['activity-grouped-light'] = {
   capture: async (page, outPath) => {
     const card = await page.locator('#savedList .forum-group').nth(1).locator('.saved-card').first().boundingBox();
     const container = await page.locator('main.container').boundingBox();
-    await page.screenshot({ ...STILL, path: outPath, clip: { x: container.x, y: container.y, width: container.width, height: card.y + card.height - container.y + 4 } });
+    await page.screenshot({
+      ...STILL,
+      path: outPath,
+      clip: { x: container.x, y: container.y, width: container.width, height: card.y + card.height - container.y + 4 }
+    });
   }
 };
 PANELS['setup-card-light'] = {
@@ -106,13 +130,19 @@ PANELS['setup-card-light'] = {
 // The toolbar icon was clicked on a forum that isn't enabled yet.
 PANELS['allow-access-light'] = {
   stub: {
-    ...longThreadsTab, store: ANTHROPIC_STORE, granted: [], activeTab: true,
+    ...longThreadsTab,
+    store: ANTHROPIC_STORE,
+    granted: [],
+    activeTab: true,
     probe: { url: longThreadsTab.tabUrl, isDiscourse: true, basePath: '', forumName: OPENAI.name }
   },
   capture: captureUntil('#pageGuide')
 };
 PANELS['settings-light'] = {
-  pagePath: SETTINGS, width: 900, height: 2600, stub: { store: { ...ANTHROPIC_STORE } },
+  pagePath: SETTINGS,
+  width: 900,
+  height: 2600,
+  stub: { store: { ...ANTHROPIC_STORE } },
   // "Ask the forum" through "History" without the sticky save bar. The clip
   // can reach past the bottom of the viewport, hence fullPage.
   capture: async (page, outPath) => {
@@ -121,12 +151,30 @@ PANELS['settings-light'] = {
     const top = await page.locator('section:has(#researchHeading)').boundingBox();
     const bottom = await page.locator('section:has(#historyHeading)').boundingBox();
     const x = Math.min(top.x, bottom.x) - 16;
-    await page.screenshot({ ...STILL, path: outPath, fullPage: true, clip: { x, y: top.y - 16, width: top.width + 32, height: bottom.y + bottom.height - top.y + 32 } });
+    await page.screenshot({
+      ...STILL,
+      path: outPath,
+      fullPage: true,
+      clip: { x, y: top.y - 16, width: top.width + 32, height: bottom.y + bottom.height - top.y + 32 }
+    });
   }
 };
 
-async function renderPanel(browser, base, name, { theme = 'light', width = 460, height = 1400, pagePath = POPUP, stub, data, prepare, capture }) {
-  const { ctx, page, errors } = await openExtensionPage(browser, base, { pagePath, theme, width, height, deviceScaleFactor: 2, stub, settle: 600 });
+async function renderPanel(
+  browser,
+  base,
+  name,
+  { theme = 'light', width = 460, height = 1400, pagePath = POPUP, stub, data, prepare, capture }
+) {
+  const { ctx, page, errors } = await openExtensionPage(browser, base, {
+    pagePath,
+    theme,
+    width,
+    height,
+    deviceScaleFactor: 2,
+    stub,
+    settle: 600
+  });
   if (data) {
     await seedHistory(page, data);
     await page.reload();
@@ -154,7 +202,9 @@ async function compose(browser, base, images) {
   for (const image of images) {
     const page = await ctx.newPage();
     await page.goto(`${base}/readme-showcase.html`);
-    const broken = await page.evaluate(() => [...document.images].filter(i => !(i.complete && i.naturalWidth > 0)).map(i => i.getAttribute('src')));
+    const broken = await page.evaluate(() =>
+      [...document.images].filter(i => !(i.complete && i.naturalWidth > 0)).map(i => i.getAttribute('src'))
+    );
     if (broken.length) throw new Error(`Missing panels (render them first): ${broken.join(', ')}`);
     await page.waitForTimeout(100);
     const raw = await page.locator(`#${image.id}`).screenshot();

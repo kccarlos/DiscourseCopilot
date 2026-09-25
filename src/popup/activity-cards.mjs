@@ -30,11 +30,7 @@ function createMetadataSpan(text) {
 }
 
 function createCancelButton(task, onCancel) {
-  const cancel = createButton(
-    task.phase === 'cancelling' ? 'Stopping…' : 'Stop task',
-    'outline secondary',
-    () => onCancel(task.id)
-  );
+  const cancel = createButton(task.phase === 'cancelling' ? 'Stopping…' : 'Stop task', 'outline secondary', () => onCancel(task.id));
   cancel.disabled = task.phase === 'cancelling';
   return cancel;
 }
@@ -57,9 +53,10 @@ function createTaskCardBase(task, { className, title, titleTooltip, badge, queue
 
   const status = document.createElement('p');
   status.className = 'task-card-status';
-  status.textContent = task.status === TASK_STATUS.QUEUED && queuePosition
-    ? `Queue position ${queuePosition} · ${task.statusText}`
-    : task.error || task.statusText || task.phase;
+  status.textContent =
+    task.status === TASK_STATUS.QUEUED && queuePosition
+      ? `Queue position ${queuePosition} · ${task.statusText}`
+      : task.error || task.statusText || task.phase;
   card.appendChild(status);
 
   if (task.progress && !isTerminalTaskStatus(task.status)) {
@@ -100,10 +97,12 @@ export function createTopicTaskCard(task, { queuePosition, forumName, isCurrentT
     badge: task.status,
     queuePosition
   });
-  card.appendChild(createActions('task-card-actions', [
-    createButton(isCurrentTopic ? 'View session' : 'Open post', 'outline secondary', () => onOpen(task)),
-    !isTerminalTaskStatus(task.status) && createCancelButton(task, onCancel)
-  ]));
+  card.appendChild(
+    createActions('task-card-actions', [
+      createButton(isCurrentTopic ? 'View session' : 'Open post', 'outline secondary', () => onOpen(task)),
+      !isTerminalTaskStatus(task.status) && createCancelButton(task, onCancel)
+    ])
+  );
   return card;
 }
 
@@ -131,29 +130,25 @@ export function createAgentTaskCard(task, { queuePosition = 0, activity, onOpen,
   if (activity?.sourceRefs?.length || activity?.answerStatus === 'no_results') {
     const meta = document.createElement('small');
     meta.className = 'task-card-status';
-    meta.textContent = activity.answerStatus === 'no_results'
-      ? 'No matching sources'
-      : plural(activity.sourceRefs.length, 'source');
+    meta.textContent = activity.answerStatus === 'no_results' ? 'No matching sources' : plural(activity.sourceRefs.length, 'source');
     card.appendChild(meta);
   }
 
-  const openLabel = waiting
-    ? 'Continue'
-    : isTerminalTaskStatus(task.status)
-      ? 'View answer'
-      : 'View progress';
-  card.appendChild(createActions('task-card-actions', [
-    createButton(openLabel, 'outline secondary', () => {
-      if (waiting) {
-        onResume(task.id);
-      } else {
-        onOpen(task);
-      }
-    }),
-    (task.status === TASK_STATUS.FAILED || task.status === TASK_STATUS.CANCELLED)
-      && createButton('Retry', 'outline secondary', () => onRetry(task)),
-    !isTerminalTaskStatus(task.status) && createCancelButton(task, onCancel)
-  ]));
+  const openLabel = waiting ? 'Continue' : isTerminalTaskStatus(task.status) ? 'View answer' : 'View progress';
+  card.appendChild(
+    createActions('task-card-actions', [
+      createButton(openLabel, 'outline secondary', () => {
+        if (waiting) {
+          onResume(task.id);
+        } else {
+          onOpen(task);
+        }
+      }),
+      (task.status === TASK_STATUS.FAILED || task.status === TASK_STATUS.CANCELLED)
+        && createButton('Retry', 'outline secondary', () => onRetry(task)),
+      !isTerminalTaskStatus(task.status) && createCancelButton(task, onCancel)
+    ])
+  );
   return card;
 }
 
@@ -180,15 +175,10 @@ function createKeepButton({ kept, label, title, disabledTitle, onToggle }) {
  * @param {(entry: object, button: HTMLButtonElement) => void} options.onKeep
  * @param {(entry: object) => void} options.onDelete
  */
-export function createSavedTopicCard(entry, {
-  forumName,
-  isCurrent,
-  hasActiveTasks,
-  onOpen,
-  onKeep,
-  onDelete,
-  copy = retentionCopy(null)
-}) {
+export function createSavedTopicCard(
+  entry,
+  { forumName, isCurrent, hasActiveTasks, onOpen, onKeep, onDelete, copy = retentionCopy(null) }
+) {
   const card = document.createElement('article');
   card.className = 'saved-card';
   card.dataset.savedKey = savedTopicKey(entry);
@@ -216,11 +206,7 @@ export function createSavedTopicCard(entry, {
   );
   card.appendChild(metadata);
 
-  const openButton = createButton(
-    isCurrent ? 'View current session' : 'Open saved session',
-    'open-saved',
-    () => onOpen(entry)
-  );
+  const openButton = createButton(isCurrent ? 'View current session' : 'Open saved session', 'open-saved', () => onOpen(entry));
 
   const deleteButton = createButton('Delete', 'outline secondary delete-saved', () => onDelete(entry));
   deleteButton.setAttribute('aria-label', `Delete saved summary for ${topicTitle}`);
@@ -233,9 +219,7 @@ export function createSavedTopicCard(entry, {
     kept: entry.kept,
     label: `saved session for ${topicTitle}`,
     title: entry.kept ? copy.unkeepTopic : copy.keepTopic,
-    disabledTitle: hasActiveTasks
-      ? 'Wait for this topic’s tasks to finish before changing retention'
-      : '',
+    disabledTitle: hasActiveTasks ? 'Wait for this topic’s tasks to finish before changing retention' : '',
     onToggle: button => onKeep(entry, button)
   });
 
@@ -261,14 +245,10 @@ export function answerExcerpt(answer, maxLength = 240) {
  * @param {(activity: object, button: HTMLButtonElement) => void} options.onKeep
  * @param {(activity: object) => void} options.onDelete
  */
-export function createSavedAgentCard(activity, {
-  onOpen,
-  onKeep,
-  onDelete,
-  now = Date.now(),
-  retention = null,
-  copy = retentionCopy(retention)
-}) {
+export function createSavedAgentCard(
+  activity,
+  { onOpen, onKeep, onDelete, now = Date.now(), retention = null, copy = retentionCopy(retention) }
+) {
   const card = document.createElement('article');
   card.className = 'saved-card agent-saved-card';
   card.dataset.savedKey = savedAgentKey(activity);
@@ -280,9 +260,8 @@ export function createSavedAgentCard(activity, {
   card.appendChild(title);
 
   const excerpt = document.createElement('p');
-  excerpt.textContent = activity.answerStatus === 'no_results'
-    ? 'No matching discussions were found.'
-    : answerExcerpt(activity.answer) || 'Saved Agent answer';
+  excerpt.textContent =
+    activity.answerStatus === 'no_results' ? 'No matching discussions were found.' : answerExcerpt(activity.answer) || 'Saved Agent answer';
   card.appendChild(excerpt);
 
   const metadata = document.createElement('div');
@@ -292,10 +271,7 @@ export function createSavedAgentCard(activity, {
     createMetadataSpan(formatRelativeTime(activity.completedAt || activity.updatedAt))
   );
   // Recomputed with the current history setting (never the stored copy).
-  const expires = formatExpiresIn(
-    agentActivityExpiry(activity, retention ? retention.agentMs : undefined),
-    now
-  );
+  const expires = formatExpiresIn(agentActivityExpiry(activity, retention ? retention.agentMs : undefined), now);
   if (expires) {
     metadata.appendChild(createMetadataSpan(expires));
   }
@@ -310,10 +286,8 @@ export function createSavedAgentCard(activity, {
 
   const deleteButton = createButton('Delete', 'outline secondary delete-saved', () => onDelete(activity));
   deleteButton.setAttribute('aria-label', `Delete Agent answer for ${activity.title}`);
-  card.appendChild(createActions('saved-card-actions', [
-    createButton('View answer', 'open-saved', () => onOpen(activity)),
-    keepButton,
-    deleteButton
-  ]));
+  card.appendChild(
+    createActions('saved-card-actions', [createButton('View answer', 'open-saved', () => onOpen(activity)), keepButton, deleteButton])
+  );
   return card;
 }

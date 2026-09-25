@@ -73,7 +73,7 @@ function layeringViolations(file, source) {
 }
 
 function sourceFiles(dir) {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+  return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) {
       return sourceFiles(path);
@@ -84,16 +84,14 @@ function sourceFiles(dir) {
 
 test('every src/ folder is covered by the layering rule', () => {
   const layers = readdirSync(SRC, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name)
     .sort();
   assert.deepEqual(layers, Object.keys(ALLOWED_IMPORTS).sort());
 });
 
 test('background, shared, services and content never import a page module', () => {
-  const violations = sourceFiles(SRC).flatMap((file) =>
-    layeringViolations(file, readFileSync(file, 'utf8'))
-  );
+  const violations = sourceFiles(SRC).flatMap(file => layeringViolations(file, readFileSync(file, 'utf8')));
   assert.deepEqual(violations, []);
 });
 

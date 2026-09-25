@@ -109,12 +109,15 @@ test('validation reports per-field errors without clamping', () => {
   });
   assert.equal(invalid.valid, false);
   assert.equal(invalid.preferences, null);
-  assert.deepEqual(Object.keys(invalid.fieldErrors).sort(),
-    ['maxSavedTopics', 'searchQueries', 'topicPageLimit', 'topicsRead']);
+  assert.deepEqual(Object.keys(invalid.fieldErrors).sort(), ['maxSavedTopics', 'searchQueries', 'topicPageLimit', 'topicsRead']);
   assert.match(invalid.fieldErrors.topicPageLimit, /from 1 to 100/);
   assert.equal(invalid.errors.length, 4);
 
-  assert.equal(validatePreferences({ ...defaultPreferences(), topicPageMode: 'limit', topicPageLimit: '2.5' }).fieldErrors.topicPageLimit !== undefined, true);
+  assert.equal(
+    validatePreferences({ ...defaultPreferences(), topicPageMode: 'limit', topicPageLimit: '2.5' }).fieldErrors.topicPageLimit
+      !== undefined,
+    true
+  );
 });
 
 test('the page limit is only validated while a limit is chosen', () => {
@@ -156,10 +159,18 @@ test('valid string input validates to normalized numbers', () => {
 
 test('resolveResearchLimits maps presets and custom values', () => {
   assert.deepEqual(resolveResearchLimits({}), {
-    depth: 'balanced', searchQueries: 3, searchPages: 1, topicsRead: 6, rawFallbacks: 3
+    depth: 'balanced',
+    searchQueries: 3,
+    searchPages: 1,
+    topicsRead: 6,
+    rawFallbacks: 3
   });
   assert.deepEqual(resolveResearchLimits({ researchDepth: 'quick' }), {
-    depth: 'quick', searchQueries: 1, searchPages: 1, topicsRead: 3, rawFallbacks: 2
+    depth: 'quick',
+    searchQueries: 1,
+    searchPages: 1,
+    topicsRead: 3,
+    rawFallbacks: 2
   });
   assert.equal(resolveResearchLimits({ researchDepth: 'thorough' }).searchPages, 2);
   const custom = resolveResearchLimits({
@@ -168,10 +179,13 @@ test('resolveResearchLimits maps presets and custom values', () => {
   });
   assert.deepEqual(custom, { depth: 'custom', searchQueries: 2, searchPages: 3, topicsRead: 11, rawFallbacks: 6 });
   // Custom values are remembered while a preset is active, but not applied.
-  assert.equal(resolveResearchLimits({
-    researchDepth: 'quick',
-    customResearch: { searchQueries: 4, searchPages: 3, topicsRead: 12 }
-  }).topicsRead, 3);
+  assert.equal(
+    resolveResearchLimits({
+      researchDepth: 'quick',
+      customResearch: { searchQueries: 4, searchPages: 3, topicsRead: 12 }
+    }).topicsRead,
+    3
+  );
 });
 
 test('the largest research budget fits the hard caps', () => {
@@ -200,8 +214,13 @@ test('resolveTopicPageLimit and resolveRetention', () => {
 
   const oneDay = resolveRetention({});
   assert.deepEqual(oneDay, {
-    historyRetention: '1d', label: '1 day', forever: false,
-    chatMs: DAY, agentMs: DAY, taskMs: DAY, maxSavedTopics: 40
+    historyRetention: '1d',
+    label: '1 day',
+    forever: false,
+    chatMs: DAY,
+    agentMs: DAY,
+    taskMs: DAY,
+    maxSavedTopics: 40
   });
   const month = resolveRetention({ historyRetention: '30d', maxSavedTopics: 80 });
   assert.equal(month.chatMs, 30 * DAY);
@@ -213,7 +232,10 @@ test('resolveTopicPageLimit and resolveRetention', () => {
   assert.equal(forever.taskMs, MAX_TASK_RETENTION_MS);
   assert.equal(retentionEqual(oneDay, resolveRetention({})), true);
   assert.equal(retentionEqual(oneDay, month), false);
-  assert.deepEqual(HISTORY_RETENTION_OPTIONS.map(option => option.value), ['1d', '3d', '7d', '30d', 'forever']);
+  assert.deepEqual(
+    HISTORY_RETENTION_OPTIONS.map(option => option.value),
+    ['1d', '3d', '7d', '30d', 'forever']
+  );
 });
 
 // ---------- per-task snapshot ----------
@@ -238,9 +260,12 @@ test('normalizeTaskLimits keeps snapshots in range and ignores records without t
   // null is "every page", not a missing snapshot (and never clamped to 1).
   assert.deepEqual(normalizeTaskLimits('summary', { topicPageLimit: null }), { topicPageLimit: null });
   assert.deepEqual(normalizeTaskLimits('chat', { topicPageLimit: null }), { topicPageLimit: null });
-  assert.deepEqual(normalizeTaskLimits('agent', {
-    research: { searchQueries: 9, searchPages: 2, topicsRead: 4, rawFallbacks: 50 }
-  }), { research: { searchQueries: 4, searchPages: 2, topicsRead: 4, rawFallbacks: 4 } });
+  assert.deepEqual(
+    normalizeTaskLimits('agent', {
+      research: { searchQueries: 9, searchPages: 2, topicsRead: 4, rawFallbacks: 50 }
+    }),
+    { research: { searchQueries: 4, searchPages: 2, topicsRead: 4, rawFallbacks: 4 } }
+  );
 });
 
 // ---------- labels ----------

@@ -54,12 +54,7 @@ import { DiscourseCopilotConstants } from './constants.js';
 import { normalizeFavoriteModels } from './favorite-models.mjs';
 import { FORUM_CONTEXT_LIMIT, normalizeForumContextLimit } from './chat-context-limit.mjs';
 import { defaultPreferences, validatePreferences } from './preferences.mjs';
-import {
-  classifyConnectionFailure,
-  defaultProviderSettings,
-  runConnectionTest,
-  validateProviderSettings
-} from './provider-setup.mjs';
+import { classifyConnectionFailure, defaultProviderSettings, runConnectionTest, validateProviderSettings } from './provider-setup.mjs';
 import {
   CONFIG_STORAGE_KEYS,
   PROVIDER_STORAGE_KEYS,
@@ -89,11 +84,7 @@ export const OPERATION_PHASE = Object.freeze({
   ERROR: 'error'
 });
 
-const BUSY_PHASES = new Set([
-  OPERATION_PHASE.TESTING,
-  OPERATION_PHASE.SAVING,
-  OPERATION_PHASE.RESETTING
-]);
+const BUSY_PHASES = new Set([OPERATION_PHASE.TESTING, OPERATION_PHASE.SAVING, OPERATION_PHASE.RESETTING]);
 
 const CONFIG_KEY_SET = new Set(CONFIG_STORAGE_KEYS);
 
@@ -176,9 +167,7 @@ export class ConfigStore {
     };
     for (const [provider, keys] of Object.entries(PROVIDER_STORAGE_KEYS)) {
       for (const [field, key] of Object.entries(keys)) {
-        values[key] = field === 'model' && !this.config.savedModels?.[provider]
-          ? ''
-          : this.config.providers[provider]?.[field] || '';
+        values[key] = field === 'model' && !this.config.savedModels?.[provider] ? '' : this.config.providers[provider]?.[field] || '';
       }
     }
     return values;

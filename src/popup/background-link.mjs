@@ -2,11 +2,7 @@
 // list, errors that mean the worker (or its database) must be restarted, and
 // the "Restart DiscourseCopilot" banner (#backgroundRecovery).
 import { DiscourseCopilotLogger } from '../shared/logger.js';
-import {
-  isDatabaseCompatibilityError,
-  isMissingRuntimeResponse,
-  isRuntimeDisconnectedError
-} from './runtime-state.mjs';
+import { isDatabaseCompatibilityError, isMissingRuntimeResponse, isRuntimeDisconnectedError } from './runtime-state.mjs';
 
 const $ = id => document.getElementById(id);
 

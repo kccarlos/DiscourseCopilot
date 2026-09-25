@@ -11,10 +11,7 @@ export async function mapWithConcurrency(values, concurrency, mapper) {
     throw new TypeError('A mapper function is required');
   }
 
-  const workerCount = Math.min(
-    items.length,
-    Math.max(1, Math.floor(Number(concurrency) || 1))
-  );
+  const workerCount = Math.min(items.length, Math.max(1, Math.floor(Number(concurrency) || 1)));
   const results = new Array(items.length);
   let nextIndex = 0;
   let stopped = false;

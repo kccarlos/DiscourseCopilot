@@ -8,22 +8,11 @@
 // stored on the task record (they survive a worker restart). Executors only
 // ever use task.limits, so changing a preference affects tasks queued after
 // the change and never a task that is already queued or running.
-import {
-  TASK_STATUS,
-  TASK_TYPE,
-  createTaskRecord,
-  isActiveTaskStatus,
-  isTerminalTaskStatus
-} from '../shared/task-record.mjs';
+import { TASK_STATUS, TASK_TYPE, createTaskRecord, isActiveTaskStatus, isTerminalTaskStatus } from '../shared/task-record.mjs';
 import { agentActivityFromTask } from '../shared/agent-activity.mjs';
 import { buildTopicKey, forumDisplayName, normalizeSiteUrl } from '../shared/forum-site.mjs';
 import { loadConfig, providerSettingsOf } from '../shared/config-state.mjs';
-import {
-  normalizeTaskLimits,
-  resolveRetention,
-  retentionEqual,
-  snapshotTaskLimits
-} from '../shared/preferences.mjs';
+import { normalizeTaskLimits, resolveRetention, retentionEqual, snapshotTaskLimits } from '../shared/preferences.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { createForumAccessError } from '../shared/forum-access.mjs';
 import { JobQueue } from './job-queue.mjs';
@@ -51,24 +40,18 @@ export function validateEnqueueRequest(request) {
   if (!siteUrl) {
     throw new Error('A valid forum site URL is required');
   }
-  const topicKey = type === TASK_TYPE.AGENT
-    ? ''
-    : buildTopicKey(siteUrl, request.topicId);
+  const topicKey = type === TASK_TYPE.AGENT ? '' : buildTopicKey(siteUrl, request.topicId);
   if (type !== TASK_TYPE.AGENT && !topicKey) {
     throw new Error('A valid forum topic is required');
   }
-  if ((type === TASK_TYPE.CHAT || type === TASK_TYPE.AGENT)
-    && !String(request.question || '').trim()) {
-    throw new Error(type === TASK_TYPE.AGENT
-      ? 'An Agent question is required'
-      : 'A follow-up question is required');
+  if ((type === TASK_TYPE.CHAT || type === TASK_TYPE.AGENT) && !String(request.question || '').trim()) {
+    throw new Error(type === TASK_TYPE.AGENT ? 'An Agent question is required' : 'A follow-up question is required');
   }
   return { type, siteUrl, topicKey };
 }
 
 function createTaskId() {
-  return globalThis.crypto?.randomUUID?.()
-    || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export class TaskService {
@@ -153,12 +136,7 @@ export class TaskService {
     }
     this.retention = retention;
     this.db.setRetention(retention);
-    await Promise.all([
-      this.db.cleanupStaleChats(),
-      this.db.cleanupTasks(),
-      this.db.cleanupAgentActivities(),
-      this.db.prune()
-    ]);
+    await Promise.all([this.db.cleanupStaleChats(), this.db.cleanupTasks(), this.db.cleanupAgentActivities(), this.db.prune()]);
     return true;
   }
 
@@ -244,13 +222,11 @@ export class TaskService {
       config ??= await this.readConfig();
       return config;
     };
-    const limits = normalizeTaskLimits(task.type, task.limits)
-      || snapshotTaskLimits(task.type, (await readConfig()).preferences);
+    const limits = normalizeTaskLimits(task.type, task.limits) || snapshotTaskLimits(task.type, (await readConfig()).preferences);
     if (runtime?.settings) {
       return {
         ...runtime,
-        responseLanguage: runtime.responseLanguage
-          ?? (await readConfig()).responseLanguage,
+        responseLanguage: runtime.responseLanguage ?? (await readConfig()).responseLanguage,
         forumName,
         limits
       };
@@ -283,19 +259,16 @@ export class TaskService {
 
     // One summary per topic at a time; a repeated request joins it.
     if (type === TASK_TYPE.SUMMARY) {
-      const existing = this.queue.findActive(task =>
-        task.type === TASK_TYPE.SUMMARY && task.topicKey === topicKey
-      );
+      const existing = this.queue.findActive(task => task.type === TASK_TYPE.SUMMARY && task.topicKey === topicKey);
       if (existing) {
         return existing;
       }
     }
     // A resent Agent request (same client request ID) is the same task.
     if (type === TASK_TYPE.AGENT && request.clientRequestId) {
-      const existing = this.queue.list().find(task =>
-        task.type === TASK_TYPE.AGENT
-        && task.clientRequestId === String(request.clientRequestId)
-      );
+      const existing = this.queue
+        .list()
+        .find(task => task.type === TASK_TYPE.AGENT && task.clientRequestId === String(request.clientRequestId));
       if (existing) {
         return existing;
       }
@@ -307,9 +280,7 @@ export class TaskService {
     const limits = snapshotTaskLimits(type, preferences);
 
     const id = createTaskId();
-    const agentRunId = type === TASK_TYPE.AGENT
-      ? (request.agentRunId || id)
-      : '';
+    const agentRunId = type === TASK_TYPE.AGENT ? request.agentRunId || id : '';
     const record = createTaskRecord({
       id,
       type,

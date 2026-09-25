@@ -160,7 +160,10 @@ test('right after setup the checklist moves to step 2 and access becomes the pri
   const view = derivePageGuidance(contexts.allowTopic, { providerReady: true, setupShowsSuccess: true });
   assert.equal(view.checklist.step, 2);
   assert.equal(view.checklist.label, 'Step 2 of 2: Allow access to this forum');
-  assert.deepEqual(view.checklist.items.map(item => item.status), ['done', 'current']);
+  assert.deepEqual(
+    view.checklist.items.map(item => item.status),
+    ['done', 'current']
+  );
   assert.equal(view.card.nextStep, false);
   assert.equal(view.primary, 'access');
 });

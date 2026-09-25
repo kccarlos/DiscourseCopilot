@@ -2,19 +2,8 @@
 // worker: topic sessions and their index, task records and Agent
 // activities, with retention cleanup and pruning. The schema and upgrades
 // are in history-schema.mjs.
-import {
-  CHAT_RETENTION_MS,
-  MAX_SAVED_TOPICS,
-  buildTopicIndexEntry,
-  expireChatHistory,
-  normalizeTopicSession
-} from './topic-session.mjs';
-import {
-  MAX_TASK_RECORDS,
-  TASK_RETENTION_MS,
-  isTerminalTaskStatus,
-  normalizeTaskRecord
-} from './task-record.mjs';
+import { CHAT_RETENTION_MS, MAX_SAVED_TOPICS, buildTopicIndexEntry, expireChatHistory, normalizeTopicSession } from './topic-session.mjs';
+import { MAX_TASK_RECORDS, TASK_RETENTION_MS, isTerminalTaskStatus, normalizeTaskRecord } from './task-record.mjs';
 import {
   AGENT_ACTIVITY_RETENTION_MS,
   MAX_AGENT_ACTIVITIES,
@@ -127,20 +116,14 @@ export class TopicSessionDatabase {
     }
     const database = await this.open();
     const transaction = database.transaction(SESSION_STORE, 'readonly');
-    const stored = await requestResult(
-      transaction.objectStore(SESSION_STORE).get(String(topicKey))
-    );
+    const stored = await requestResult(transaction.objectStore(SESSION_STORE).get(String(topicKey)));
     await transactionComplete(transaction);
     if (!stored) {
       return null;
     }
 
     const now = this.now();
-    const { session, expired } = expireChatHistory(
-      stored,
-      now,
-      this.chatRetentionMs
-    );
+    const { session, expired } = expireChatHistory(stored, now, this.chatRetentionMs);
     session.lastAccessedAt = now;
     if (expired) {
       await this.save(session, { prune: false });
@@ -155,10 +138,7 @@ export class TopicSessionDatabase {
     }
 
     const database = await this.open();
-    const transaction = database.transaction(
-      [SESSION_STORE, INDEX_STORE],
-      'readwrite'
-    );
+    const transaction = database.transaction([SESSION_STORE, INDEX_STORE], 'readwrite');
     transaction.objectStore(SESSION_STORE).put(session);
     const indexEntry = buildTopicIndexEntry(session);
     transaction.objectStore(INDEX_STORE).put(indexEntry);
@@ -173,21 +153,14 @@ export class TopicSessionDatabase {
   async list() {
     const database = await this.open();
     const transaction = database.transaction(INDEX_STORE, 'readonly');
-    const entries = await requestResult(
-      transaction.objectStore(INDEX_STORE).getAll()
-    );
+    const entries = await requestResult(transaction.objectStore(INDEX_STORE).getAll());
     await transactionComplete(transaction);
-    return entries
-      .filter(entry => entry.hasSummary !== false)
-      .sort((left, right) => right.updatedAt - left.updatedAt);
+    return entries.filter(entry => entry.hasSummary !== false).sort((left, right) => right.updatedAt - left.updatedAt);
   }
 
   async delete(topicKey) {
     const database = await this.open();
-    const transaction = database.transaction(
-      [SESSION_STORE, INDEX_STORE],
-      'readwrite'
-    );
+    const transaction = database.transaction([SESSION_STORE, INDEX_STORE], 'readwrite');
     transaction.objectStore(SESSION_STORE).delete(String(topicKey));
     transaction.objectStore(INDEX_STORE).delete(String(topicKey));
     await transactionComplete(transaction);
@@ -197,10 +170,7 @@ export class TopicSessionDatabase {
   // Undo can put it back with restore() (null when nothing was saved).
   async take(topicKey) {
     const database = await this.open();
-    const transaction = database.transaction(
-      [SESSION_STORE, INDEX_STORE],
-      'readwrite'
-    );
+    const transaction = database.transaction([SESSION_STORE, INDEX_STORE], 'readwrite');
     const sessions = transaction.objectStore(SESSION_STORE);
     const stored = await requestResult(sessions.get(String(topicKey)));
     sessions.delete(String(topicKey));
@@ -217,10 +187,7 @@ export class TopicSessionDatabase {
       throw new Error('This saved summary can no longer be restored');
     }
     const database = await this.open();
-    const transaction = database.transaction(
-      [SESSION_STORE, INDEX_STORE],
-      'readwrite'
-    );
+    const transaction = database.transaction([SESSION_STORE, INDEX_STORE], 'readwrite');
     transaction.objectStore(SESSION_STORE).put(stored);
     transaction.objectStore(INDEX_STORE).put(buildTopicIndexEntry(stored));
     await transactionComplete(transaction);
@@ -230,18 +197,20 @@ export class TopicSessionDatabase {
   async setKept(topicKey, kept) {
     const database = await this.open();
     const readTransaction = database.transaction(SESSION_STORE, 'readonly');
-    const stored = await requestResult(
-      readTransaction.objectStore(SESSION_STORE).get(String(topicKey))
-    );
+    const stored = await requestResult(readTransaction.objectStore(SESSION_STORE).get(String(topicKey)));
     await transactionComplete(readTransaction);
     if (!stored) {
       throw new Error('Saved session not found');
     }
 
-    const { session } = expireChatHistory({
-      ...stored,
-      kept: kept === true
-    }, this.now(), this.chatRetentionMs);
+    const { session } = expireChatHistory(
+      {
+        ...stored,
+        kept: kept === true
+      },
+      this.now(),
+      this.chatRetentionMs
+    );
     return this.save(session, { prune: false });
   }
 
@@ -254,10 +223,7 @@ export class TopicSessionDatabase {
     }
     const readTransaction = database.transaction(SESSION_STORE, 'readonly');
     const staleSessions = await requestResult(
-      readTransaction
-        .objectStore(SESSION_STORE)
-        .index('chatUpdatedAt')
-        .getAll(this.keyRange.bound(1, cutoff))
+      readTransaction.objectStore(SESSION_STORE).index('chatUpdatedAt').getAll(this.keyRange.bound(1, cutoff))
     );
     await transactionComplete(readTransaction);
     if (!staleSessions.length) {
@@ -266,11 +232,7 @@ export class TopicSessionDatabase {
 
     const expiredSessions = [];
     for (const stored of staleSessions) {
-      const result = expireChatHistory(
-        stored,
-        this.now(),
-        this.chatRetentionMs
-      );
+      const result = expireChatHistory(stored, this.now(), this.chatRetentionMs);
       if (result.expired) {
         expiredSessions.push(result.session);
       }
@@ -279,10 +241,7 @@ export class TopicSessionDatabase {
       return 0;
     }
 
-    const transaction = database.transaction(
-      [SESSION_STORE, INDEX_STORE],
-      'readwrite'
-    );
+    const transaction = database.transaction([SESSION_STORE, INDEX_STORE], 'readwrite');
     for (const session of expiredSessions) {
       transaction.objectStore(SESSION_STORE).put(session);
       const indexEntry = buildTopicIndexEntry(session);
@@ -295,19 +254,14 @@ export class TopicSessionDatabase {
   async prune() {
     const database = await this.open();
     const readTransaction = database.transaction(INDEX_STORE, 'readonly');
-    const entries = await requestResult(
-      readTransaction.objectStore(INDEX_STORE).getAll()
-    );
+    const entries = await requestResult(readTransaction.objectStore(INDEX_STORE).getAll());
     await transactionComplete(readTransaction);
     entries.sort((left, right) => right.updatedAt - left.updatedAt);
     if (entries.length <= this.maxSavedTopics) {
       return 0;
     }
 
-    const transaction = database.transaction(
-      [SESSION_STORE, INDEX_STORE],
-      'readwrite'
-    );
+    const transaction = database.transaction([SESSION_STORE, INDEX_STORE], 'readwrite');
     const removed = entries
       .filter(entry => !entry.kept)
       .sort((left, right) => left.updatedAt - right.updatedAt)
@@ -335,9 +289,7 @@ export class TopicSessionDatabase {
   async getTask(taskId) {
     const database = await this.open();
     const transaction = database.transaction(TASK_STORE, 'readonly');
-    const task = await requestResult(
-      transaction.objectStore(TASK_STORE).get(String(taskId))
-    );
+    const task = await requestResult(transaction.objectStore(TASK_STORE).get(String(taskId)));
     await transactionComplete(transaction);
     return task ? normalizeTaskRecord(task, this.now()) : null;
   }
@@ -366,11 +318,7 @@ export class TopicSessionDatabase {
     if (!Number.isFinite(cutoff)) {
       return 0;
     }
-    const expired = tasks.filter(task =>
-      isTerminalTaskStatus(task.status)
-      && task.completedAt > 0
-      && task.completedAt <= cutoff
-    );
+    const expired = tasks.filter(task => isTerminalTaskStatus(task.status) && task.completedAt > 0 && task.completedAt <= cutoff);
     if (!expired.length) {
       return 0;
     }
@@ -434,10 +382,7 @@ export class TopicSessionDatabase {
       await transactionComplete(transaction);
       return null;
     }
-    const activity = mergeAgentActivityMarks(
-      normalizeAgentActivity({ ...stored, lastOpenedAt, dismissedAt }, this.now()),
-      stored
-    );
+    const activity = mergeAgentActivityMarks(normalizeAgentActivity({ ...stored, lastOpenedAt, dismissedAt }, this.now()), stored);
     store.put(activity);
     await transactionComplete(transaction);
     return activity;
@@ -446,9 +391,7 @@ export class TopicSessionDatabase {
   async getAgentActivity(activityId) {
     const database = await this.open();
     const transaction = database.transaction(AGENT_ACTIVITY_STORE, 'readonly');
-    const activity = await requestResult(
-      transaction.objectStore(AGENT_ACTIVITY_STORE).get(String(activityId))
-    );
+    const activity = await requestResult(transaction.objectStore(AGENT_ACTIVITY_STORE).get(String(activityId)));
     await transactionComplete(transaction);
     return activity ? normalizeAgentActivity(activity, this.now()) : null;
   }
@@ -456,9 +399,7 @@ export class TopicSessionDatabase {
   async listAgentActivities({ includeExpired = false } = {}) {
     const database = await this.open();
     const transaction = database.transaction(AGENT_ACTIVITY_STORE, 'readonly');
-    const activities = await requestResult(
-      transaction.objectStore(AGENT_ACTIVITY_STORE).getAll()
-    );
+    const activities = await requestResult(transaction.objectStore(AGENT_ACTIVITY_STORE).getAll());
     await transactionComplete(transaction);
     return activities
       .map(activity => normalizeAgentActivity(activity, this.now()))
@@ -523,9 +464,7 @@ export class TopicSessionDatabase {
     const now = this.now();
     // Expiry is recomputed with the current retention, so shortening the
     // history setting removes older answers right away.
-    const expired = activities.filter(activity =>
-      isAgentActivityExpired(activity, this.agentActivityRetentionMs, now)
-    );
+    const expired = activities.filter(activity => isAgentActivityExpired(activity, this.agentActivityRetentionMs, now));
     if (!expired.length) {
       return 0;
     }
@@ -564,10 +503,7 @@ export class TopicSessionDatabase {
 
   async clear() {
     const database = await this.open();
-    const transaction = database.transaction(
-      [SESSION_STORE, INDEX_STORE, TASK_STORE, AGENT_ACTIVITY_STORE],
-      'readwrite'
-    );
+    const transaction = database.transaction([SESSION_STORE, INDEX_STORE, TASK_STORE, AGENT_ACTIVITY_STORE], 'readwrite');
     transaction.objectStore(SESSION_STORE).clear();
     transaction.objectStore(INDEX_STORE).clear();
     transaction.objectStore(TASK_STORE).clear();

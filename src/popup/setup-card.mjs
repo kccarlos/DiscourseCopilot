@@ -22,11 +22,7 @@ import {
   setupSuccessMessage,
   suggestSetupModels
 } from '../shared/provider-setup.mjs';
-import {
-  requestServerAccess,
-  serverAccessDeniedText,
-  serverNeedsAccessPrompt
-} from '../shared/forum-access.mjs';
+import { requestServerAccess, serverAccessDeniedText, serverNeedsAccessPrompt } from '../shared/forum-access.mjs';
 import { announce } from './status-line.mjs';
 import { modelCatalog, orderModelChoices, pickDefaultModel } from '../shared/model-catalog.mjs';
 
@@ -91,31 +87,34 @@ export class SetupCard {
     // Native radios inside the fieldset give radio-group semantics and
     // arrow-key navigation; the legend names the group.
     const options = $('setupProviderOptions');
-    options.replaceChildren(...RECOMMENDED_PROVIDERS.map(provider => {
-      const label = document.createElement('label');
-      label.className = 'setup-provider-option';
-      label.dataset.provider = provider;
-      const input = document.createElement('input');
-      input.type = 'radio';
-      input.name = 'setupProvider';
-      input.value = provider;
-      const name = document.createElement('strong');
-      name.textContent = CHOICE_LABELS[provider] || this.providerConfigs[provider]?.name || provider;
-      const blurb = document.createElement('small');
-      blurb.textContent = PROVIDER_BLURBS[provider] || '';
-      label.append(input, name, blurb);
-      return label;
-    }));
+    options.replaceChildren(
+      ...RECOMMENDED_PROVIDERS.map(provider => {
+        const label = document.createElement('label');
+        label.className = 'setup-provider-option';
+        label.dataset.provider = provider;
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'setupProvider';
+        input.value = provider;
+        const name = document.createElement('strong');
+        name.textContent = CHOICE_LABELS[provider] || this.providerConfigs[provider]?.name || provider;
+        const blurb = document.createElement('small');
+        blurb.textContent = PROVIDER_BLURBS[provider] || '';
+        label.append(input, name, blurb);
+        return label;
+      })
+    );
 
     const more = $('setupMoreProviders');
-    const others = Object.keys(this.providerConfigs)
-      .filter(provider => !RECOMMENDED_PROVIDERS.includes(provider));
-    more.append(...others.map(provider => {
-      const option = document.createElement('option');
-      option.value = provider;
-      option.textContent = this.providerConfigs[provider].name;
-      return option;
-    }));
+    const others = Object.keys(this.providerConfigs).filter(provider => !RECOMMENDED_PROVIDERS.includes(provider));
+    more.append(
+      ...others.map(provider => {
+        const option = document.createElement('option');
+        option.value = provider;
+        option.textContent = this.providerConfigs[provider].name;
+        return option;
+      })
+    );
 
     // Pointer choices move on to the key field; keyboard users keep arrowing
     // through the group and continue with Tab or Enter.
@@ -286,14 +285,18 @@ export class SetupCard {
     if (!config) return;
     const choices = this.models
       ? orderModelChoices(provider, this.models, this.providerConfigs)
-      : suggestSetupModels(provider, this.config.config.favorites, this.providerConfigs)
-        .map((id, index) => ({ id, name: index === 0 ? 'Recommended' : '' }));
-    $('setupModelList').replaceChildren(...choices.map(choice => {
-      const option = document.createElement('option');
-      option.value = choice.id;
-      if (choice.name && choice.name !== choice.id) option.label = choice.name;
-      return option;
-    }));
+      : suggestSetupModels(provider, this.config.config.favorites, this.providerConfigs).map((id, index) => ({
+          id,
+          name: index === 0 ? 'Recommended' : ''
+        }));
+    $('setupModelList').replaceChildren(
+      ...choices.map(choice => {
+        const option = document.createElement('option');
+        option.value = choice.id;
+        if (choice.name && choice.name !== choice.id) option.label = choice.name;
+        return option;
+      })
+    );
     const hint = $('setupModelHint');
     hint.textContent = !this.models
       ? MODEL_HINT
@@ -310,7 +313,8 @@ export class SetupCard {
   }
 
   focus() {
-    const target = document.querySelector('input[name="setupProvider"]:checked')
+    const target =
+      document.querySelector('input[name="setupProvider"]:checked')
       || (this.provider ? $('setupMoreProviders') : null)
       || document.querySelector('input[name="setupProvider"]');
     const card = $('setupCard');
@@ -336,10 +340,7 @@ export class SetupCard {
     $('setupIntro').classList.toggle('hidden', this.state === 'success');
     $('setupSuccess').classList.toggle('hidden', this.state !== 'success');
     $('setupDetails').classList.toggle('hidden', !config);
-    $('setupMoreProviders').classList.toggle(
-      'has-value',
-      Boolean(config) && !RECOMMENDED_PROVIDERS.includes(provider)
-    );
+    $('setupMoreProviders').classList.toggle('has-value', Boolean(config) && !RECOMMENDED_PROVIDERS.includes(provider));
     if (!config) return;
 
     const isLocal = LOCAL_PROVIDER_IDS.has(provider);
@@ -352,14 +353,16 @@ export class SetupCard {
       $('setupServerUrlLabel').textContent = `${config.name.replace(/\s*\(Local\)$/, '')} server URL`;
       $('setupServerUrl').value = draft.url || '';
       $('setupServerUrl').placeholder = defaultLocalUrl(provider, this.providerConfigs);
-      $('setupServerUrlHelp').textContent = provider === 'ollama'
-        ? 'Start Ollama on this computer, then keep the default address.'
-        : 'Start the local server in LM Studio (Developer tab), then keep the default address.';
+      $('setupServerUrlHelp').textContent =
+        provider === 'ollama'
+          ? 'Start Ollama on this computer, then keep the default address.'
+          : 'Start the local server in LM Studio (Developer tab), then keep the default address.';
       this.setLink($('setupDownloadLink'), link?.url, link?.label || 'Download');
       $('setupOllamaOrigins').classList.toggle('hidden', provider !== 'ollama');
-      $('setupServerUrl').setAttribute('aria-describedby', provider === 'ollama'
-        ? 'setupServerUrlHint setupOllamaOrigins setupServerUrlError'
-        : 'setupServerUrlHint setupServerUrlError');
+      $('setupServerUrl').setAttribute(
+        'aria-describedby',
+        provider === 'ollama' ? 'setupServerUrlHint setupOllamaOrigins setupServerUrlError' : 'setupServerUrlHint setupServerUrlError'
+      );
     } else {
       $('setupApiKeyLabel').textContent = `${config.name} API key`;
       $('setupApiKey').value = draft.apiKey || '';
@@ -453,12 +456,8 @@ export class SetupCard {
 
     // A custom server on another host needs its own permission; ask now,
     // while this is still the click (no await above this line).
-    const serverUrl = LOCAL_PROVIDER_IDS.has(provider)
-      ? this.config.draftSettings(provider).url
-      : '';
-    const serverAccess = serverNeedsAccessPrompt(serverUrl)
-      ? requestServerAccess(serverUrl)
-      : Promise.resolve(true);
+    const serverUrl = LOCAL_PROVIDER_IDS.has(provider) ? this.config.draftSettings(provider).url : '';
+    const serverAccess = serverNeedsAccessPrompt(serverUrl) ? requestServerAccess(serverUrl) : Promise.resolve(true);
 
     this.state = 'busy';
     this.setBusy(true);
@@ -516,8 +515,9 @@ export class SetupCard {
     this.state = 'done';
     this.onStateChange();
     if (restoreFocus || hadFocus) {
-      const next = [$('summarizeBtn'), $('agentLaunchBtn'), $('forumAccessBtn'), $('settingsBtn')]
-        .find(button => button && !button.disabled && button.offsetParent !== null);
+      const next = [$('summarizeBtn'), $('agentLaunchBtn'), $('forumAccessBtn'), $('settingsBtn')].find(
+        button => button && !button.disabled && button.offsetParent !== null
+      );
       next?.focus();
     }
   }

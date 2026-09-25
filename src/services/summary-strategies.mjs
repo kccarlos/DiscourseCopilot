@@ -14,13 +14,7 @@
 import { generateText, streamText } from 'ai';
 import { FULL_PROMPTS, getHierarchicalPrompt, getMinimalPromptFor, getPrompt } from './prompts.js';
 import { samplingOptions } from '../shared/provider-setup.mjs';
-import {
-  estimateTokens,
-  isPromptTooLargeError,
-  isTokenLimitError,
-  parseForumContent,
-  throwIfAborted
-} from './ai-errors.mjs';
+import { estimateTokens, isPromptTooLargeError, isTokenLimitError, parseForumContent, throwIfAborted } from './ai-errors.mjs';
 
 export const DEFAULT_MAX_RETRIES = 3;
 
@@ -32,19 +26,14 @@ export function withNote(text, note) {
 /**
  * Single-pass summarization for content that fits in context.
  */
-export async function singlePassSummary(model, content, {
-  onStream,
-  systemPrompt = getPrompt('system'),
-  hasCustomSystemPrompt = false,
-  abortSignal,
-  forumName = '',
-  coverageNote = ''
-} = {}) {
+export async function singlePassSummary(
+  model,
+  content,
+  { onStream, systemPrompt = getPrompt('system'), hasCustomSystemPrompt = false, abortSignal, forumName = '', coverageNote = '' } = {}
+) {
   throwIfAborted(abortSignal);
 
-  const source = typeof forumName === 'string' && forumName.trim()
-    ? `forum discussion from ${forumName.trim()}`
-    : 'forum discussion';
+  const source = typeof forumName === 'string' && forumName.trim() ? `forum discussion from ${forumName.trim()}` : 'forum discussion';
   const request = hasCustomSystemPrompt
     ? `Analyze the following ${source} according to the system instructions:`
     : `Please analyze and summarize this ${source}:`;
@@ -58,7 +47,7 @@ export async function singlePassSummary(model, content, {
         messages: [{ role: 'user', content: userContent }],
         ...samplingOptions(model, 0.7),
         abortSignal,
-        onError: (error) => {
+        onError: error => {
           console.error('AI Service: Stream onError callback:', error);
         }
       });
@@ -127,14 +116,18 @@ export async function singlePassSummary(model, content, {
  * Hierarchical summarization for long content: the OP and the replies are
  * summarized in parallel, then combined into the final summary (streamed).
  */
-export async function hierarchicalSummary(model, content, {
-  onProgress,
-  onStream,
-  customSystemPrompt = '',
-  abortSignal,
-  operationState = { useMinimalPrompts: false },
-  maxRetries = DEFAULT_MAX_RETRIES
-} = {}) {
+export async function hierarchicalSummary(
+  model,
+  content,
+  {
+    onProgress,
+    onStream,
+    customSystemPrompt = '',
+    abortSignal,
+    operationState = { useMinimalPrompts: false },
+    maxRetries = DEFAULT_MAX_RETRIES
+  } = {}
+) {
   throwIfAborted(abortSignal);
   const { op, comments } = parseForumContent(content);
   const language = operationState.responseLanguage;
@@ -156,10 +149,7 @@ export async function hierarchicalSummary(model, content, {
   const tasks = [];
   if (op && op.trim().length > 0) {
     onProgress?.({ step: 'op', message: '📝 Summarizing original post...' });
-    tasks.push(
-      summarizeWithRetry(model, opPrompt, op, retry)
-        .then(result => ({ type: 'op', result }))
-    );
+    tasks.push(summarizeWithRetry(model, opPrompt, op, retry).then(result => ({ type: 'op', result })));
   }
   if (comments.length > 0) {
     onProgress?.({ step: 'comments', message: `💬 Processing ${comments.length} comments...` });
@@ -168,8 +158,7 @@ export async function hierarchicalSummary(model, content, {
         ...retry,
         onProgress,
         prompts: { commentsPrompt, combinePrompt }
-      })
-        .then(result => ({ type: 'comments', result }))
+      }).then(result => ({ type: 'comments', result }))
     );
   }
 
@@ -212,13 +201,11 @@ export async function hierarchicalSummary(model, content, {
 /**
  * Summarizes the replies at once, falling back to map-reduce when too long.
  */
-export async function summarizeCommentsWithFallback(model, comments, {
-  onProgress,
-  prompts = {},
-  abortSignal,
-  operationState = { useMinimalPrompts: false },
-  maxRetries = DEFAULT_MAX_RETRIES
-} = {}) {
+export async function summarizeCommentsWithFallback(
+  model,
+  comments,
+  { onProgress, prompts = {}, abortSignal, operationState = { useMinimalPrompts: false }, maxRetries = DEFAULT_MAX_RETRIES } = {}
+) {
   throwIfAborted(abortSignal);
   const commentsText = comments.join('\n\n');
   const commentsPrompt = prompts.commentsPrompt || FULL_PROMPTS.comments;
@@ -227,7 +214,10 @@ export async function summarizeCommentsWithFallback(model, comments, {
   try {
     console.log('AI Service: Attempting to summarize all comments...');
     return await summarizeWithRetry(model, commentsPrompt, commentsText, {
-      abortSignal, operationState, maxRetries, note: operationState.coverageNote
+      abortSignal,
+      operationState,
+      maxRetries,
+      note: operationState.coverageNote
     });
   } catch (error) {
     throwIfAborted(abortSignal);
@@ -250,13 +240,11 @@ export async function summarizeCommentsWithFallback(model, comments, {
  * Parallel map-reduce for replies: both halves at once, split further while
  * a half is still too long, then combined.
  */
-export async function mapReduceCommentsParallel(model, comments, {
-  onProgress,
-  prompts = {},
-  abortSignal,
-  operationState = { useMinimalPrompts: false },
-  maxRetries = DEFAULT_MAX_RETRIES
-} = {}) {
+export async function mapReduceCommentsParallel(
+  model,
+  comments,
+  { onProgress, prompts = {}, abortSignal, operationState = { useMinimalPrompts: false }, maxRetries = DEFAULT_MAX_RETRIES } = {}
+) {
   throwIfAborted(abortSignal);
   const commentsPrompt = prompts.commentsPrompt || FULL_PROMPTS.comments;
   const combinePrompt = prompts.combinePrompt || FULL_PROMPTS.combine;
@@ -293,10 +281,7 @@ export async function mapReduceCommentsParallel(model, comments, {
     }
   };
 
-  const [summary1, summary2] = await Promise.all([
-    processHalf(firstHalf),
-    processHalf(secondHalf)
-  ]);
+  const [summary1, summary2] = await Promise.all([processHalf(firstHalf), processHalf(secondHalf)]);
   throwIfAborted(abortSignal);
 
   console.log('AI Service: Combining parallel chunk summaries...');
@@ -310,13 +295,12 @@ export async function mapReduceCommentsParallel(model, comments, {
  * when the system prompt itself is too large. `operationState` is shared by
  * one summary's requests, so the switch sticks for the rest of it.
  */
-export async function summarizeWithRetry(model, systemPrompt, content, {
-  attempt = 1,
-  operationState = { useMinimalPrompts: false },
-  abortSignal,
-  note = '',
-  maxRetries = DEFAULT_MAX_RETRIES
-} = {}) {
+export async function summarizeWithRetry(
+  model,
+  systemPrompt,
+  content,
+  { attempt = 1, operationState = { useMinimalPrompts: false }, abortSignal, note = '', maxRetries = DEFAULT_MAX_RETRIES } = {}
+) {
   throwIfAborted(abortSignal);
   if (!content || content.trim().length === 0) {
     console.warn('AI Service: Empty content, skipping summarization');
@@ -331,9 +315,7 @@ export async function summarizeWithRetry(model, systemPrompt, content, {
 
   console.log(`AI Service: Attempt ${attempt}/${maxRetries} [${promptType}] - ${content.length} chars, ~${estimatedTokens} tokens`);
 
-  const actualPrompt = useMinimalPrompts
-    ? getMinimalPromptFor(systemPrompt, operationState.responseLanguage)
-    : systemPrompt;
+  const actualPrompt = useMinimalPrompts ? getMinimalPromptFor(systemPrompt, operationState.responseLanguage) : systemPrompt;
 
   try {
     const { text } = await generateText({
@@ -375,15 +357,16 @@ export async function summarizeWithRetry(model, systemPrompt, content, {
  * The final summary from the OP summary and the replies analysis; a plain
  * concatenation when only one exists or the request fails.
  */
-export async function assembleFinalSummary(model, opSummary, commentsSummary, {
-  onStream,
-  finalPrompt = FULL_PROMPTS.final,
-  abortSignal,
-  coverageNote = ''
-} = {}) {
+export async function assembleFinalSummary(
+  model,
+  opSummary,
+  commentsSummary,
+  { onStream, finalPrompt = FULL_PROMPTS.final, abortSignal, coverageNote = '' } = {}
+) {
   throwIfAborted(abortSignal);
   if (!commentsSummary) {
-    const result = opSummary + '\n\n## 💬 Community Response Analysis\n*No comments available.*\n\n## 🎯 Key Takeaways\n*Based on original post only.*';
+    const result =
+      opSummary + '\n\n## 💬 Community Response Analysis\n*No comments available.*\n\n## 🎯 Key Takeaways\n*Based on original post only.*';
     onStream?.(result);
     return result;
   }

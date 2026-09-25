@@ -19,11 +19,7 @@ export class StatusLine {
   // hints, 'setup' provider warnings, or anything else ('transient').
   show(message, type = 'loading', { kind = 'transient' } = {}) {
     const status = this.element;
-    if (
-      status.textContent === message
-      && status.dataset.kind === kind
-      && status.className === `status ${type}`
-    ) {
+    if (status.textContent === message && status.dataset.kind === kind && status.className === `status ${type}`) {
       // Re-renders repeat the same status; don't make screen readers repeat it.
       return;
     }

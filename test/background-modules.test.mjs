@@ -2,11 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createMessageRouter, respondAsync } from '../src/background/message-router.mjs';
-import {
-  TASK_WAKE_ALARM,
-  TaskService,
-  validateEnqueueRequest
-} from '../src/background/task-service.mjs';
+import { TASK_WAKE_ALARM, TaskService, validateEnqueueRequest } from '../src/background/task-service.mjs';
 import {
   buildContentResult,
   createRateLimitProgress,
@@ -16,11 +12,7 @@ import {
 import { agentActivityError, agentFailurePatch } from '../src/background/agent-executor.mjs';
 import { AgentActivityStore } from '../src/background/agent-activity-store.mjs';
 import { readConfig } from '../src/shared/config-state.mjs';
-import {
-  AGENT_ACTIVITY_RETENTION_MS,
-  agentActivityExpiry,
-  agentActivityFromTask
-} from '../src/shared/agent-activity.mjs';
+import { AGENT_ACTIVITY_RETENTION_MS, agentActivityExpiry, agentActivityFromTask } from '../src/shared/agent-activity.mjs';
 import { isAbortError } from '../src/shared/rate-limit-retry.mjs';
 
 // ---------- message router ----------
@@ -35,21 +27,38 @@ test('the router dispatches by action and ignores unknown or inherited actions',
     }
   });
   let response;
-  assert.equal(listener({ action: 'ping' }, { id: 's' }, value => { response = value; }), false);
+  assert.equal(
+    listener({ action: 'ping' }, { id: 's' }, value => {
+      response = value;
+    }),
+    false
+  );
   assert.equal(response, 'pong');
-  assert.equal(listener({ action: 'nope' }, {}, () => {}), undefined);
-  assert.equal(listener({ action: 'toString' }, {}, () => {}), undefined);
-  assert.equal(listener(undefined, {}, () => {}), undefined);
+  assert.equal(
+    listener({ action: 'nope' }, {}, () => {}),
+    undefined
+  );
+  assert.equal(
+    listener({ action: 'toString' }, {}, () => {}),
+    undefined
+  );
+  assert.equal(
+    listener(undefined, {}, () => {}),
+    undefined
+  );
   assert.deepEqual(calls, [['ping', 's']]);
 });
 
 test('respondAsync keeps the channel open and wraps results and errors', async () => {
   const ok = respondAsync(async request => ({ echo: request.value }));
-  const fails = respondAsync(() => { throw new Error('bad request'); });
-  const empty = respondAsync(async () => undefined);
-  const answer = handler => new Promise(resolve => {
-    assert.equal(handler({ value: 7 }, {}, resolve), true);
+  const fails = respondAsync(() => {
+    throw new Error('bad request');
   });
+  const empty = respondAsync(async () => undefined);
+  const answer = handler =>
+    new Promise(resolve => {
+      assert.equal(handler({ value: 7 }, {}, resolve), true);
+    });
   assert.deepEqual(await answer(ok), { success: true, echo: 7 });
   assert.deepEqual(await answer(fails), { success: false, error: 'bad request' });
   assert.deepEqual(await answer(empty), { success: true });
@@ -58,18 +67,20 @@ test('respondAsync keeps the channel open and wraps results and errors', async (
 // ---------- enqueue validation ----------
 
 test('validateEnqueueRequest accepts each task type and derives the topic key', () => {
-  assert.deepEqual(
-    validateEnqueueRequest({ taskType: 'summary', topicId: '5', siteUrl: 'https://forum.example.com/' }),
-    { type: 'summary', siteUrl: 'https://forum.example.com', topicKey: 'forum.example.com/t/5' }
-  );
+  assert.deepEqual(validateEnqueueRequest({ taskType: 'summary', topicId: '5', siteUrl: 'https://forum.example.com/' }), {
+    type: 'summary',
+    siteUrl: 'https://forum.example.com',
+    topicKey: 'forum.example.com/t/5'
+  });
   assert.equal(
     validateEnqueueRequest({ taskType: 'chat', topicId: '5', siteUrl: 'https://f.example', question: 'Why?' }).topicKey,
     'f.example/t/5'
   );
-  assert.deepEqual(
-    validateEnqueueRequest({ taskType: 'agent', siteUrl: 'https://f.example', question: 'What?' }),
-    { type: 'agent', siteUrl: 'https://f.example', topicKey: '' }
-  );
+  assert.deepEqual(validateEnqueueRequest({ taskType: 'agent', siteUrl: 'https://f.example', question: 'What?' }), {
+    type: 'agent',
+    siteUrl: 'https://f.example',
+    topicKey: ''
+  });
 });
 
 test('validateEnqueueRequest rejects incomplete requests with user-facing messages', () => {
@@ -96,12 +107,25 @@ function createFakeDb() {
     async cleanupTasks() {},
     async cleanupAgentActivities() {},
     async prune() {},
-    setRetention(retention) { this.retention = retention; },
-    async listTasks() { return [...tasks.values()]; },
-    async saveTask(task) { tasks.set(task.id, { ...task }); },
-    async getAgentActivity(id) { return activities.get(id) || null; },
-    async saveAgentActivity(activity) { activities.set(activity.activityId, { ...activity }); return { ...activity }; },
-    async deleteAgentActivity(id) { activities.delete(id); }
+    setRetention(retention) {
+      this.retention = retention;
+    },
+    async listTasks() {
+      return [...tasks.values()];
+    },
+    async saveTask(task) {
+      tasks.set(task.id, { ...task });
+    },
+    async getAgentActivity(id) {
+      return activities.get(id) || null;
+    },
+    async saveAgentActivity(activity) {
+      activities.set(activity.activityId, { ...activity });
+      return { ...activity };
+    },
+    async deleteAgentActivity(id) {
+      activities.delete(id);
+    }
   };
 }
 
@@ -109,9 +133,15 @@ function createFakeAlarms() {
   const alarms = new Map();
   return {
     alarms,
-    async get(name) { return alarms.get(name); },
-    create(name, info) { alarms.set(name, { name, ...info }); },
-    async clear(name) { return alarms.delete(name); }
+    async get(name) {
+      return alarms.get(name);
+    },
+    create(name, info) {
+      alarms.set(name, { name, ...info });
+    },
+    async clear(name) {
+      return alarms.delete(name);
+    }
   };
 }
 
@@ -135,8 +165,14 @@ function createService({ execute = () => new Promise(() => {}), readConfig: read
 test('enqueue keeps provider settings in memory only and broadcasts the task', async () => {
   const { service, db, alarms, messages } = createService();
   const task = await service.enqueue({
-    taskType: 'summary', topicId: '9', siteUrl: 'https://f.example', title: 'T',
-    provider: 'openai', settings: { apiKey: 'secret', model: 'gpt-x' }, systemPrompt: 'P', responseLanguage: 'ja'
+    taskType: 'summary',
+    topicId: '9',
+    siteUrl: 'https://f.example',
+    title: 'T',
+    provider: 'openai',
+    settings: { apiKey: 'secret', model: 'gpt-x' },
+    systemPrompt: 'P',
+    responseLanguage: 'ja'
   });
   assert.ok(['queued', 'running'].includes(task.status), task.status);
   assert.equal(task.model, 'gpt-x');
@@ -166,7 +202,11 @@ test('an Agent task starts with an activity record that cancelling marks cancell
   const { service, db, messages } = createService();
   service.queue.concurrency = 0; // keep it queued
   const task = await service.enqueue({
-    taskType: 'agent', siteUrl: 'https://f.example', question: 'How?', agentRunId: 'run-1', forumName: 'F'
+    taskType: 'agent',
+    siteUrl: 'https://f.example',
+    question: 'How?',
+    agentRunId: 'run-1',
+    forumName: 'F'
   });
   assert.equal(task.agentRunId, 'run-1');
   assert.equal(db.activities.get('run-1').question, 'How?');
@@ -190,9 +230,14 @@ test('a failed enqueue removes the Agent activity it created', async () => {
 
 test('after a restart, task configuration falls back to the saved configuration', async () => {
   const { service } = createService({
-    readConfig: async () => readConfig({
-      selectedProvider: 'anthropic', anthropicApiKey: 'ak', openaiApiKey: 'ok', systemPrompt: 'S', responseLanguage: 'fr'
-    })
+    readConfig: async () =>
+      readConfig({
+        selectedProvider: 'anthropic',
+        anthropicApiKey: 'ak',
+        openaiApiKey: 'ok',
+        systemPrompt: 'S',
+        responseLanguage: 'fr'
+      })
   });
   await service.ready;
   const restored = { id: 'old', type: 'summary', siteUrl: 'https://f.example', provider: 'openai', model: 'gpt-task', forumName: '' };
@@ -214,7 +259,11 @@ test('after a restart, task configuration falls back to the saved configuration'
 test('runtime settings without a response language use the saved one', async () => {
   const { service } = createService({ readConfig: async () => readConfig({ responseLanguage: 'de' }) });
   const task = await service.enqueue({
-    taskType: 'agent', siteUrl: 'https://f.example', question: 'Q', provider: 'openai', settings: { apiKey: 'k', model: 'm' }
+    taskType: 'agent',
+    siteUrl: 'https://f.example',
+    question: 'Q',
+    provider: 'openai',
+    settings: { apiKey: 'k', model: 'm' }
   });
   assert.equal((await service.getTaskConfiguration(task)).responseLanguage, 'de');
 });
@@ -222,7 +271,10 @@ test('runtime settings without a response language use the saved one', async () 
 test('the executor runs tasks and the alarm is cleared when nothing is active', async () => {
   let release;
   const { service, alarms } = createService({
-    execute: () => new Promise(resolve => { release = resolve; })
+    execute: () =>
+      new Promise(resolve => {
+        release = resolve;
+      })
   });
   const task = await service.enqueue({ taskType: 'summary', topicId: '1', siteUrl: 'https://f.example' });
   await new Promise(resolve => setTimeout(resolve, 5));
@@ -255,22 +307,41 @@ test('formatFetchTaskStatus describes reading, page and rate-limit progress', ()
 test('createRateLimitProgress adds the retry delay to the ETA', () => {
   const retry = { retryAttempt: 2, maxRetries: 6, delayMs: 3000 };
   assert.deepEqual(createRateLimitProgress({ percent: 10, etaMs: 1000 }, retry, 4), {
-    percent: 10, etaMs: 4000, rateLimited: true, retryPage: 4, retryAttempt: 2, maxRetries: 6, retryAfterMs: 3000
+    percent: 10,
+    etaMs: 4000,
+    rateLimited: true,
+    retryPage: 4,
+    retryAttempt: 2,
+    maxRetries: 6,
+    retryAfterMs: 3000
   });
   assert.equal(createRateLimitProgress({ etaMs: null }, retry).etaMs, 3000);
   assert.equal(createRateLimitProgress({ etaMs: null }, retry).retryPage, null);
 });
 
 test('buildContentResult joins pages', () => {
-  assert.deepEqual(buildContentResult([{ page: 1, content: 'a' }, { page: 2, content: 'b' }], { totalPosts: 3 }, { unchanged: false }), {
-    content: 'a\n\nb',
-    rawPages: [{ page: 1, content: 'a' }, { page: 2, content: 'b' }],
-    pagesFetched: 2,
-    totalPosts: 3,
-    truncated: false,
-    coveredPosts: 3,
-    unchanged: false
-  });
+  assert.deepEqual(
+    buildContentResult(
+      [
+        { page: 1, content: 'a' },
+        { page: 2, content: 'b' }
+      ],
+      { totalPosts: 3 },
+      { unchanged: false }
+    ),
+    {
+      content: 'a\n\nb',
+      rawPages: [
+        { page: 1, content: 'a' },
+        { page: 2, content: 'b' }
+      ],
+      pagesFetched: 2,
+      totalPosts: 3,
+      truncated: false,
+      coveredPosts: 3,
+      unchanged: false
+    }
+  );
 });
 
 function response(status, body, contentType = 'text/plain') {
@@ -349,8 +420,17 @@ test('a login wall is reported as a user-actionable error', async () => {
 
 test('agentActivityFromTask builds the initial activity for a queued Agent task', () => {
   const task = {
-    id: 't1', agentRunId: 'run-1', title: '', question: 'Why?', siteUrl: 'https://f.example/',
-    forumName: 'F', provider: 'openai', model: 'm', retryOf: 'run-0', createdAt: 10, updatedAt: 20
+    id: 't1',
+    agentRunId: 'run-1',
+    title: '',
+    question: 'Why?',
+    siteUrl: 'https://f.example/',
+    forumName: 'F',
+    provider: 'openai',
+    model: 'm',
+    retryOf: 'run-0',
+    createdAt: 10,
+    updatedAt: 20
   };
   const activity = agentActivityFromTask(task, { withTimestamps: true });
   assert.equal(activity.activityId, 'run-1');
@@ -392,7 +472,11 @@ test('agentFailurePatch distinguishes cancelled, waiting and failed runs', () =>
   assert.equal(waiting.retainedFrom, 0);
   assert.equal(agentActivityExpiry({ ...waiting }), 0);
 
-  const failed = agentFailurePatch(Object.assign(new Error('boom'), { code: 'X', retryable: false }), { cancelled: false, needsUserAction: false }, now);
+  const failed = agentFailurePatch(
+    Object.assign(new Error('boom'), { code: 'X', retryable: false }),
+    { cancelled: false, needsUserAction: false },
+    now
+  );
   assert.equal(failed.status, 'failed');
   assert.equal(failed.error.code, 'X');
   assert.equal(failed.error.retryable, false);
@@ -400,7 +484,11 @@ test('agentFailurePatch distinguishes cancelled, waiting and failed runs', () =>
 
 test('agentActivityError normalizes any thrown value', () => {
   assert.deepEqual(agentActivityError('plain'), {
-    code: 'AGENT_ERROR', message: 'plain', retryable: true, needsUserAction: false, retryAfterAt: 0
+    code: 'AGENT_ERROR',
+    message: 'plain',
+    retryable: true,
+    needsUserAction: false,
+    retryAfterAt: 0
   });
   assert.ok(agentActivityError({ message: 'slow', retryAfterMs: 1000 }).retryAfterAt > Date.now());
 });
@@ -412,14 +500,14 @@ test('AgentActivityStore saves updates in order and broadcasts each', async () =
   const activity = agentActivityFromTask({ id: 't', question: 'Q' });
   await store.create(activity);
   assert.equal(messages.length, 0, 'create does not broadcast');
-  const [a, b] = await Promise.all([
-    store.update(activity, { statusText: 'one' }),
-    store.update(activity, { statusText: 'two' })
-  ]);
+  const [a, b] = await Promise.all([store.update(activity, { statusText: 'one' }), store.update(activity, { statusText: 'two' })]);
   assert.equal(a.statusText, 'one');
   assert.equal(b.statusText, 'two');
   assert.equal(db.activities.get('t').statusText, 'two');
-  assert.deepEqual(messages.map(message => message.activity.statusText), ['one', 'two']);
+  assert.deepEqual(
+    messages.map(message => message.activity.statusText),
+    ['one', 'two']
+  );
   await store.markCancelled({ id: 't' });
   assert.equal(db.activities.get('t').status, 'cancelled');
   const count = messages.length;

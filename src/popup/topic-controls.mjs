@@ -51,12 +51,7 @@ export function deriveTopicControls(input) {
 
   return {
     summarize: {
-      disabled: busy
-        || !background
-        || Boolean(summaryTask)
-        || input.isHydrating
-        || !input.hasTopic
-        || !input.configReady,
+      disabled: busy || !background || Boolean(summaryTask) || input.isHydrating || !input.hasTopic || !input.configReady,
       label: getSummaryActionLabel({
         taskStatus: summaryTask?.status,
         taskPhase: summaryTask?.phase,
@@ -67,11 +62,7 @@ export function deriveTopicControls(input) {
       busy: Boolean(summaryTask) || submitting('summary')
     },
     agentLaunch: {
-      disabled: busy
-        || !background
-        || !input.hasForumPage
-        || !input.configReady
-        || input.agentRequestPending,
+      disabled: busy || !background || !input.hasForumPage || !input.configReady || input.agentRequestPending,
       busy: submitting('agent')
     },
     agentInput: { disabled: agentInputDisabled },
@@ -86,21 +77,21 @@ export function deriveTopicControls(input) {
     chatInput: { disabled: !background || submitting('chat') || !input.hasSummary },
     contextLimit: {
       disabled: contextLimitDisabled,
-      title: contextLimitDisabled && input.hasSummary
-        ? 'The context limit is locked while a chat response is running'
-        : 'Choose how much forum discussion text accompanies each question'
+      title:
+        contextLimitDisabled && input.hasSummary
+          ? 'The context limit is locked while a chat response is running'
+          : 'Choose how much forum discussion text accompanies each question'
     },
     clearChat: {
       disabled: busy || input.chatEditSaving || topicTasksRunning || !input.historyLength
     },
     chatEdit: {
       disabled: chatEditLocked,
-      title: chatEditLocked
-        ? 'Wait for the current chat task to finish before editing'
-        : 'Edit this message and remove later replies'
+      title: chatEditLocked ? 'Wait for the current chat task to finish before editing' : 'Edit this message and remove later replies'
     },
     sendChat: {
-      disabled: !background
+      disabled:
+        !background
         || input.forumAccessMissing === true
         || input.chatEditSaving
         || submitting('chat')

@@ -7,11 +7,7 @@ import { siteUrlFromPageUrl } from '../shared/forum-site.mjs';
 import { topicSessionDatabase } from '../shared/topic-session-db.mjs';
 import { resolveRetention } from '../shared/preferences.mjs';
 import { partitionTasks, retentionCopy } from './ui-state.mjs';
-import {
-  agentRecentWindowMs,
-  getDefaultActivityTab,
-  selectSavedAgentActivities
-} from './agent-runs.mjs';
+import { agentRecentWindowMs, getDefaultActivityTab, selectSavedAgentActivities } from './agent-runs.mjs';
 import { cleanTopicTitle } from './forum-names.mjs';
 import { ForumGroups, emptyMessage } from './forum-groups.mjs';
 import { openForumTarget } from './forum-tabs.mjs';
@@ -131,9 +127,11 @@ export class ActivityView {
     document.querySelector('.tab-list')?.classList.remove('hidden');
     $('topicView').classList.add('hidden');
     $('savedView').classList.remove('hidden');
-    this.selectTab(getDefaultActivityTab(this.tasks.values(), this.agent.runRecords(), {
-      windowMs: agentRecentWindowMs(this.retention)
-    }));
+    this.selectTab(
+      getDefaultActivityTab(this.tasks.values(), this.agent.runRecords(), {
+        windowMs: agentRecentWindowMs(this.retention)
+      })
+    );
     this.renderTaskList();
     await this.loadSavedList();
   }
@@ -185,10 +183,7 @@ export class ActivityView {
       const activity = this.agent.runRecord(stored.activityId) || stored;
       // Opened from the topic view (pill, panel): Back returns there.
       this.detailReturnsToTopic = !this.state.savedViewOpen;
-      $('closeAgentDetailBtn').setAttribute(
-        'aria-label',
-        this.detailReturnsToTopic ? 'Back to current page' : 'Back to Activity'
-      );
+      $('closeAgentDetailBtn').setAttribute('aria-label', this.detailReturnsToTopic ? 'Back to current page' : 'Back to Activity');
       this.state.savedViewOpen = true;
       this.state.agentDetailOpen = true;
       $('topicView').classList.add('hidden');
@@ -247,10 +242,7 @@ export class ActivityView {
     list.appendChild(emptyMessage('saved-empty', 'Loading saved summaries…'));
 
     try {
-      const [entries, agentActivities] = await Promise.all([
-        topicSessionDatabase.list(),
-        topicSessionDatabase.listAgentActivities()
-      ]);
+      const [entries, agentActivities] = await Promise.all([topicSessionDatabase.list(), topicSessionDatabase.listAgentActivities()]);
       if (!this.state.savedViewOpen) {
         return;
       }
@@ -280,16 +272,13 @@ export class ActivityView {
       $('savedCount').textContent = String(savedItems.length);
       list.replaceChildren();
       if (!savedItems.length) {
-        list.appendChild(emptyMessage(
-          'saved-empty',
-          'No saved items yet. Keep a summary or Agent answer to find it here.'
-        ));
+        list.appendChild(emptyMessage('saved-empty', 'No saved items yet. Keep a summary or Agent answer to find it here.'));
         return;
       }
 
-      this.groups.render(list, savedItems, 'saved', item => item.kind === 'agent'
-        ? this.createSavedAgentCard(item.activity)
-        : this.createSavedTopicCard(item.entry));
+      this.groups.render(list, savedItems, 'saved', item =>
+        item.kind === 'agent' ? this.createSavedAgentCard(item.activity) : this.createSavedTopicCard(item.entry)
+      );
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Unable to list saved summaries:', error);
       list.replaceChildren();
@@ -311,20 +300,15 @@ export class ActivityView {
     this.groups.renderFilter();
 
     if (!active.length) {
-      activeList.appendChild(emptyMessage(
-        'task-empty',
-        'Nothing is running right now. New summaries and questions will appear here.'
-      ));
+      activeList.appendChild(emptyMessage('task-empty', 'Nothing is running right now. New summaries and questions will appear here.'));
     }
 
     const queuedIds = active
       .filter(task => task.status === TASK_STATUS.QUEUED)
       .sort((left, right) => left.createdAt - right.createdAt)
       .map(task => task.id);
-    this.groups.render(activeList, active, 'active', task =>
-      this.createTaskCard(task, queuedIds.indexOf(task.id) + 1));
-    this.groups.render(recentList, recent, 'recent', task =>
-      this.createTaskCard(task, 0));
+    this.groups.render(activeList, active, 'active', task => this.createTaskCard(task, queuedIds.indexOf(task.id) + 1));
+    this.groups.render(recentList, recent, 'recent', task => this.createTaskCard(task, 0));
     $('recentTasks').classList.toggle('hidden', !recent.length);
     if (focusKey) {
       document.querySelector(`[data-focus-key="${CSS.escape(focusKey)}"]`)?.focus();
@@ -435,8 +419,7 @@ export class ActivityView {
 
   // Visible saved cards, in order.
   savedCards() {
-    return [...$('savedList').querySelectorAll('[data-saved-key]')]
-      .filter(card => card.offsetParent !== null);
+    return [...$('savedList').querySelectorAll('[data-saved-key]')].filter(card => card.offsetParent !== null);
   }
 
   savedItemIndex(key) {
@@ -447,10 +430,10 @@ export class ActivityView {
   // one after a delete), else the active Activity tab.
   focusSavedItem(key = '', index = -1) {
     const cards = this.savedCards();
-    const card = (key && cards.find(item => item.dataset.savedKey === key))
+    const card =
+      (key && cards.find(item => item.dataset.savedKey === key))
       || (index >= 0 && cards.length ? cards[Math.min(index, cards.length - 1)] : null);
-    const target = card?.querySelector('button:not(:disabled)')
-      || $(this.activityTab === 'tasks' ? 'tasksTab' : 'summariesTab');
+    const target = card?.querySelector('button:not(:disabled)') || $(this.activityTab === 'tasks' ? 'tasksTab' : 'summariesTab');
     target?.focus({ preventScroll: !card });
   }
 

@@ -62,13 +62,17 @@ export class AgentActivityStore {
       return;
     }
     const now = Date.now();
-    await this.update(activity, {
-      status: AGENT_ACTIVITY_STATUS.CANCELLED,
-      phase: 'cancelled',
-      statusText: 'Cancelled',
-      error: null,
-      completedAt: now,
-      retainedFrom: now
-    }, { prune: true });
+    await this.update(
+      activity,
+      {
+        status: AGENT_ACTIVITY_STATUS.CANCELLED,
+        phase: 'cancelled',
+        statusText: 'Cancelled',
+        error: null,
+        completedAt: now,
+        retainedFrom: now
+      },
+      { prune: true }
+    );
   }
 }

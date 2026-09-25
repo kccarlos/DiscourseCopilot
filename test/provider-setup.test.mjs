@@ -67,11 +67,7 @@ test('model suggestions start with the default and add that provider’s favorit
     'anthropic/claude-sonnet-4.5',
     'moonshotai/kimi-k2'
   ]);
-  assert.deepEqual(suggestSetupModels('anthropic', null, configs), [
-    'claude-haiku-4-5',
-    'claude-sonnet-5',
-    'claude-opus-5-5'
-  ]);
+  assert.deepEqual(suggestSetupModels('anthropic', null, configs), ['claude-haiku-4-5', 'claude-sonnet-5', 'claude-opus-5-5']);
   assert.equal(configs.anthropic.defaultModel, 'claude-haiku-4-5');
   // Suggestions without a curated list fall back to suggestedModels.
   assert.deepEqual(suggestSetupModels('x', [], { x: { defaultModel: 'a', suggestedModels: ['b', 'a'] } }), ['a', 'b']);
@@ -131,7 +127,9 @@ test('runConnectionTest resolves on success and reports status and body on failu
     error => error.status === 401 && /Invalid API key/.test(error.body) && /^HTTP 401/.test(error.message)
   );
 
-  const offline = async () => { throw new TypeError('Failed to fetch'); };
+  const offline = async () => {
+    throw new TypeError('Failed to fetch');
+  };
   await assert.rejects(
     runConnectionTest('ollama', { url: 'http://localhost:11434', model: 'x' }, configs, { fetchImpl: offline }),
     error => error.status === 0 && error.message === 'Failed to fetch'
@@ -139,12 +137,19 @@ test('runConnectionTest resolves on success and reports status and body on failu
 });
 
 test('connection failures map to the field the user should fix', () => {
-  const badKey = classifyConnectionFailure('openrouter', { status: 401, body: '{"error":{"message":"No auth credentials found"}}' }, configs);
+  const badKey = classifyConnectionFailure(
+    'openrouter',
+    { status: 401, body: '{"error":{"message":"No auth credentials found"}}' },
+    configs
+  );
   assert.equal(badKey.field, 'apiKey');
   assert.match(badKey.message, /didn't accept this API key.*No auth credentials found/);
 
   assert.equal(classifyConnectionFailure('openai', { status: 404, body: 'model not found' }, configs).field, 'model');
-  assert.equal(classifyConnectionFailure('anthropic', { status: 400, body: '{"error":{"message":"model: claude-x"}}' }, configs).field, 'model');
+  assert.equal(
+    classifyConnectionFailure('anthropic', { status: 400, body: '{"error":{"message":"model: claude-x"}}' }, configs).field,
+    'model'
+  );
   assert.equal(classifyConnectionFailure('openai', { status: 400, body: 'bad request' }, configs).field, null);
   assert.equal(classifyConnectionFailure('openai', { status: 402, body: '' }, configs).field, 'apiKey');
   assert.equal(classifyConnectionFailure('openai', { status: 500, body: '' }, configs).message, 'OpenAI returned an error (HTTP 500).');
@@ -158,24 +163,29 @@ test('connection failures map to the field the user should fix', () => {
 });
 
 test('the settings header only claims a saved configuration when it is usable', () => {
-  assert.deepEqual(
-    describeSavedConfiguration('openrouter', { apiKey: '', model: 'moonshotai/kimi-k2' }, configs),
-    { valid: false, label: 'Status', text: 'Not set up yet — add an API key' }
-  );
-  assert.equal(
-    describeSavedConfiguration('ollama', { url: '', model: 'llama3.2' }, configs).text,
-    'Not set up yet — add a server URL'
-  );
-  assert.deepEqual(
-    describeSavedConfiguration('openai', { apiKey: 'k', model: ' gpt-4o-mini ' }, configs),
-    { valid: true, label: 'Currently saved', text: 'OpenAI · gpt-4o-mini' }
-  );
+  assert.deepEqual(describeSavedConfiguration('openrouter', { apiKey: '', model: 'moonshotai/kimi-k2' }, configs), {
+    valid: false,
+    label: 'Status',
+    text: 'Not set up yet — add an API key'
+  });
+  assert.equal(describeSavedConfiguration('ollama', { url: '', model: 'llama3.2' }, configs).text, 'Not set up yet — add a server URL');
+  assert.deepEqual(describeSavedConfiguration('openai', { apiKey: 'k', model: ' gpt-4o-mini ' }, configs), {
+    valid: true,
+    label: 'Currently saved',
+    text: 'OpenAI · gpt-4o-mini'
+  });
 });
 
 test('setup success copy adapts to the current page', () => {
   assert.equal(setupSuccessMessage({ isForumTopic: true, isDiscourse: true }), 'You’re set — press Create summary above.');
   assert.match(setupSuccessMessage({ isDiscourse: true }), /Ask the forum above/);
   assert.equal(setupSuccessMessage(null), 'You’re set. Open a topic on any Discourse forum to get started.');
-  assert.equal(setupSuccessMessage({ pageHidden: true }), 'You’re set. Next, click the DiscourseCopilot icon in your toolbar on a Discourse forum.');
-  assert.equal(setupSuccessMessage({ isForumTopic: true, isDiscourse: true, forumAccess: 'missing' }), 'You’re set. Next, allow access to this forum below.');
+  assert.equal(
+    setupSuccessMessage({ pageHidden: true }),
+    'You’re set. Next, click the DiscourseCopilot icon in your toolbar on a Discourse forum.'
+  );
+  assert.equal(
+    setupSuccessMessage({ isForumTopic: true, isDiscourse: true, forumAccess: 'missing' }),
+    'You’re set. Next, allow access to this forum below.'
+  );
 });

@@ -16,8 +16,7 @@ function parseUrl(value) {
 }
 
 function isAllowedProtocol(url) {
-  return url.protocol === 'https:'
-    || (url.protocol === 'http:' && LOCAL_HOSTNAMES.has(url.hostname));
+  return url.protocol === 'https:' || (url.protocol === 'http:' && LOCAL_HOSTNAMES.has(url.hostname));
 }
 
 function positiveTopicId(value) {
@@ -38,9 +37,7 @@ export function normalizeBasePath(value) {
     return '';
   }
   const segments = withSlash.split('/').slice(1);
-  return segments.some(segment => segment === '.' || segment === '..')
-    ? ''
-    : withSlash;
+  return segments.some(segment => segment === '.' || segment === '..') ? '' : withSlash;
 }
 
 export function hasBasePathPrefix(pathname, basePath) {
@@ -63,15 +60,7 @@ export function parseSiteUrl(siteUrl) {
     return null;
   }
   const url = parseUrl(siteUrl.trim());
-  if (
-    !url
-    || !url.hostname
-    || !isAllowedProtocol(url)
-    || url.username
-    || url.password
-    || url.search
-    || url.hash
-  ) {
+  if (!url || !url.hostname || !isAllowedProtocol(url) || url.username || url.password || url.search || url.hash) {
     return null;
   }
   const rawPath = url.pathname.replace(/\/+$/, '');
@@ -112,9 +101,7 @@ export function buildTopicKey(siteUrl, topicId) {
 export function buildTopicUrl(siteUrl, topicId) {
   const normalizedSiteUrl = normalizeSiteUrl(siteUrl);
   const normalizedTopicId = positiveTopicId(topicId);
-  return normalizedSiteUrl && normalizedTopicId
-    ? `${normalizedSiteUrl}/t/${normalizedTopicId}`
-    : '';
+  return normalizedSiteUrl && normalizedTopicId ? `${normalizedSiteUrl}/t/${normalizedTopicId}` : '';
 }
 
 function requireSiteUrl(siteUrl) {

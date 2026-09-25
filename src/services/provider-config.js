@@ -20,24 +20,27 @@ const CLIENT_FACTORIES = {
   openai: (settings, http) => createOpenAI({ apiKey: settings.apiKey, ...http }),
   openrouter: (settings, http) => createOpenRouter({ apiKey: settings.apiKey, ...http }),
   // The SDK doesn't add Anthropic's browser (CORS) opt-in header itself.
-  anthropic: (settings, http) => createAnthropic({
-    apiKey: settings.apiKey,
-    headers: { 'anthropic-dangerous-direct-browser-access': 'true' },
-    ...http
-  }),
+  anthropic: (settings, http) =>
+    createAnthropic({
+      apiKey: settings.apiKey,
+      headers: { 'anthropic-dangerous-direct-browser-access': 'true' },
+      ...http
+    }),
   groq: (settings, http) => createGroq({ apiKey: settings.apiKey, ...http }),
   gemini: (settings, http) => createGoogleGenerativeAI({ apiKey: settings.apiKey, ...http }),
-  ollama: (settings, http) => createOllama({
-    baseURL: `${settings.url || 'http://localhost:11434'}/api`,
-    ...http
-  }),
+  ollama: (settings, http) =>
+    createOllama({
+      baseURL: `${settings.url || 'http://localhost:11434'}/api`,
+      ...http
+    }),
   xai: (settings, http) => createXai({ apiKey: settings.apiKey, ...http }),
   deepseek: (settings, http) => createDeepSeek({ apiKey: settings.apiKey, ...http }),
-  lmstudio: (settings, http) => createOpenAICompatible({
-    name: 'lmstudio',
-    baseURL: `${settings.url || 'http://localhost:1234'}/v1`,
-    ...http
-  })
+  lmstudio: (settings, http) =>
+    createOpenAICompatible({
+      name: 'lmstudio',
+      baseURL: `${settings.url || 'http://localhost:1234'}/v1`,
+      ...http
+    })
 };
 
 /**
@@ -56,18 +59,18 @@ export function getModel(provider, settings, { fetch } = {}) {
   if (!config || !createClient) {
     throw new Error(`Unsupported provider: ${provider}`);
   }
-  
+
   if (config.requiresApiKey && !settings.apiKey) {
     const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
     throw new Error(`${providerName} API key is required`);
   }
-  
+
   const client = createClient(settings, fetch ? { fetch } : {});
   const modelName = settings.model || config.defaultModel;
-  
+
   if (provider === 'lmstudio') {
     console.log('AI Service: Creating LM Studio client with URL:', settings.url || 'http://localhost:1234', 'model:', modelName);
   }
-  
+
   return client(modelName);
 }

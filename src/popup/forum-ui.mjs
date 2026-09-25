@@ -1,13 +1,6 @@
 // Forum identity in the side panel: the names the panel knows forums by,
 // the colored forum accents, and the forum bar at the top.
-import {
-  cleanTopicTitle,
-  collectForumNames,
-  forumAccentHue,
-  forumHostname,
-  forumInitial,
-  resolveForumName
-} from './forum-names.mjs';
+import { cleanTopicTitle, collectForumNames, forumAccentHue, forumHostname, forumInitial, resolveForumName } from './forum-names.mjs';
 import { announce } from './status-line.mjs';
 
 // Forum names learned from the page, tasks, Agent runs and saved sessions.
@@ -33,11 +26,8 @@ export class ForumDirectory {
 
   label(siteUrl, ...candidates) {
     const context = this.getPageContext();
-    const pageName = context?.siteUrl && context.siteUrl === siteUrl
-      ? context.forumName
-      : '';
-    return resolveForumName(siteUrl, ...candidates, pageName, this.names.get(siteUrl))
-      || 'Unknown forum';
+    const pageName = context?.siteUrl && context.siteUrl === siteUrl ? context.forumName : '';
+    return resolveForumName(siteUrl, ...candidates, pageName, this.names.get(siteUrl)) || 'Unknown forum';
   }
 
   // The label of the forum in the current tab ('' off-forum).
@@ -82,10 +72,14 @@ export function createForumAvatar(siteUrl, forumName, withFavicon = false) {
     icon.className = 'forum-avatar-icon hidden';
     icon.alt = '';
     icon.referrerPolicy = 'no-referrer';
-    icon.addEventListener('load', () => {
-      icon.classList.remove('hidden');
-      initial.classList.add('hidden');
-    }, { once: true });
+    icon.addEventListener(
+      'load',
+      () => {
+        icon.classList.remove('hidden');
+        initial.classList.add('hidden');
+      },
+      { once: true }
+    );
     icon.src = `${siteUrl}/favicon.ico`;
     avatar.appendChild(icon);
   }
@@ -146,9 +140,7 @@ export class ForumBar {
     bar.dataset.state = siteUrl ? 'forum' : hidden ? 'unchecked' : 'none';
     applyForumHue(bar, siteUrl);
     name.textContent = siteUrl ? forumName : hidden ? 'Page not checked yet' : 'Not a Discourse forum';
-    host.textContent = siteUrl
-      ? (hostname !== forumName ? hostname : '')
-      : pageHostname(context.url);
+    host.textContent = siteUrl ? (hostname !== forumName ? hostname : '') : pageHostname(context.url);
     host.classList.toggle('hidden', !host.textContent);
     bar.title = siteUrl
       ? `${forumName} · ${hostname}`
@@ -171,9 +163,7 @@ export class ForumBar {
 
     // The hero shows on forum pages only; off-topic pages get their copy
     // from the page guidance (popup.js renderGuidance).
-    document.getElementById('heroEyebrow').textContent = context.isForumTopic
-      ? `Topic on ${forumName}`
-      : 'Current page';
+    document.getElementById('heroEyebrow').textContent = context.isForumTopic ? `Topic on ${forumName}` : 'Current page';
     // Tab titles repeat the category and forum, which the bar already shows.
     document.getElementById('currentPageTitle').textContent = context.isForumTopic
       ? cleanTopicTitle(context.title, forumName)
@@ -184,9 +174,13 @@ export class ForumBar {
       // Restart the highlight when switching between forums in quick succession.
       void bar.offsetWidth;
       bar.classList.add('is-switched');
-      bar.addEventListener('animationend', () => {
-        bar.classList.remove('is-switched');
-      }, { once: true });
+      bar.addEventListener(
+        'animationend',
+        () => {
+          bar.classList.remove('is-switched');
+        },
+        { once: true }
+      );
       announce(document.getElementById('forumSwitchAnnouncer'), `Switched to ${forumName}`);
     }
     return forumName;

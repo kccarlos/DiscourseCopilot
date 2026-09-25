@@ -96,9 +96,7 @@ export function forumOriginsFromPatterns(patterns = [], { exclude = [] } = {}) {
       origins.add(origin);
     }
   }
-  return [...origins].sort((left, right) =>
-    new URL(left).hostname.localeCompare(new URL(right).hostname)
-  );
+  return [...origins].sort((left, right) => new URL(left).hostname.localeCompare(new URL(right).hostname));
 }
 
 export function forumAccessMessage(siteUrl) {
@@ -155,8 +153,7 @@ export function requestForumAccess(siteUrl, { permissions = chromePermissions() 
     return Promise.resolve(true);
   }
   try {
-    return Promise.resolve(permissions.request({ origins: [pattern] }))
-      .then(Boolean, () => false);
+    return Promise.resolve(permissions.request({ origins: [pattern] })).then(Boolean, () => false);
   } catch {
     return Promise.resolve(false);
   }
@@ -170,9 +167,7 @@ export function requestForumAccess(siteUrl, { permissions = chromePermissions() 
  * resolve true at once. Same gesture rule as requestForumAccess().
  */
 export function requestServerAccess(serverUrl, options) {
-  return hostPatternForUrl(serverUrl)
-    ? requestForumAccess(serverUrl, options)
-    : Promise.resolve(true);
+  return hostPatternForUrl(serverUrl) ? requestForumAccess(serverUrl, options) : Promise.resolve(true);
 }
 
 /** Whether a server URL needs a permission prompt (not a manifest host). */
@@ -194,10 +189,7 @@ export async function revokeForumAccess(siteUrl, { permissions = chromePermissio
 }
 
 /** Origins of every forum the user enabled. */
-export async function listGrantedForums({
-  permissions = chromePermissions(),
-  exclude = []
-} = {}) {
+export async function listGrantedForums({ permissions = chromePermissions(), exclude = [] } = {}) {
   if (!permissions?.getAll) {
     return [];
   }
@@ -247,8 +239,7 @@ export function planContentScriptSync({ registered = null, origins = [] } = {}) 
     return { action: 'register', matches };
   }
   const current = [...(registered.matches || [])].sort();
-  const same = current.length === matches.length
-    && current.every((pattern, index) => pattern === matches[index]);
+  const same = current.length === matches.length && current.every((pattern, index) => pattern === matches[index]);
   return { action: same ? 'none' : 'update', matches };
 }
 
@@ -267,10 +258,7 @@ export function forumContentScript(matches) {
  * Registers, updates or removes the forum content script to match the
  * granted forums. Calls are serialized by the caller (see background.js).
  */
-export async function syncForumContentScripts({
-  scripting = globalThis.chrome?.scripting,
-  permissions = chromePermissions()
-} = {}) {
+export async function syncForumContentScripts({ scripting = globalThis.chrome?.scripting, permissions = chromePermissions() } = {}) {
   if (!scripting?.getRegisteredContentScripts) {
     return { action: 'none', matches: [] };
   }
@@ -296,10 +284,10 @@ export async function syncForumContentScripts({
  * still loading, an error page) are skipped.
  * @returns {Promise<number>} how many tabs were injected
  */
-export async function injectForumContentScript(origins = [], {
-  tabs = globalThis.chrome?.tabs,
-  scripting = globalThis.chrome?.scripting
-} = {}) {
+export async function injectForumContentScript(
+  origins = [],
+  { tabs = globalThis.chrome?.tabs, scripting = globalThis.chrome?.scripting } = {}
+) {
   const patterns = origins.map(origin => `${origin}/*`);
   if (!patterns.length || !tabs?.query || !scripting?.executeScript) {
     return 0;
@@ -312,21 +300,23 @@ export async function injectForumContentScript(origins = [], {
   }
   const allowed = new Set(origins);
   let injected = 0;
-  await Promise.all(openTabs.map(async tab => {
-    // tabs.query ignores `url` for hosts without access; check each tab.
-    const origin = originFromPattern(hostPatternForUrl(tab?.url));
-    if (!Number.isInteger(tab?.id) || !origin || !allowed.has(origin)) {
-      return;
-    }
-    try {
-      await scripting.executeScript({
-        target: { tabId: tab.id },
-        files: [FORUM_CONTENT_SCRIPT_FILE]
-      });
-      injected++;
-    } catch {
-      // Not scriptable right now; the registered script covers its next load.
-    }
-  }));
+  await Promise.all(
+    openTabs.map(async tab => {
+      // tabs.query ignores `url` for hosts without access; check each tab.
+      const origin = originFromPattern(hostPatternForUrl(tab?.url));
+      if (!Number.isInteger(tab?.id) || !origin || !allowed.has(origin)) {
+        return;
+      }
+      try {
+        await scripting.executeScript({
+          target: { tabId: tab.id },
+          files: [FORUM_CONTENT_SCRIPT_FILE]
+        });
+        injected++;
+      } catch {
+        // Not scriptable right now; the registered script covers its next load.
+      }
+    })
+  );
   return injected;
 }

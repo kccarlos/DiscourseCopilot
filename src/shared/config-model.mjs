@@ -59,10 +59,7 @@ export const PROVIDER_IDS = Object.freeze(Object.keys(PROVIDER_CONFIGS));
 export const CONFIG_STORAGE_KEYS = Object.freeze(Object.values(STORAGE_KEYS));
 
 // Everything "Reset settings" removes: live keys plus legacy leftovers.
-export const RESETTABLE_STORAGE_KEYS = Object.freeze([
-  ...CONFIG_STORAGE_KEYS,
-  ...Object.values(LEGACY_STORAGE_KEYS)
-]);
+export const RESETTABLE_STORAGE_KEYS = Object.freeze([...CONFIG_STORAGE_KEYS, ...Object.values(LEGACY_STORAGE_KEYS)]);
 
 function storedString(value) {
   return typeof value === 'string' ? value : '';
@@ -104,16 +101,12 @@ export function readConfig(values = {}, providerConfigs = PROVIDER_CONFIGS) {
   return {
     provider,
     providerChoice,
-    providers: Object.fromEntries(Object.keys(providerConfigs).map(id => [
-      id,
-      readProviderSettings(raw, id, providerConfigs)
-    ])),
+    providers: Object.fromEntries(Object.keys(providerConfigs).map(id => [id, readProviderSettings(raw, id, providerConfigs)])),
     // Whether each provider's model was ever saved (else it is the curated
     // default, which setup may replace with one from the live model list).
-    savedModels: Object.fromEntries(Object.keys(providerConfigs).map(id => [
-      id,
-      Boolean(PROVIDER_STORAGE_KEYS[id] && storedString(raw[PROVIDER_STORAGE_KEYS[id].model]))
-    ])),
+    savedModels: Object.fromEntries(
+      Object.keys(providerConfigs).map(id => [id, Boolean(PROVIDER_STORAGE_KEYS[id] && storedString(raw[PROVIDER_STORAGE_KEYS[id].model]))])
+    ),
     favorites: normalizeFavoriteModels(raw[STORAGE_KEYS.FAVORITE_MODELS], providerConfigs),
     systemPrompt: storedString(raw[STORAGE_KEYS.SYSTEM_PROMPT]),
     responseLanguage: normalizeResponseLanguage(raw[STORAGE_KEYS.RESPONSE_LANGUAGE]),
@@ -129,16 +122,8 @@ export function providerSettingsOf(config, provider = config?.provider) {
 
 export function deriveConfigStatus(config, providerConfigs = PROVIDER_CONFIGS) {
   const provider = config?.provider || DEFAULT_PROVIDER;
-  const validation = validateProviderSettings(
-    provider,
-    config?.providers?.[provider] || {},
-    providerConfigs
-  );
-  const status = validation.valid
-    ? CONFIG_STATUS.READY
-    : config?.providerChoice
-      ? CONFIG_STATUS.INCOMPLETE
-      : CONFIG_STATUS.UNCONFIGURED;
+  const validation = validateProviderSettings(provider, config?.providers?.[provider] || {}, providerConfigs);
+  const status = validation.valid ? CONFIG_STATUS.READY : config?.providerChoice ? CONFIG_STATUS.INCOMPLETE : CONFIG_STATUS.UNCONFIGURED;
   return {
     status,
     ready: status === CONFIG_STATUS.READY,
@@ -151,12 +136,7 @@ export function deriveConfigStatus(config, providerConfigs = PROVIDER_CONFIGS) {
 }
 
 // Storage values for saving a provider's settings (written in one call).
-export function buildConfigurationWrite(provider, settings, {
-  systemPrompt = '',
-  responseLanguage,
-  preferences,
-  forumContextLimit
-} = {}) {
+export function buildConfigurationWrite(provider, settings, { systemPrompt = '', responseLanguage, preferences, forumContextLimit } = {}) {
   const keys = PROVIDER_STORAGE_KEYS[provider];
   if (!keys) {
     throw new Error(`Unsupported provider: ${provider}`);

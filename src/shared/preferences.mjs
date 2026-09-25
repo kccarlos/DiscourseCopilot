@@ -55,13 +55,15 @@ export const RESEARCH_DEPTHS = Object.freeze(['quick', 'balanced', 'thorough', '
 // topicPageLimit pages.
 export const TOPIC_PAGE_MODES = Object.freeze(['all', 'limit']);
 
-export const HISTORY_RETENTION_OPTIONS = Object.freeze([
-  { value: '1d', label: '1 day', ms: DAY_MS },
-  { value: '3d', label: '3 days', ms: 3 * DAY_MS },
-  { value: '7d', label: '7 days', ms: 7 * DAY_MS },
-  { value: '30d', label: '30 days', ms: 30 * DAY_MS },
-  { value: 'forever', label: 'Until I delete them', ms: Infinity }
-].map(option => Object.freeze(option)));
+export const HISTORY_RETENTION_OPTIONS = Object.freeze(
+  [
+    { value: '1d', label: '1 day', ms: DAY_MS },
+    { value: '3d', label: '3 days', ms: 3 * DAY_MS },
+    { value: '7d', label: '7 days', ms: 7 * DAY_MS },
+    { value: '30d', label: '30 days', ms: 30 * DAY_MS },
+    { value: 'forever', label: 'Until I delete them', ms: Infinity }
+  ].map(option => Object.freeze(option))
+);
 
 const RETENTION_BY_VALUE = new Map(HISTORY_RETENTION_OPTIONS.map(option => [option.value, option]));
 
@@ -80,13 +82,7 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   maxSavedTopics: 40
 });
 
-export const PREFERENCE_FIELDS = Object.freeze([
-  'searchQueries',
-  'searchPages',
-  'topicsRead',
-  'topicPageLimit',
-  'maxSavedTopics'
-]);
+export const PREFERENCE_FIELDS = Object.freeze(['searchQueries', 'searchPages', 'topicsRead', 'topicPageLimit', 'maxSavedTopics']);
 
 function clampInteger(value, { min, max }, fallback) {
   const number = typeof value === 'string' && value.trim() === '' ? NaN : Number(value);
@@ -113,26 +109,12 @@ function normalizeResearch(value, fallback = RESEARCH_PRESETS.balanced) {
 export function normalizePreferences(value) {
   const raw = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   return {
-    researchDepth: RESEARCH_DEPTHS.includes(raw.researchDepth)
-      ? raw.researchDepth
-      : DEFAULT_PREFERENCES.researchDepth,
+    researchDepth: RESEARCH_DEPTHS.includes(raw.researchDepth) ? raw.researchDepth : DEFAULT_PREFERENCES.researchDepth,
     customResearch: normalizeResearch(raw.customResearch, DEFAULT_PREFERENCES.customResearch),
-    topicPageMode: TOPIC_PAGE_MODES.includes(raw.topicPageMode)
-      ? raw.topicPageMode
-      : DEFAULT_PREFERENCES.topicPageMode,
-    topicPageLimit: clampInteger(
-      raw.topicPageLimit,
-      PREFERENCE_RANGES.topicPageLimit,
-      DEFAULT_PREFERENCES.topicPageLimit
-    ),
-    historyRetention: RETENTION_BY_VALUE.has(raw.historyRetention)
-      ? raw.historyRetention
-      : DEFAULT_PREFERENCES.historyRetention,
-    maxSavedTopics: clampInteger(
-      raw.maxSavedTopics,
-      PREFERENCE_RANGES.maxSavedTopics,
-      DEFAULT_PREFERENCES.maxSavedTopics
-    )
+    topicPageMode: TOPIC_PAGE_MODES.includes(raw.topicPageMode) ? raw.topicPageMode : DEFAULT_PREFERENCES.topicPageMode,
+    topicPageLimit: clampInteger(raw.topicPageLimit, PREFERENCE_RANGES.topicPageLimit, DEFAULT_PREFERENCES.topicPageLimit),
+    historyRetention: RETENTION_BY_VALUE.has(raw.historyRetention) ? raw.historyRetention : DEFAULT_PREFERENCES.historyRetention,
+    maxSavedTopics: clampInteger(raw.maxSavedTopics, PREFERENCE_RANGES.maxSavedTopics, DEFAULT_PREFERENCES.maxSavedTopics)
   };
 }
 
@@ -206,9 +188,7 @@ export function validatePreferences(value) {
  */
 export function resolveResearchLimits(value) {
   const preferences = normalizePreferences(value);
-  const research = preferences.researchDepth === 'custom'
-    ? preferences.customResearch
-    : RESEARCH_PRESETS[preferences.researchDepth];
+  const research = preferences.researchDepth === 'custom' ? preferences.customResearch : RESEARCH_PRESETS[preferences.researchDepth];
   return {
     depth: preferences.researchDepth,
     ...research,
@@ -254,11 +234,13 @@ export function resolveRetention(value) {
 }
 
 export function retentionEqual(left, right) {
-  return Boolean(left && right)
+  return (
+    Boolean(left && right)
     && left.chatMs === right.chatMs
     && left.agentMs === right.agentMs
     && left.taskMs === right.taskMs
-    && left.maxSavedTopics === right.maxSavedTopics;
+    && left.maxSavedTopics === right.maxSavedTopics
+  );
 }
 
 // ---------- Per-task snapshot ----------
@@ -291,11 +273,7 @@ export function normalizeTaskLimits(type, value) {
     return {
       research: {
         ...research,
-        rawFallbacks: clampInteger(
-          value.research.rawFallbacks,
-          { min: 0, max: research.topicsRead },
-          Math.ceil(research.topicsRead / 2)
-        )
+        rawFallbacks: clampInteger(value.research.rawFallbacks, { min: 0, max: research.topicsRead }, Math.ceil(research.topicsRead / 2))
       }
     };
   }
@@ -304,11 +282,7 @@ export function normalizeTaskLimits(type, value) {
     if (value.topicPageLimit === undefined) return null;
     if (value.topicPageLimit === null) return { topicPageLimit: null };
     return {
-      topicPageLimit: clampInteger(
-        value.topicPageLimit,
-        PREFERENCE_RANGES.topicPageLimit,
-        DEFAULT_PREFERENCES.topicPageLimit
-      )
+      topicPageLimit: clampInteger(value.topicPageLimit, PREFERENCE_RANGES.topicPageLimit, DEFAULT_PREFERENCES.topicPageLimit)
     };
   }
   return null;
@@ -317,7 +291,7 @@ export function normalizeTaskLimits(type, value) {
 // ---------- Labels ----------
 
 export function describeRetention(retention) {
-  return retention?.forever ? 'no time limit' : (retention?.label || '1 day');
+  return retention?.forever ? 'no time limit' : retention?.label || '1 day';
 }
 
 // "expires in 5h" / "expires in 3d"; '' when there is nothing to show.

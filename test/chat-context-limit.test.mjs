@@ -1,11 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  FORUM_CONTEXT_LIMIT,
-  formatForumContextLimit,
-  normalizeForumContextLimit
-} from '../src/shared/chat-context-limit.mjs';
+import { FORUM_CONTEXT_LIMIT, formatForumContextLimit, normalizeForumContextLimit } from '../src/shared/chat-context-limit.mjs';
 
 test('normalizes forum context limits to the supported slider range', () => {
   assert.equal(FORUM_CONTEXT_LIMIT.max, 1000000);

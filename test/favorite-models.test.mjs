@@ -14,39 +14,44 @@ import {
 const configs = DiscourseCopilotConstants.PROVIDER_CONFIGS;
 
 test('normalizes, deduplicates, and validates provider-model favorites', () => {
-  assert.deepEqual(normalizeFavoriteModels([
-    { provider: ' openai ', model: ' gpt-5 ' },
-    { provider: 'openai', model: 'gpt-5' },
-    { provider: 'missing', model: 'model' },
-    { provider: 'anthropic', model: '' },
-    null
-  ], configs), [
-    { provider: 'openai', model: 'gpt-5' }
-  ]);
+  assert.deepEqual(
+    normalizeFavoriteModels(
+      [
+        { provider: ' openai ', model: ' gpt-5 ' },
+        { provider: 'openai', model: 'gpt-5' },
+        { provider: 'missing', model: 'model' },
+        { provider: 'anthropic', model: '' },
+        null
+      ],
+      configs
+    ),
+    [{ provider: 'openai', model: 'gpt-5' }]
+  );
 });
 
 test('adds, detects, and removes favorites without conflating providers', () => {
-  let favorites = addFavoriteModel([], {
-    provider: 'openai',
-    model: 'shared-name'
-  }, configs);
-  favorites = addFavoriteModel(favorites, {
-    provider: 'openrouter',
-    model: 'shared-name'
-  }, configs);
+  let favorites = addFavoriteModel(
+    [],
+    {
+      provider: 'openai',
+      model: 'shared-name'
+    },
+    configs
+  );
+  favorites = addFavoriteModel(
+    favorites,
+    {
+      provider: 'openrouter',
+      model: 'shared-name'
+    },
+    configs
+  );
 
   assert.equal(favorites.length, 2);
   assert.equal(hasFavoriteModel(favorites, favorites[0], configs), true);
-  assert.notEqual(
-    favoriteModelKey('openai', 'shared-name'),
-    favoriteModelKey('openrouter', 'shared-name')
-  );
+  assert.notEqual(favoriteModelKey('openai', 'shared-name'), favoriteModelKey('openrouter', 'shared-name'));
 
-  assert.deepEqual(removeFavoriteModel(
-    favorites,
-    { provider: 'openai', model: 'shared-name' },
-    configs
-  ), [
+  assert.deepEqual(removeFavoriteModel(favorites, { provider: 'openai', model: 'shared-name' }, configs), [
     { provider: 'openrouter', model: 'shared-name' }
   ]);
 });
@@ -57,9 +62,5 @@ test('does not evict existing favorites when the list reaches its limit', () => 
     model: `model-${index}`
   }));
 
-  assert.deepEqual(addFavoriteModel(
-    favorites,
-    { provider: 'openai', model: 'one-too-many' },
-    configs
-  ), favorites);
+  assert.deepEqual(addFavoriteModel(favorites, { provider: 'openai', model: 'one-too-many' }, configs), favorites);
 });

@@ -3,13 +3,7 @@
 // list (debounced while typing, "Refresh models", the default pick and the
 // "no longer offered" warning).
 import { DiscourseCopilotConstants } from '../shared/constants.js';
-import {
-  isModelOffered,
-  modelCatalog,
-  modelMissingText,
-  orderModelChoices,
-  pickDefaultModel
-} from '../shared/model-catalog.mjs';
+import { isModelOffered, modelCatalog, modelMissingText, orderModelChoices, pickDefaultModel } from '../shared/model-catalog.mjs';
 import { LOCAL_PROVIDER_IDS, PROVIDER_LINKS } from '../shared/provider-setup.mjs';
 import { PROVIDER_IDS } from '../shared/config-state.mjs';
 import { buildModelChoices, isLatestRequest, normalizeProviderSettings, plural } from './settings-helpers.mjs';
@@ -19,26 +13,30 @@ const { PROVIDER_CONFIGS } = DiscourseCopilotConstants;
 const MODEL_LIST_DEBOUNCE_MS = 700;
 
 // Element IDs of each provider's inputs.
-export const PROVIDER_FIELDS = Object.fromEntries(PROVIDER_IDS.map(provider => [
-  provider,
-  {
-    credential: LOCAL_PROVIDER_IDS.has(provider) ? `${provider}Url` : `${provider}ApiKey`,
-    credentialField: LOCAL_PROVIDER_IDS.has(provider) ? 'url' : 'apiKey',
-    model: `${provider}Model`,
-    modelList: `${provider}ModelList`,
-    modelStatus: `${provider}ModelStatus`,
-    modelWarning: `${provider}ModelWarning`
-  }
-]));
+export const PROVIDER_FIELDS = Object.fromEntries(
+  PROVIDER_IDS.map(provider => [
+    provider,
+    {
+      credential: LOCAL_PROVIDER_IDS.has(provider) ? `${provider}Url` : `${provider}ApiKey`,
+      credentialField: LOCAL_PROVIDER_IDS.has(provider) ? 'url' : 'apiKey',
+      model: `${provider}Model`,
+      modelList: `${provider}ModelList`,
+      modelStatus: `${provider}ModelStatus`,
+      modelWarning: `${provider}ModelWarning`
+    }
+  ])
+);
 
 // Input ID → which draft field it edits.
-export const INPUT_FIELDS = new Map(PROVIDER_IDS.flatMap(provider => {
-  const fields = PROVIDER_FIELDS[provider];
-  return [
-    [fields.credential, { provider, field: fields.credentialField }],
-    [fields.model, { provider, field: 'model' }]
-  ];
-}));
+export const INPUT_FIELDS = new Map(
+  PROVIDER_IDS.flatMap(provider => {
+    const fields = PROVIDER_FIELDS[provider];
+    return [
+      [fields.credential, { provider, field: fields.credentialField }],
+      [fields.model, { provider, field: 'model' }]
+    ];
+  })
+);
 
 const $ = id => document.getElementById(id);
 
@@ -156,8 +154,7 @@ export class ProviderSection {
     const settings = normalizeProviderSettings(provider, { ...this.store.draftSettings(provider) });
     const providerConfig = PROVIDER_CONFIGS[provider];
     // Curated models stay offered even before (or without) a live model list.
-    const curated = (providerConfig.recommendedModels || providerConfig.suggestedModels || [])
-      .map(id => ({ id, name: 'Recommended' }));
+    const curated = (providerConfig.recommendedModels || providerConfig.suggestedModels || []).map(id => ({ id, name: 'Recommended' }));
     delete this.modelLists[provider];
     this.renderModelWarning(provider);
 
@@ -208,8 +205,7 @@ export class ProviderSection {
 
   // Only a provider without a saved model whose field the user hasn't edited.
   canPreselectModel(provider) {
-    return !this.store.config.savedModels?.[provider]
-      && !this.touchedModelFields.has(provider);
+    return !this.store.config.savedModels?.[provider] && !this.touchedModelFields.has(provider);
   }
 
   // "No longer offered": the saved model, still in the field, is missing from
@@ -219,24 +215,23 @@ export class ProviderSection {
     const warning = fields && $(fields.modelWarning);
     if (!warning) return;
     const models = this.modelLists[provider];
-    const saved = this.store.config.savedModels?.[provider]
-      ? this.store.config.providers[provider]?.model || ''
-      : '';
+    const saved = this.store.config.savedModels?.[provider] ? this.store.config.providers[provider]?.model || '' : '';
     const shown = $(fields.model)?.value.trim() || '';
-    const missing = Boolean(models?.length && saved && shown === saved
-      && !isModelOffered(provider, saved, models));
+    const missing = Boolean(models?.length && saved && shown === saved && !isModelOffered(provider, saved, models));
     warning.textContent = missing ? modelMissingText(provider) : '';
     warning.hidden = !missing;
   }
 
   populateModelChoices(list, models, selectedModel) {
     const choices = buildModelChoices(models, selectedModel);
-    list.replaceChildren(...choices.map(model => {
-      const option = document.createElement('option');
-      option.value = model.id;
-      option.label = model.name || model.id;
-      return option;
-    }));
+    list.replaceChildren(
+      ...choices.map(model => {
+        const option = document.createElement('option');
+        option.value = model.id;
+        option.label = model.name || model.id;
+        return option;
+      })
+    );
   }
 
   async refreshModels(provider) {

@@ -12,10 +12,10 @@ import {
 const configs = DiscourseCopilotConstants.PROVIDER_CONFIGS;
 
 test('normalizes hosted and local provider form values', () => {
-  assert.deepEqual(
-    normalizeProviderSettings('openai', { apiKey: '  secret  ', model: ' gpt-test ' }),
-    { apiKey: 'secret', model: 'gpt-test' }
-  );
+  assert.deepEqual(normalizeProviderSettings('openai', { apiKey: '  secret  ', model: ' gpt-test ' }), {
+    apiKey: 'secret',
+    model: 'gpt-test'
+  });
   assert.deepEqual(
     normalizeProviderSettings('ollama', {
       url: ' http://localhost:11434/// ',
@@ -26,38 +26,18 @@ test('normalizes hosted and local provider form values', () => {
 });
 
 test('requires an API key and model for hosted providers', () => {
-  const result = validateProviderSettings(
-    'anthropic',
-    { apiKey: ' ', model: ' ' },
-    configs
-  );
+  const result = validateProviderSettings('anthropic', { apiKey: ' ', model: ' ' }, configs);
 
   assert.equal(result.valid, false);
-  assert.deepEqual(result.errors, [
-    'Anthropic API key is required.',
-    'Anthropic model is required.'
-  ]);
+  assert.deepEqual(result.errors, ['Anthropic API key is required.', 'Anthropic model is required.']);
 });
 
 test('requires a valid HTTP server URL and model for local providers', () => {
-  const invalidProtocol = validateProviderSettings(
-    'ollama',
-    { url: 'file:///tmp/ollama', model: 'llama3.2' },
-    configs
-  );
-  const malformed = validateProviderSettings(
-    'lmstudio',
-    { url: 'not a URL', model: '' },
-    configs
-  );
+  const invalidProtocol = validateProviderSettings('ollama', { url: 'file:///tmp/ollama', model: 'llama3.2' }, configs);
+  const malformed = validateProviderSettings('lmstudio', { url: 'not a URL', model: '' }, configs);
 
-  assert.deepEqual(invalidProtocol.errors, [
-    'Ollama (Local) server URL must use http or https.'
-  ]);
-  assert.deepEqual(malformed.errors, [
-    'LM Studio (Local) server URL is not valid.',
-    'LM Studio (Local) model is required.'
-  ]);
+  assert.deepEqual(invalidProtocol.errors, ['Ollama (Local) server URL must use http or https.']);
+  assert.deepEqual(malformed.errors, ['LM Studio (Local) server URL is not valid.', 'LM Studio (Local) model is required.']);
 });
 
 test('accepts every configured provider with complete values', () => {
@@ -73,11 +53,7 @@ test('accepts every configured provider with complete values', () => {
 });
 
 test('rejects an unknown provider', () => {
-  const result = validateProviderSettings(
-    'missing',
-    { apiKey: 'key', model: 'model' },
-    configs
-  );
+  const result = validateProviderSettings('missing', { apiKey: 'key', model: 'model' }, configs);
 
   assert.equal(result.valid, false);
   assert.deepEqual(result.errors, ['Choose a supported AI provider.']);
@@ -96,7 +72,10 @@ test('preserves a saved custom model when model discovery fails or omits it', ()
   // A listed value keeps its place and label.
   assert.deepEqual(
     buildModelChoices([{ id: 'fast', name: 'Recommended' }, { id: 'big' }], 'big').map(({ id, name }) => ({ id, name })),
-    [{ id: 'fast', name: 'Recommended' }, { id: 'big', name: 'big' }]
+    [
+      { id: 'fast', name: 'Recommended' },
+      { id: 'big', name: 'big' }
+    ]
   );
 
   assert.deepEqual(

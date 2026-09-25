@@ -32,15 +32,7 @@ export function toInstructionsAndMessages(messages = []) {
  * @param {string} [request.logLabel] logs stream errors under this label
  * @returns {Promise<string>} the complete text
  */
-export async function streamAnswer(model, {
-  messages,
-  temperature,
-  abortSignal,
-  onStream,
-  onError,
-  emptyMessage,
-  logLabel = ''
-}) {
+export async function streamAnswer(model, { messages, temperature, abortSignal, onStream, onError, emptyMessage, logLabel = '' }) {
   const split = toInstructionsAndMessages(messages);
   let callbackError = null;
   const result = streamText({
@@ -50,9 +42,7 @@ export async function streamAnswer(model, {
     ...samplingOptions(model, temperature),
     abortSignal,
     onError: event => {
-      callbackError = event?.error instanceof Error
-        ? event.error
-        : new Error(String(event?.error ?? event));
+      callbackError = event?.error instanceof Error ? event.error : new Error(String(event?.error ?? event));
       if (logLabel) {
         console.error(`AI Service: ${logLabel} stream error:`, callbackError);
       }

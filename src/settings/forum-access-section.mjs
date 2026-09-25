@@ -2,15 +2,11 @@
 // access (confirmed inline). Removing access never deletes saved summaries
 // or answers; the list follows grants and removals made anywhere
 // (chrome.permissions.onAdded/onRemoved).
-import {
-  hostPatternForUrl,
-  listGrantedForums,
-  revokeForumAccess,
-  subscribeForumAccess
-} from '../shared/forum-access.mjs';
+import { hostPatternForUrl, listGrantedForums, revokeForumAccess, subscribeForumAccess } from '../shared/forum-access.mjs';
 import { parseSiteUrl } from '../shared/forum-site.mjs';
 
-export const FORUM_ACCESS_EMPTY_TEXT = 'You haven’t enabled any forums yet. Open a Discourse forum and click Allow access in the side panel.';
+export const FORUM_ACCESS_EMPTY_TEXT =
+  'You haven’t enabled any forums yet. Open a Discourse forum and click Allow access in the side panel.';
 
 function originOf(siteUrl) {
   return parseSiteUrl(siteUrl)?.origin || '';
@@ -144,7 +140,9 @@ export class ForumAccessSection {
       cancel.addEventListener('click', () => {
         this.confirming = '';
         this.render();
-        $('forumAccessList').querySelector(`[data-origin="${CSS.escape(row.origin)}"] button`)?.focus();
+        $('forumAccessList')
+          .querySelector(`[data-origin="${CSS.escape(row.origin)}"] button`)
+          ?.focus();
       });
       actions.append(question, remove, cancel);
     } else {
@@ -154,7 +152,9 @@ export class ForumAccessSection {
       button.addEventListener('click', () => {
         this.confirming = row.origin;
         this.render();
-        $('forumAccessList').querySelector(`[data-origin="${CSS.escape(row.origin)}"] .btn-danger`)?.focus();
+        $('forumAccessList')
+          .querySelector(`[data-origin="${CSS.escape(row.origin)}"] .btn-danger`)
+          ?.focus();
       });
       actions.append(button);
     }

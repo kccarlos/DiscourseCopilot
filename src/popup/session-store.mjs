@@ -23,13 +23,16 @@ export class SessionStore {
 
   getOrCreate(context, forumName = '') {
     if (!this.sessions.has(context.topicKey)) {
-      this.sessions.set(context.topicKey, createTopicSession({
-        topicId: context.postId,
-        siteUrl: context.siteUrl,
-        url: context.url,
-        title: context.title,
-        forumName
-      }));
+      this.sessions.set(
+        context.topicKey,
+        createTopicSession({
+          topicId: context.postId,
+          siteUrl: context.siteUrl,
+          url: context.url,
+          title: context.title,
+          forumName
+        })
+      );
     }
     return this.sessions.get(context.topicKey);
   }
