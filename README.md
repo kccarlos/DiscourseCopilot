@@ -11,8 +11,13 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Chrome-extension-4285F4.svg" alt="Chrome extension">
+  <a href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac"><img src="https://img.shields.io/chrome-web-store/v/dpngnaiiofobfjleabbhnfmdflddnhac?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4" alt="Chrome Web Store version"></a>
+  <a href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac"><img src="https://img.shields.io/chrome-web-store/users/dpngnaiiofobfjleabbhnfmdflddnhac?label=users&color=4285F4" alt="Chrome Web Store users"></a>
   <img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="Apache-2.0 license">
+</p>
+
+<p align="center">
+  <a href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac"><strong>➜ Add DiscourseCopilot to Chrome</strong></a> — free
 </p>
 
 ![DiscourseCopilot in the Chrome side panel: a topic summary, an answer with sources, and dark mode](docs/screenshots/hero.png)
@@ -32,10 +37,10 @@ DiscourseCopilot is a free Chrome extension. It opens in your browser's side pan
 ## Get started in 3 steps
 
 **1. Install the extension.**
-A Chrome Web Store listing is coming soon. For now, install it from GitHub:
+Open [DiscourseCopilot in the Chrome Web Store](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac) and click **Add to Chrome**. Then click the puzzle-piece icon in the toolbar and pin **DiscourseCopilot** so it's easy to reach.
 
 <details>
-<summary>Show install steps (takes about a minute)</summary>
+<summary>Prefer to install from GitHub instead?</summary>
 
 1. Go to the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases) and download the latest `discourse-copilot-<version>.zip`.
 2. Unzip it.
