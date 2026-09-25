@@ -413,8 +413,8 @@ test('failures reject with a ModelListError that names the provider, not the key
 test('a slow provider times out', async () => {
   assert.equal(MODEL_LIST_TIMEOUT_MS, 8000);
   const { catalog } = catalogWith(
-    (url, init) =>
-      new Promise((resolve, reject) => {
+    (_url, init) =>
+      new Promise((_resolve, reject) => {
         init.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
       }),
     { timeoutMs: 20 }
@@ -424,8 +424,8 @@ test('a slow provider times out', async () => {
 
 test('the caller can abort a fetch', async () => {
   const { catalog } = catalogWith(
-    (url, init) =>
-      new Promise((resolve, reject) => {
+    (_url, init) =>
+      new Promise((_resolve, reject) => {
         init.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
       })
   );

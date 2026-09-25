@@ -182,7 +182,7 @@ test('invalid carries field errors; fixing the last one returns to dirty and cle
 });
 
 test('field-errors only touches the listed fields and never the phase otherwise', () => {
-  let state = transitionForm(pristineForm(), {
+  const state = transitionForm(pristineForm(), {
     type: 'field-errors',
     fields: ['maxSavedTopics'],
     fieldErrors: { maxSavedTopics: 'x', other: 'y' }

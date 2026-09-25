@@ -136,7 +136,7 @@ test('a custom system prompt keeps its wording; the note still reaches the reque
 });
 
 test('hierarchical summary: replies and final phases get the note, the OP phase and prompts do not', async () => {
-  const { fetch, requests } = mockFetch((request, count) =>
+  const { fetch, requests } = mockFetch((_request, count) =>
     count === 1
       ? jsonResponse({ error: { message: "This model's maximum context length is 8192 tokens" } }, 400)
       : chatCompletion(`Partial ${count}`)
@@ -166,7 +166,7 @@ test('hierarchical summary: replies and final phases get the note, the OP phase 
 });
 
 test('a hierarchical retry with halved content keeps the note once', async () => {
-  const { fetch, requests } = mockFetch((request, count) =>
+  const { fetch, requests } = mockFetch((_request, count) =>
     count === 1 ? jsonResponse({ error: { message: 'context length exceeded' } }, 400) : chatCompletion('Short.')
   );
   const service = new AIService({ fetch });
@@ -212,11 +212,11 @@ function database() {
 function executorsFor(db, fetchResult, calls) {
   return createTopicExecutors({
     aiService: {
-      generateSummary: async (provider, content, providerSettings, callbacks, options) => {
+      generateSummary: async (_provider, _content, _providerSettings, _callbacks, options) => {
         calls.push({ kind: 'summary', options });
         return 'A summary';
       },
-      streamFollowUp: async (provider, context) => {
+      streamFollowUp: async (_provider, context) => {
         calls.push({ kind: 'chat', context });
         return 'An answer';
       }

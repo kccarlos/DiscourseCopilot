@@ -28,9 +28,18 @@ pnpm test:ui       # build, then run the UI flows in Chromium (light and dark)
 pnpm shots:readme  # build, then render the README screenshots into tools/ui/out/readme/
 pnpm shots:store   # build, then render the Chrome Web Store images into tools/ui/out/store/
 pnpm clean         # remove dist/
+pnpm lint          # lint (Biome); pnpm lint:fix applies the safe fixes
+pnpm format        # format every file in place; pnpm format:check only reports
+pnpm check         # lint + format check in one pass (what CI runs)
 ```
 
 The UI commands need Playwright's Chromium once: `pnpm exec playwright install chromium` (see [UI tests and screenshots](#ui-tests-and-screenshots)).
+
+### Linting and formatting
+
+[Biome](https://biomejs.dev) lints and formats the JavaScript and JSON (CSS is linted only; HTML and the vendored stylesheets are left alone). The configuration is `biome.jsonc`, with three small GritQL rules in `tools/lint/`; `.editorconfig` gives editors the same basics (2 spaces, LF, 140 columns), and the Biome editor extension formats on save. Beyond the recommended rules it enforces `===` (except `== null`), `const`/no `var`, no unused variables or imports (prefix an intentionally unused parameter with `_`), no undeclared globals (`chrome` is declared, read-only), imports that resolve with their file extension, and in `src/`: no `console.log` (use `console.warn`/`console.error`, or `DiscourseCopilotLogger.log` for traces), no `alert`/`confirm`/`prompt`, no `eval`, `new Function` or string timers (the Chrome Web Store forbids dynamic code), no Node globals, and in `src/background/` no `window`/`document`/`localStorage`. An inline `// biome-ignore <rule>: <reason>` needs a reason. CI fails on any lint error or unformatted file.
+
+Formatting-only commits are listed in `.git-blame-ignore-revs`; to have `git blame` skip them locally, run once: `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 
 ## Running it locally
 
@@ -48,6 +57,7 @@ Plain JavaScript ES modules, bundled by Vite (`vite-plugin-web-extension` reads 
 manifest.json       Chrome MV3 manifest (build input)
 vite.config.js      Build configuration (also builds src/content/content.js, which the manifest no
                     longer references, via additionalInputs)
+biome.jsonc         Lint and format configuration (tools/lint/*.grit: extra lint rules)
 public/             Static assets copied into dist/ as-is: toolbar/store icons (icon16/32/48/128.png,
                     rendered from assets/brand/icon/sizes/*-on-light.svg) and brand/ SVGs used by the pages
 assets/brand/       Logo source of truth (icon, pixel-hinted small sizes, wordmarks; on-light/on-dark
@@ -276,7 +286,7 @@ Deleting a saved summary or an Agent answer removes it at once, from IndexedDB t
 
 ## CI/CD & releases
 
-**CI** (`.github/workflows/ci.yml`) runs on every push to `main` and every pull request: `pnpm install --frozen-lockfile`, a check that `manifest.json` and `package.json` have the same version, `pnpm test`, `pnpm build`, and uploads `dist/` as a workflow artifact (kept 7 days). A second job, **UI flows**, runs `pnpm test:ui` in headless Chromium (see below).
+**CI** (`.github/workflows/ci.yml`) runs on every push to `main` and every pull request. A **Lint and format** job runs `biome ci` (the same checks as `pnpm check`). The build job runs `pnpm install --frozen-lockfile`, a check that `manifest.json` and `package.json` have the same version, `pnpm test`, `pnpm build`, and uploads `dist/` as a workflow artifact (kept 7 days). A third job, **UI flows**, runs `pnpm test:ui` in headless Chromium (see below).
 
 **Cutting a release** (`.github/workflows/release.yml`):
 

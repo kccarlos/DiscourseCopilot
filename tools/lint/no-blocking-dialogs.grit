@@ -1,0 +1,16 @@
+// alert/confirm/prompt block the page and look out of place in the side panel;
+// use inline UI (e.g. the Undo toast) instead. Bare calls are caught by
+// style/noRestrictedGlobals; this catches window.alert(), globalThis.confirm(), ...
+`$obj.$dialog($args)` as $call where {
+  $obj <: or {
+    `window`,
+    `globalThis`,
+    `self`
+  },
+  $dialog <: or {
+    `alert`,
+    `confirm`,
+    `prompt`
+  },
+  register_diagnostic(span=$call, message="Don't use blocking alert/confirm/prompt dialogs; use inline UI (e.g. the Undo toast) instead.")
+}

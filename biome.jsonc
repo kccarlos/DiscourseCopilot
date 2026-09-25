@@ -1,0 +1,149 @@
+// Biome: linter + formatter for the whole repo (`pnpm lint`, `pnpm format`; see DEVELOPMENT.md).
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": [
+      "**",
+      "!pnpm-lock.yaml",
+      // Vendored stylesheets.
+      "!src/shared/pico.min.css",
+      "!src/shared/normalize.css",
+      // HTML is neither linted nor formatted (Biome's HTML support is still young).
+      "!**/*.html",
+      // Images and brand sources.
+      "!assets",
+      "!docs",
+      "!public",
+      "!store-assets"
+    ]
+  },
+  // No import sorting: reordering side-effect imports could change behaviour.
+  "assist": { "enabled": false },
+  // Settings chosen to match the existing hand-formatted code as closely as possible.
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 140,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "always",
+      "trailingCommas": "none",
+      "arrowParentheses": "asNeeded",
+      "operatorLinebreak": "before"
+    },
+    // Extension APIs (src/, and the chrome stub the UI tools inject into pages).
+    // Biome has a single list of known browser + Node globals, so the src/
+    // overrides below deny the Node (and, in the service worker, DOM) ones.
+    "globals": ["chrome"]
+  },
+  // Keep package.json / manifest.json arrays one item per line, as npm writes them.
+  "json": { "formatter": { "expand": "always" } },
+  // CSS is linted but not formatted (formatting would rewrite most of popup.css).
+  "css": { "formatter": { "enabled": false } },
+  // Checks Biome has no built-in rule for (GritQL): no Function constructor or
+  // string timers, no window.alert/confirm/prompt, `chrome` is read-only.
+  "plugins": ["./tools/lint/no-dynamic-code.grit", "./tools/lint/no-blocking-dialogs.grit", "./tools/lint/readonly-chrome.grit"],
+  "linter": {
+    "rules": {
+      "preset": "recommended",
+      "correctness": {
+        "noUndeclaredVariables": "error",
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error",
+        "noUnresolvedImports": "error",
+        "useImportExtensions": "error"
+      },
+      "suspicious": {
+        // `== null` / `!= null` stay allowed (like ESLint's eqeqeq "smart").
+        "noDoubleEquals": { "level": "error", "options": { "ignoreNull": true } },
+        "noVar": "error"
+      },
+      "style": {
+        "useConst": "error",
+        // CSS: the stylesheets rely on cascade order and on !important overrides.
+        "noDescendingSpecificity": "off"
+      },
+      "complexity": { "noImportantStyles": "off" }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["biome.jsonc"],
+      "json": { "formatter": { "expand": "auto" } }
+    },
+    {
+      // Biome can't see playwright's named exports (CommonJS + re-exported
+      // .d.ts), so `import { chromium } from 'playwright'` is a false positive.
+      "includes": ["tools/ui/**"],
+      "linter": { "rules": { "correctness": { "noUnresolvedImports": "off" } } }
+    },
+    {
+      // Extension code: no console.log/info/debug (traces go through
+      // DiscourseCopilotLogger.log), no blocking dialogs, no Node globals.
+      "includes": ["src/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": { "level": "error", "options": { "allow": ["warn", "error"] } }
+          },
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "alert": "Blocking dialogs don't belong in the extension; use inline UI instead.",
+                  "confirm": "Blocking dialogs don't belong in the extension; use inline UI (e.g. the Undo toast) instead.",
+                  "prompt": "Blocking dialogs don't belong in the extension; use inline UI instead.",
+                  "process": "Node.js global: not available in the extension.",
+                  "Buffer": "Node.js global: not available in the extension.",
+                  "require": "Node.js global: use ES module imports.",
+                  "module": "Node.js global: use ES module exports.",
+                  "__dirname": "Node.js global: not available in the extension.",
+                  "__filename": "Node.js global: not available in the extension.",
+                  "global": "Node.js global: use globalThis."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      // The background is a service worker: also no window, DOM, Web Storage or
+      // XHR. (Rule options replace rather than merge, so the src/ list is repeated.)
+      "includes": ["src/background/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "alert": "Blocking dialogs don't belong in the extension; use inline UI instead.",
+                  "confirm": "Blocking dialogs don't belong in the extension; use inline UI (e.g. the Undo toast) instead.",
+                  "prompt": "Blocking dialogs don't belong in the extension; use inline UI instead.",
+                  "process": "Node.js global: not available in the extension.",
+                  "Buffer": "Node.js global: not available in the extension.",
+                  "require": "Node.js global: use ES module imports.",
+                  "module": "Node.js global: use ES module exports.",
+                  "__dirname": "Node.js global: not available in the extension.",
+                  "__filename": "Node.js global: not available in the extension.",
+                  "global": "Node.js global: use globalThis.",
+                  "window": "The background is a service worker: there is no window (use globalThis or self).",
+                  "document": "The background is a service worker: there is no DOM.",
+                  "localStorage": "Not available in a service worker: use chrome.storage.",
+                  "sessionStorage": "Not available in a service worker: use chrome.storage.session.",
+                  "XMLHttpRequest": "Not available in a service worker: use fetch."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

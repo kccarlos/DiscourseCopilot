@@ -49,7 +49,7 @@ export function hasBasePathPrefix(pathname, basePath) {
 
 export function buildSiteUrl(origin, basePath = '') {
   const url = parseUrl(origin);
-  if (!url || !url.hostname || !isAllowedProtocol(url)) {
+  if (!url?.hostname || !isAllowedProtocol(url)) {
     return '';
   }
   return `${url.origin}${normalizeBasePath(basePath)}`;
@@ -60,7 +60,7 @@ export function parseSiteUrl(siteUrl) {
     return null;
   }
   const url = parseUrl(siteUrl.trim());
-  if (!url || !url.hostname || !isAllowedProtocol(url) || url.username || url.password || url.search || url.hash) {
+  if (!url?.hostname || !isAllowedProtocol(url) || url.username || url.password || url.search || url.hash) {
     return null;
   }
   const rawPath = url.pathname.replace(/\/+$/, '');

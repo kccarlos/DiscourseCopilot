@@ -159,7 +159,7 @@ export const modelRoutes = [
     }
     return null;
   },
-  (url, request) =>
+  (_url, request) =>
     request.method() === 'POST' && /bad/.test(credentialOf(request))
       ? { status: 401, body: { error: { message: 'Incorrect API key provided' } } }
       : null

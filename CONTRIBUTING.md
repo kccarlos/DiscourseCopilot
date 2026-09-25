@@ -8,7 +8,7 @@ Thanks for your interest in improving DiscourseCopilot!
 Before opening a pull request:
 
 1. Keep the change focused on one problem.
-2. Run `pnpm test` and `pnpm build`, and load `dist/` in Chrome to check the change by hand.
+2. Run `pnpm test`, `pnpm check` (lint + format check; `pnpm format` fixes formatting) and `pnpm build`, and load `dist/` in Chrome to check the change by hand. CI runs the same checks.
 3. Add or update tests for new logic.
 4. Describe what changed and how you verified it in the pull request.
 

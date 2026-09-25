@@ -36,7 +36,7 @@ function parseUrl(value) {
 // ignore ports unless they name one): "https://forum.example.com/*".
 export function hostPatternForUrl(value) {
   const url = parseUrl(value);
-  if (!url || !url.hostname || (url.protocol !== 'https:' && url.protocol !== 'http:')) {
+  if (!url?.hostname || (url.protocol !== 'https:' && url.protocol !== 'http:')) {
     return '';
   }
   return `${url.protocol}//${url.hostname}/*`;

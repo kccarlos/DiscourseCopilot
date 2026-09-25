@@ -300,7 +300,7 @@ test('a context-limit error on the single pass falls back to hierarchical summar
 });
 
 test('a prompt-too-large error retries once with the minimal prompt', async () => {
-  const { fetch, requests } = mockFetch((request, count) =>
+  const { fetch, requests } = mockFetch((_request, count) =>
     count === 1
       ? jsonResponse({ error: { message: 'The initial prompt is greater than the context length' } }, 400)
       : jsonResponse({

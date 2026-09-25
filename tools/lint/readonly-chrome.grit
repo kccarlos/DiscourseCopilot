@@ -1,0 +1,5 @@
+// `chrome` is a read-only global (the extension API). Biome's
+// javascript.globals has no readonly flag, so reassigning it is caught here.
+`chrome = $value` as $assignment where {
+  register_diagnostic(span=$assignment, message="`chrome` is read-only: don't reassign the extension API global (stub it with globalThis.chrome in tests).")
+}

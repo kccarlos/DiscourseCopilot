@@ -483,7 +483,7 @@ test('the summary executor uses the task’s page limit and records the truncati
     db,
     broadcast: () => {},
     getTaskConfiguration: async task => ({ provider: 'openai', settings: { model: 'm' }, limits: task.limits }),
-    fetchTopicContent: async (siteUrl, topicId, onProgress, signal, options) => {
+    fetchTopicContent: async (_siteUrl, _topicId, _onProgress, _signal, options) => {
       fetched.push(options.maxPages);
       return {
         content: 'c',
@@ -519,7 +519,7 @@ test('the summary executor passes "every page" through and records no truncation
     db,
     broadcast: () => {},
     getTaskConfiguration: async task => ({ provider: 'openai', settings: { model: 'm' }, limits: task.limits }),
-    fetchTopicContent: async (siteUrl, topicId, onProgress, signal, options) => {
+    fetchTopicContent: async (_siteUrl, _topicId, _onProgress, _signal, options) => {
       fetched.push(options.maxPages);
       return {
         content: 'c',

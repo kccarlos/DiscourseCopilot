@@ -12,6 +12,7 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createXai } from '@ai-sdk/xai';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
+import { DiscourseCopilotLogger } from '../shared/logger.js';
 
 const { PROVIDER_CONFIGS } = DiscourseCopilotConstants;
 
@@ -69,7 +70,12 @@ export function getModel(provider, settings, { fetch } = {}) {
   const modelName = settings.model || config.defaultModel;
 
   if (provider === 'lmstudio') {
-    console.log('AI Service: Creating LM Studio client with URL:', settings.url || 'http://localhost:1234', 'model:', modelName);
+    DiscourseCopilotLogger.log(
+      'AI Service: Creating LM Studio client with URL:',
+      settings.url || 'http://localhost:1234',
+      'model:',
+      modelName
+    );
   }
 
   return client(modelName);

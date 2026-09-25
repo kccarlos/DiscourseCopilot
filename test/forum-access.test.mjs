@@ -48,13 +48,13 @@ function fakePermissions(initial = []) {
     request({ origins }) {
       calls.push(['request', origins]);
       if (this.answer) {
-        origins.forEach(origin => granted.add(origin));
+        for (const origin of origins) granted.add(origin);
       }
       return Promise.resolve(this.answer);
     },
     async remove({ origins }) {
       calls.push(['remove', origins]);
-      origins.forEach(origin => granted.delete(origin));
+      for (const origin of origins) granted.delete(origin);
       return true;
     },
     async getAll() {
@@ -89,7 +89,7 @@ function fakeScripting() {
     },
     async unregisterContentScripts({ ids }) {
       calls.push('unregister');
-      ids.forEach(id => registered.delete(id));
+      for (const id of ids) registered.delete(id);
     },
     async executeScript({ target, files }) {
       if (this.failTabs.has(target.tabId)) throw new Error('Cannot access contents of the page');

@@ -78,11 +78,13 @@ export function installChromeStub(options) {
       request({ origins }) {
         window.__permissionRequests.push(origins);
         const answer = window.__permissionAnswer;
-        if (answer) origins.forEach(o => window.__grant(o));
+        if (answer) {
+          for (const o of origins) window.__grant(o);
+        }
         return Promise.resolve(answer);
       },
       async remove({ origins }) {
-        origins.forEach(o => granted.delete(o));
+        for (const o of origins) granted.delete(o);
         setTimeout(() => {
           for (const fn of listeners.onRemoved) fn({ origins, permissions: [] });
         }, 0);

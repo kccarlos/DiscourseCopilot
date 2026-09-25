@@ -1,0 +1,22 @@
+// No code built from strings in extension code: the Chrome Web Store forbids
+// dynamically evaluated code in MV3 extensions. `eval` itself is covered by
+// Biome's security/noGlobalEval.
+or {
+  `new Function($args)` as $call where {
+    register_diagnostic(span=$call, message="Don't use the Function constructor: the Chrome Web Store forbids dynamically evaluated code.")
+  },
+  `Function($args)` as $call where {
+    register_diagnostic(span=$call, message="Don't use the Function constructor: the Chrome Web Store forbids dynamically evaluated code.")
+  },
+  `$timer($code, $rest)` as $call where {
+    $timer <: or {
+      `setTimeout`,
+      `setInterval`
+    },
+    $code <: or {
+      JsStringLiteralExpression(),
+      JsTemplateExpression()
+    },
+    register_diagnostic(span=$call, message="Pass a function, not a string, to setTimeout/setInterval: a string is evaluated as code.")
+  }
+}

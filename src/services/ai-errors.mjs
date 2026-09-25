@@ -2,6 +2,8 @@
 // strategies (pure): cancellation, "prompt too large" and token/context
 // limit errors, token estimates, and splitting a topic into OP + replies.
 
+import { DiscourseCopilotLogger } from '../shared/logger.js';
+
 /**
  * Preserves the caller's cancellation reason and stops fallback/retry work.
  */
@@ -31,11 +33,11 @@ export function isPromptTooLargeError(error) {
 export function isTokenLimitError(error) {
   // Check for explicit flag
   if (error.possibleTokenLimit) {
-    console.log('AI Service: Detected possible token limit (no content generated)');
+    DiscourseCopilotLogger.log('AI Service: Detected possible token limit (no content generated)');
     return true;
   }
 
-  const errorMsg = (error.message?.toLowerCase() || '') + ' ' + (error.originalError?.message?.toLowerCase() || '');
+  const errorMsg = `${error.message?.toLowerCase() || ''} ${error.originalError?.message?.toLowerCase() || ''}`;
   const isTokenError =
     errorMsg.includes('context')
     || errorMsg.includes('token')
@@ -51,7 +53,7 @@ export function isTokenLimitError(error) {
     || errorMsg.includes('no content generated'); // Fallback when SDK doesn't propagate error
 
   if (isTokenError) {
-    console.log('AI Service: Detected token limit error:', errorMsg.substring(0, 200));
+    DiscourseCopilotLogger.log('AI Service: Detected token limit error:', errorMsg.substring(0, 200));
   }
   return isTokenError;
 }

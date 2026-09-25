@@ -13,6 +13,7 @@ import { normalizeResponseLanguage } from '../shared/response-language.mjs';
 import { estimateTokens, isTokenLimitError, throwIfAborted } from './ai-errors.mjs';
 import { streamAnswer } from './text-stream.mjs';
 import { DEFAULT_MAX_RETRIES, hierarchicalSummary, singlePassSummary, summarizeWithRetry } from './summary-strategies.mjs';
+import { DiscourseCopilotLogger } from '../shared/logger.js';
 
 export { toInstructionsAndMessages } from './text-stream.mjs';
 
@@ -60,8 +61,8 @@ export class AIService {
       throw new Error('Provider and settings are required');
     }
 
-    console.log('AI Service: Provider:', provider);
-    console.log('AI Service: API Key present:', !!settings.apiKey);
+    DiscourseCopilotLogger.log('AI Service: Provider:', provider);
+    DiscourseCopilotLogger.log('AI Service: API Key present:', !!settings.apiKey);
     const model = this.getModel(provider, settings);
     const configuredSystemPrompt = options.systemPrompt ?? settings.systemPrompt;
     const customSystemPrompt = normalizeCustomSystemPrompt(configuredSystemPrompt);
@@ -83,12 +84,12 @@ export class AIService {
       });
 
     const estimatedTokens = estimateTokens(content);
-    console.log(`AI Service: Content length: ${content.length} chars, ~${estimatedTokens} tokens`);
+    DiscourseCopilotLogger.log(`AI Service: Content length: ${content.length} chars, ~${estimatedTokens} tokens`);
 
     // Try single-pass first, fall back to hierarchical if token limit exceeded
     try {
       onProgress?.({ step: 'single-pass', message: '🚀 Generating summary...' });
-      console.log('AI Service: Attempting single-pass summarization...');
+      DiscourseCopilotLogger.log('AI Service: Attempting single-pass summarization...');
       const result = await singlePassSummary(model, content, {
         onStream,
         systemPrompt,
@@ -107,7 +108,7 @@ export class AIService {
       throwIfAborted(abortSignal);
       console.error('AI Service: Single-pass failed:', error.message);
       if (isTokenLimitError(error)) {
-        console.log('AI Service: Token limit hit, switching to hierarchical summarization...');
+        DiscourseCopilotLogger.log('AI Service: Token limit hit, switching to hierarchical summarization...');
         onProgress?.({ step: 'hierarchical', message: '📊 Content too long, using hierarchical mode...' });
         return hierarchical();
       }

@@ -23,7 +23,7 @@ export async function startServer(mounts) {
     const urlPath = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
     const mount = entries.find(([prefix]) => urlPath.startsWith(prefix));
     const file = mount && path.join(mount[1], urlPath.slice(mount[0].length));
-    if (!file || !file.startsWith(mount[1])) {
+    if (!file?.startsWith(mount[1])) {
       res.writeHead(404);
       res.end();
       return;

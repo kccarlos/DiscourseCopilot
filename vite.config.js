@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import { resolve } from 'path';
+import { resolve } from 'node:path';
 import webExtension from 'vite-plugin-web-extension';
 
 export default defineConfig({

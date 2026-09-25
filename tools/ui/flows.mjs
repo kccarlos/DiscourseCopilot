@@ -2020,7 +2020,7 @@ scenario(
     store: configuredStore,
     granted: ['https://meta.discourse.org/*', 'https://community.openai.com/*']
   },
-  async ({ page, check, shot, outDir }) => {
+  async ({ page, check, outDir }) => {
     await seedHistory(page, savedSessionHistory());
     await page.reload();
     await page.waitForTimeout(800);
@@ -2087,7 +2087,7 @@ async function runScenario(browser, base, { name, pagePath, options, steps }, { 
   const check = (label, ok, detail = '') => {
     checks.push({ label, ok: Boolean(ok), detail });
   };
-  const shot = async suffix => page.screenshot({ path: path.join(outDir, `${name}${suffix ? '-' + suffix : ''}.png`) });
+  const shot = async suffix => page.screenshot({ path: path.join(outDir, `${name}${suffix ? `-${suffix}` : ''}.png`) });
   try {
     check('brand images load', await brandImagesLoaded(page));
     const brokenIcons = await brokenIconLinks(page);

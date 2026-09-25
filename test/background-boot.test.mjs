@@ -85,7 +85,7 @@ test('background service registers queue and action listeners during startup', a
         return { origins: [...granted], permissions: [] };
       },
       async remove({ origins }) {
-        origins.forEach(origin => granted.delete(origin));
+        for (const origin of origins) granted.delete(origin);
         return true;
       },
       onAdded: { addListener: listener => permissionListeners.added.push(listener) },

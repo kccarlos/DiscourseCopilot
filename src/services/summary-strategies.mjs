@@ -15,6 +15,7 @@ import { generateText, streamText } from 'ai';
 import { FULL_PROMPTS, getHierarchicalPrompt, getMinimalPromptFor, getPrompt } from './prompts.js';
 import { samplingOptions } from '../shared/provider-setup.mjs';
 import { estimateTokens, isPromptTooLargeError, isTokenLimitError, parseForumContent, throwIfAborted } from './ai-errors.mjs';
+import { DiscourseCopilotLogger } from '../shared/logger.js';
 
 export const DEFAULT_MAX_RETRIES = 3;
 
@@ -137,11 +138,11 @@ export async function hierarchicalSummary(
   const finalPrompt = getHierarchicalPrompt('final', customSystemPrompt, language);
   const retry = { abortSignal, operationState, maxRetries };
 
-  console.log(`AI Service: Parsed content - OP length: ${op.length} chars, Comments: ${comments.length} items`);
+  DiscourseCopilotLogger.log(`AI Service: Parsed content - OP length: ${op.length} chars, Comments: ${comments.length} items`);
 
   // If parsing produced no content, fall back to treating entire content as OP
   if (!op && comments.length === 0) {
-    console.log('AI Service: Parsing produced no results, summarizing with retry...');
+    DiscourseCopilotLogger.log('AI Service: Parsing produced no results, summarizing with retry...');
     onProgress?.({ step: 'fallback', message: '📝 Summarizing content...' });
     return summarizeWithRetry(model, opPrompt, content, { ...retry, note: operationState.coverageNote });
   }
@@ -163,7 +164,7 @@ export async function hierarchicalSummary(
   }
 
   // allSettled: a failed half still leaves the other one to work with.
-  console.log(`AI Service: Running ${tasks.length} tasks in parallel...`);
+  DiscourseCopilotLogger.log(`AI Service: Running ${tasks.length} tasks in parallel...`);
   const settledResults = await Promise.allSettled(tasks);
   throwIfAborted(abortSignal);
 
@@ -189,7 +190,7 @@ export async function hierarchicalSummary(
   }
 
   onProgress?.({ step: 'final', message: '✨ Assembling final summary...' });
-  console.log('AI Service: Assembling final summary...');
+  DiscourseCopilotLogger.log('AI Service: Assembling final summary...');
   return assembleFinalSummary(model, opSummary, commentsSummary, {
     onStream,
     finalPrompt,
@@ -212,7 +213,7 @@ export async function summarizeCommentsWithFallback(
   const combinePrompt = prompts.combinePrompt || FULL_PROMPTS.combine;
 
   try {
-    console.log('AI Service: Attempting to summarize all comments...');
+    DiscourseCopilotLogger.log('AI Service: Attempting to summarize all comments...');
     return await summarizeWithRetry(model, commentsPrompt, commentsText, {
       abortSignal,
       operationState,
@@ -222,7 +223,7 @@ export async function summarizeCommentsWithFallback(
   } catch (error) {
     throwIfAborted(abortSignal);
     if (isTokenLimitError(error) && comments.length > 1) {
-      console.log('AI Service: Comments too long, using parallel map-reduce...');
+      DiscourseCopilotLogger.log('AI Service: Comments too long, using parallel map-reduce...');
       onProgress?.({ step: 'map-reduce', message: '📊 Splitting comments for parallel processing...' });
       return mapReduceCommentsParallel(model, comments, {
         onProgress,
@@ -260,7 +261,7 @@ export async function mapReduceCommentsParallel(
   const firstHalf = comments.slice(0, mid);
   const secondHalf = comments.slice(mid);
 
-  console.log(`AI Service: Parallel split ${comments.length} comments into ${firstHalf.length} + ${secondHalf.length}`);
+  DiscourseCopilotLogger.log(`AI Service: Parallel split ${comments.length} comments into ${firstHalf.length} + ${secondHalf.length}`);
   onProgress?.({ step: 'map-reduce', message: `📊 Processing ${firstHalf.length} + ${secondHalf.length} comments in parallel...` });
 
   const processHalf = async half => {
@@ -284,7 +285,7 @@ export async function mapReduceCommentsParallel(
   const [summary1, summary2] = await Promise.all([processHalf(firstHalf), processHalf(secondHalf)]);
   throwIfAborted(abortSignal);
 
-  console.log('AI Service: Combining parallel chunk summaries...');
+  DiscourseCopilotLogger.log('AI Service: Combining parallel chunk summaries...');
   const combinedInput = `**Part 1:**\n${summary1}\n\n---\n\n**Part 2:**\n${summary2}`;
   return summarizeWithRetry(model, combinePrompt, combinedInput, retry);
 }
@@ -313,7 +314,9 @@ export async function summarizeWithRetry(
   const promptType = useMinimalPrompts ? 'minimal' : 'full';
   const retry = { operationState, abortSignal, note, maxRetries };
 
-  console.log(`AI Service: Attempt ${attempt}/${maxRetries} [${promptType}] - ${content.length} chars, ~${estimatedTokens} tokens`);
+  DiscourseCopilotLogger.log(
+    `AI Service: Attempt ${attempt}/${maxRetries} [${promptType}] - ${content.length} chars, ~${estimatedTokens} tokens`
+  );
 
   const actualPrompt = useMinimalPrompts ? getMinimalPromptFor(systemPrompt, operationState.responseLanguage) : systemPrompt;
 
@@ -332,7 +335,7 @@ export async function summarizeWithRetry(
     console.error(`AI Service: Attempt ${attempt} failed:`, error.message);
 
     if (isPromptTooLargeError(error) && !useMinimalPrompts) {
-      console.log('AI Service: System prompt too large for model, switching to minimal prompts...');
+      DiscourseCopilotLogger.log('AI Service: System prompt too large for model, switching to minimal prompts...');
       operationState.useMinimalPrompts = true;
       return summarizeWithRetry(model, systemPrompt, content, { ...retry, attempt: 1 });
     }
@@ -340,10 +343,10 @@ export async function summarizeWithRetry(
     if (isTokenLimitError(error) && attempt < maxRetries) {
       if (content.length > minContentLength) {
         const truncatedContent = content.substring(0, Math.floor(content.length / 2));
-        console.log(`AI Service: Retrying with truncated content (${truncatedContent.length} chars)...`);
+        DiscourseCopilotLogger.log(`AI Service: Retrying with truncated content (${truncatedContent.length} chars)...`);
         return summarizeWithRetry(model, systemPrompt, truncatedContent, { ...retry, attempt: attempt + 1 });
       } else if (!useMinimalPrompts) {
-        console.log('AI Service: Content minimal, trying with minimal prompts...');
+        DiscourseCopilotLogger.log('AI Service: Content minimal, trying with minimal prompts...');
         operationState.useMinimalPrompts = true;
         return summarizeWithRetry(model, systemPrompt, content, { ...retry, attempt: 1 });
       }
@@ -365,14 +368,13 @@ export async function assembleFinalSummary(
 ) {
   throwIfAborted(abortSignal);
   if (!commentsSummary) {
-    const result =
-      opSummary + '\n\n## 💬 Community Response Analysis\n*No comments available.*\n\n## 🎯 Key Takeaways\n*Based on original post only.*';
+    const result = `${opSummary}\n\n## 💬 Community Response Analysis\n*No comments available.*\n\n## 🎯 Key Takeaways\n*Based on original post only.*`;
     onStream?.(result);
     return result;
   }
 
   if (!opSummary) {
-    const result = '## 📝 Original Post Summary\n*Original post not available.*\n\n' + commentsSummary;
+    const result = `## 📝 Original Post Summary\n*Original post not available.*\n\n${commentsSummary}`;
     onStream?.(result);
     return result;
   }

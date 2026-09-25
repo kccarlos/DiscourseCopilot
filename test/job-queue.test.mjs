@@ -64,7 +64,7 @@ test('cancels queued and running work with durable terminal states', async () =>
   const queue = new JobQueue({
     concurrency: 1,
     execute: async (_record, { signal }) => {
-      await new Promise((resolve, reject) => {
+      await new Promise((_resolve, reject) => {
         signal.addEventListener('abort', () => reject(signal.reason), { once: true });
       });
     },

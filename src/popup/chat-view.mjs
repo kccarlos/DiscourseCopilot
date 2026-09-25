@@ -384,8 +384,7 @@ export class ChatView {
       help.textContent = `The full discussion fits (${sourceLength.toLocaleString()} characters).`;
     } else {
       const excess = sourceLength - limit;
-      help.textContent =
-        `The discussion exceeds this limit by ${excess.toLocaleString()} characters. ` + 'The opening and latest replies will be kept.';
+      help.textContent = `The discussion exceeds this limit by ${excess.toLocaleString()} characters. The opening and latest replies will be kept.`;
     }
     const includedCharacters = sourceLength ? Math.min(sourceLength, limit) : limit;
     warning.classList.toggle('hidden', includedCharacters <= LARGE_CONTEXT_CHARS);

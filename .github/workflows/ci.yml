@@ -13,6 +13,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    name: Lint and format
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6 # version read from package.json "packageManager"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Lint + format check in one read-only pass (same config as `pnpm check`);
+      # fails on any lint error or unformatted file.
+      - name: Biome
+        run: pnpm exec biome ci --reporter=github .
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -31,6 +53,7 @@ jobs:
 
       - name: Check manifest.json / package.json versions match
         run: |
+          # shellcheck disable=SC2016 # single quotes on purpose: ${m}/${p} are JS template expressions
           node -e '
             const fs = require("fs");
             const m = JSON.parse(fs.readFileSync("manifest.json", "utf8")).version;
