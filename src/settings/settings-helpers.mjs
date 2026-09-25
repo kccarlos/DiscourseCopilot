@@ -38,3 +38,5 @@ export function buildModelChoices(models = [], selectedModel = '') {
 export function isLatestRequest(requestIds, provider, requestId) {
   return requestIds[provider] === requestId;
 }
+
+export const plural = (count, one, many = `${one}s`) => `${count.toLocaleString('en-US')} ${count === 1 ? one : many}`;

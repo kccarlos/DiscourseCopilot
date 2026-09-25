@@ -14,7 +14,7 @@ import {
 } from '../src/services/prompts.js';
 import { buildFollowUpMessages } from '../src/services/chat-context.mjs';
 import { createTopicExecutors } from '../src/background/topic-executors.mjs';
-import { TopicSessionDatabase } from '../src/popup/topic-session-db.mjs';
+import { TopicSessionDatabase } from '../src/shared/topic-session-db.mjs';
 import { createTaskRecord } from '../src/shared/task-record.mjs';
 
 const SITE = 'https://forum.example.com';

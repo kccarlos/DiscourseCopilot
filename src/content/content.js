@@ -1,4 +1,4 @@
-import { extractForumTopicId } from './topic-route.mjs';
+import { extractForumTopicId } from '../shared/topic-route.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import {
   buildTopicKey,

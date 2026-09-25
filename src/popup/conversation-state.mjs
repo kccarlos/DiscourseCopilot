@@ -1,4 +1,4 @@
-import { extractForumTopicId } from '../content/topic-route.mjs';
+import { extractForumTopicId } from '../shared/topic-route.mjs';
 import {
   buildTopicKey,
   forumDisplayName,

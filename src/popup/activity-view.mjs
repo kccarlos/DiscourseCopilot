@@ -4,34 +4,28 @@
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { TASK_STATUS, TASK_TYPE } from '../shared/task-record.mjs';
 import { siteUrlFromPageUrl } from '../shared/forum-site.mjs';
-import { topicSessionDatabase } from './topic-session-db.mjs';
+import { topicSessionDatabase } from '../shared/topic-session-db.mjs';
 import { resolveRetention } from '../shared/preferences.mjs';
+import { partitionTasks, retentionCopy } from './ui-state.mjs';
 import {
   agentRecentWindowMs,
-  cleanTopicTitle,
   getDefaultActivityTab,
-  groupByForum,
-  partitionTasks,
-  retentionCopy,
   selectSavedAgentActivities
-} from './ui-state.mjs';
-import { applyForumHue, createForumAvatar } from './forum-ui.mjs';
+} from './agent-runs.mjs';
+import { cleanTopicTitle } from './forum-names.mjs';
+import { ForumGroups, emptyMessage } from './forum-groups.mjs';
 import { openForumTarget } from './forum-tabs.mjs';
+import { announce } from './status-line.mjs';
 import {
   createAgentTaskCard,
   createSavedAgentCard,
   createSavedTopicCard,
-  createTopicTaskCard
+  createTopicTaskCard,
+  savedAgentKey,
+  savedTopicKey
 } from './activity-cards.mjs';
 
 const $ = id => document.getElementById(id);
-
-function emptyMessage(className, text) {
-  const paragraph = document.createElement('p');
-  paragraph.className = className;
-  paragraph.textContent = text;
-  return paragraph;
-}
 
 export class ActivityView {
   /**
@@ -43,24 +37,39 @@ export class ActivityView {
    * @param {object} deps.sessions SessionStore
    * @param {object} deps.agent AgentController
    * @param {object} deps.config ConfigStore (history retention for the Saved tab)
+   * @param {object} deps.undo UndoToast
    * @param {object} deps.hooks cancelTask, isCurrentTopic, showCurrentTopic,
    *   showCreatedTab, expectTopicMetadata, forgetTopicMetadata,
-   *   resetCurrentSession
+   *   resetCurrentSession, reloadCurrentSession
    */
-  constructor({ state, tasks, forums, sessions, agent, config, hooks }) {
+  constructor({ state, tasks, forums, sessions, agent, config, undo, hooks }) {
     this.config = config;
     this.state = state;
     this.tasks = tasks;
     this.forums = forums;
     this.sessions = sessions;
     this.agent = agent;
+    this.undo = undo;
     this.hooks = hooks;
     this.activityTab = 'tasks';
     this.savedEntries = [];
     this.savedItems = [];
-    this.forumGroupState = new Map();
-    this.forumFilter = '';
-    this.forumFilterSignature = '';
+    this.groups = new ForumGroups({
+      state,
+      forums,
+      getRecords: () => [
+        ...this.tasks.values().map(task => ({
+          siteUrl: task.siteUrl,
+          forumName: task.forumName,
+          updatedAt: task.updatedAt || task.createdAt
+        })),
+        ...this.savedItems
+      ],
+      onFilterChange: () => {
+        this.renderTaskList();
+        void this.loadSavedList();
+      }
+    });
     this.detailReturnsToTopic = false;
   }
 
@@ -189,7 +198,7 @@ export class ActivityView {
       $('savedStatus').classList.add('hidden');
       document.querySelector('.tab-list').classList.add('hidden');
       $('forumFilter').classList.add('hidden');
-      this.forumFilterSignature = '';
+      this.groups.invalidateFilter();
       $('tasksPanel').classList.add('hidden');
       $('summariesPanel').classList.add('hidden');
       $('agentDetailView').classList.remove('hidden');
@@ -267,7 +276,7 @@ export class ActivityView {
       this.savedEntries = entries;
       this.savedItems = savedItems;
       this.forums.refresh();
-      this.renderForumFilter();
+      this.groups.renderFilter();
       $('savedCount').textContent = String(savedItems.length);
       list.replaceChildren();
       if (!savedItems.length) {
@@ -278,7 +287,7 @@ export class ActivityView {
         return;
       }
 
-      this.renderForumGroups(list, savedItems, 'saved', item => item.kind === 'agent'
+      this.groups.render(list, savedItems, 'saved', item => item.kind === 'agent'
         ? this.createSavedAgentCard(item.activity)
         : this.createSavedTopicCard(item.entry));
     } catch (error) {
@@ -299,7 +308,7 @@ export class ActivityView {
     $('taskCount').textContent = String(active.length);
     $('recentTaskCount').textContent = String(recent.length);
     this.forums.refresh();
-    this.renderForumFilter();
+    this.groups.renderFilter();
 
     if (!active.length) {
       activeList.appendChild(emptyMessage(
@@ -312,155 +321,13 @@ export class ActivityView {
       .filter(task => task.status === TASK_STATUS.QUEUED)
       .sort((left, right) => left.createdAt - right.createdAt)
       .map(task => task.id);
-    this.renderForumGroups(activeList, active, 'active', task =>
+    this.groups.render(activeList, active, 'active', task =>
       this.createTaskCard(task, queuedIds.indexOf(task.id) + 1));
-    this.renderForumGroups(recentList, recent, 'recent', task =>
+    this.groups.render(recentList, recent, 'recent', task =>
       this.createTaskCard(task, 0));
     $('recentTasks').classList.toggle('hidden', !recent.length);
     if (focusKey) {
       document.querySelector(`[data-focus-key="${CSS.escape(focusKey)}"]`)?.focus();
-    }
-  }
-
-  isForumGroupExpanded(listKey, group, groupCount) {
-    if (this.forumFilter) {
-      return true;
-    }
-    const stored = this.forumGroupState.get(`${listKey}:${group.siteUrl}`);
-    return typeof stored === 'boolean'
-      ? stored
-      : group.isCurrent || groupCount <= 3;
-  }
-
-  renderForumGroups(container, items, listKey, createCard) {
-    const filter = this.forumFilter;
-    const visible = filter
-      ? items.filter(item => item.siteUrl === filter)
-      : items;
-    const groups = groupByForum(visible, this.state.pageContext?.siteUrl, {
-      names: this.forums.names
-    });
-    if (filter && items.length && !visible.length) {
-      container.appendChild(emptyMessage('saved-empty', `Nothing from ${this.forums.label(filter)} here.`));
-      return;
-    }
-
-    groups.forEach((group, index) => {
-      const section = document.createElement('section');
-      section.className = 'forum-group';
-      section.classList.toggle('current', group.isCurrent);
-      const bodyId = `forum-group-${listKey}-${index}`;
-      const expanded = this.isForumGroupExpanded(listKey, group, groups.length);
-      const forumName = group.siteUrl ? this.forums.label(group.siteUrl, group.forumName) : group.forumName;
-
-      const toggle = document.createElement('button');
-      toggle.type = 'button';
-      toggle.className = 'forum-group-toggle';
-      toggle.dataset.focusKey = `${listKey}:${group.siteUrl}`;
-      toggle.setAttribute('aria-expanded', String(expanded));
-      toggle.setAttribute('aria-controls', bodyId);
-      toggle.setAttribute(
-        'aria-label',
-        `${forumName}${group.isCurrent ? ', this forum' : ''}, ${group.items.length} item${group.items.length === 1 ? '' : 's'}`
-      );
-
-      const copy = document.createElement('span');
-      copy.className = 'forum-group-copy';
-      const name = document.createElement('strong');
-      name.textContent = forumName;
-      copy.appendChild(name);
-      if (group.hostname && group.hostname !== forumName) {
-        const host = document.createElement('span');
-        host.className = 'forum-group-host';
-        host.textContent = group.hostname;
-        copy.appendChild(host);
-      }
-      toggle.append(createForumAvatar(group.siteUrl, forumName, group.isCurrent), copy);
-      if (group.isCurrent) {
-        const badge = document.createElement('span');
-        badge.className = 'forum-current-badge';
-        badge.textContent = 'This forum';
-        toggle.appendChild(badge);
-      }
-      const count = document.createElement('span');
-      count.className = 'count-badge';
-      count.textContent = String(group.items.length);
-      const chevron = document.createElement('span');
-      chevron.className = 'chevron';
-      chevron.setAttribute('aria-hidden', 'true');
-      toggle.append(count, chevron);
-
-      const body = document.createElement('div');
-      body.id = bodyId;
-      body.className = 'forum-group-items';
-      body.hidden = !expanded;
-      for (const item of group.items) {
-        body.appendChild(createCard(item));
-      }
-      toggle.addEventListener('click', () => {
-        const next = toggle.getAttribute('aria-expanded') !== 'true';
-        this.forumGroupState.set(`${listKey}:${group.siteUrl}`, next);
-        toggle.setAttribute('aria-expanded', String(next));
-        body.hidden = !next;
-      });
-      section.append(toggle, body);
-      container.appendChild(section);
-    });
-  }
-
-  renderForumFilter() {
-    const container = $('forumFilter');
-    const records = [
-      ...this.tasks.values().map(task => ({
-        siteUrl: task.siteUrl,
-        forumName: task.forumName,
-        updatedAt: task.updatedAt || task.createdAt
-      })),
-      ...this.savedItems
-    ].filter(record => record.siteUrl);
-    const groups = groupByForum(records, this.state.pageContext?.siteUrl, {
-      names: this.forums.names
-    });
-    if (this.forumFilter && !groups.some(group => group.siteUrl === this.forumFilter)) {
-      this.forumFilter = '';
-    }
-    const options = groups.length >= 2
-      ? [
-          { siteUrl: '', label: 'All' },
-          ...groups.map(group => ({
-            siteUrl: group.siteUrl,
-            label: this.forums.label(group.siteUrl, group.forumName)
-          }))
-        ]
-      : [];
-    const signature = JSON.stringify([this.forumFilter, options]);
-    if (signature === this.forumFilterSignature) {
-      return;
-    }
-    this.forumFilterSignature = signature;
-    container.replaceChildren();
-    container.classList.toggle('hidden', !options.length);
-    for (const option of options) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'forum-filter-chip';
-      button.dataset.focusKey = `filter:${option.siteUrl}`;
-      button.setAttribute('aria-pressed', String(option.siteUrl === this.forumFilter));
-      if (option.siteUrl) {
-        applyForumHue(button, option.siteUrl);
-        const dot = document.createElement('span');
-        dot.className = 'forum-filter-dot';
-        dot.setAttribute('aria-hidden', 'true');
-        button.appendChild(dot);
-      }
-      button.append(option.label);
-      button.addEventListener('click', () => {
-        this.forumFilter = option.siteUrl;
-        this.renderTaskList();
-        void this.loadSavedList();
-        container.querySelector(`[data-focus-key="${CSS.escape(`filter:${option.siteUrl}`)}"]`)?.focus();
-      });
-      container.appendChild(button);
     }
   }
 
@@ -503,7 +370,7 @@ export class ActivityView {
     return createSavedAgentCard(activity, {
       onOpen: value => void this.openAgentActivity(value),
       onKeep: (value, button) => void this.agent.setKept(value, value.kept !== true, button),
-      onDelete: value => void this.agent.deleteActivity(value),
+      onDelete: value => void this.deleteSavedAgent(value),
       retention: this.retention
     });
   }
@@ -564,22 +431,73 @@ export class ActivityView {
     }
   }
 
+  // ---------- Deleting (with Undo) ----------
+
+  // Visible saved cards, in order.
+  savedCards() {
+    return [...$('savedList').querySelectorAll('[data-saved-key]')]
+      .filter(card => card.offsetParent !== null);
+  }
+
+  savedItemIndex(key) {
+    return this.savedCards().findIndex(card => card.dataset.savedKey === key);
+  }
+
+  // Focuses the saved card `key`, else the card now at `index` (the next
+  // one after a delete), else the active Activity tab.
+  focusSavedItem(key = '', index = -1) {
+    const cards = this.savedCards();
+    const card = (key && cards.find(item => item.dataset.savedKey === key))
+      || (index >= 0 && cards.length ? cards[Math.min(index, cards.length - 1)] : null);
+    const target = card?.querySelector('button:not(:disabled)')
+      || $(this.activityTab === 'tasks' ? 'tasksTab' : 'summariesTab');
+    target?.focus({ preventScroll: !card });
+  }
+
+  deleteSavedAgent(activity) {
+    const index = this.savedItemIndex(savedAgentKey(activity));
+    return this.agent.deleteActivity(activity, {
+      from: 'saved',
+      afterDelete: () => this.focusSavedItem('', index)
+    });
+  }
+
+  // Deletes the saved summary and chat at once; Undo puts the stored copy back.
   async deleteSavedTopic(entry) {
     const title = cleanTopicTitle(entry.title, this.forums.label(entry.siteUrl, entry.forumName));
-    if (!window.confirm(`Delete the saved summary and chat for “${title}”?`)) {
-      return;
-    }
-
+    const index = this.savedItemIndex(savedTopicKey(entry));
+    let copy;
     try {
-      await topicSessionDatabase.delete(entry.topicKey);
-      this.sessions.forget(entry.topicKey);
-      if (this.hooks.isCurrentTopic(entry.topicKey)) {
-        this.hooks.resetCurrentSession();
-      }
-      await this.loadSavedList();
+      copy = await topicSessionDatabase.take(entry.topicKey);
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Unable to delete saved summary:', error);
       this.showSavedStatus(`Unable to delete: ${error.message}`, 'error');
+      return;
     }
+    this.sessions.forget(entry.topicKey);
+    if (this.hooks.isCurrentTopic(entry.topicKey)) {
+      this.hooks.resetCurrentSession();
+    }
+    await this.loadSavedList();
+    this.focusSavedItem('', index);
+    if (copy) {
+      this.undo.offer({
+        message: `Deleted the saved summary and chat for “${title}”`,
+        undo: () => this.restoreSavedTopic(copy, title)
+      });
+    }
+  }
+
+  async restoreSavedTopic(copy, title) {
+    const session = await topicSessionDatabase.restore(copy);
+    this.sessions.forget(session.topicKey);
+    if (this.hooks.isCurrentTopic(session.topicKey)) {
+      await this.hooks.reloadCurrentSession();
+    }
+    if (this.state.savedViewOpen && !this.state.agentDetailOpen) {
+      await this.loadSavedList();
+      this.focusSavedItem(savedTopicKey(session));
+    }
+    announce($('agentAnnouncer'), `Restored the saved summary and chat for “${title}”`);
   }
 }

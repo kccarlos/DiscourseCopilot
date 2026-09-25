@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { IDBKeyRange, indexedDB } from 'fake-indexeddb';
 
-import { TopicSessionDatabase } from '../src/popup/topic-session-db.mjs';
+import { TopicSessionDatabase } from '../src/shared/topic-session-db.mjs';
 import {
   CHAT_RETENTION_MS,
   createTopicSession
-} from '../src/popup/topic-session.mjs';
+} from '../src/shared/topic-session.mjs';
 import { buildTopicKey } from '../src/shared/forum-site.mjs';
 import {
   TASK_RETENTION_MS,
@@ -236,6 +236,62 @@ test('cleans terminal task records after one day but preserves queued work', asy
   assert.equal(await database.cleanupTasks(), 1);
   assert.equal(await database.getTask('done'), null);
   assert.equal((await database.getTask('queued')).status, TASK_STATUS.QUEUED);
+});
+
+test('take() deletes a saved topic and restore() puts back exactly what was stored', async () => {
+  let now = 5000;
+  const database = createDatabase(`topic-take-${crypto.randomUUID()}`, { now: () => now });
+  const kept = { ...savedSession('123', 1000), kept: true, lastAccessedAt: 2000 };
+  await database.save(kept);
+  const [indexBefore] = await database.list();
+
+  const copy = await database.take(key('123'));
+  assert.equal(copy.summary, 'summary 123');
+  assert.equal(copy.history.length, 2);
+  assert.deepEqual(await database.list(), []);
+  assert.equal(await database.take(key('123')), null, 'nothing left to take');
+
+  now = 9000;
+  const restored = await database.restore(copy);
+  assert.equal(restored.topicKey, key('123'));
+  const [indexAfter] = await database.list();
+  assert.deepEqual(indexAfter, indexBefore, 'index entry, timestamps and kept flag unchanged');
+  const session = await database.get(key('123'));
+  assert.equal(session.summary, 'summary 123');
+  assert.equal(session.kept, true);
+  assert.equal(session.updatedAt, 1000);
+  assert.deepEqual(session.rawPages, kept.rawPages);
+
+  await assert.rejects(database.restore({ summary: 'no topic' }), /can no longer be restored/);
+});
+
+test('takeAgentActivity() and restoreAgentActivity() round-trip the stored record', async () => {
+  const database = createDatabase(`agent-take-${crypto.randomUUID()}`, { now: () => 1000 });
+  const activity = normalizeAgentActivity({
+    activityId: 'run-9',
+    taskId: 'task-9',
+    agentRunId: 'run-9',
+    question: 'Where is the FAQ?',
+    status: AGENT_ACTIVITY_STATUS.COMPLETED,
+    completedAt: 900,
+    lastOpenedAt: 950,
+    kept: true,
+    answer: 'Here [S1].',
+    sourceRefs: [{ sourceId: 'S1', topicId: '1', title: 'FAQ', url: 'https://www.uscardforum.com/t/faq/1' }]
+  }, 1000);
+  await database.saveAgentActivity(activity);
+  const before = await database.getAgentActivity('run-9');
+
+  const copy = await database.takeAgentActivity('run-9');
+  assert.equal(copy.activityId, 'run-9');
+  assert.equal(await database.getAgentActivity('run-9'), null);
+  assert.deepEqual(await database.listAgentActivities(), []);
+  assert.equal(await database.takeAgentActivity('run-9'), null);
+
+  const restored = await database.restoreAgentActivity(copy);
+  assert.deepEqual(restored, before);
+  assert.deepEqual(await database.getAgentActivity('run-9'), before);
+  await assert.rejects(database.restoreAgentActivity(null), /can no longer be restored/);
 });
 
 test('persists, indexes, keeps, and expires Agent activities independently', async () => {

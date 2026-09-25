@@ -1006,6 +1006,31 @@
       flex: 0 0 auto;
     }
 
+    .reset-confirm {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--s-danger-line);
+      border-radius: 8px;
+      background: var(--s-danger-bg);
+    }
+
+    .reset-confirm[hidden] {
+      display: none;
+    }
+
+    .reset-confirm-text {
+      margin: 0 0 12px;
+      color: var(--s-ink-strong);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .reset-confirm-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
     /* ---------- Sticky save bar ---------- */
 
     .action-bar {
@@ -1085,7 +1110,8 @@
         flex-direction: column;
       }
 
-      .danger-row {
+      .danger-row,
+      .reset-confirm-actions {
         align-items: stretch;
         flex-direction: column;
       }
@@ -1657,7 +1683,14 @@
         <h2 id="resetHeading" class="section-title">Reset</h2>
         <div class="danger-row">
           <p class="help-text">Remove every provider, API key, model, favorite, prompt, and preference on this page. Saved summaries and answers are not deleted.</p>
-          <button id="resetBtn" type="button" class="btn-secondary">Reset all settings</button>
+          <button id="resetBtn" type="button" class="btn-secondary" aria-expanded="false" aria-controls="resetConfirm">Reset all settings</button>
+        </div>
+        <div id="resetConfirm" class="reset-confirm" role="group" aria-labelledby="resetConfirmText" hidden>
+          <p id="resetConfirmText" class="reset-confirm-text">This removes every provider, API key, model, favorite, prompt and preference on this page. Saved summaries and answers are not deleted.</p>
+          <div class="reset-confirm-actions">
+            <button id="resetConfirmBtn" type="button" class="btn-danger">Reset everything</button>
+            <button id="resetCancelBtn" type="button" class="btn-secondary">Cancel</button>
+          </div>
         </div>
       </section>
     </div>

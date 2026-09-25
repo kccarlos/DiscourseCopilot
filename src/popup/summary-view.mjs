@@ -5,7 +5,8 @@ import { formatEta } from '../shared/fetch-progress.mjs';
 import { formatRetryDelay } from '../shared/rate-limit-retry.mjs';
 import { TASK_STATUS, TASK_TYPE } from '../shared/task-record.mjs';
 import { setPostCopyAvailability, writeClipboardText } from './clipboard.mjs';
-import { describeSummaryCoverage, forumHostname, formatRelativeTime } from './ui-state.mjs';
+import { describeSummaryCoverage, formatRelativeTime } from './ui-state.mjs';
+import { forumHostname } from './forum-names.mjs';
 import { renderMarkdown } from './markdown.mjs';
 
 const $ = id => document.getElementById(id);

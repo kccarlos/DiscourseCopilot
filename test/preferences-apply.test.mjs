@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { IDBKeyRange, indexedDB } from 'fake-indexeddb';
 
-import { TopicSessionDatabase } from '../src/popup/topic-session-db.mjs';
-import { createTopicSession } from '../src/popup/topic-session.mjs';
+import { TopicSessionDatabase } from '../src/shared/topic-session-db.mjs';
+import { createTopicSession } from '../src/shared/topic-session.mjs';
 import { TaskService } from '../src/background/task-service.mjs';
 import { AgentActivityStore } from '../src/background/agent-activity-store.mjs';
 import { effectiveResearchLimits, runAgentTask } from '../src/background/agent-runner.mjs';
@@ -25,12 +25,11 @@ import { TASK_STATUS, createTaskRecord } from '../src/shared/task-record.mjs';
 import { resolveRetention } from '../src/shared/preferences.mjs';
 import { MAX_UNKNOWN_TOPIC_PAGES } from '../src/shared/forum-response.mjs';
 import {
-  agentRecentWindowMs,
   describeSummaryCoverage,
   describeSummarizedReplies,
-  retentionCopy,
-  selectSavedAgentActivities
+  retentionCopy
 } from '../src/popup/ui-state.mjs';
+import { agentRecentWindowMs, selectSavedAgentActivities } from '../src/popup/agent-runs.mjs';
 
 const DAY = 24 * 60 * 60 * 1000;
 const SITE = 'https://forum.example.com';

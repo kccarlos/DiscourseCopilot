@@ -3,12 +3,12 @@
 import { TASK_STATUS, TASK_TYPE, isTerminalTaskStatus } from '../shared/task-record.mjs';
 import { agentActivityExpiry } from '../shared/agent-activity.mjs';
 import { formatExpiresIn } from '../shared/preferences.mjs';
-import {
-  cleanTopicTitle,
-  describeSummarizedReplies,
-  formatRelativeTime,
-  retentionCopy
-} from './ui-state.mjs';
+import { describeSummarizedReplies, formatRelativeTime, retentionCopy } from './ui-state.mjs';
+import { cleanTopicTitle } from './forum-names.mjs';
+
+// data-saved-key of a saved card (focus after a delete, tests).
+export const savedTopicKey = entry => `topic:${entry.topicKey}`;
+export const savedAgentKey = activity => `agent:${activity.activityId}`;
 
 function plural(count, word) {
   return `${count} ${word}${count === 1 ? '' : 's'}`;
@@ -191,6 +191,7 @@ export function createSavedTopicCard(entry, {
 }) {
   const card = document.createElement('article');
   card.className = 'saved-card';
+  card.dataset.savedKey = savedTopicKey(entry);
   card.classList.toggle('kept', entry.kept === true);
   if (isCurrent) {
     card.classList.add('current');
@@ -270,6 +271,7 @@ export function createSavedAgentCard(activity, {
 }) {
   const card = document.createElement('article');
   card.className = 'saved-card agent-saved-card';
+  card.dataset.savedKey = savedAgentKey(activity);
   card.classList.toggle('kept', activity.kept === true);
 
   const title = document.createElement('h3');
@@ -306,10 +308,12 @@ export function createSavedAgentCard(activity, {
     onToggle: button => onKeep(activity, button)
   });
 
+  const deleteButton = createButton('Delete', 'outline secondary delete-saved', () => onDelete(activity));
+  deleteButton.setAttribute('aria-label', `Delete Agent answer for ${activity.title}`);
   card.appendChild(createActions('saved-card-actions', [
     createButton('View answer', 'open-saved', () => onOpen(activity)),
     keepButton,
-    createButton('Delete', 'outline secondary delete-saved', () => onDelete(activity))
+    deleteButton
   ]));
   return card;
 }

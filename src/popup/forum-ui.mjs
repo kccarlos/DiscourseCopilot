@@ -7,7 +7,7 @@ import {
   forumHostname,
   forumInitial,
   resolveForumName
-} from './ui-state.mjs';
+} from './forum-names.mjs';
 import { announce } from './status-line.mjs';
 
 // Forum names learned from the page, tasks, Agent runs and saved sessions.

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { extractForumTopicId } from '../src/content/topic-route.mjs';
+import { extractForumTopicId } from '../src/shared/topic-route.mjs';
 
 test('detects Discourse topic routes with and without a slug', () => {
   assert.equal(

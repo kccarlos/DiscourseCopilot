@@ -30,6 +30,23 @@ function scenario(name, pagePath, options, steps) {
   if (wanted(name)) scenarios.push({ name, pagePath, options, steps });
 }
 
+// Keys in one IndexedDB object store of the panel's database.
+const idbKeys = (page, store) => page.evaluate(store => new Promise((resolve, reject) => {
+  const open = indexedDB.open('discourse-copilot-history');
+  open.onerror = () => reject(open.error);
+  open.onsuccess = () => {
+    const db = open.result;
+    const request = db.transaction(store).objectStore(store).getAllKeys();
+    request.onsuccess = () => { db.close(); resolve(request.result.map(String)); };
+    request.onerror = () => reject(request.error);
+  };
+}), store);
+const focusedSelector = page => page.evaluate(() => {
+  const el = document.activeElement;
+  return el ? `${el.id ? `#${el.id}` : el.tagName.toLowerCase()}${el.closest('[data-saved-key]') ? ` in ${el.closest('[data-saved-key]').dataset.savedKey}` : ''}` : '';
+});
+// The Undo toast is position: fixed (no offsetParent), so visible() can't see it.
+const toastShown = page => page.$eval('#undoToast', el => !el.classList.contains('hidden') && el.getClientRects().length > 0).catch(() => false);
 const text = (page, sel) => page.$eval(sel, el => el.textContent.trim().replace(/\s+/g, ' ')).catch(() => '<missing>');
 const visible = (page, sel) => page.$eval(sel, el => !el.closest('.hidden') && !el.hidden && el.offsetParent !== null).catch(() => false);
 
@@ -419,9 +436,116 @@ scenario('popup-chat-edit', 'src/popup/popup.html', { store: configuredStore }, 
   await page.click('#savedList .delete-saved');
   await page.waitForTimeout(300);
   check('deleted', (await text(page, '#savedList')).includes('No saved items yet'), await text(page, '#savedList'));
+  check('undo offered', await toastShown(page));
   await page.click('#closeSavedBtn');
   await page.waitForTimeout(100);
   check('summary gone after delete', !(await visible(page, '#summaryContainer')));
+});
+
+// Deleting saved items: gone at once (and from IndexedDB), Undo (button or
+// Ctrl+Z) restores them, and after the 8 s window they stay deleted. The
+// Agent run's finished task stays listed, which must not bring the run back.
+const deletableRun = {
+  schemaVersion: 1, activityId: 'run-d1', activityType: 'agent', taskId: 'agent-d1', agentRunId: 'run-d1',
+  title: 'Which plugins handle SSO?', question: 'Which plugins handle SSO?', siteUrl: SITE, forumName: 'Discourse Meta',
+  searchQueries: [{ query: 'sso plugin', page: 1, resultCount: 2, searchedAt: Date.now() - 30000 }], toolCalls: [], sourceRefs: [],
+  answer: 'Most sites use **DiscourseConnect**.', answerStatus: 'answered', status: 'completed', phase: 'completed', statusText: 'Completed',
+  progress: { percent: 100 }, error: null, provider: 'openai', model: 'gpt-4o-mini',
+  createdAt: Date.now() - 60000, updatedAt: Date.now() - 20000, startedAt: Date.now() - 60000, completedAt: Date.now() - 20000,
+  expiresAt: Date.now() + 86400000, kept: false, retryOf: '', lastOpenedAt: 0, dismissedAt: 0
+};
+const deletableRunTask = {
+  id: 'agent-d1', type: 'agent', topicId: null, siteUrl: SITE, topicKey: '', agentRunId: 'run-d1', clientRequestId: '',
+  title: deletableRun.title, question: deletableRun.question, status: 'completed', phase: 'completed', statusText: 'Completed',
+  progress: { percent: 100 }, error: '', createdAt: Date.now() - 60000, updatedAt: Date.now() - 20000, completedAt: Date.now() - 20000
+};
+scenario('popup-delete-undo', 'src/popup/popup.html', { store: configuredStore, tasks: [deletableRunTask] }, async ({ page, check, shot }) => {
+  await seedHistory(page, { ...savedSessionHistory(), activities: [deletableRun] });
+  // Fake timers from the reload on (time still runs normally) so the undo
+  // window can be skipped with runFor().
+  await page.clock.install();
+  await page.reload();
+  await page.waitForTimeout(700);
+  check('answer in the inline panel', await visible(page, '#agentPanel'));
+  check('summary shown', await visible(page, '#summaryContainer'));
+  const agentCard = '[data-saved-key="agent:run-d1"]';
+  const topicCard = `[data-saved-key="topic:${TOPIC_KEY}"]`;
+  const openSaved = async () => {
+    await page.click('#savedBtn');
+    await page.waitForTimeout(300);
+    await page.click('#summariesTab');
+    await page.waitForTimeout(200);
+  };
+  await openSaved();
+  check('two saved cards', (await page.$$('#savedList [data-saved-key]')).length === 2, await text(page, '#savedList'));
+
+  // Agent answer from its Saved card, then Undo.
+  await page.click(`${agentCard} .delete-saved`);
+  await page.waitForTimeout(300);
+  check('agent card gone', (await page.$(agentCard)) === null);
+  check('agent run gone from IndexedDB', !(await idbKeys(page, 'agentActivities')).includes('run-d1'));
+  check('undo toast', await toastShown(page));
+  check('undo toast text', (await text(page, '#undoToastText')) === 'Deleted the Agent answer for “Which plugins handle SSO?”', await text(page, '#undoToastText'));
+  check('focus on the next card', (await focusedSelector(page)).endsWith(`in topic:${TOPIC_KEY}`), await focusedSelector(page));
+  check('no native dialog, no status error', !(await visible(page, '#savedStatus')));
+  await shot('agent-deleted');
+  await page.click('#undoToastBtn');
+  await page.waitForTimeout(300);
+  check('agent card restored', (await page.$(agentCard)) !== null);
+  check('agent run back in IndexedDB', (await idbKeys(page, 'agentActivities')).includes('run-d1'));
+  check('toast gone after undo', !(await toastShown(page)));
+  check('focus on the restored card', (await focusedSelector(page)).endsWith('in agent:run-d1'), await focusedSelector(page));
+
+  // Saved summary, undone from the keyboard.
+  await page.click(`${topicCard} .delete-saved`);
+  await page.waitForTimeout(300);
+  check('topic card gone', (await page.$(topicCard)) === null);
+  check('topic gone from IndexedDB', !(await idbKeys(page, 'topicSessions')).includes(TOPIC_KEY) && !(await idbKeys(page, 'topicIndex')).includes(TOPIC_KEY));
+  check('topic toast text', (await text(page, '#undoToastText')).startsWith('Deleted the saved summary and chat for “Some topic”'), await text(page, '#undoToastText'));
+  // A background broadcast in between re-reads the list; nothing comes back.
+  await page.evaluate(key => window.__fire('onMessage', { action: 'sessionUpdated', topicKey: key }, {}), TOPIC_KEY);
+  await page.waitForTimeout(300);
+  check('broadcast does not resurrect it', (await page.$(topicCard)) === null && (await page.$$('#savedList [data-saved-key]')).length === 1);
+  check('toast survives the re-render', await toastShown(page));
+  await page.keyboard.press('Control+z');
+  await page.waitForTimeout(300);
+  check('Ctrl+Z restores the topic', (await page.$(topicCard)) !== null && (await idbKeys(page, 'topicIndex')).includes(TOPIC_KEY));
+  check('restored, not duplicated', (await page.$$('#savedList [data-saved-key]')).length === 2);
+  await page.click('#closeSavedBtn');
+  await page.waitForTimeout(200);
+  check('summary back on the topic view', await visible(page, '#summaryContainer'));
+
+  // From the Agent detail view, then let the window run out.
+  await openSaved();
+  await page.click(`${agentCard} .open-saved`);
+  await page.waitForTimeout(300);
+  check('detail open', await visible(page, '#agentDetailView'), await text(page, '#savedView'));
+  await page.click('#agentDetailView [data-agent-action="delete"]');
+  await page.waitForTimeout(300);
+  check('detail closes to the list', await visible(page, '#savedList') && !(await visible(page, '#agentDetailView')));
+  check('agent card gone again', (await page.$(agentCard)) === null);
+  await page.clock.runFor(9000);
+  check('toast gone after 8 s', !(await toastShown(page)));
+  check('still gone from IndexedDB', !(await idbKeys(page, 'agentActivities')).includes('run-d1'));
+  await page.click('#closeSavedBtn');
+  await page.clock.runFor(200);
+  check('no ghost run from the finished task', !(await visible(page, '#agentPanel')) && !(await visible(page, '#agentPill')));
+
+  // Saved summary, window runs out.
+  await openSaved();
+  await page.click(`${topicCard} .delete-saved`);
+  await page.clock.runFor(9000);
+  check('topic deleted for good', !(await idbKeys(page, 'topicSessions')).includes(TOPIC_KEY));
+  check('list empty', (await text(page, '#savedList')).includes('No saved items yet'), await text(page, '#savedList'));
+  check('focus on the list tab', (await focusedSelector(page)) === '#summariesTab', await focusedSelector(page));
+  await shot('empty');
+
+  // A new panel (reload) still lists the finished task; the deleted run stays gone.
+  await page.reload();
+  await page.clock.runFor(700);
+  check('no ghost run after a reload', !(await visible(page, '#agentPanel')) && !(await visible(page, '#agentPill')));
+  await openSaved();
+  check('nothing saved after a reload', (await page.$$('#savedList [data-saved-key]')).length === 0, await text(page, '#savedList'));
 });
 
 scenario('popup-agent-detail', 'src/popup/popup.html', {
@@ -514,7 +638,7 @@ scenario('popup-forum-switch', 'src/popup/popup.html', { store: configuredStore,
 });
 
 // ---------- Settings ----------
-scenario('settings-configured', 'src/settings/settings.html', { store: configuredStore }, async ({ page, check, shot }) => {
+scenario('settings-configured', 'src/settings/settings.html', { store: configuredStore }, async ({ page, check, shot, outDir }) => {
   check('saved header', (await text(page, '#savedConfiguration')) === 'OpenAI · gpt-4o-mini', await text(page, '#savedConfiguration'));
   check('indicator saved', (await text(page, '#dirtyIndicator')) === 'All changes saved', await text(page, '#dirtyIndicator'));
   check('provider select', await page.$eval('#providerSelect', s => s.value === 'openai'));
@@ -541,9 +665,30 @@ scenario('settings-configured', 'src/settings/settings.html', { store: configure
   await page.click('.favorite-remove');
   await page.waitForTimeout(200);
   check('favorite removed', (await page.$$('#favoriteModelList .favorite-model-item')).length === 0);
-  // Reset.
+  // Reset needs the explicit confirmation.
+  const storeBefore = await page.evaluate(() => JSON.stringify(window.__store));
   await page.click('#resetBtn');
+  await page.waitForTimeout(100);
+  check('reset asks first', await visible(page, '#resetConfirm'));
+  check('reset copy', (await text(page, '#resetConfirmText')).startsWith('This removes every provider, API key, model, favorite, prompt and preference on this page.'), await text(page, '#resetConfirmText'));
+  check('reset expanded', (await page.getAttribute('#resetBtn', 'aria-expanded')) === 'true');
+  check('confirm focused', await page.evaluate(() => document.activeElement?.id === 'resetConfirmBtn'));
+  check('nothing reset yet', (await page.evaluate(() => JSON.stringify(window.__store))) === storeBefore);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.screenshot({ path: path.join(outDir, 'settings-configured-reset-confirm.png') });
+  await page.click('#resetCancelBtn');
+  await page.waitForTimeout(100);
+  check('cancel closes it', !(await visible(page, '#resetConfirm')));
+  check('focus back on reset', await page.evaluate(() => document.activeElement?.id === 'resetBtn'));
+  check('cancel keeps settings', (await page.evaluate(() => JSON.stringify(window.__store))) === storeBefore);
+  await page.click('#resetBtn');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(100);
+  check('Escape closes it', !(await visible(page, '#resetConfirm')));
+  await page.click('#resetBtn');
+  await page.click('#resetConfirmBtn');
   await page.waitForTimeout(300);
+  check('panel closed after reset', !(await visible(page, '#resetConfirm')));
   check('reset status', (await text(page, '#status')) === 'Settings reset to defaults.', await text(page, '#status'));
   check('reset provider', await page.$eval('#providerSelect', s => s.value === 'openrouter'));
   check('storage cleared', await page.evaluate(() => Object.keys(window.__store).length === 0), await page.evaluate(() => JSON.stringify(window.__store)));

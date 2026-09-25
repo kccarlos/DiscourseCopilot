@@ -2,7 +2,42 @@
 // citations ([S1]) turned into links to their source cards. Streaming
 // updates are batched to one render per animation frame.
 import { marked } from 'marked';
-import { linkifyCitations } from './ui-state.mjs';
+
+const CITATION_PATTERN = /\[(S\d+(?:\s*[,;]\s*S\d+)*)\]/g;
+
+const CITATION_SKIP_TAG = /^<(\/?)(a|code|pre)\b/i;
+
+// Turns [S1] and [S1, S2] in sanitized answer HTML into in-panel source links.
+// Text inside links and code is left alone, as are unknown source IDs.
+export function linkifyCitations(html, sourceIds = []) {
+  const known = new Set(sourceIds);
+  if (!html || !known.size) {
+    return html || '';
+  }
+  let skipDepth = 0;
+  return html.split(/(<[^>]*>)/).map(chunk => {
+    if (chunk.startsWith('<')) {
+      const tag = CITATION_SKIP_TAG.exec(chunk);
+      if (tag) {
+        skipDepth = Math.max(0, skipDepth + (tag[1] ? -1 : 1));
+      }
+      return chunk;
+    }
+    if (skipDepth) {
+      return chunk;
+    }
+    return chunk.replace(CITATION_PATTERN, (match, ids) => {
+      const list = ids.split(/\s*[,;]\s*/);
+      if (!list.some(id => known.has(id))) {
+        return match;
+      }
+      // Known sources become chips; an unknown ID keeps its brackets as text.
+      return list.map(id => known.has(id)
+        ? `<a href="#" class="agent-citation" data-citation="${id}" aria-label="Source ${id}">${id}</a>`
+        : `[${id}]`).join(' ');
+    });
+  }).join('');
+}
 
 marked.setOptions({ breaks: false, gfm: true });
 

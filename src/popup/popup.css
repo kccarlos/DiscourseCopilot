@@ -2700,6 +2700,70 @@ details[open] > summary .chevron {
     color: var(--uc-forum-neutral-ink);
 }
 
+/* Undo after a delete: inverted colors so it reads as a transient layer in
+   both themes. */
+.undo-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    z-index: 50;
+    display: flex;
+    width: max-content;
+    max-width: calc(100% - 24px);
+    align-items: center;
+    gap: 12px;
+    padding: 10px 10px 10px 16px;
+    border-radius: 12px;
+    background: var(--uc-ink);
+    box-shadow: var(--uc-shadow);
+    color: var(--uc-surface);
+    font-size: 0.82rem;
+    line-height: 1.35;
+    transform: translateX(-50%);
+    animation: undo-enter 180ms ease-out;
+}
+
+@keyframes undo-enter {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 7px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.undo-toast-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.undo-toast .undo-toast-btn {
+    flex: 0 0 auto;
+    width: auto;
+    margin: 0;
+    padding: 0.35rem 0.8rem;
+    border: 1px solid currentColor;
+    border-radius: 8px;
+    background: transparent;
+    box-shadow: none;
+    color: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.undo-toast .undo-toast-btn:hover,
+.undo-toast .undo-toast-btn:focus-visible {
+    background: color-mix(in srgb, var(--uc-surface) 16%, transparent);
+    color: inherit;
+}
+
+.undo-toast .undo-toast-btn:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--uc-surface) 55%, transparent);
+    outline-offset: 2px;
+}
+
 .hidden {
     display: none !important;
 }

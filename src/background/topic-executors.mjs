@@ -1,7 +1,7 @@
 // Executors for topic tasks: summarizing a topic and answering a follow-up
 // question about it. Both refresh the topic's posts first (reusing cached
 // pages) and save the result on the topic's session.
-import { createTopicSession } from '../popup/topic-session.mjs';
+import { createTopicSession } from '../shared/topic-session.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { createForumAccessError } from '../shared/forum-access.mjs';
 import { isAbortError } from '../shared/rate-limit-retry.mjs';

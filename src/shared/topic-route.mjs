@@ -1,4 +1,4 @@
-import { hasBasePathPrefix, normalizeBasePath } from '../shared/forum-site.mjs';
+import { hasBasePathPrefix, normalizeBasePath } from './forum-site.mjs';
 
 // URL-only helpers cannot know whether a site runs Discourse; callers must
 // combine these with page detection before treating a page as a forum.

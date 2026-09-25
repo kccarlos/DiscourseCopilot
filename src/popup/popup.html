@@ -491,6 +491,11 @@
     </section>
   </main>
 
+  <div id="undoToast" class="undo-toast hidden" role="group" aria-label="Undo delete">
+    <span id="undoToastText" class="undo-toast-text" data-part="undo-text" role="status" aria-live="polite"></span>
+    <button id="undoToastBtn" class="undo-toast-btn" type="button" data-part="undo-button" aria-describedby="undoToastText">Undo</button>
+  </div>
+
   <template id="agentAnswerTemplate">
     <div class="agent-progress hidden" data-part="progress">
       <div class="agent-progress-row">

@@ -106,7 +106,7 @@ test('saving → error keeps the edits', () => {
 });
 
 test('resetting → pristine discards edits; failure → error', () => {
-  const resetting = run([{ type: 'loaded' }, { type: 'edited' }, { type: 'reset-started' }]);
+  const resetting = run([{ type: 'loaded' }, { type: 'edited' }, { type: 'reset-requested' }, { type: 'reset-started' }]);
   assert.equal(resetting.phase, FORM_PHASE.RESETTING);
   assert.equal(isFormBusy(resetting), true);
   assert.equal(resetting.status.message, 'Resetting settings…');
@@ -203,8 +203,46 @@ test('save and reset clear field errors', () => {
   assert.deepEqual(state.fieldErrors, {});
   assert.deepEqual(formStateLabel(state, true), { text: 'Saved', tone: 'success' });
   state = transitionForm(state, { type: 'edited', field: 'topicsRead', fieldError: 'bad' });
-  state = transitionForm(transitionForm(state, { type: 'reset-started' }), { type: 'reset-succeeded' });
+  state = run([{ type: 'reset-requested' }, { type: 'reset-started' }, { type: 'reset-succeeded' }], state);
   assert.deepEqual(state.fieldErrors, {});
+});
+
+test('a reset needs the explicit confirmation', () => {
+  const pristine = pristineForm();
+  assert.equal(pristine.confirmingReset, false);
+  // Without the confirmation panel, reset-started does nothing.
+  assert.equal(transitionForm(pristine, { type: 'reset-started' }), pristine);
+
+  const confirming = transitionForm(pristine, { type: 'reset-requested' });
+  assert.equal(confirming.confirmingReset, true);
+  assert.equal(confirming.phase, FORM_PHASE.PRISTINE, 'asking is not a phase');
+  assert.equal(confirming.status, null);
+  assert.equal(isFormBusy(confirming), false);
+  assert.equal(transitionForm(confirming, { type: 'reset-requested' }), confirming);
+
+  const cancelled = transitionForm(confirming, { type: 'reset-cancelled' });
+  assert.equal(cancelled.confirmingReset, false);
+  assert.equal(transitionForm(cancelled, { type: 'reset-started' }), cancelled);
+
+  const resetting = transitionForm(confirming, { type: 'reset-started' });
+  assert.equal(resetting.phase, FORM_PHASE.RESETTING);
+  assert.equal(resetting.confirmingReset, false);
+});
+
+test('starting anything else closes the reset confirmation; busy forms cannot open it', () => {
+  const confirming = transitionForm(pristineForm(), { type: 'reset-requested' });
+  for (const event of [
+    { type: 'edited' },
+    { type: 'defaults-restored', section: 'Reading topics', fields: [] },
+    { type: 'test-started', providerName: 'X' },
+    { type: 'save-started' }
+  ]) {
+    assert.equal(transitionForm(confirming, event).confirmingReset, false, event.type);
+  }
+  const saving = transitionForm(pristineForm(), { type: 'save-started' });
+  assert.equal(transitionForm(saving, { type: 'reset-requested' }), saving);
+  // Notices (favorites, model lists) leave it open.
+  assert.equal(transitionForm(confirming, { type: 'notice', message: 'x' }).confirmingReset, true);
 });
 
 test('the save bar label follows every phase', () => {

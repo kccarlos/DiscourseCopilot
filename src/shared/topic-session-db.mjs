@@ -1,3 +1,7 @@
+// Saved history in IndexedDB, shared by the side panel and the background
+// worker: topic sessions and their index, task records and Agent
+// activities, with retention cleanup and pruning. The schema and upgrades
+// are in history-schema.mjs.
 import {
   CHAT_RETENTION_MS,
   MAX_SAVED_TOPICS,
@@ -10,7 +14,7 @@ import {
   TASK_RETENTION_MS,
   isTerminalTaskStatus,
   normalizeTaskRecord
-} from '../shared/task-record.mjs';
+} from './task-record.mjs';
 import {
   AGENT_ACTIVITY_RETENTION_MS,
   MAX_AGENT_ACTIVITIES,
@@ -21,79 +25,18 @@ import {
   isAgentActivityTerminal,
   mergeAgentActivityMarks,
   normalizeAgentActivity
-} from '../shared/agent-activity.mjs';
-
-const DATABASE_NAME = 'discourse-copilot-history';
-const DATABASE_VERSION = 4;
-const SESSION_STORE = 'topicSessions';
-const INDEX_STORE = 'topicIndex';
-const TASK_STORE = 'tasks';
-const AGENT_ACTIVITY_STORE = 'agentActivities';
-
-function requestResult(request) {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error || new Error('IndexedDB request failed'));
-  });
-}
-
-function transactionComplete(transaction) {
-  return new Promise((resolve, reject) => {
-    transaction.oncomplete = () => resolve();
-    transaction.onabort = () => reject(
-      transaction.error || new Error('IndexedDB transaction was aborted')
-    );
-    transaction.onerror = () => reject(
-      transaction.error || new Error('IndexedDB transaction failed')
-    );
-  });
-}
-
-function createTopicStores(database) {
-  if (!database.objectStoreNames.contains(SESSION_STORE)) {
-    const sessions = database.createObjectStore(SESSION_STORE, {
-      keyPath: 'topicKey'
-    });
-    sessions.createIndex('chatUpdatedAt', 'chatUpdatedAt');
-  }
-  if (!database.objectStoreNames.contains(INDEX_STORE)) {
-    database.createObjectStore(INDEX_STORE, { keyPath: 'topicKey' });
-  }
-}
-
-// Version 4 keys topic stores by topicKey instead of topicId. IndexedDB cannot
-// change a keyPath in place, so old stores are read, recreated, and refilled.
-// Records whose URL cannot identify their forum are dropped.
-function migrateTopicStoresToTopicKey(transaction) {
-  const database = transaction.db;
-  if (!database.objectStoreNames.contains(SESSION_STORE)) {
-    if (database.objectStoreNames.contains(INDEX_STORE)) {
-      database.deleteObjectStore(INDEX_STORE);
-    }
-    createTopicStores(database);
-    return;
-  }
-
-  const readAll = transaction.objectStore(SESSION_STORE).getAll();
-  readAll.onsuccess = () => {
-    const legacySessions = readAll.result || [];
-    database.deleteObjectStore(SESSION_STORE);
-    if (database.objectStoreNames.contains(INDEX_STORE)) {
-      database.deleteObjectStore(INDEX_STORE);
-    }
-    createTopicStores(database);
-    const sessions = transaction.objectStore(SESSION_STORE);
-    const index = transaction.objectStore(INDEX_STORE);
-    for (const legacy of legacySessions) {
-      const session = normalizeTopicSession(legacy);
-      if (!session) {
-        continue;
-      }
-      sessions.put(session);
-      index.put(buildTopicIndexEntry(session));
-    }
-  };
-}
+} from './agent-activity.mjs';
+import {
+  AGENT_ACTIVITY_STORE,
+  DATABASE_NAME,
+  DATABASE_VERSION,
+  INDEX_STORE,
+  SESSION_STORE,
+  TASK_STORE,
+  requestResult,
+  transactionComplete,
+  upgradeHistoryDatabase
+} from './history-schema.mjs';
 
 export class TopicSessionDatabase {
   constructor({
@@ -148,28 +91,7 @@ export class TopicSessionDatabase {
     let databasePromise;
     databasePromise = new Promise((resolve, reject) => {
       const request = this.indexedDB.open(this.databaseName, DATABASE_VERSION);
-      request.onupgradeneeded = event => {
-        const database = request.result;
-        if (event.oldVersion > 0 && event.oldVersion < 4) {
-          migrateTopicStoresToTopicKey(request.transaction);
-        } else {
-          createTopicStores(database);
-        }
-        if (!database.objectStoreNames.contains(TASK_STORE)) {
-          const tasks = database.createObjectStore(TASK_STORE, { keyPath: 'id' });
-          tasks.createIndex('status', 'status');
-          tasks.createIndex('updatedAt', 'updatedAt');
-        }
-        if (!database.objectStoreNames.contains(AGENT_ACTIVITY_STORE)) {
-          const activities = database.createObjectStore(AGENT_ACTIVITY_STORE, {
-            keyPath: 'activityId'
-          });
-          activities.createIndex('status', 'status');
-          activities.createIndex('updatedAt', 'updatedAt');
-          activities.createIndex('kept', 'kept');
-          activities.createIndex('expiresAt', 'expiresAt');
-        }
-      };
+      request.onupgradeneeded = event => upgradeHistoryDatabase(request, event);
       request.onsuccess = () => {
         const database = request.result;
         database.onversionchange = () => {
@@ -269,6 +191,40 @@ export class TopicSessionDatabase {
     transaction.objectStore(SESSION_STORE).delete(String(topicKey));
     transaction.objectStore(INDEX_STORE).delete(String(topicKey));
     await transactionComplete(transaction);
+  }
+
+  // Deletes a saved session and returns the stored record as it was, so an
+  // Undo can put it back with restore() (null when nothing was saved).
+  async take(topicKey) {
+    const database = await this.open();
+    const transaction = database.transaction(
+      [SESSION_STORE, INDEX_STORE],
+      'readwrite'
+    );
+    const sessions = transaction.objectStore(SESSION_STORE);
+    const stored = await requestResult(sessions.get(String(topicKey)));
+    sessions.delete(String(topicKey));
+    transaction.objectStore(INDEX_STORE).delete(String(topicKey));
+    await transactionComplete(transaction);
+    return stored || null;
+  }
+
+  // Puts back a record returned by take() exactly as it was stored (no
+  // pruning, no new timestamps); resolves to the normalized session.
+  async restore(stored) {
+    const session = normalizeTopicSession(stored, this.now());
+    if (!session || stored.topicKey !== session.topicKey) {
+      throw new Error('This saved summary can no longer be restored');
+    }
+    const database = await this.open();
+    const transaction = database.transaction(
+      [SESSION_STORE, INDEX_STORE],
+      'readwrite'
+    );
+    transaction.objectStore(SESSION_STORE).put(stored);
+    transaction.objectStore(INDEX_STORE).put(buildTopicIndexEntry(stored));
+    await transactionComplete(transaction);
+    return session;
   }
 
   async setKept(topicKey, kept) {
@@ -536,6 +492,30 @@ export class TopicSessionDatabase {
     const transaction = database.transaction(AGENT_ACTIVITY_STORE, 'readwrite');
     transaction.objectStore(AGENT_ACTIVITY_STORE).delete(String(activityId));
     await transactionComplete(transaction);
+  }
+
+  // Deletes an Agent activity and returns the stored record (see take()).
+  async takeAgentActivity(activityId) {
+    const database = await this.open();
+    const transaction = database.transaction(AGENT_ACTIVITY_STORE, 'readwrite');
+    const store = transaction.objectStore(AGENT_ACTIVITY_STORE);
+    const stored = await requestResult(store.get(String(activityId)));
+    store.delete(String(activityId));
+    await transactionComplete(transaction);
+    return stored || null;
+  }
+
+  // Puts back an activity returned by takeAgentActivity() exactly as it was
+  // stored; resolves to the normalized activity.
+  async restoreAgentActivity(stored) {
+    if (!stored?.activityId) {
+      throw new Error('This Agent answer can no longer be restored');
+    }
+    const database = await this.open();
+    const transaction = database.transaction(AGENT_ACTIVITY_STORE, 'readwrite');
+    transaction.objectStore(AGENT_ACTIVITY_STORE).put(stored);
+    await transactionComplete(transaction);
+    return normalizeAgentActivity(stored, this.now());
   }
 
   async cleanupAgentActivities() {

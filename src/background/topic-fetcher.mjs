@@ -23,7 +23,7 @@ import {
 import {
   normalizeRawPages,
   planTopicPageRequests
-} from '../popup/topic-session.mjs';
+} from '../shared/topic-session.mjs';
 import {
   buildRawPageUrl,
   buildTopicJsonUrl

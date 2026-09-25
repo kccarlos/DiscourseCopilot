@@ -11,9 +11,30 @@ import { isSameForumUrl } from '../shared/forum-site.mjs';
 import { forumAccessHost, isForumAccessError } from '../shared/forum-access.mjs';
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { topicKeyFromUrl } from './conversation-state.mjs';
-import { describeAgentProgress, formatRelativeTime, retentionCopy } from './ui-state.mjs';
+import { formatRelativeTime, retentionCopy } from './ui-state.mjs';
 import { renderMarkdown } from './markdown.mjs';
 import { openForumTarget } from './forum-tabs.mjs';
+
+function trimEllipsis(value) {
+  return String(value || '').trim().replace(/(\.\.\.|…)$/u, '').trim();
+}
+
+export function describeAgentProgress(activity = {}) {
+  if (activity.status === 'queued') {
+    return { label: 'Queued · waiting for an available worker…', percent: null };
+  }
+  const parts = [];
+  const searches = Array.isArray(activity.searchQueries) ? activity.searchQueries.length : 0;
+  if (searches) {
+    parts.push(`Searched ${searches} ${searches === 1 ? 'query' : 'queries'}`);
+  }
+  const step = trimEllipsis(activity.statusText) || 'Starting forum research';
+  parts.push(parts.length ? step.charAt(0).toLocaleLowerCase() + step.slice(1) : step);
+  const percent = Number.isFinite(activity.progress?.percent) && activity.phase !== 'generating'
+    ? activity.progress.percent
+    : null;
+  return { label: `${parts.join(' · ')}…`, percent };
+}
 
 const SOURCE_HIGHLIGHT_MS = 2400;
 

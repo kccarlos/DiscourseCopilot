@@ -47,7 +47,10 @@ export function installChromeStub(options) {
   const fireChanged = changes => setTimeout(() => {
     for (const fn of listeners.onChanged) fn(changes, 'local');
   }, 0);
-  window.confirm = () => true;
+  // The pages use in-page confirmations; a native dialog is a regression.
+  for (const name of ['alert', 'confirm', 'prompt']) {
+    window[name] = () => { throw new Error(`window.${name}() is not allowed in extension pages`); };
+  }
   window.chrome = {
     permissions: {
       async contains({ origins }) { return origins.every(o => granted.has(o)); },

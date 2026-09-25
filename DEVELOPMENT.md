@@ -70,6 +70,7 @@ src/
   popup/            Side panel (popup.html/css)
     popup.js              Entry: composes the modules below; page changes, broadcast routing,
                           panel-wide render (updateUI)
+    background-link.mjs   Reaching the background worker: task list, restart banner
     page-context.mjs      Active tab → page context (forum, topic, access, hidden page)
     page-probe.mjs        One-off Discourse check of a page not enabled yet (activeTab)
     page-guidance.mjs     One guidance state per page (loading, unchecked, not-forum, allow,
@@ -78,29 +79,55 @@ src/
     topic-controller.mjs  The topic session: switch with the page, restore, reload, render
     summary-view.mjs      Summary card, reading progress, topic task status line
     chat-view.mjs         Follow-up chat, message editing, forum context limit
-    agent-controller.mjs  Agent runs, inline panel, pill, composer, answer actions
+    agent-controller.mjs  Agent research: composes the agent-* modules; broadcasts, detail view,
+                          answer actions (stop, copy, keep, dismiss, delete with Undo)
+    agent-runs.mjs        The runs the panel knows about (activities + queue tasks), which run
+                          shows where (selectAgentRunView), opened/dismissed/deleted marks
+    agent-panel.mjs       Inline answer panel and pill on the topic view
+    agent-composer.mjs    "Ask the forum" composer (queues the Agent task)
+    agent-requests.mjs    Continue / Retry, with the forum access request
     agent-answer-view.mjs Renders one Agent run (shared by the inline panel and the detail view)
-    activity-view.mjs     Activity screen: Tasks/Saved tabs, forum groups and filter, Agent detail
+    activity-view.mjs     Activity screen: Tasks/Saved tabs, Agent detail, deleting saved items
+    forum-groups.mjs      Activity lists grouped by forum, forum filter chips
     activity-cards.mjs    Task and saved-item cards
+    undo-toast.mjs, undo-slot.mjs  Undo after a delete: the toast (#undoToast) and the pure
+                          one-pending-action model with its 8 s window
     provider-header.mjs   Model switcher (active provider · model, favorites), setup state
     setup-card.mjs        First-run setup (uses the shared ConfigStore)
-    forum-ui.mjs          Forum names, forum bar, forum accents
+    forum-ui.mjs          Forum directory (names), forum bar, forum accents
+    forum-names.mjs       Forum identity as data: names, hostnames, hue, grouping by forum
     task-registry.mjs     The panel's copy of the task queue and requests to it
     session-store.mjs     Topic sessions cached in memory and saved to IndexedDB
     operations.mjs        The one request being submitted (page/config snapshot)
     topic-controls.mjs    Enabled state and labels of every control, derived from panel state
     markdown.mjs, status-line.mjs, forum-tabs.mjs, clipboard.mjs  Rendering and small helpers
-    ui-state.mjs, conversation-state.mjs, runtime-state.mjs  Pure view logic
-    topic-session.mjs, topic-session-db.mjs  Session records and the IndexedDB schema
-                          (also used by the background)
+    ui-state.mjs, conversation-state.mjs, runtime-state.mjs  Pure view logic shared by views
   settings/         Options page
-    settings.js           Wires the form to the ConfigStore and the form state machine
-    settings-form-state.mjs  Form state machine (status line, dirty indicator, busy state)
-    settings-helpers.mjs  Model suggestion helpers
+    settings.js           Wires the sections to the ConfigStore and the form state machine;
+                          status line, save bar, busy state, Save/Test, Reset (with confirmation)
+    settings-form-state.mjs  Form state machine (status line, dirty indicator, busy state,
+                          reset confirmation)
+    provider-section.mjs  Provider picker, key/URL/model fields, live model lists
+    preferences-section.mjs  Research, reading and history preferences, Restore defaults
+    favorites-section.mjs Favorite models
     forum-access-section.mjs  "Forum access": enabled forums, Remove access
-  services/         AI provider calls (ai-service, provider-config), prompts, chat/Agent context
-  shared/           Used across the above
-    config-state.mjs      The configuration model (see below)
+    settings-helpers.mjs  Model suggestion helpers
+  services/         AI provider calls
+    ai-service.js         Summary, follow-up chat and Agent answer entry points (AIService)
+    summary-strategies.mjs  Single pass → hierarchical fallback (OP + replies, map-reduce),
+                          retries with halved content / minimal prompts, final assembly
+    text-stream.mjs       Streamed chat/Agent answers; system messages → instructions
+    ai-errors.mjs         Cancellation, token-limit classification, token estimates
+    provider-config.js    Provider → AI SDK client (defaults come from constants.js)
+    prompts.js, chat-context.mjs, agent-context.mjs  Prompts and chat/Agent context
+  shared/           Used across the above (never imports a page, see Layering)
+    config-state.mjs      The ConfigStore (see below); re-exports config-model.mjs
+    config-model.mjs      The configuration as data: storage keys, readConfig(), status, writes
+    topic-session.mjs     Topic session records, refresh/page planning
+    topic-session-db.mjs  Saved history in IndexedDB (sessions, tasks, Agent activities),
+                          retention cleanup, take()/restore() for Undo
+    history-schema.mjs    The IndexedDB schema, upgrades and request helpers
+    topic-route.mjs       Topic ID from a forum URL (content script and side panel)
     preferences.mjs       Research depth, topic page limit and history retention: defaults, ranges,
                           normalization/validation and the resolve*() helpers
     provider-setup.mjs    Provider validation, connection test, failure messages
@@ -110,6 +137,21 @@ src/
     constants.js          Storage keys, message names, provider list
     task-record.mjs, agent-activity.mjs, forum-site.mjs, forum-response.mjs, …  Records and utilities
 ```
+
+### Layering
+
+`src/` has one folder per layer, and each may import only from the layers listed:
+
+| Layer | May import from |
+| --- | --- |
+| `shared/` | `shared/` |
+| `services/` | `services/`, `shared/` |
+| `content/` | `content/`, `shared/` |
+| `background/` | `background/`, `services/`, `shared/` |
+| `popup/` | `popup/`, `services/`, `shared/` |
+| `settings/` | `settings/`, `services/`, `shared/` |
+
+So the service worker, the content script and the shared modules never depend on a page, and the two pages don't depend on each other: code both sides need (the session records and the IndexedDB history, for example) lives in `shared/`. `test/layering.test.mjs` enforces the table (static, re-exported, side-effect and dynamic imports, and the `@/` alias) as part of `pnpm test`, and fails if a new top-level folder appears without a rule.
 
 ### Forum access (permission model)
 
@@ -226,6 +268,12 @@ The settings page layers its form lifecycle on top of this in `settings-form-sta
 
 The status line, the save bar's state label ("Unsaved changes", "Saving…", "Saved", "Fix the highlighted fields", …), the header's "Unsaved changes" indicator and the disabled buttons are all derived from that state.
 
+**Reset all settings** asks first, inline: `reset-requested` sets `confirmingReset` (no phase change) and opens a panel under the button ("This removes every provider, API key, model, favorite, prompt and preference on this page. Saved summaries and answers are not deleted." with **Reset everything** and **Cancel**; Escape cancels). `reset-started` is ignored unless that panel is open, and an edit, Test, Save or Restore defaults closes it. Focus moves to **Reset everything** when the panel opens and back to **Reset all settings** when it closes.
+
+### Deleting in the side panel (Undo)
+
+Deleting a saved summary or an Agent answer removes it at once, from IndexedDB too (`TopicSessionDatabase.take()` / `takeAgentActivity()` return the stored record), and shows an **Undo** toast for 8 seconds. Undo (the button, or Ctrl/⌘+Z outside a text field) writes that record back unchanged (`restore()` / `restoreAgentActivity()`). Because the database is always the truth, re-renders and background broadcasts during the window can't bring an item back, and closing the panel keeps the delete. A new delete ends the previous offer. The window pauses while the pointer or focus is on the toast; the message is announced through the panel's `announce()` helper. Focus moves to the next saved card (or the list's tab), to **Ask the forum** after a delete from the topic view, and to the restored card after Undo. A finished Agent task whose activity is gone (deleted, expired, pruned) never becomes a run again, though the task stays in the task list for days; runs deleted in this panel also ignore late broadcasts (`AgentRuns.deletedRunIds`). `undo-slot.mjs` is the pure model (injected timers, unit-tested); `undo-toast.mjs` renders it.
+
 ## CI/CD & releases
 
 **CI** (`.github/workflows/ci.yml`) runs on every push to `main` and every pull request: `pnpm install --frozen-lockfile`, a check that `manifest.json` and `package.json` have the same version, `pnpm test`, `pnpm build`, and uploads `dist/` as a workflow artifact (kept 7 days). A second job, **UI flows**, runs `pnpm test:ui` in headless Chromium (see below).
@@ -252,13 +300,14 @@ To release: bump `version` in `manifest.json` and `package.json`, commit, then `
 
 ```
 tools/ui/
-  flows.mjs           UI regression suite: ~30 scenarios, ~340 checks per theme
+  flows.mjs           UI regression suite: ~35 scenarios, ~435 checks per theme
   readme-shots.mjs    docs/screenshots/*.png: panels → framed composition → palette PNG
   store-shots.mjs     store-assets/*.png: 1280x800 screenshots and promo tiles (24-bit, no alpha)
   pixdiff.mjs         compare two PNGs or two folders of PNGs
   lib/
     chrome-stub.mjs   chrome.* stand-in (storage with onChanged, permissions, scripting probe,
-                      runtime messages, tabs); options and test hooks documented in the file
+                      runtime messages, tabs); options and test hooks documented in the file.
+                      alert/confirm/prompt throw: the pages must not use native dialogs
     extension-page.mjs  open a dist/ page in its own context: stub installed, network sealed off
                       (model lists get an empty answer), page errors collected; IndexedDB seeding
     static-server.mjs, env.mjs, pixdiff.mjs  Static server, repo paths/arguments, pixel comparison

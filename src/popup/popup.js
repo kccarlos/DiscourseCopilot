@@ -20,6 +20,8 @@
 //                     forum, allow access, forum home, topic)
 //   forum-access-card renders that card, the "Get started" checklist and
 //                     the Allow access request
+//   background-link   reaching the background worker, restart banner
+//   undo-toast        Undo for deletes (saved summaries, Agent answers)
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { subscribeForumAccess } from '../shared/forum-access.mjs';
 import { DiscourseCopilotLogger } from '../shared/logger.js';
@@ -27,13 +29,8 @@ import { ConfigStore } from '../shared/config-state.mjs';
 import { resolveRetention, retentionEqual } from '../shared/preferences.mjs';
 import { TASK_TYPE } from '../shared/task-record.mjs';
 import { normalizeAgentQuestion } from '../services/agent-context.mjs';
-import { topicSessionDatabase } from './topic-session-db.mjs';
+import { topicSessionDatabase } from '../shared/topic-session-db.mjs';
 import { resolveIdleStatus, shouldRederiveStatus } from './ui-state.mjs';
-import {
-  isDatabaseCompatibilityError,
-  isMissingRuntimeResponse,
-  isRuntimeDisconnectedError
-} from './runtime-state.mjs';
 import { SetupCard } from './setup-card.mjs';
 import { MarkdownScheduler } from './markdown.mjs';
 import { StatusLine } from './status-line.mjs';
@@ -49,6 +46,8 @@ import { ChatView } from './chat-view.mjs';
 import { AgentController } from './agent-controller.mjs';
 import { ActivityView } from './activity-view.mjs';
 import { ForumAccessCard } from './forum-access-card.mjs';
+import { BackgroundLink } from './background-link.mjs';
+import { UndoToast } from './undo-toast.mjs';
 import { GUIDANCE_STATE, derivePageGuidance } from './page-guidance.mjs';
 import {
   applyTopicControls,
@@ -93,6 +92,24 @@ class DiscourseCopilotPopup {
       // A request for a forum that isn't enabled (e.g. access was removed
       // in Settings): re-check the page so its Allow access card shows.
       onForumAccessMissing: () => void this.page.refresh()
+    });
+    this.background = new BackgroundLink({
+      state,
+      tasks: this.tasks,
+      status: this.status,
+      onUnavailable: () => this.updateControls()
+    });
+    this.undo = new UndoToast({
+      element: $('undoToast'),
+      onError: error => {
+        DiscourseCopilotLogger.error('Popup: Unable to undo:', error);
+        const message = `Unable to undo: ${error.message}`;
+        if (state.savedViewOpen) {
+          this.activity.showSavedStatus(message, 'error');
+        } else {
+          this.status.show(message, 'error');
+        }
+      }
     });
     this.accessCard = new ForumAccessCard({
       onGranted: siteUrl => this.handleForumAccessGranted(siteUrl),
@@ -155,8 +172,8 @@ class DiscourseCopilotPopup {
       cancelActiveOperation: () => this.operations.cancel(),
       promptSetup: () => this.promptSetup(),
       dismissSetupSuccess: () => this.setupCard.dismissSuccess(),
-      markBackgroundUnavailable: error => this.markBackgroundUnavailable(error),
-      handleBackgroundError: error => this.handleBackgroundError(error),
+      markBackgroundUnavailable: error => this.background.markUnavailable(error),
+      handleBackgroundError: error => this.background.handleError(error),
       reloadCurrentSession: () => this.topic.reload(),
       renderTaskState: task => this.topic.renderTaskState(task),
       persistSession: () => this.topic.persist(),
@@ -189,6 +206,7 @@ class DiscourseCopilotPopup {
     this.agent = new AgentController({
       ...shared,
       forums: this.forums,
+      undo: this.undo,
       hooks,
       // The Activity screen is created next; these resolve at call time.
       nav: {
@@ -196,7 +214,8 @@ class DiscourseCopilotPopup {
         openAgentActivity: value => this.activity.openAgentActivity(value),
         hideAgentDetail: () => this.activity.hideAgentDetail(),
         renderTaskList: () => this.activity.renderTaskList(),
-        loadSavedList: () => this.activity.loadSavedList()
+        loadSavedList: () => this.activity.loadSavedList(),
+        focusSavedItem: (key, index) => this.activity.focusSavedItem(key, index)
       }
     });
     this.activity = new ActivityView({
@@ -206,6 +225,7 @@ class DiscourseCopilotPopup {
       sessions: this.sessions,
       agent: this.agent,
       config: this.config,
+      undo: this.undo,
       hooks: {
         cancelTask: taskId => this.cancelTask(taskId),
         isCurrentTopic: topicKey => this.topic.isCurrentTopic(topicKey),
@@ -216,7 +236,8 @@ class DiscourseCopilotPopup {
         showCreatedTab: (tab, siteUrl) => this.page.apply(tab, { siteUrlHint: siteUrl }),
         expectTopicMetadata: entry => this.page.expectMetadata(entry),
         forgetTopicMetadata: topicKey => this.page.forgetMetadata(topicKey),
-        resetCurrentSession: () => this.topic.reset()
+        resetCurrentSession: () => this.topic.reset(),
+        reloadCurrentSession: () => this.topic.reload()
       }
     });
   }
@@ -227,7 +248,7 @@ class DiscourseCopilotPopup {
     await Promise.all([
       this.loadConfig(),
       this.initializePersistence(),
-      this.loadTasks(),
+      this.background.loadTasks(),
       this.agent.load()
     ]);
     this.started = true;
@@ -249,9 +270,8 @@ class DiscourseCopilotPopup {
     this.agent.mount();
     this.chat.mount();
     this.page.mount();
-    $('restartExtensionBtn').addEventListener('click', () => {
-      chrome.runtime.reload();
-    });
+    this.background.mount();
+    this.undo.mount();
   }
 
   listen() {
@@ -334,35 +354,9 @@ class DiscourseCopilotPopup {
       await topicSessionDatabase.open();
     } catch (error) {
       this.state.persistenceAvailable = false;
-      if (!this.handleBackgroundError(error)) {
+      if (!this.background.handleError(error)) {
         DiscourseCopilotLogger.error('Popup: Summary history is unavailable:', error);
       }
-    }
-  }
-
-  async loadTasks() {
-    let response;
-    try {
-      response = await this.tasks.requestList();
-      if (isMissingRuntimeResponse(response)) {
-        this.markBackgroundUnavailable();
-        return;
-      }
-      if (!response?.success) {
-        throw new Error(response?.error || 'Unable to load tasks');
-      }
-      this.state.backgroundAvailable = true;
-      this.tasks.replaceAll(response.tasks);
-      this.tasks.updateHeartbeat();
-    } catch (error) {
-      if (isMissingRuntimeResponse(response) || isRuntimeDisconnectedError(error)) {
-        this.markBackgroundUnavailable(error);
-        return;
-      }
-      if (this.handleBackgroundError(error)) {
-        return;
-      }
-      DiscourseCopilotLogger.warn('Popup: Background tasks are unavailable:', error);
     }
   }
 
@@ -463,35 +457,6 @@ class DiscourseCopilotPopup {
     }
   }
 
-  // ---------- Background availability ----------
-
-  handleBackgroundError(error) {
-    if (isDatabaseCompatibilityError(error)) {
-      this.markBackgroundUnavailable(error);
-      this.status.show('Restart DiscourseCopilot to finish the update.', 'warning');
-      return true;
-    }
-    if (isRuntimeDisconnectedError(error)) {
-      this.markBackgroundUnavailable(error);
-      return true;
-    }
-    return false;
-  }
-
-  updateBackgroundRecovery() {
-    $('backgroundRecovery').classList.toggle('hidden', this.state.backgroundAvailable);
-  }
-
-  markBackgroundUnavailable(error) {
-    this.state.backgroundAvailable = false;
-    if (error) {
-      DiscourseCopilotLogger.warn('Popup: Background service needs a restart:', error);
-    }
-    this.updateBackgroundRecovery();
-    this.status.hide();
-    this.updateControls();
-  }
-
   // ---------- Operations ----------
 
   // Starts a request with the page and configuration as they are now.
@@ -525,7 +490,7 @@ class DiscourseCopilotPopup {
 
     const guidance = this.renderGuidance();
     this.updateControls();
-    this.updateBackgroundRecovery();
+    this.background.renderRecovery();
     // Agent state lives in its panel, so it survives re-renders and tab switches.
     const agentView = this.agent.renderPanel();
 

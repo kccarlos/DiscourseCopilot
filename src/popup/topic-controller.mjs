@@ -4,7 +4,7 @@
 // views, and routes summary/chat task updates and streamed text to them.
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { TASK_TYPE } from '../shared/task-record.mjs';
-import { canonicalizeTopicUrl } from './topic-session.mjs';
+import { canonicalizeTopicUrl } from '../shared/topic-session.mjs';
 
 function usableTitle(title) {
   return title && title !== 'Unknown page';

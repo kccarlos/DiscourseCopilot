@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import { AIService } from '../src/services/ai-service.js';
@@ -48,13 +48,16 @@ test('already-aborted follow-ups stop before context or provider setup', async (
 });
 
 test('every AI SDK text request receives the operation abort signal', async () => {
-  const sourceUrl = new URL('../src/services/ai-service.js', import.meta.url);
-  const source = await readFile(sourceUrl, 'utf8');
-  const calls = [
+  const servicesDir = new URL('../src/services/', import.meta.url);
+  const files = (await readdir(servicesDir)).filter(name => /\.m?js$/.test(name));
+  const sources = await Promise.all(files.map(name => readFile(new URL(name, servicesDir), 'utf8')));
+  const calls = sources.flatMap(source => [
     ...source.matchAll(/\b(?:generateText|streamText)\(\{([\s\S]*?)\n\s*\}\);/g)
-  ];
+  ]);
 
-  assert.ok(calls.length >= 7, 'expected to inspect every AI SDK request path');
+  // Single pass (stream + text), each retry request, final assembly
+  // (stream + text), and the shared chat/Agent answer stream.
+  assert.ok(calls.length >= 6, `expected to inspect every AI SDK request path (found ${calls.length})`);
   for (const [index, call] of calls.entries()) {
     assert.match(
       call[1],

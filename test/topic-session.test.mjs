@@ -10,7 +10,7 @@ import {
   normalizeRawPages,
   normalizeSavedHistory,
   planTopicPageRequests
-} from '../src/popup/topic-session.mjs';
+} from '../src/shared/topic-session.mjs';
 
 test('creates a normalized topic-linked session and canonical URL', () => {
   const session = createTopicSession({

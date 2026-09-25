@@ -2,7 +2,7 @@
 // registers every Chrome listener (each exactly once, at startup, so a
 // suspended worker is woken by the events it needs).
 import { AIService } from '../services/ai-service.js';
-import { topicSessionDatabase } from '../popup/topic-session-db.mjs';
+import { topicSessionDatabase } from '../shared/topic-session-db.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { TASK_TYPE } from '../shared/task-record.mjs';
 import { ConfigStore } from '../shared/config-state.mjs';

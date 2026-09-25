@@ -8,8 +8,13 @@ import {
   normalizeForumContextLimit
 } from '../shared/chat-context-limit.mjs';
 import { normalizeChatQuestion, prepareChatEdit } from './conversation-state.mjs';
-import { getChatCountLabel } from './ui-state.mjs';
 import { renderMarkdown } from './markdown.mjs';
+
+export function getChatCountLabel(history = []) {
+  const questionCount = history.filter(message => message.role === 'user').length;
+  if (!questionCount) return 'Start a conversation';
+  return `${questionCount} ${questionCount === 1 ? 'question' : 'questions'} asked`;
+}
 
 const $ = id => document.getElementById(id);
 const MAX_INPUT_HEIGHT_PX = 144;

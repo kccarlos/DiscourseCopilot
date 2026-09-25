@@ -1,27 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { partitionTasks, resolveIdleStatus, shouldRederiveStatus } from '../src/popup/ui-state.mjs';
 import {
   cleanTopicTitle,
   collectForumNames,
   forumAccentHue,
   forumHostname,
   forumInitial,
-  describeAgentProgress,
   groupByForum,
+  resolveForumName
+} from '../src/popup/forum-names.mjs';
+import {
+  getDefaultActivityTab,
   isAgentAnswerUnopened,
-  linkifyCitations,
   mergeAgentRunState,
   selectAgentRunView,
-  selectSavedAgentActivities,
-  resolveForumName,
-  getChatCountLabel,
-  getDefaultActivityTab,
-  getSummaryActionLabel,
-  partitionTasks,
-  resolveIdleStatus,
-  shouldRederiveStatus
-} from '../src/popup/ui-state.mjs';
+  selectSavedAgentActivities
+} from '../src/popup/agent-runs.mjs';
+import { describeAgentProgress } from '../src/popup/agent-answer-view.mjs';
+import { linkifyCitations } from '../src/popup/markdown.mjs';
+import { getChatCountLabel } from '../src/popup/chat-view.mjs';
+import { getSummaryActionLabel } from '../src/popup/topic-controls.mjs';
 
 const HOUR = 60 * 60 * 1000;
 

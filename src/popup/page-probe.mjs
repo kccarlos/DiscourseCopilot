@@ -5,7 +5,7 @@
 // chrome.scripting.executeScript — allowed after the user clicked the
 // toolbar icon on that tab (activeTab). Its result becomes the same page
 // state the content script reports, marked detectedBy: 'probe'.
-import { extractForumTopicId } from '../content/topic-route.mjs';
+import { extractForumTopicId } from '../shared/topic-route.mjs';
 import {
   buildTopicKey,
   forumDisplayName,

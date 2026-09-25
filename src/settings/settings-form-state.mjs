@@ -24,7 +24,10 @@
 //   (idle)       save-started      saving
 //   saving       save-succeeded    saved, or dirty when edited during the save
 //   saving       save-failed       error
-//   (idle)       reset-started     resetting
+//   (idle)       reset-requested   (same phase; `confirmingReset` shows the
+//                                            inline "Reset everything?" panel)
+//   any          reset-cancelled   (closes that panel)
+//   (idle)       reset-started     resetting (only from the panel)
 //   resetting    reset-succeeded   pristine
 //   resetting    reset-failed      error
 //   any          notice/clear-status  (status line only)
@@ -34,6 +37,10 @@
 //
 // `edited` tracks unsaved edits independently of the phase: edits made while
 // a save is in flight keep the form dirty after that save succeeds.
+//
+// `confirmingReset` is the explicit confirmation "Reset all settings" needs:
+// reset-started is ignored unless it is set, and starting anything else
+// (an edit, Test, Save, "Restore defaults") closes it.
 //
 // `fieldErrors` ({ field: message }) holds the inline errors. Save is
 // blocked while any remain (canSave); fixing a field clears only its error.
@@ -77,6 +84,7 @@ export function initialFormState() {
     revision: 0,
     savingRevision: null,
     fieldErrors: {},
+    confirmingReset: false,
     status: status('Loading saved settings…', 'info', false)
   };
 }
@@ -139,6 +147,7 @@ export function transitionForm(state, event) {
         edited: true,
         revision: state.revision + 1,
         fieldErrors,
+        confirmingReset: false,
         // Switching provider or language clears the status; typing does not,
         // except that fixing the last invalid field clears the error message.
         status: event.clearStatus || fixedLast ? null : state.status
@@ -149,6 +158,7 @@ export function transitionForm(state, event) {
         ...state,
         phase: isFormBusy(state) ? state.phase : FORM_PHASE.DIRTY,
         edited: true,
+        confirmingReset: false,
         revision: state.revision + 1,
         fieldErrors: Object.fromEntries(Object.entries(state.fieldErrors || {})
           .filter(([field]) => !(event.fields || []).includes(field))),
@@ -182,6 +192,7 @@ export function transitionForm(state, event) {
       return {
         ...state,
         phase: FORM_PHASE.TESTING,
+        confirmingReset: false,
         status: status(`Testing ${event.providerName}…`, 'info', false)
       };
     case 'test-passed':
@@ -200,6 +211,7 @@ export function transitionForm(state, event) {
       return {
         ...state,
         phase: FORM_PHASE.SAVING,
+        confirmingReset: false,
         savingRevision: state.revision,
         status: status('Saving settings…', 'info', false)
       };
@@ -223,10 +235,21 @@ export function transitionForm(state, event) {
         savingRevision: null,
         status: status(`Could not save settings: ${event.message}`, 'error', false)
       };
+    case 'reset-requested':
+      return isFormBusy(state) || state.confirmingReset
+        ? state
+        : { ...state, confirmingReset: true, status: null };
+    case 'reset-cancelled':
+      return state.confirmingReset ? { ...state, confirmingReset: false } : state;
     case 'reset-started':
+      // Only the confirmation panel's "Reset everything" starts a reset.
+      if (!state.confirmingReset || isFormBusy(state)) {
+        return state;
+      }
       return {
         ...state,
         phase: FORM_PHASE.RESETTING,
+        confirmingReset: false,
         status: status('Resetting settings…', 'info', false)
       };
     case 'reset-succeeded':

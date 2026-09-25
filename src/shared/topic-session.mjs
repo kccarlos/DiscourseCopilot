@@ -3,7 +3,7 @@ import {
   buildTopicUrl,
   normalizeSiteUrl,
   siteUrlFromPageUrl
-} from '../shared/forum-site.mjs';
+} from './forum-site.mjs';
 
 export const CHAT_RETENTION_MS = 24 * 60 * 60 * 1000;
 export const MAX_SAVED_TOPICS = 40;

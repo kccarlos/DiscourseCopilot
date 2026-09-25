@@ -1,7 +1,7 @@
 // Topic sessions (summary, source posts, chat history) cached in the side
 // panel and saved to IndexedDB, with writes serialized per topic.
-import { topicSessionDatabase } from './topic-session-db.mjs';
-import { createTopicSession, normalizeTopicSession } from './topic-session.mjs';
+import { topicSessionDatabase } from '../shared/topic-session-db.mjs';
+import { createTopicSession, normalizeTopicSession } from '../shared/topic-session.mjs';
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 
 export class SessionStore {

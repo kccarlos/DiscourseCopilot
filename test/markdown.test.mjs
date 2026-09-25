@@ -4,8 +4,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { isAllowedHref, markdownToHtml } from '../src/popup/markdown.mjs';
-import { linkifyCitations } from '../src/popup/ui-state.mjs';
+import { isAllowedHref, linkifyCitations, markdownToHtml } from '../src/popup/markdown.mjs';
 
 const hrefs = html => [...html.matchAll(/href="([^"]*)"/g)].map(match => match[1]);
 

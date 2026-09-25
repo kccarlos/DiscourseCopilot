@@ -1,52 +1,28 @@
 // Options page. Configuration state (persisted values, the draft being
 // edited, test/save/reset) lives in the shared ConfigStore; the form's own
 // lifecycle (pristine/dirty/testing/saving/…) is the reducer in
-// settings-form-state.mjs. This file wires DOM events to those two and
-// renders their state.
+// settings-form-state.mjs. This file wires the page's sections to those two
+// and renders the page-wide state (status line, save bar, busy state, the
+// reset confirmation):
+//
+//   provider-section     provider picker, key/URL/model fields, model lists
+//   preferences-section  research, reading and history preferences
+//   favorites-section    favorite models for the side panel's switcher
+//   forum-access-section enabled forums, Remove access
 import { DiscourseCopilotConstants } from '../shared/constants.js';
-import {
-  isModelOffered,
-  modelCatalog,
-  modelMissingText,
-  orderModelChoices,
-  pickDefaultModel
-} from '../shared/model-catalog.mjs';
-import {
-  MAX_FAVORITE_MODELS,
-  addFavoriteModel,
-  favoriteModelKey,
-  hasFavoriteModel,
-  removeFavoriteModel
-} from '../shared/favorite-models.mjs';
-import {
-  buildModelChoices,
-  isLatestRequest,
-  normalizeProviderSettings
-} from './settings-helpers.mjs';
-import {
-  LOCAL_PROVIDER_IDS,
-  PROVIDER_LINKS,
-  describeSavedConfiguration
-} from '../shared/provider-setup.mjs';
+import { LOCAL_PROVIDER_IDS, describeSavedConfiguration } from '../shared/provider-setup.mjs';
 import { RESPONSE_LANGUAGES } from '../shared/response-language.mjs';
 import {
   requestServerAccess,
   serverAccessDeniedText,
   serverNeedsAccessPrompt
 } from '../shared/forum-access.mjs';
-import { ConfigStore, PROVIDER_IDS } from '../shared/config-state.mjs';
-import { FORUM_CONTEXT_LIMIT } from '../shared/chat-context-limit.mjs';
-import {
-  DEFAULT_PREFERENCES,
-  HISTORY_RETENTION_OPTIONS,
-  POSTS_PER_RAW_PAGE,
-  researchRequestBudget,
-  resolveResearchLimits,
-  resolveRetention,
-  validatePreferences
-} from '../shared/preferences.mjs';
-import { topicSessionDatabase } from '../popup/topic-session-db.mjs';
+import { ConfigStore } from '../shared/config-state.mjs';
+import { topicSessionDatabase } from '../shared/topic-session-db.mjs';
 import { ForumAccessSection, customServerPatterns } from './forum-access-section.mjs';
+import { INPUT_FIELDS, PROVIDER_FIELDS, ProviderSection } from './provider-section.mjs';
+import { PREFERENCE_INPUT_IDS, PreferencesSection } from './preferences-section.mjs';
+import { FavoritesSection } from './favorites-section.mjs';
 import {
   dirtyIndicatorText,
   formStateLabel,
@@ -58,74 +34,8 @@ import {
 const { PROVIDER_CONFIGS } = DiscourseCopilotConstants;
 const LOCAL_PROVIDER_IDS_LIST = [...LOCAL_PROVIDER_IDS];
 const STATUS_AUTO_HIDE_MS = 5000;
-// Wait for a pause in typing before reading a provider's model list.
-const MODEL_LIST_DEBOUNCE_MS = 700;
-
-// Element IDs of each provider's inputs.
-const PROVIDER_FIELDS = Object.fromEntries(PROVIDER_IDS.map(provider => [
-  provider,
-  {
-    credential: LOCAL_PROVIDER_IDS.has(provider) ? `${provider}Url` : `${provider}ApiKey`,
-    credentialField: LOCAL_PROVIDER_IDS.has(provider) ? 'url' : 'apiKey',
-    model: `${provider}Model`,
-    modelList: `${provider}ModelList`,
-    modelStatus: `${provider}ModelStatus`,
-    modelWarning: `${provider}ModelWarning`
-  }
-]));
-
-// Input ID → which draft field it edits.
-const INPUT_FIELDS = new Map(PROVIDER_IDS.flatMap(provider => {
-  const fields = PROVIDER_FIELDS[provider];
-  return [
-    [fields.credential, { provider, field: fields.credentialField }],
-    [fields.model, { provider, field: 'model' }]
-  ];
-}));
 
 const $ = id => document.getElementById(id);
-
-// Preference inputs (ids match the validation field names).
-const CUSTOM_RESEARCH_FIELDS = ['searchQueries', 'searchPages', 'topicsRead'];
-const PREFERENCE_NUMBER_FIELDS = [
-  ...CUSTOM_RESEARCH_FIELDS,
-  'topicPageLimit',
-  'maxSavedTopics',
-  'forumContextLimit'
-];
-const PREFERENCE_INPUT_IDS = new Set(PREFERENCE_NUMBER_FIELDS);
-
-// "Restore defaults" per section: which preferences it resets.
-const RESTORE_SECTIONS = {
-  research: {
-    label: 'Ask the forum',
-    keys: ['researchDepth', 'customResearch'],
-    fields: CUSTOM_RESEARCH_FIELDS
-  },
-  reading: {
-    label: 'Reading topics',
-    keys: ['topicPageMode', 'topicPageLimit'],
-    fields: ['topicPageLimit', 'forumContextLimit'],
-    forumContextLimit: true
-  },
-  history: {
-    label: 'History & privacy',
-    keys: ['historyRetention', 'maxSavedTopics'],
-    fields: ['maxSavedTopics']
-  }
-};
-
-const plural = (count, one, many = `${one}s`) => `${count.toLocaleString('en-US')} ${count === 1 ? one : many}`;
-
-// Renders text with **bold** segments as DOM nodes (no HTML parsing).
-function setRichText(element, text) {
-  element.replaceChildren(...String(text).split(/\*\*/).map((part, index) => {
-    if (index % 2 === 0) return document.createTextNode(part);
-    const strong = document.createElement('strong');
-    strong.textContent = part;
-    return strong;
-  }));
-}
 
 class DiscourseCopilotSettings {
   constructor() {
@@ -133,16 +43,27 @@ class DiscourseCopilotSettings {
     this.form = initialFormState();
     this.renderedStatus = undefined;
     this.renderedBusy = undefined;
+    this.renderedConfirmingReset = undefined;
     this.hasSavedConfiguration = false;
-    this.modelRequestIds = {};
-    this.loadingModelProviders = new Set();
-    // The last model list each provider returned (for the "no longer
-    // offered" warning), and the model fields the user has edited.
-    this.modelLists = {};
-    this.touchedModelFields = new Set();
-    this.modelListTimers = {};
     this.statusTimer = null;
     this.welcomeMode = new URLSearchParams(location.search).get('welcome') === '1';
+    const isBusy = () => this.isBusy;
+    this.provider = new ProviderSection({
+      store: this.store,
+      isBusy,
+      onModelChanged: () => this.favorites.render()
+    });
+    this.preferences = new PreferencesSection({
+      store: this.store,
+      dispatch: event => this.dispatch(event),
+      getForm: () => this.form,
+      isBusy
+    });
+    this.favorites = new FavoritesSection({
+      store: this.store,
+      isBusy,
+      notify: (message, type, autoHide) => this.notify(message, type, autoHide)
+    });
   }
 
   // The provider whose section is shown (the draft's provider).
@@ -156,8 +77,8 @@ class DiscourseCopilotSettings {
 
   async init() {
     this.renderWelcome();
-    this.renderProviderLinks();
-    this.renderRetentionOptions();
+    this.provider.renderLinks();
+    this.preferences.renderRetentionOptions();
     this.renderForm();
 
     let loadError = null;
@@ -169,10 +90,10 @@ class DiscourseCopilotSettings {
     }
     this.store.selectProvider(this.store.config.provider);
     this.populateAllFields();
-    this.populatePreferenceFields();
+    this.preferences.populate();
     this.setupEventListeners();
-    this.renderProvider();
-    this.renderFavoriteModels();
+    this.provider.render();
+    this.favorites.render();
     this.renderSavedConfiguration();
     this.dispatch(loadError
       ? { type: 'load-failed', message: loadError.message }
@@ -198,20 +119,20 @@ class DiscourseCopilotSettings {
     // Follow changes made elsewhere (e.g. the side panel's model switcher).
     this.store.subscribe(event => {
       if (event.type === 'loaded' || event.type === 'saved' || event.type === 'active-model') {
-        this.renderModelWarning(this.currentProvider);
+        this.provider.renderModelWarning(this.currentProvider);
       }
       if (event.type === 'loaded') {
         this.renderSavedConfiguration();
-        this.renderFavoriteModels();
+        this.favorites.render();
         // Preferences saved elsewhere replace the fields unless being edited.
         if (!this.form.edited && !this.isBusy) {
-          this.populatePreferenceFields();
+          this.preferences.populate();
         }
       }
     });
 
     // Model discovery should never block editing the settings form.
-    void this.loadModelsForProvider(this.currentProvider);
+    void this.provider.loadModels(this.currentProvider);
   }
 
   // ---------- Form state ----------
@@ -232,26 +153,12 @@ class DiscourseCopilotSettings {
       this.renderedStatus = this.form.status;
       this.renderStatus(this.form.status);
     }
-    this.renderDirtyState();
-    this.renderFieldErrors();
-  }
-
-  // Inline errors for the preference fields, from the form state.
-  renderFieldErrors() {
-    const fieldErrors = this.form.fieldErrors || {};
-    for (const field of PREFERENCE_NUMBER_FIELDS) {
-      const input = $(field);
-      const error = $(`${field}Error`);
-      if (!input || !error) continue;
-      const message = fieldErrors[field] || '';
-      error.textContent = message;
-      error.hidden = !message;
-      if (message) {
-        input.setAttribute('aria-invalid', 'true');
-      } else {
-        input.removeAttribute('aria-invalid');
-      }
+    if (this.form.confirmingReset !== this.renderedConfirmingReset) {
+      this.renderedConfirmingReset = this.form.confirmingReset;
+      this.renderResetConfirmation(this.form.confirmingReset);
     }
+    this.renderDirtyState();
+    this.preferences.renderFieldErrors(this.form.fieldErrors);
   }
 
   renderStatus(status) {
@@ -284,11 +191,23 @@ class DiscourseCopilotSettings {
     document.querySelectorAll('button:not(.btn-refresh)').forEach(button => {
       button.disabled = busy;
     });
-    for (const provider of PROVIDER_IDS) {
-      this.setModelLoading(provider, this.loadingModelProviders.has(provider));
-    }
-    this.renderFavoriteModels();
+    this.provider.renderLoading();
+    this.favorites.render();
     document.querySelector('.container')?.setAttribute('aria-busy', String(busy));
+  }
+
+  // The inline "Reset everything?" panel under Reset (form.confirmingReset).
+  renderResetConfirmation(open) {
+    const panel = $('resetConfirm');
+    const hadFocus = panel.contains(document.activeElement);
+    panel.hidden = !open;
+    $('resetBtn').setAttribute('aria-expanded', String(open));
+    $('resetBtn').closest('.danger-zone')?.classList.toggle('is-confirming', open);
+    if (open) {
+      $('resetConfirmBtn').focus();
+    } else if (hadFocus) {
+      $('resetBtn').focus();
+    }
   }
 
   notify(message, statusType = 'info', autoHide) {
@@ -308,15 +227,7 @@ class DiscourseCopilotSettings {
   }
 
   populateAllFields() {
-    for (const provider of PROVIDER_IDS) {
-      const fields = PROVIDER_FIELDS[provider];
-      const settings = this.store.draftSettings(provider);
-      const credential = $(fields.credential);
-      const model = $(fields.model);
-      if (credential) credential.value = settings[fields.credentialField] || '';
-      if (model) model.value = settings.model || '';
-    }
-
+    this.provider.populate();
     $('systemPrompt').value = this.store.config.systemPrompt;
     const languageSelect = $('responseLanguage');
     if (languageSelect.options.length !== RESPONSE_LANGUAGES.length) {
@@ -328,10 +239,10 @@ class DiscourseCopilotSettings {
   setupEventListeners() {
     $('providerSelect').addEventListener('change', event => {
       this.store.selectProvider(event.target.value);
-      this.renderProvider();
-      this.renderFavoriteModels();
+      this.provider.render();
+      this.favorites.render();
       this.dispatch({ type: 'edited', clearStatus: true });
-      void this.loadModelsForProvider(this.currentProvider);
+      void this.provider.loadModels(this.currentProvider);
     });
 
     $('responseLanguage').addEventListener('change', event => {
@@ -346,230 +257,45 @@ class DiscourseCopilotSettings {
       void this.testConnection();
     });
     $('resetBtn').addEventListener('click', () => {
+      this.dispatch({ type: this.form.confirmingReset ? 'reset-cancelled' : 'reset-requested' });
+    });
+    $('resetConfirmBtn').addEventListener('click', () => {
       void this.resetSettings();
     });
-    $('addFavoriteBtn').addEventListener('click', () => {
-      void this.addCurrentFavorite();
+    $('resetCancelBtn').addEventListener('click', () => {
+      this.dispatch({ type: 'reset-cancelled' });
+    });
+    $('resetConfirm').addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this.dispatch({ type: 'reset-cancelled' });
+      }
     });
 
-    document.querySelectorAll('.btn-refresh').forEach(button => {
-      button.addEventListener('click', () => {
-        void this.refreshModels(button.dataset.provider);
-      });
-    });
-
-    this.setupPreferenceListeners();
+    this.provider.mountRefreshButtons();
+    this.favorites.mount();
+    this.preferences.mount();
 
     document.querySelectorAll('input, textarea').forEach(field => {
       if (PREFERENCE_INPUT_IDS.has(field.id) || field.type === 'radio') {
         return;
       }
+      const target = INPUT_FIELDS.get(field.id);
       field.addEventListener('input', () => {
         field.removeAttribute('aria-invalid');
-        const target = INPUT_FIELDS.get(field.id);
         if (target) {
-          this.store.updateField(target.provider, target.field, field.value);
+          this.provider.handleInput(field, target);
         } else if (field.id === 'systemPrompt') {
           this.store.updateDraft({ systemPrompt: field.value });
         }
         this.dispatch({ type: 'edited' });
-        if (target?.field === 'model') {
-          this.touchedModelFields.add(target.provider);
-          this.renderModelWarning(target.provider);
-        }
         if (field.id === PROVIDER_FIELDS[this.currentProvider]?.model) {
-          this.renderFavoriteModels();
-        }
-        // A new key or server URL: read that provider's model list once
-        // typing pauses (and at once when the field loses focus).
-        if (target && target.field !== 'model') {
-          this.scheduleModelList(target.provider);
+          this.favorites.render();
         }
       });
-      const target = INPUT_FIELDS.get(field.id);
       if (target && target.field !== 'model') {
-        field.addEventListener('change', () => this.scheduleModelList(target.provider, 0));
+        field.addEventListener('change', () => this.provider.scheduleModelList(target.provider, 0));
       }
-    });
-  }
-
-  scheduleModelList(provider, delay = MODEL_LIST_DEBOUNCE_MS) {
-    clearTimeout(this.modelListTimers[provider]);
-    this.modelListTimers[provider] = setTimeout(() => {
-      if (provider === this.currentProvider) void this.loadModelsForProvider(provider);
-    }, delay);
-  }
-
-  // ---------- Preferences ----------
-
-  renderRetentionOptions() {
-    const container = $('historyRetentionOptions');
-    if (!container || container.childElementCount) return;
-    container.replaceChildren(...HISTORY_RETENTION_OPTIONS.map(option => {
-      const label = document.createElement('label');
-      const input = document.createElement('input');
-      input.type = 'radio';
-      input.name = 'historyRetention';
-      input.value = option.value;
-      const text = document.createElement('span');
-      text.textContent = option.value === DEFAULT_PREFERENCES.historyRetention
-        ? `${option.label} (default)`
-        : option.label;
-      label.append(input, text);
-      return label;
-    }));
-  }
-
-  // The chat context value being edited (string while typing).
-  get draftForumContextLimit() {
-    return this.store.draft.forumContextLimit ?? this.store.config.forumContextLimit;
-  }
-
-  populatePreferenceFields() {
-    const preferences = this.store.draftPreferences;
-    document.querySelectorAll('input[name="researchDepth"]').forEach(input => {
-      input.checked = input.value === preferences.researchDepth;
-    });
-    document.querySelectorAll('input[name="historyRetention"]').forEach(input => {
-      input.checked = input.value === preferences.historyRetention;
-    });
-    for (const field of CUSTOM_RESEARCH_FIELDS) {
-      $(field).value = String(preferences.customResearch[field]);
-    }
-    document.querySelectorAll('input[name="topicPageMode"]').forEach(input => {
-      input.checked = input.value === preferences.topicPageMode;
-    });
-    $('topicPageLimit').value = String(preferences.topicPageLimit);
-    $('maxSavedTopics').value = String(preferences.maxSavedTopics);
-    $('forumContextLimit').value = String(this.draftForumContextLimit);
-    this.renderPreferences();
-  }
-
-  setupPreferenceListeners() {
-    document.querySelectorAll('input[name="researchDepth"]').forEach(input => {
-      input.addEventListener('change', () => {
-        if (!input.checked) return;
-        this.store.updatePreferences({ researchDepth: input.value });
-        this.dispatch({ type: 'edited', clearStatus: true });
-        this.syncPreferenceErrors();
-        this.renderPreferences();
-      });
-    });
-    document.querySelectorAll('input[name="topicPageMode"]').forEach(input => {
-      input.addEventListener('change', () => {
-        if (!input.checked) return;
-        this.store.updatePreferences({ topicPageMode: input.value });
-        this.dispatch({ type: 'edited', clearStatus: true });
-        // Leaving limit mode clears a page-limit error (it is no longer checked).
-        this.syncPreferenceErrors();
-        this.renderPreferences();
-      });
-    });
-    document.querySelectorAll('input[name="historyRetention"]').forEach(input => {
-      input.addEventListener('change', () => {
-        if (!input.checked) return;
-        this.store.updatePreferences({ historyRetention: input.value });
-        this.dispatch({ type: 'edited', clearStatus: true });
-        this.renderPreferences();
-      });
-    });
-    for (const field of PREFERENCE_NUMBER_FIELDS) {
-      const input = $(field);
-      input.addEventListener('input', () => {
-        this.updatePreferenceField(field, input.value);
-        this.dispatch({ type: 'edited' });
-        // While typing, only update an error already shown (e.g. clear it
-        // once fixed); a new error appears when the field is left.
-        this.syncPreferenceErrors();
-        this.renderPreferences();
-      });
-      input.addEventListener('change', () => {
-        this.syncPreferenceErrors(field);
-      });
-    }
-    document.querySelectorAll('[data-restore]').forEach(button => {
-      button.addEventListener('click', () => this.restoreSectionDefaults(button.dataset.restore));
-    });
-  }
-
-  updatePreferenceField(field, value) {
-    if (CUSTOM_RESEARCH_FIELDS.includes(field)) {
-      this.store.updatePreferences({ customResearch: { [field]: value } });
-    } else if (field === 'forumContextLimit') {
-      this.store.updateDraft({ forumContextLimit: value });
-    } else {
-      this.store.updatePreferences({ [field]: value });
-    }
-  }
-
-  // Re-derives inline errors from the draft: fields already showing an error
-  // (and `reveal`, a field just left) show its current error or none.
-  syncPreferenceErrors(reveal = '') {
-    const validation = this.store.validatePreferencesDraft();
-    const shown = this.form.fieldErrors || {};
-    const fields = PREFERENCE_NUMBER_FIELDS.filter(field => field === reveal || shown[field]);
-    if (!fields.length) return;
-    this.dispatch({ type: 'field-errors', fields, fieldErrors: validation.fieldErrors });
-  }
-
-  restoreSectionDefaults(section) {
-    const restore = RESTORE_SECTIONS[section];
-    if (!restore || this.isBusy) return;
-    this.store.resetPreferencesDraft(restore.keys);
-    if (restore.forumContextLimit) {
-      this.store.updateDraft({ forumContextLimit: FORUM_CONTEXT_LIMIT.default });
-    }
-    this.populatePreferenceFields();
-    this.dispatch({ type: 'defaults-restored', section: restore.label, fields: restore.fields });
-  }
-
-  // The effective values below each section, derived from the draft the way
-  // the extension will apply them once saved.
-  renderPreferences() {
-    const draft = this.store.draftPreferences;
-    const validation = validatePreferences(draft);
-    const custom = draft.researchDepth === 'custom';
-    $('customResearch').hidden = !custom;
-
-    const research = $('researchEffective');
-    const researchInvalid = CUSTOM_RESEARCH_FIELDS.some(field => validation.fieldErrors[field]);
-    if (researchInvalid) {
-      research.textContent = 'Fix the highlighted field to see what each question will do.';
-    } else {
-      const limits = resolveResearchLimits(validation.preferences || draft);
-      const pages = limits.searchPages > 1 ? ` × ${plural(limits.searchPages, 'result page')}` : '';
-      setRichText(research, `Each question: **up to ${plural(limits.searchQueries, 'search', 'searches')}${pages}**, reading **up to ${plural(limits.topicsRead, 'discussion')}** — at most ${plural(researchRequestBudget(limits), 'forum request')}.`);
-    }
-
-    const limitMode = draft.topicPageMode === 'limit';
-    $('topicPageLimit').disabled = !limitMode;
-    const reading = $('topicPageLimitEffective');
-    if (!limitMode) {
-      setRichText(reading, '**Every page** of a topic is read.');
-    } else if (validation.fieldErrors.topicPageLimit) {
-      reading.textContent = '';
-    } else {
-      const posts = (Number(draft.topicPageLimit) * POSTS_PER_RAW_PAGE).toLocaleString('en-US');
-      setRichText(reading, `Topics up to **${posts} posts** are read in full; longer ones are summarized from their first ${posts} posts, and the summary says so.`);
-    }
-
-    const history = $('historyEffective');
-    if (validation.fieldErrors.maxSavedTopics) {
-      history.textContent = '';
-    } else {
-      const retention = resolveRetention(validation.preferences || draft);
-      const taskDays = Math.round(retention.taskMs / 86400000);
-      const tasks = `finished tasks leave the Tasks list after ${plural(taskDays, 'day')}`;
-      setRichText(history, retention.forever
-        ? `Unkept conversations and Agent answers stay **until you delete them**; ${tasks}. Past **${retention.maxSavedTopics} saved topics**, the oldest unkept summaries are removed.`
-        : `Unkept conversations and Agent answers are removed **${retention.label} after their last activity**; ${tasks}. Up to **${retention.maxSavedTopics} saved topics** are kept.`);
-    }
-  }
-
-  renderProvider() {
-    $('providerSelect').value = this.currentProvider;
-    document.querySelectorAll('.provider-config').forEach(section => {
-      section.classList.toggle('hidden', section.id !== `config-${this.currentProvider}`);
     });
   }
 
@@ -577,16 +303,6 @@ class DiscourseCopilotSettings {
   renderWelcome() {
     document.body.classList.toggle('welcome-mode', this.welcomeMode);
     $('welcomeHeader')?.classList.toggle('hidden', !this.welcomeMode);
-  }
-
-  renderProviderLinks() {
-    document.querySelectorAll('[data-provider-link]').forEach(anchor => {
-      const link = PROVIDER_LINKS[anchor.dataset.providerLink];
-      if (!link) return;
-      anchor.href = link.url;
-      anchor.textContent = link.label;
-      anchor.rel = 'noopener noreferrer';
-    });
   }
 
   renderSavedConfiguration() {
@@ -603,31 +319,13 @@ class DiscourseCopilotSettings {
     this.renderDirtyState();
   }
 
-  getFormValues(provider = this.currentProvider) {
-    return { ...this.store.draftSettings(provider) };
-  }
-
-  markInvalidFields(validation) {
-    const fields = PROVIDER_FIELDS[this.currentProvider];
-    const credential = $(fields.credential);
-    const model = $(fields.model);
-    credential?.removeAttribute('aria-invalid');
-    model?.removeAttribute('aria-invalid');
-    if (validation.fieldErrors.apiKey || validation.fieldErrors.url) {
-      credential?.setAttribute('aria-invalid', 'true');
-    }
-    if (validation.fieldErrors.model) {
-      model?.setAttribute('aria-invalid', 'true');
-    }
-  }
-
   // Validates the draft for Save (provider + preferences) or Test (provider
   // only); on failure the form becomes invalid and nothing is written.
   checkDraft({ includePreferences = true } = {}) {
     const validation = includePreferences
       ? this.store.validateSave(this.currentProvider)
       : this.store.validateDraft(this.currentProvider);
-    this.markInvalidFields(validation);
+    this.provider.markInvalidFields(validation);
     if (!validation.valid) {
       this.dispatch({
         type: 'invalid',
@@ -638,115 +336,6 @@ class DiscourseCopilotSettings {
       document.querySelector('[aria-invalid="true"]')?.focus();
     }
     return validation.valid;
-  }
-
-  // ---------- Favorites ----------
-
-  renderFavoriteModels() {
-    const list = $('favoriteModelList');
-    const empty = $('favoriteModelEmpty');
-    const addButton = $('addFavoriteBtn');
-    if (!list || !empty || !addButton) return;
-
-    const favorites = this.store.config.favorites;
-    const currentModel = this.getFormValues().model || '';
-    const alreadyFavorite = hasFavoriteModel(
-      favorites,
-      { provider: this.currentProvider, model: currentModel },
-      PROVIDER_CONFIGS
-    );
-    const atFavoriteLimit = favorites.length >= MAX_FAVORITE_MODELS;
-    addButton.textContent = alreadyFavorite
-      ? 'Already a favorite'
-      : atFavoriteLimit
-        ? 'Favorite limit reached'
-        : 'Add current model';
-    addButton.disabled =
-      this.isBusy || !currentModel.trim() || alreadyFavorite || atFavoriteLimit;
-
-    list.replaceChildren();
-    empty.classList.toggle('hidden', favorites.length > 0);
-    for (const favorite of favorites) {
-      const item = document.createElement('div');
-      item.className = 'favorite-model-item';
-      item.dataset.favoriteKey = favoriteModelKey(favorite.provider, favorite.model);
-
-      const copy = document.createElement('div');
-      const model = document.createElement('strong');
-      model.textContent = favorite.model;
-      const provider = document.createElement('span');
-      provider.textContent = PROVIDER_CONFIGS[favorite.provider]?.name || favorite.provider;
-      copy.append(model, provider);
-
-      const remove = document.createElement('button');
-      remove.type = 'button';
-      remove.className = 'favorite-remove';
-      remove.textContent = 'Remove';
-      remove.disabled = this.isBusy;
-      remove.setAttribute('aria-label', `Remove ${favorite.model} from favorite models`);
-      remove.addEventListener('click', () => {
-        void this.removeFavorite(favorite, remove);
-      });
-
-      item.append(copy, remove);
-      list.appendChild(item);
-    }
-  }
-
-  async addCurrentFavorite() {
-    const favorites = this.store.config.favorites;
-    const favorite = {
-      provider: this.currentProvider,
-      model: this.getFormValues().model || ''
-    };
-    const alreadyFavorite = hasFavoriteModel(favorites, favorite, PROVIDER_CONFIGS);
-    if (!favorite.model.trim() || alreadyFavorite) {
-      this.notify(
-        alreadyFavorite
-          ? 'This model is already in your favorites.'
-          : 'Choose or enter a model before adding a favorite.',
-        alreadyFavorite ? 'info' : 'error',
-        false
-      );
-      return;
-    }
-    if (favorites.length >= MAX_FAVORITE_MODELS) {
-      this.notify(
-        `You can save up to ${MAX_FAVORITE_MODELS} favorite models. Remove one before adding another.`,
-        'error',
-        false
-      );
-      return;
-    }
-
-    const button = $('addFavoriteBtn');
-    button.disabled = true;
-    button.textContent = 'Adding…';
-    try {
-      await this.store.setFavorites(addFavoriteModel(favorites, favorite, PROVIDER_CONFIGS));
-      this.renderFavoriteModels();
-      this.notify('Favorite model added. It is now available in the quick switcher.', 'success');
-    } catch (error) {
-      console.error('DiscourseCopilot Settings: Unable to add favorite model:', error);
-      this.renderFavoriteModels();
-      this.notify(`Could not save favorite: ${error.message}`, 'error', false);
-    }
-  }
-
-  async removeFavorite(favorite, button) {
-    button.disabled = true;
-    button.textContent = 'Removing…';
-    try {
-      await this.store.setFavorites(
-        removeFavoriteModel(this.store.config.favorites, favorite, PROVIDER_CONFIGS)
-      );
-      this.renderFavoriteModels();
-      this.notify('Favorite model removed.', 'success');
-    } catch (error) {
-      console.error('DiscourseCopilot Settings: Unable to remove favorite model:', error);
-      this.renderFavoriteModels();
-      this.notify(`Could not remove favorite: ${error.message}`, 'error', false);
-    }
   }
 
   // ---------- Save / test / reset ----------
@@ -776,7 +365,7 @@ class DiscourseCopilotSettings {
     if (result.ok) {
       this.renderSavedConfiguration();
       if (this.form.revision === this.form.savingRevision) {
-        this.populatePreferenceFields();
+        this.preferences.populate();
       }
       this.dispatch({ type: 'save-succeeded', welcomeMode: this.welcomeMode });
       if (!serverAllowed) {
@@ -810,145 +399,29 @@ class DiscourseCopilotSettings {
     }
   }
 
+  // Runs from the confirmation panel's "Reset everything" only.
   async resetSettings() {
-    if (this.isBusy) return;
-    if (!confirm('Reset all providers, API keys, models, favorites, URLs, the custom system prompt, the response language, and the research, reading and history preferences? Saved summaries and answers are not deleted.')) {
-      return;
-    }
+    if (this.isBusy || !this.form.confirmingReset) return;
 
     this.dispatch({ type: 'reset-started' });
     const result = await this.store.reset();
     if (!result.ok) {
       console.error('DiscourseCopilot Settings: Error resetting settings:', result.error);
       this.dispatch({ type: 'reset-failed', message: result.error?.message || 'unknown error' });
+      $('resetBtn').focus();
       return;
     }
 
     this.store.selectProvider(this.store.config.provider);
     this.populateAllFields();
-    this.populatePreferenceFields();
-    this.renderProvider();
-    this.renderFavoriteModels();
+    this.preferences.populate();
+    this.provider.render();
+    this.favorites.render();
     this.renderSavedConfiguration();
-    modelCatalog.clear();
-    this.modelLists = {};
-    this.touchedModelFields.clear();
+    this.provider.resetModels();
     this.dispatch({ type: 'reset-succeeded' });
-    void this.loadModelsForProvider(this.currentProvider);
-  }
-
-  // ---------- Model suggestions ----------
-
-  async loadModelsForProvider(provider, { force = false } = {}) {
-    const fields = PROVIDER_FIELDS[provider];
-    const input = $(fields.model);
-    const list = $(fields.modelList);
-    const modelStatus = $(fields.modelStatus);
-    if (!input || !list || !modelStatus) return;
-
-    const requestId = (this.modelRequestIds[provider] || 0) + 1;
-    this.modelRequestIds[provider] = requestId;
-    const settings = normalizeProviderSettings(provider, this.getFormValues(provider));
-    const providerConfig = PROVIDER_CONFIGS[provider];
-    // Curated models stay offered even before (or without) a live model list.
-    const curated = (providerConfig.recommendedModels || providerConfig.suggestedModels || [])
-      .map(id => ({ id, name: 'Recommended' }));
-    delete this.modelLists[provider];
-    this.renderModelWarning(provider);
-
-    if (providerConfig.requiresApiKey && !settings.apiKey) {
-      this.populateModelChoices(list, curated, input.value);
-      modelStatus.textContent = 'Enter an API key to load the models it can use.';
-      this.setModelLoading(provider, false);
-      return;
-    }
-
-    this.setModelLoading(provider, true);
-    modelStatus.textContent = `Loading ${providerConfig.name} models…`;
-
-    try {
-      const { models } = await modelCatalog.list(provider, settings, { force });
-      if (!isLatestRequest(this.modelRequestIds, provider, requestId)) return;
-
-      this.modelLists[provider] = models;
-      // A provider whose model was never saved gets the best available
-      // default, unless the user already picked one. Saved models are
-      // never replaced.
-      if (models.length && this.canPreselectModel(provider)) {
-        const pick = pickDefaultModel(provider, models);
-        if (pick && pick !== input.value) {
-          input.value = pick;
-          this.store.updateField(provider, 'model', pick);
-          if (provider === this.currentProvider) this.renderFavoriteModels();
-        }
-      }
-      const choices = models.length ? orderModelChoices(provider, models) : curated;
-      this.populateModelChoices(list, choices, input.value);
-      const listsRecommended = choices.some(choice => choice.recommended);
-      modelStatus.textContent = models.length
-        ? `${plural(models.length, 'model')} available from ${providerConfig.name}${listsRecommended ? '; recommended (fast, low-cost) ones are listed first' : ''}. You can also enter any model ID.`
-        : `${providerConfig.name} returned no models. You can enter a model ID yourself.`;
-      this.renderModelWarning(provider);
-    } catch (error) {
-      if (!isLatestRequest(this.modelRequestIds, provider, requestId)) return;
-
-      this.populateModelChoices(list, curated, input.value);
-      modelStatus.textContent = `Couldn’t load the model list: ${error.message} You can keep or enter a model ID; Test Connection checks it.`;
-    } finally {
-      if (isLatestRequest(this.modelRequestIds, provider, requestId)) {
-        this.setModelLoading(provider, false);
-      }
-    }
-  }
-
-  // Only a provider without a saved model whose field the user hasn't edited.
-  canPreselectModel(provider) {
-    return !this.store.config.savedModels?.[provider]
-      && !this.touchedModelFields.has(provider);
-  }
-
-  // "No longer offered": the saved model, still in the field, is missing from
-  // the list the provider just returned. Nothing is said without a list.
-  renderModelWarning(provider) {
-    const fields = PROVIDER_FIELDS[provider];
-    const warning = fields && $(fields.modelWarning);
-    if (!warning) return;
-    const models = this.modelLists[provider];
-    const saved = this.store.config.savedModels?.[provider]
-      ? this.store.config.providers[provider]?.model || ''
-      : '';
-    const shown = $(fields.model)?.value.trim() || '';
-    const missing = Boolean(models?.length && saved && shown === saved
-      && !isModelOffered(provider, saved, models));
-    warning.textContent = missing ? modelMissingText(provider) : '';
-    warning.hidden = !missing;
-  }
-
-  populateModelChoices(list, models, selectedModel) {
-    const choices = buildModelChoices(models, selectedModel);
-    list.replaceChildren(...choices.map(model => {
-      const option = document.createElement('option');
-      option.value = model.id;
-      option.label = model.name || model.id;
-      return option;
-    }));
-  }
-
-  async refreshModels(provider) {
-    if (!provider || this.isBusy) return;
-    await this.loadModelsForProvider(provider, { force: true });
-  }
-
-  setModelLoading(provider, loading) {
-    if (loading) {
-      this.loadingModelProviders.add(provider);
-    } else {
-      this.loadingModelProviders.delete(provider);
-    }
-    const button = document.querySelector(`.btn-refresh[data-provider="${provider}"]`);
-    if (!button) return;
-    button.disabled = this.loadingModelProviders.has(provider) || this.isBusy;
-    button.textContent = loading ? 'Loading…' : 'Refresh models';
+    $('resetBtn').focus();
+    void this.provider.loadModels(this.currentProvider);
   }
 }
 

@@ -1,6 +1,21 @@
 // Enabled/disabled state and labels of the topic view's controls, derived
 // from one snapshot of the panel state (pure), then applied to the DOM.
-import { getSummaryActionLabel } from './ui-state.mjs';
+
+export function getSummaryActionLabel({
+  taskStatus = '',
+  taskPhase = '',
+  isSubmitting = false,
+  hasSummary = false,
+  isHydrating = false
+} = {}) {
+  if (taskStatus === 'queued') return 'Summary queued';
+  if (taskStatus && taskPhase === 'fetching') return 'Reading replies';
+  if (taskStatus) return 'Creating summary';
+  if (isSubmitting) return 'Starting summary';
+  if (hasSummary) return 'Check for new replies';
+  if (isHydrating) return 'Loading saved summary';
+  return 'Create summary';
+}
 
 /**
  * @param {object} input
