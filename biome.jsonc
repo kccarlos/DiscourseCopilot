@@ -1,4 +1,4 @@
-// Biome: linter + formatter for the whole repo (`pnpm lint`, `pnpm format`; see DEVELOPMENT.md).
+// Biome: linter + formatter for the whole repo (`pnpm lint`, `pnpm format`, `pnpm check`; CI runs `biome ci`; see DEVELOPMENT.md).
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },

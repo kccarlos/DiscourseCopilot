@@ -137,16 +137,19 @@ Then choose **Local (Ollama)** in setup. The address `http://localhost:11434` is
 
 ## Customize
 
-Open **Settings** from the side panel (or right-click the extension icon and choose **Options**).
+Open **Settings** from the side panel (or right-click the extension icon and choose **Options**). Most changes apply when you click **Save Settings** (favorites and forum access change right away), and the Ask the forum, Reading topics, and History & privacy sections each have **Restore defaults**.
 
-- **AI provider and favorites.** Switch providers or models, and save favorite models to switch quickly from the top of the side panel.
-- **Response language.** By default, answers match the language of the discussion (and questions are answered in the language you ask in). You can also pick one of 12 languages.
-- **Custom instructions.** Write your own instructions for how summaries should look, in place of the built-in ones. Leave it empty to use the defaults.
-- **How deep Ask the forum searches.** Choose **Quick**, **Balanced** (the default), **Thorough**, or set your own limits. Deeper searches find more sources but take longer and cost more.
-- **Pages read per topic.** By default, every page of a topic is read, however long it is. To make very long topics faster and cheaper, choose **Read only the first** and pick a number of pages (each page is 100 posts). A topic past your limit is summarized from its first pages, and the summary tells you so.
-- **Chat context.** How much of the topic is sent with each follow-up question. You can also change this in the side panel.
-- **History.** Chats and answers you haven't kept are removed after 1 day by default. You can choose 3, 7, or 30 days, or keep them until you delete them. Anything you **Keep** stays.
-- **Saved topics.** Up to 40 topic summaries are remembered by default (10 to 200). Past that, the oldest ones you haven't kept are removed.
+- **AI provider.** Switch providers, keys, or models. The model list comes from your provider (click **Refresh models** to reload it). Your saved model is never changed for you; if your provider stops offering it, Settings warns you so you can pick another.
+- **Favorite models.** Save models to switch between them from the top of the side panel.
+- **Response language.** **Auto (match the discussion)** is the default: summaries follow the discussion's language, and questions are answered in the language you ask in. You can also pick one of 12 languages.
+- **Custom instructions.** Your own instructions for summaries, chats, and Ask the forum answers, in place of the built-in ones. Leave it empty to use the defaults.
+- **Ask the forum: Research depth.** **Quick** (1 search, reads 3 discussions), **Balanced** (the default: 3 searches, reads 6 discussions), **Thorough** (4 searches with 2 result pages each, reads 10 discussions), or **Custom** to set each limit yourself. Deeper searches find more sources but take longer and cost more.
+- **Reading topics: Pages read per topic.** **Read every page** is the default, however long the topic is. To make very long topics faster and cheaper, choose **Read only the first** and a number of pages (1 to 100; each page is 100 posts). A topic past your limit is summarized from its first pages, and the summary and chat both say so.
+- **Reading topics: Chat context.** How much of the topic is sent with each follow-up question: 30,000 characters by default (5,000 to 1,000,000). You can also change this in the side panel.
+- **History & privacy: Keep conversations and Agent answers for.** Chats and answers you haven't kept are removed after **1 day** by default. You can choose 3, 7, or 30 days, or **Until I delete them**. Anything you **Keep** stays.
+- **History & privacy: Saved topics.** Up to 40 topic summaries are remembered by default (10 to 200). Past that, the oldest ones you haven't kept are removed.
+- **Forum access.** Every forum you allowed, with **Remove access**. Your saved summaries and answers stay.
+- **Reset all settings.** Removes every provider, key, model, favorite, custom instructions, and preference after you confirm on the page. Saved summaries and answers are not deleted.
 
 ## Privacy in plain words
 
@@ -175,7 +178,7 @@ Version 2.1 switched from access to every website to access per forum, so forums
 There are two kinds. If the *forum* asks DiscourseCopilot to slow down, the side panel shows "Forum asked us to slow down" and tries again on its own after a short wait, so you don't need to do anything. If your *AI provider* is limiting you, wait a minute and try again, and check your plan and usage with your provider.
 
 **"Ask the forum" is greyed out, or the side panel doesn't recognize the forum.**
-Click the DiscourseCopilot icon in the toolbar while the forum is open, and click **Allow access** if the side panel asks (then choose **Allow** in Chrome's prompt). Also make sure you're on a Discourse forum (most say "Powered by Discourse" at the bottom). If you chose **Is this a Discourse forum?** on a site that isn't one, remove it in **Settings → Forum access**.
+Click the DiscourseCopilot icon in the toolbar while the forum is open, and click **Allow access** if the side panel asks (then choose **Allow** in Chrome's prompt). Also make sure you're on a Discourse forum (most say "Powered by Discourse" at the bottom). If you allowed access from the **Is this a Discourse forum?** card on a site that isn't one, remove it in **Settings → Forum access**.
 
 **My summary says "Page limit reached" or "first 1,999 of 2,430 replies".**
 You've set a limit on **Pages read per topic**, so a longer topic is summarized from its first pages. To include more, choose **Read every page** (or a higher limit) in Settings, then click **Check for new replies**. It will take longer and cost a bit more. By default there is no limit. On the rare forum that doesn't report a topic's length, reading stops after 100 pages (10,000 posts) as a safety net.
@@ -185,6 +188,9 @@ Only the forum content needed for your request and your question, sent to the AI
 
 **Does it cost anything?**
 The extension is free. Your AI provider may charge for usage, usually a small amount per summary. Local models (Ollama, LM Studio) cost nothing to use.
+
+**I deleted something by mistake.**
+Click **Undo** in the message at the bottom of the side panel (or press Ctrl+Z, ⌘Z on a Mac, when you're not typing in a text box) within 8 seconds. After that, or once you close the side panel, the delete is final.
 
 **How do I keep an answer or a conversation?**
 Click **Keep** on it. Kept items never expire. You can also make history last longer in Settings.
@@ -197,6 +203,7 @@ Open Settings, check the key and model, and click **Test Connection**. Also chec
 - Building, testing, and how the code is organized: [DEVELOPMENT.md](DEVELOPMENT.md)
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Reporting a security issue: [SECURITY.md](SECURITY.md)
+- What changed in each version: [CHANGELOG.md](CHANGELOG.md)
 
 ## License
 

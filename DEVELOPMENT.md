@@ -1,6 +1,6 @@
 # Developing DiscourseCopilot
 
-For what the extension does and how to install a release, see [README.md](README.md).
+For what the extension does and how to install a release, see [README.md](README.md). What changed in each version is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Prerequisites
 
@@ -37,7 +37,7 @@ The UI commands need Playwright's Chromium once: `pnpm exec playwright install c
 
 ### Linting and formatting
 
-[Biome](https://biomejs.dev) lints and formats the JavaScript and JSON (CSS is linted only; HTML and the vendored stylesheets are left alone). The configuration is `biome.jsonc`, with three small GritQL rules in `tools/lint/`; `.editorconfig` gives editors the same basics (2 spaces, LF, 140 columns), and the Biome editor extension formats on save. Beyond the recommended rules it enforces `===` (except `== null`), `const`/no `var`, no unused variables or imports (prefix an intentionally unused parameter with `_`), no undeclared globals (`chrome` is declared, read-only), imports that resolve with their file extension, and in `src/`: no `console.log` (use `console.warn`/`console.error`, or `DiscourseCopilotLogger.log` for traces), no `alert`/`confirm`/`prompt`, no `eval`, `new Function` or string timers (the Chrome Web Store forbids dynamic code), no Node globals, and in `src/background/` no `window`/`document`/`localStorage`. An inline `// biome-ignore <rule>: <reason>` needs a reason. CI fails on any lint error or unformatted file.
+[Biome](https://biomejs.dev) lints and formats the JavaScript and JSON (CSS is linted only; HTML and the vendored stylesheets are left alone). The configuration is `biome.jsonc`, with three small GritQL rules in `tools/lint/`; `.editorconfig` gives editors the same basics (2 spaces, LF, 140 columns), and the Biome editor extension can format on save with the same configuration. Beyond the recommended rules it enforces `===` (except `== null`), `const`/no `var`, no unused variables or imports (prefix an intentionally unused parameter with `_`), no undeclared globals (`chrome` is declared, read-only), imports that resolve with their file extension, and in `src/`: no `console.log` (use `console.warn`/`console.error`, or `DiscourseCopilotLogger.log` for traces), no `alert`/`confirm`/`prompt`, no `eval`, `new Function` or string timers (the Chrome Web Store forbids dynamic code), no Node globals, and in `src/background/` no `window`/`document`/`localStorage`. An inline `// biome-ignore <rule>: <reason>` needs a reason. CI fails on any lint error or unformatted file.
 
 Formatting-only commits are listed in `.git-blame-ignore-revs`; to have `git blame` skip them locally, run once: `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 
@@ -121,7 +121,8 @@ src/
     preferences-section.mjs  Research, reading and history preferences, Restore defaults
     favorites-section.mjs Favorite models
     forum-access-section.mjs  "Forum access": enabled forums, Remove access
-    settings-helpers.mjs  Model suggestion helpers
+    settings-helpers.mjs  Model choices for the model field, latest-request check, re-exported
+                          provider-setup validation
   services/         AI provider calls
     ai-service.js         Summary, follow-up chat and Agent answer entry points (AIService)
     summary-strategies.mjs  Single pass → hierarchical fallback (OP + replies, map-reduce),
@@ -144,8 +145,18 @@ src/
     model-catalog.mjs     Providers' live model lists (fetch, filter, cache) and the default
                           pick from them; curated cheap/fast models live in constants.js
     forum-access.mjs      Per-forum host permissions, the access error, content script sync
-    constants.js          Storage keys, message names, provider list
-    task-record.mjs, agent-activity.mjs, forum-site.mjs, forum-response.mjs, …  Records and utilities
+    constants.js          Storage keys, message names, provider list, curated models (RECOMMENDED_MODELS)
+    task-record.mjs       Task records: statuses, types, normalization
+    agent-activity.mjs    Agent activity records (progress, sources, answer) and their retention
+    forum-site.mjs        Forum identity: site URL (origin + subfolder), topic keys
+    forum-response.mjs    Classifying forum responses (login required, rate limits);
+                          MAX_UNKNOWN_TOPIC_PAGES
+    fetch-progress.mjs    Topic pagination and reading progress/ETA
+    rate-limit-retry.mjs  fetch with Retry-After/backoff retries, abortable delays
+    response-language.mjs Response language choices and the prompt's language instruction
+    chat-context-limit.mjs, favorite-models.mjs  Chat context limit range; favorite model list
+    bounded-map.mjs, logger.js  Worker-pool map; console prefix and the trace sink
+    normalize.css, pico.min.css  Vendored stylesheets (not linted or formatted)
 ```
 
 ### Layering
@@ -194,6 +205,18 @@ The manifest asks only for the AI providers' API hosts and `localhost`/`127.0.0.
 - **"Checked" tabs.** A toolbar click records the tab ID in `storage.session` (`actionClickedTabs`) so a page that stays hidden afterwards (new tab page, `chrome://`) reads as "Not a Discourse forum" rather than "Page not checked yet". The panel drops the record when the tab starts loading another page (activeTab ends on a cross-site navigation); with the panel closed during that navigation the record can go stale until the next click. `content.js` ignores a second injection into a page that already has a live instance, and replaces an instance orphaned by an extension reload.
 - **What the panel can see.** Without `tabs`, `tab.url`/`title` exist only for enabled forums, provider hosts, and tabs where the icon was clicked (activeTab, until the tab navigates to another site). A content script already running keeps answering after access is removed; the panel checks `permissions.contains` and shows the Allow access card again. Opening a forum link from the panel still works (`tabs.create/update` need no permission), but an existing tab on a forum that isn't enabled can't be found and reused.
 - **Custom local-model servers.** Test/Save in the setup card and Settings request the server's origin in the click when it isn't `localhost`/`127.0.0.1`; Settings leaves such origins out of the forum list.
+
+### Model catalog (live model lists)
+
+`src/shared/model-catalog.mjs` reads the provider's current model list for the side panel's setup card and the settings page's model field. It runs once a key (or a local server URL) is entered, after a short pause in typing, and again on **Refresh models** in Settings.
+
+- **Request.** One `GET` per provider to its own models endpoint (`/models`, Ollama's `/api/tags`, LM Studio's `/v1/models`), 8 s timeout. The key goes only to that provider (OpenRouter's list is public and works without one; Gemini's key goes in a header, not the URL).
+- **Cache.** 10 minutes in `chrome.storage.session` (shared by the side panel and Settings, memory where that is missing), keyed by provider and a hash of the credentials; the key itself never appears in a cache key, error or log.
+- **Filtering.** Embedding, speech, image, video, moderation and realtime models are dropped; the rest are sorted newest first.
+- **Default pick.** `pickDefaultModel()` takes the first `RECOMMENDED_MODELS` entry (`constants.js`, each provider's cheap/fast tier) that the provider still offers, else a small/fast-looking model (`mini`, `flash`, `haiku`, …, never previews), else the first listed. Without a list (offline, bad key) the curated default stays and **Test & save** reports the problem.
+- **Saved models are never changed.** The pick replaces only the curated default the user hasn't touched (never a model they chose or saved). When a saved model is missing from the list, `isModelOffered()`/`findOfferedModel()` and `modelMissingText()` give the settings page its "no longer offered" warning.
+
+To refresh the curated picks, edit `RECOMMENDED_MODELS` in `constants.js` (the first entry is the provider's default) and run `pnpm test` (`test/model-catalog.test.mjs`).
 
 ### Configuration state
 
@@ -286,23 +309,99 @@ Deleting a saved summary or an Agent answer removes it at once, from IndexedDB t
 
 ## CI/CD & releases
 
-**CI** (`.github/workflows/ci.yml`) runs on every push to `main` and every pull request. A **Lint and format** job runs `biome ci` (the same checks as `pnpm check`). The build job runs `pnpm install --frozen-lockfile`, a check that `manifest.json` and `package.json` have the same version, `pnpm test`, `pnpm build`, and uploads `dist/` as a workflow artifact (kept 7 days). A third job, **UI flows**, runs `pnpm test:ui` in headless Chromium (see below).
+### CI
 
-**Cutting a release** (`.github/workflows/release.yml`):
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request (a newer push cancels the running one), all on Node 22 with `pnpm install --frozen-lockfile`:
 
-1. Bump `version` in **both** `manifest.json` and `package.json` (e.g. `2.1.0`) and commit to `main`.
-2. Tag and push: `git tag v2.1.0 && git push origin v2.1.0`
+| Job | What it runs |
+| --- | --- |
+| **build** | Checks that `manifest.json` and `package.json` have the same version, `pnpm test`, `pnpm build`, checks `dist/manifest.json` exists, uploads `dist/` as the `dist-<sha>` artifact (kept 7 days) |
+| **UI flows** | Installs Playwright's Chromium (headless shell, cached per Playwright version) and runs `pnpm test:ui`; on failure uploads the flow screenshots as `ui-flows-<sha>` (see [UI tests and screenshots](#ui-tests-and-screenshots)) |
+| **Lint and format** | `biome ci` (the same checks as `pnpm check`, annotated on the pull request) |
 
-The workflow tests and builds, fails if the tag doesn't match the manifest version, zips the contents of `dist/` as `discourse-copilot-<version>.zip`, and creates a GitHub Release with the zip attached and auto-generated notes.
+Before pushing, `pnpm test && pnpm check && pnpm build` covers everything except the UI flows (`pnpm test:ui`).
 
-**Chrome Web Store publishing:** after the GitHub Release is created, the `chrome-web-store` job uploads the zip with the [Chrome Web Store API v2](https://developer.chrome.com/docs/webstore/api) and, when `CWS_AUTO_PUBLISH` is `true`, submits it for review. It signs in to Google Cloud with [Workload Identity Federation](https://github.com/google-github-actions/auth), so no keys or refresh tokens are stored:
+### Cutting a release
 
-- Google Cloud project `discoursecopilot-publish` holds a service account (`cws-publisher@…`, no IAM roles) and a workload identity pool `github` whose provider only accepts tokens where `repository == 'kccarlos/DiscourseCopilot'` and the ref starts with `refs/tags/v`. That service account is linked to the publisher in the Chrome Web Store Developer Dashboard (Account → Service account).
-- Repository variables: `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT`, `CWS_ITEM_ID`, `CWS_AUTO_PUBLISH`. Repository secret: `CWS_PUBLISHER_ID`.
-- The job runs only for tag pushes (the identity provider rejects manual runs) and skips itself if any setting is missing.
-- The store rejects a package whose version isn't higher than the last uploaded one, and every submission goes through Google's review before it reaches users.
+1. Make sure `main` is green and holds everything that should ship.
+2. Bump `version` in **both** `manifest.json` and `package.json` (for example `2.2.0`). The Chrome Web Store only accepts a version higher than the last one uploaded, so never reuse or lower a version.
+3. In [CHANGELOG.md](CHANGELOG.md), rename **Unreleased** to the new version with today's date, start a new empty **Unreleased** section, and update the compare links at the bottom.
+4. Commit to `main` (for example "Release 2.2.0") and push.
+5. Tag and push the tag: `git tag v2.2.0 && git push origin v2.2.0`. Only repository admins can create `v*` tags (see [Repository protections](#repository-protections)).
 
-To release: bump `version` in `manifest.json` and `package.json`, commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+`.github/workflows/release.yml` then runs on the tag:
+
+1. **release** job: installs, fails unless the tag equals the manifest version (and both version files agree), runs `pnpm test` and `pnpm build`, zips the contents of `dist/` as `discourse-copilot-<version>.zip`, and creates a GitHub Release for the tag with the zip and auto-generated notes.
+2. **chrome-web-store** job: signs in to Google Cloud through Workload Identity Federation (below), uploads the zip with the [Chrome Web Store API v2](https://developer.chrome.com/docs/webstore/api) and waits until the store has processed it. Then:
+   - `CWS_AUTO_PUBLISH` = `true`: submits the item for review (`publishType: DEFAULT_PUBLISH`, so it goes live automatically once approved).
+   - anything else (the current setting is `false`): leaves the upload as a draft. Open the [developer dashboard](https://chrome.google.com/webstore/devconsole), check the draft (listing text, see [store-assets/LISTING.md](store-assets/LISTING.md)) and click **Submit for review**.
+
+Google reviews every update before it reaches users; the dashboard shows the review status. To switch automatic submission on or off: `gh variable set CWS_AUTO_PUBLISH --body true` (or `false`).
+
+The workflow can also be started by hand (**Actions → Release → Run workflow**, with an existing tag). That only rebuilds and creates the GitHub Release; the store job runs for tag pushes only, because the identity provider trusts nothing else.
+
+### Chrome Web Store publishing setup
+
+No keys or refresh tokens are stored in GitHub. The store job gets a 15-minute Google access token by exchanging the job's GitHub OIDC token ([google-github-actions/auth](https://github.com/google-github-actions/auth)):
+
+- **Google Cloud project** `discoursecopilot-publish` with the Chrome Web Store API (`chromewebstore.googleapis.com`), IAM, IAM Credentials and Security Token Service APIs enabled.
+- **Workload identity pool** `github` with an OIDC **provider** `discoursecopilot` (issuer `https://token.actions.githubusercontent.com`), mapping `google.subject`, `attribute.repository` and `attribute.ref`, with the condition `assertion.repository == 'kccarlos/DiscourseCopilot' && assertion.ref.startsWith('refs/tags/v')`.
+- **Service account** `cws-publisher@discoursecopilot-publish.iam.gserviceaccount.com`, with no project roles. The only binding is `roles/iam.workloadIdentityUser` on the service account for the pool's principals from this repository.
+- **Chrome Web Store Developer Dashboard → Account → Service account**: that service account's email is linked to the publisher, which lets it upload and publish this publisher's items.
+- **GitHub repository variables**: `GCP_WORKLOAD_IDENTITY_PROVIDER` (the provider's full resource name, `projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/github/providers/discoursecopilot`), `GCP_SERVICE_ACCOUNT` (the email above), `CWS_ITEM_ID` (the extension ID, `dpngnaiiofobfjleabbhnfmdflddnhac`), `CWS_AUTO_PUBLISH` (`true`/`false`). **Secret**: `CWS_PUBLISHER_ID` (the publisher ID from the dashboard's Account page). If any of the first four values is missing the job logs a notice and skips the upload.
+
+To recreate it (for a fork, or after deleting the project), with `PROJECT_ID`, `PROJECT_NUMBER` and `OWNER/REPO` filled in:
+
+```bash
+gcloud services enable chromewebstore.googleapis.com iam.googleapis.com iamcredentials.googleapis.com sts.googleapis.com --project=PROJECT_ID
+
+gcloud iam workload-identity-pools create github \
+  --project=PROJECT_ID --location=global --display-name="GitHub Actions"
+
+gcloud iam workload-identity-pools providers create-oidc discoursecopilot \
+  --project=PROJECT_ID --location=global --workload-identity-pool=github \
+  --display-name="OWNER/REPO" \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref" \
+  --attribute-condition="assertion.repository == 'OWNER/REPO' && assertion.ref.startsWith('refs/tags/v')"
+
+gcloud iam service-accounts create cws-publisher --project=PROJECT_ID --display-name="Chrome Web Store publisher"
+
+gcloud iam service-accounts add-iam-policy-binding \
+  cws-publisher@PROJECT_ID.iam.gserviceaccount.com --project=PROJECT_ID \
+  --role=roles/iam.workloadIdentityUser \
+  --member="principalSet://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/OWNER/REPO"
+
+gh variable set GCP_WORKLOAD_IDENTITY_PROVIDER --body "projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/discoursecopilot"
+gh variable set GCP_SERVICE_ACCOUNT --body "cws-publisher@PROJECT_ID.iam.gserviceaccount.com"
+gh variable set CWS_ITEM_ID --body "<extension ID>"
+gh variable set CWS_AUTO_PUBLISH --body false
+gh secret set CWS_PUBLISHER_ID   # paste the publisher ID when asked
+```
+
+Then add the service account's email under **Account → Service account** in the Chrome Web Store Developer Dashboard. The current settings can be read back with `gcloud iam workload-identity-pools providers describe discoursecopilot --location=global --workload-identity-pool=github --project=PROJECT_ID` and `gh variable list`.
+
+### Repository protections
+
+- **Rulesets:** *Protect main* blocks force-pushes to and deletion of `main`. *Protect release tags* allows only repository admins to create, move or delete `v*` tags, so only an admin can start a store upload.
+- **Security:** private vulnerability reporting ([SECURITY.md](SECURITY.md)), secret scanning with push protection, Dependabot alerts and security updates.
+- **Dependabot** (`.github/dependabot.yml`) opens weekly grouped updates for GitHub Actions and npm (minor/patch grouped). It ignores major versions of the AI SDK family (`ai`, `@ai-sdk/*`, `@openrouter/ai-sdk-provider`, `ollama-ai-provider-v2`, `zod`): those must move to a new major together, as one hand-made change.
+
+### Troubleshooting CI and releases
+
+| Failure | Cause and fix |
+| --- | --- |
+| `Version mismatch: manifest.json=… package.json=…` | Bump both files to the same version. |
+| `Tag vX.Y.Z does not match manifest.json version …` | The tag points at a commit without the bump. Delete the tag (`git tag -d vX.Y.Z && git push origin :refs/tags/vX.Y.Z`, admin only), commit the bump, tag again. |
+| `pnpm install --frozen-lockfile` fails | `pnpm-lock.yaml` is out of date: run `pnpm install` and commit the lockfile. Use the pnpm version from `packageManager` (see [Prerequisites](#prerequisites)). |
+| **Lint and format** fails | Run `pnpm check` locally; `pnpm format` fixes formatting and `pnpm lint:fix` the safe lint fixes. |
+| **UI flows** fails | Download the `ui-flows-<sha>` artifact and look at the step screenshots; run `pnpm test:ui` (or `node tools/ui/flows.mjs --only=<scenario>`) locally. |
+| `gh release create` fails because the release exists | The tag was released already. Delete the GitHub Release (keep the tag) and re-run the workflow, or cut a new version. |
+| "Chrome Web Store publishing is not configured; skipping store upload." | A repository variable or the `CWS_PUBLISHER_ID` secret is missing (`gh variable list`, `gh secret list`). |
+| Authenticate to Google Cloud fails (`unauthorized_client`, `Permission 'iam.serviceAccounts.getAccessToken' denied`) | The run wasn't a `v*` tag push from this repository (the provider's condition), the variables name the wrong provider/service account, or the `workloadIdentityUser` binding is missing. |
+| Upload returns HTTP 400/403 | 400 with a version error: the manifest version isn't higher than the last upload, so bump and tag again. 403: the service account isn't linked in the dashboard, or `CWS_PUBLISHER_ID`/`CWS_ITEM_ID` is wrong. |
+| Upload state isn't `SUCCEEDED` | The store rejected the package (the response is printed in the log); fix and release a new version. |
+| Submit for review fails | Usually an item already in review or a listing problem shown in the dashboard. The upload itself is kept as a draft; submit it from the dashboard. |
 
 ## UI tests and screenshots
 

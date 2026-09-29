@@ -12,7 +12,7 @@ Include the affected version, steps to reproduce, and the impact you expect. You
 ## Scope
 
 In scope, for example:
-- Requests the extension makes to a site other than the forum you are on or the AI provider you configured
+- Requests the extension makes to a site other than a forum you allowed or the AI provider you configured
 - Leaking API keys, forum content, or chat history to another site or extension
 - Prompt injection from forum content that makes the extension take actions (not just produce misleading text)
 
@@ -20,4 +20,4 @@ Out of scope: vulnerabilities in Discourse itself, in AI providers, or in Chrome
 
 ## Supported versions
 
-Only the latest release receives security fixes.
+Only the latest release receives security fixes. Fixes ship as a new version through the [Chrome Web Store](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac) (after Google's review) and on the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases).

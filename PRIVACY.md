@@ -1,6 +1,6 @@
 # Privacy Policy for DiscourseCopilot
 
-**Last Updated:** September 23, 2026
+**Last Updated:** September 29, 2026
 
 ## Overview
 
@@ -11,7 +11,7 @@ DiscourseCopilot is a browser extension that summarizes and answers questions ab
 Discourse forums are hosted on arbitrary domains, so the extension cannot list them in advance. Instead of asking for access to all websites, it asks for access **one forum at a time**, when you choose **Allow access** in the side panel. Chrome shows its own prompt, and nothing is read from a forum before you allow it.
 
 - **Forums you enable** (optional host permission, per forum): the extension reads topics and search results from that forum, using your existing browser session there (so login-required forums work when you are logged in). A small content script runs on that forum's pages to detect the topic you are viewing and show the in-page DiscourseCopilot button. You can see and remove every enabled forum under **Settings → Forum access**; removing access keeps your saved summaries and answers.
-- **AI provider hosts** (requested at install): the API addresses of the supported providers (OpenRouter, OpenAI, Anthropic, Groq, Google Gemini, xAI, DeepSeek) and `localhost` / `127.0.0.1` for Ollama and LM Studio. They are used only to send your requests to the provider you configured. A local model server on another computer is added only when you enter its address and allow it.
+- **AI provider hosts** (requested at install): the API addresses of the supported providers (OpenRouter, OpenAI, Anthropic, Groq, Google Gemini, xAI, DeepSeek) and `localhost` / `127.0.0.1` for Ollama and LM Studio. They are used only to send your requests to the provider you configured, and to read that provider's list of available models. A local model server on another computer is added (optional host permission for that one address) only when you enter its address and allow it.
 - **Checking the current page** (`activeTab` and `scripting`): when you click the DiscourseCopilot toolbar icon, the extension may look once at that tab to see whether it is a Discourse forum (the `generator` meta tag, the `discourse-base-uri` meta tag, or Discourse's setup element) and read its address and title. This happens only after your click, only for that tab, and nothing is stored or sent anywhere.
 - **Other permissions**: `storage` (settings on your device), `sidePanel` (the side panel), `alarms` (keeps background tasks running while you browse).
 - The extension never sends requests to sites you have not enabled, and it cannot see which websites you visit.
@@ -22,7 +22,8 @@ Discourse forums are hosted on arbitrary domains, so the extension cannot list t
 - **Forum content and summaries**: Topic pages you choose to summarize and the resulting summaries, saved in extension-owned IndexedDB so you can return to them. Saved sessions are keyed by forum and topic, so different forums are kept separate.
 - **Follow-up chat and Agent answers**: Recent questions, answers, search queries, and source references.
 - **Task status**: Queued, running, completed, failed, and cancelled task metadata so work can be restored and managed.
-- **API keys and settings**: Your AI provider credentials, model choices, custom system prompt, response language, and other preferences, stored in Chrome local storage.
+- **API keys and settings**: Your AI provider credentials, model choices, favorite models, custom instructions, response language, and other preferences (research depth, pages read per topic, chat context, history settings), stored in Chrome local storage.
+- **Model lists**: The list of models your provider offers, kept for about 10 minutes in Chrome session storage (cleared when the browser closes) so the model field doesn't ask again on every keystroke. It is stored under a one-way hash of your key, never the key itself.
 
 ### What the extension fetches from a forum
 Only from forums you enabled, and only the forum of the current page or task:
@@ -45,6 +46,7 @@ Only from forums you enabled, and only the forum of the current page or task:
 
 ### AI Provider Communication
 - When you run a summary, chat, or Agent task, the relevant forum content and your question are sent directly from your browser to your chosen AI provider (OpenRouter, OpenAI, Anthropic, Groq, Google Gemini, xAI, DeepSeek, or a local Ollama / LM Studio server).
+- When you enter a key (or a local server address) in setup or Settings, the extension asks that same provider for its list of available models, sending your key only to that provider. No forum content is sent with this request.
 - Please review your provider's privacy policy, for example:
   - [OpenRouter Privacy Policy](https://openrouter.ai/privacy)
   - [OpenAI Privacy Policy](https://openai.com/privacy/)
