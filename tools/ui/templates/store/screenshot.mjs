@@ -12,7 +12,7 @@ const ICON = {
 
 const header =
   f => `<div class="d-header"><div class="d-logo" style="background:${f.color}">${f.letter}</div><div class="d-site">${f.name}</div><div class="d-spacer"></div>
-  <div class="d-icon">${ICON.search}</div><div class="d-icon">${ICON.bell}</div><div class="d-icon">${ICON.menu}</div><div class="d-me" style="background:${f.me}">K</div></div>`;
+  <div class="d-icon">${ICON.search}</div><div class="d-icon">${ICON.bell}</div><div class="d-icon">${ICON.menu}</div><div class="d-me" style="background:${f.me}">A</div></div>`;
 
 const post = p => `<div class="d-post"><div class="d-av" style="background:${p.color}">${p.user[0].toUpperCase()}</div><div class="d-body">
   <div class="d-meta"><span class="d-user">${p.user}</span>${p.badge ? `<span class="d-badge">${p.badge}</span>` : ''}<span class="d-time">${p.time}</span></div>

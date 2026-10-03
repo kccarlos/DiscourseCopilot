@@ -3,14 +3,20 @@
 // list (debounced while typing, "Refresh models", the default pick and the
 // "no longer offered" warning).
 import { DiscourseCopilotConstants } from '../shared/constants.js';
-import { isModelOffered, modelCatalog, modelMissingText, orderModelChoices, pickDefaultModel } from '../shared/model-catalog.mjs';
+import {
+  MODEL_LIST_DEBOUNCE_MS,
+  isModelOffered,
+  modelCatalog,
+  modelMissingText,
+  orderModelChoices,
+  pickDefaultModel
+} from '../shared/model-catalog.mjs';
 import { LOCAL_PROVIDER_IDS, PROVIDER_LINKS } from '../shared/provider-setup.mjs';
 import { PROVIDER_IDS } from '../shared/config-state.mjs';
 import { buildModelChoices, isLatestRequest, normalizeProviderSettings, plural } from './settings-helpers.mjs';
 
 const { PROVIDER_CONFIGS } = DiscourseCopilotConstants;
 // Wait for a pause in typing before reading a provider's model list.
-const MODEL_LIST_DEBOUNCE_MS = 700;
 
 // Element IDs of each provider's inputs.
 export const PROVIDER_FIELDS = Object.fromEntries(

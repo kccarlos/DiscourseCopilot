@@ -202,8 +202,15 @@ test('pickDefaultModel takes the first curated model the provider offers', () =>
   const pick = provider => pickDefaultModel(provider, normalizeModelList(provider, FIXTURES[provider]));
   assert.equal(pick('openrouter'), 'openai/gpt-6-luna');
   assert.equal(pick('openai'), 'gpt-6-luna');
-  // The alias is kept although the list has only the dated snapshot.
-  assert.equal(pick('anthropic'), 'claude-haiku-4-5');
+  assert.equal(pick('anthropic'), 'claude-sonnet-5');
+  // Once Sonnet is gone, the Haiku alias is kept although the list has only the dated snapshot.
+  assert.equal(
+    pickDefaultModel(
+      'anthropic',
+      normalizeModelList('anthropic', FIXTURES.anthropic).filter(m => m.id !== 'claude-sonnet-5')
+    ),
+    'claude-haiku-4-5'
+  );
   assert.equal(pick('groq'), 'openai/gpt-oss-20b');
   assert.equal(pick('gemini'), 'gemini-3.5-flash-lite');
   // Ollama: the installed tag.
@@ -264,8 +271,8 @@ test('orderModelChoices puts offered recommended models first, labelled', () => 
   assert.deepEqual(
     choices.map(choice => [choice.id, choice.name, choice.recommended]),
     [
-      ['claude-haiku-4-5', 'Recommended', true],
       ['claude-sonnet-5', 'Recommended', true],
+      ['claude-haiku-4-5', 'Recommended', true],
       ['claude-opus-5-5', 'Recommended', true]
     ]
   );
@@ -450,7 +457,7 @@ test('readConfig records which providers have a saved model', () => {
   assert.equal(config.savedModels.openai, true);
   assert.equal(config.savedModels.anthropic, false);
   assert.equal(config.savedModels.ollama, false);
-  assert.equal(config.providers.anthropic.model, 'claude-haiku-4-5');
+  assert.equal(config.providers.anthropic.model, 'claude-sonnet-5');
 });
 
 test('local writes keep unsaved models unsaved; save() marks the model saved', async () => {

@@ -1,7 +1,5 @@
-/**
- * Prompt templates for AI summarization
- * Separated from ai-service.js for maintainability
- */
+// Prompt templates for summaries (full, hierarchical and minimal), kept apart
+// from ai-service.js; the language instruction comes from response-language.mjs.
 
 import { buildLanguageInstruction } from '../shared/response-language.mjs';
 

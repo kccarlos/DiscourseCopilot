@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
-import { DIST, OUT, onlyFilter, parseArgs, relative, requireDist } from './lib/env.mjs';
+import { DIST, OUT, UI_DIR, onlyFilter, parseArgs, relative, requireDist } from './lib/env.mjs';
 import { startServer } from './lib/static-server.mjs';
 import { brandImagesLoaded, brokenIconLinks, openExtensionPage, seedHistory } from './lib/extension-page.mjs';
 import {
@@ -138,11 +138,7 @@ scenario('popup-setup', 'src/popup/popup.html', { store: {} }, async ({ page, ch
 const datalistOptions = (page, sel) => page.$$eval(`${sel} option`, options => options.map(o => ({ value: o.value, label: o.label })));
 scenario('popup-setup-models', 'src/popup/popup.html', { store: {}, routes: modelRoutes }, async ({ page, check, shot, requests }) => {
   await page.click('label.setup-provider-option[data-provider="anthropic"]');
-  check(
-    'curated default before a key',
-    (await page.inputValue('#setupModel')) === 'claude-haiku-4-5',
-    await page.inputValue('#setupModel')
-  );
+  check('curated default before a key', (await page.inputValue('#setupModel')) === 'claude-sonnet-5', await page.inputValue('#setupModel'));
   check(
     'curated hint',
     (await text(page, '#setupModelHint')).startsWith('Prefilled with a fast, low-cost default'),
@@ -158,13 +154,13 @@ scenario('popup-setup-models', 'src/popup/popup.html', { store: {}, routes: mode
   );
   check(
     'recommended model pre-selected',
-    (await page.inputValue('#setupModel')) === 'claude-haiku-4-5',
+    (await page.inputValue('#setupModel')) === 'claude-sonnet-5',
     await page.inputValue('#setupModel')
   );
   const anthropicOptions = await datalistOptions(page, '#setupModelList');
   check(
     'datalist: recommended first, labelled',
-    anthropicOptions[0]?.value === 'claude-haiku-4-5'
+    anthropicOptions[0]?.value === 'claude-sonnet-5'
       && anthropicOptions[0]?.label === 'Recommended'
       && anthropicOptions.length === 3
       && anthropicOptions.every(o => o.label === 'Recommended'),
@@ -1596,6 +1592,39 @@ scenario('settings-preferences', 'src/settings/settings.html', { store: configur
   await shot('saved');
 });
 
+scenario('settings-forum-button', 'src/settings/settings.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  const box = '#showForumButton';
+  check('on by default', await page.$eval(box, i => i.checked));
+  check(
+    'labelled',
+    (await page.$eval(box, i => i.closest('label').textContent.trim().replace(/\s+/g, ' ')))
+      === 'Show the DiscourseCopilot button on forum pages'
+  );
+  check('help mentions the toolbar icon', (await text(page, '#showForumButtonHelp')).includes('toolbar icon'));
+  check('bar saved', (await text(page, '#formStateText')) === 'All changes saved', await text(page, '#formStateText'));
+  await page.click(box);
+  check('unchecked', await page.$eval(box, i => !i.checked));
+  check('bar dirty', (await text(page, '#formStateText')) === 'Unsaved changes', await text(page, '#formStateText'));
+  check('nothing stored before save', await page.evaluate(() => window.__store.preferences?.showForumButton !== false));
+  await shot('off');
+  await page.click('#saveBtn');
+  await page.waitForTimeout(300);
+  check('stored off', await page.evaluate(() => window.__store.preferences.showForumButton === false));
+  check('bar saved after save', (await text(page, '#formStateText')) === 'Saved', await text(page, '#formStateText'));
+  // Saved elsewhere while this page has no edits → the checkbox follows.
+  await page.evaluate(() => chrome.storage.local.set({ preferences: { ...window.__store.preferences, showForumButton: true } }));
+  await page.waitForTimeout(300);
+  check('external change followed', await page.$eval(box, i => i.checked));
+  // Reset all settings brings it back to the default.
+  await page.click(box);
+  await page.click('#saveBtn');
+  await page.waitForTimeout(300);
+  await page.click('#resetBtn');
+  await page.click('#resetConfirmBtn');
+  await page.waitForTimeout(400);
+  check('reset restores shown', await page.$eval(box, i => i.checked));
+});
+
 scenario('popup-retention', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
   const now = Date.now();
   const H = 3600000;
@@ -2068,6 +2097,62 @@ scenario(
     await section.screenshot({ path: path.join(outDir, `settings-forum-access-empty.png`) });
   }
 );
+
+// The content script (dist/src/content/content.js) on a stand-in Discourse
+// page: the forum button follows the "Show the button" preference live, and
+// page-change notifications keep flowing while it is hidden.
+const LAUNCHER = '#discourse-copilot-page-launcher';
+const launcherPresent = page => page.evaluate(sel => Boolean(document.querySelector(sel)?.shadowRoot?.querySelector('button')), LAUNCHER);
+const pageChangedTo = (page, topicId) =>
+  page.evaluate(id => window.__sent.some(m => m.action === 'pageChanged' && m.postId === id && m.isDiscourse === true), topicId);
+async function loadContentScript(page, path) {
+  await page.evaluate(path => history.pushState({}, '', path), path);
+  await page.addScriptTag({ url: `${new URL(page.url()).origin}/src/content/content.js` });
+  await page.waitForTimeout(250);
+}
+scenario('content-forum-button', '__fixtures__/discourse-topic.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  await loadContentScript(page, '/t/fixture-topic/123');
+  check('button shown by default', await launcherPresent(page));
+  check(
+    'button names the extension',
+    await page.evaluate(sel => document.querySelector(sel).shadowRoot.querySelector('button').title === 'Open DiscourseCopilot', LAUNCHER)
+  );
+  await shot('shown');
+  await page.evaluate(() => chrome.storage.local.set({ preferences: { showForumButton: false } }));
+  await page.waitForTimeout(150);
+  check('button removed when turned off, no reload', !(await launcherPresent(page)));
+  // Page-change detection keeps working with the button hidden.
+  await page.evaluate(() => history.pushState({}, '', '/t/other-topic/456'));
+  await page.waitForTimeout(900);
+  check('page change still notified while hidden', await pageChangedTo(page, '456'));
+  check('still no button on the new topic', !(await launcherPresent(page)));
+  await shot('hidden');
+  await page.evaluate(() => chrome.storage.local.set({ preferences: { showForumButton: true } }));
+  await page.waitForTimeout(150);
+  check('button back when turned on', await launcherPresent(page));
+  check('button follows the topic', await page.evaluate(sel => document.querySelector(sel).dataset.topicId === '456', LAUNCHER));
+  // An unrelated preference change or junk value keeps the default (shown).
+  await page.evaluate(() => chrome.storage.local.set({ preferences: { showForumButton: 'no' } }));
+  await page.waitForTimeout(150);
+  check('a non-boolean value falls back to shown', await launcherPresent(page));
+});
+
+scenario(
+  'content-forum-button-off',
+  '__fixtures__/discourse-topic.html',
+  { store: { ...configuredStore, preferences: { showForumButton: false } } },
+  async ({ page, check }) => {
+    await loadContentScript(page, '/t/fixture-topic/123');
+    check('no button when turned off at start', !(await launcherPresent(page)));
+    await page.waitForTimeout(700);
+    check('still none after the first checks', !(await launcherPresent(page)));
+    check('panel is still told about the topic', await pageChangedTo(page, '123'));
+    await page.evaluate(() => chrome.storage.local.set({ preferences: { showForumButton: true } }));
+    await page.waitForTimeout(150);
+    check('turning it on shows the button', await launcherPresent(page));
+  }
+);
+
 // ---------- Runner ----------
 
 async function runScenario(browser, base, { name, pagePath, options, steps }, { theme, outDir }) {
@@ -2113,7 +2198,7 @@ async function runTheme(browser, base, theme) {
 requireDist();
 if (!scenarios.length) throw new Error('--only matched no scenario');
 const started = Date.now();
-const server = await startServer({ '/': DIST });
+const server = await startServer({ '/': DIST, '/__fixtures__/': path.join(UI_DIR, 'fixtures') });
 const browser = await chromium.launch();
 let runs;
 try {

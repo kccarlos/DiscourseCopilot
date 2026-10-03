@@ -2,7 +2,12 @@ import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
 import webExtension from 'vite-plugin-web-extension';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  // Trace logging (DiscourseCopilotLogger.log) is on only for `pnpm dev`
+  // (--mode development); every other build, including `pnpm build`, drops it.
+  define: {
+    'import.meta.env.DEV': JSON.stringify(mode === 'development')
+  },
   plugins: [
     webExtension({
       manifest: './manifest.json',
@@ -22,4 +27,4 @@ export default defineConfig({
       '@': resolve(import.meta.dirname, 'src')
     }
   }
-});
+}));

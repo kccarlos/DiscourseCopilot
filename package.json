@@ -6,7 +6,7 @@
   "description": "Chrome extension that provides AI summaries and a research copilot for any Discourse forum",
   "scripts": {
     "build": "vite build",
-    "dev": "vite build --watch",
+    "dev": "vite build --watch --mode development",
     "clean": "rm -rf dist/",
     "test": "node --test",
     "test:ui": "vite build && node tools/ui/flows.mjs --theme=both",

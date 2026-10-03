@@ -1,7 +1,9 @@
+import { DEFAULT_MAX_SAVED_TOPICS, DEFAULT_RETENTION_MS } from './preferences.mjs';
 import { buildTopicKey, buildTopicUrl, normalizeSiteUrl, siteUrlFromPageUrl } from './forum-site.mjs';
 
-export const CHAT_RETENTION_MS = 24 * 60 * 60 * 1000;
-export const MAX_SAVED_TOPICS = 40;
+// Defaults come from preferences.mjs, the single source for tunable values.
+export const CHAT_RETENTION_MS = DEFAULT_RETENTION_MS;
+export const MAX_SAVED_TOPICS = DEFAULT_MAX_SAVED_TOPICS;
 export const MAX_SAVED_CHAT_MESSAGES = 100;
 
 const CHAT_ROLES = new Set(['user', 'assistant']);

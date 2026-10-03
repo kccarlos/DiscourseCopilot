@@ -1,8 +1,11 @@
 import { normalizeForumContextLimit } from './chat-context-limit.mjs';
-import { normalizeTaskLimits } from './preferences.mjs';
+import { DEFAULT_RETENTION_MS, normalizeTaskLimits } from './preferences.mjs';
 import { buildTopicKey, forumDisplayName, normalizeSiteUrl, siteUrlFromPageUrl } from './forum-site.mjs';
 
-export const TASK_RETENTION_MS = 24 * 60 * 60 * 1000;
+// Default lifetime of a finished task entry: the default history retention
+// (preferences.mjs, which owns every user-tunable default).
+export const TASK_RETENTION_MS = DEFAULT_RETENTION_MS;
+// Hard safety cap on stored task records; not user-tunable.
 export const MAX_TASK_RECORDS = 100;
 
 export const TASK_STATUS = Object.freeze({

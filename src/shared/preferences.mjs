@@ -1,6 +1,7 @@
 // User preferences that tune how much work the extension does and how long it
 // remembers things: Ask-the-forum research depth, how many raw pages of a
-// topic are read, and history retention. Pure functions only; the persisted
+// topic are read, and history retention; plus whether forum pages show the
+// DiscourseCopilot button. Pure functions only; the persisted
 // copy lives in the configuration model (config-state.mjs), which normalizes
 // it with normalizePreferences() on every read.
 //
@@ -12,7 +13,8 @@
 //     topicPageLimit: number,          // raw pages of 100 posts per topic, used in 'limit'
 //                                      // mode and remembered while 'all' is chosen
 //     historyRetention: '1d' | '3d' | '7d' | '30d' | 'forever',
-//     maxSavedTopics: number
+//     maxSavedTopics: number,
+//     showForumButton: boolean         // the in-page launcher button on forum pages (default true)
 //   }
 //
 // Consumers never read these fields directly; they ask for the effective
@@ -79,7 +81,20 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   topicPageMode: 'all',
   topicPageLimit: 20,
   historyRetention: '1d',
-  maxSavedTopics: 40
+  maxSavedTopics: 40,
+  // The floating launcher the content script adds to forum pages.
+  showForumButton: true
+});
+
+// The user-tunable defaults, derived once here so no other module repeats
+// them (task records, topic sessions and the Agent import these).
+const DEFAULT_RETENTION_OPTION = RETENTION_BY_VALUE.get(DEFAULT_PREFERENCES.historyRetention);
+export const DEFAULT_RETENTION_MS = DEFAULT_RETENTION_OPTION.ms;
+export const DEFAULT_MAX_SAVED_TOPICS = DEFAULT_PREFERENCES.maxSavedTopics;
+// The Agent's research budget when a caller passes none (the Balanced preset).
+export const DEFAULT_RESEARCH_LIMITS = Object.freeze({
+  ...RESEARCH_PRESETS.balanced,
+  rawFallbacks: Math.ceil(RESEARCH_PRESETS.balanced.topicsRead / 2)
 });
 
 export const PREFERENCE_FIELDS = Object.freeze(['searchQueries', 'searchPages', 'topicsRead', 'topicPageLimit', 'maxSavedTopics']);
@@ -114,7 +129,8 @@ export function normalizePreferences(value) {
     topicPageMode: TOPIC_PAGE_MODES.includes(raw.topicPageMode) ? raw.topicPageMode : DEFAULT_PREFERENCES.topicPageMode,
     topicPageLimit: clampInteger(raw.topicPageLimit, PREFERENCE_RANGES.topicPageLimit, DEFAULT_PREFERENCES.topicPageLimit),
     historyRetention: RETENTION_BY_VALUE.has(raw.historyRetention) ? raw.historyRetention : DEFAULT_PREFERENCES.historyRetention,
-    maxSavedTopics: clampInteger(raw.maxSavedTopics, PREFERENCE_RANGES.maxSavedTopics, DEFAULT_PREFERENCES.maxSavedTopics)
+    maxSavedTopics: clampInteger(raw.maxSavedTopics, PREFERENCE_RANGES.maxSavedTopics, DEFAULT_PREFERENCES.maxSavedTopics),
+    showForumButton: typeof raw.showForumButton === 'boolean' ? raw.showForumButton : DEFAULT_PREFERENCES.showForumButton
   };
 }
 

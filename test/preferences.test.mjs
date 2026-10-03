@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  DEFAULT_MAX_SAVED_TOPICS,
   DEFAULT_PREFERENCES,
+  DEFAULT_RESEARCH_LIMITS,
+  DEFAULT_RETENTION_MS,
   HISTORY_RETENTION_OPTIONS,
   MAX_TASK_RETENTION_MS,
   PREFERENCE_RANGES,
@@ -36,7 +39,8 @@ test('missing or garbage preferences normalize to the defaults', () => {
       topicPageMode: 'all',
       topicPageLimit: 20,
       historyRetention: '1d',
-      maxSavedTopics: 40
+      maxSavedTopics: 40,
+      showForumButton: true
     });
   }
   assert.deepEqual(defaultPreferences(), normalizePreferences(DEFAULT_PREFERENCES));
@@ -94,6 +98,25 @@ test('stored numbers are clamped and rounded; unknown enums fall back', () => {
   assert.equal(normalized.maxSavedTopics, 200);
   assert.equal(normalizePreferences({ topicPageLimit: '' }).topicPageLimit, 20, 'empty → default');
   assert.equal(preferencesEqual({}, DEFAULT_PREFERENCES), true);
+});
+
+test('the forum button is shown by default and only a boolean turns it off', () => {
+  assert.equal(DEFAULT_PREFERENCES.showForumButton, true);
+  assert.equal(normalizePreferences({}).showForumButton, true, 'older stored preferences keep the button');
+  assert.equal(normalizePreferences({ showForumButton: false }).showForumButton, false);
+  assert.equal(normalizePreferences({ showForumButton: true }).showForumButton, true);
+  for (const junk of ['false', 0, null, 'no']) {
+    assert.equal(normalizePreferences({ showForumButton: junk }).showForumButton, true, `${junk} falls back to the default`);
+  }
+  assert.equal(validatePreferences({ ...defaultPreferences(), showForumButton: false }).preferences.showForumButton, false);
+  assert.equal(preferencesEqual({ showForumButton: false }, DEFAULT_PREFERENCES), false);
+});
+
+test('retention and saved-topic defaults come from the preferences', () => {
+  assert.equal(DEFAULT_RETENTION_MS, resolveRetention(undefined).chatMs);
+  assert.equal(DEFAULT_MAX_SAVED_TOPICS, resolveRetention(undefined).maxSavedTopics);
+  assert.equal(DEFAULT_RESEARCH_LIMITS.topicsRead, resolveResearchLimits(undefined).topicsRead);
+  assert.equal(DEFAULT_RESEARCH_LIMITS.rawFallbacks, resolveResearchLimits(undefined).rawFallbacks);
 });
 
 // ---------- validation ----------

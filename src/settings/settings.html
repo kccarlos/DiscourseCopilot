@@ -870,7 +870,8 @@
       border-color: var(--s-accent);
     }
 
-    .page-mode-option input[type="radio"] {
+    .page-mode-option input[type="radio"],
+    .page-mode-option input[type="checkbox"] {
       flex: 0 0 auto;
       width: 16px;
       height: 16px;
@@ -878,14 +879,20 @@
       accent-color: var(--s-accent);
     }
 
-    .page-mode-option:has(input[type="radio"]:checked) {
+    .page-mode-option:has(input[type="radio"]:checked),
+    .page-mode-option:has(input[type="checkbox"]:checked) {
       border-color: var(--s-accent);
       background: var(--s-selected-bg);
       box-shadow: inset 0 0 0 1px var(--s-accent);
     }
 
-    .page-mode-option:has(input[type="radio"]:focus-visible) {
+    .page-mode-option:has(input[type="radio"]:focus-visible),
+    .page-mode-option:has(input[type="checkbox"]:focus-visible) {
       box-shadow: inset 0 0 0 1px var(--s-accent), 0 0 0 3px var(--s-accent-ring);
+    }
+
+    .forum-button-setting {
+      margin-top: 16px;
     }
 
     .page-mode-option input[type="number"] {
@@ -1677,6 +1684,17 @@
         </div>
         <ul id="forumAccessList" class="forum-access-list" aria-labelledby="forumAccessHeading" hidden></ul>
         <p id="forumAccessEmpty" class="forum-access-empty">Loading…</p>
+
+        <div class="form-group forum-button-setting">
+          <label class="page-mode-option" for="showForumButton">
+            <input type="checkbox" id="showForumButton" aria-describedby="showForumButtonHelp">
+            <span class="choice-title">Show the DiscourseCopilot button on forum pages</span>
+          </label>
+          <small id="showForumButtonHelp" class="help-text">
+            The floating button on enabled forums that opens the side panel. You can always open the side panel from the toolbar icon.
+            Applies to open forum tabs as soon as you save.
+          </small>
+        </div>
       </section>
 
       <section class="section danger-zone" aria-labelledby="resetHeading">

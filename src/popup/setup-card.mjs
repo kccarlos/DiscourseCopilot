@@ -24,10 +24,9 @@ import {
 } from '../shared/provider-setup.mjs';
 import { requestServerAccess, serverAccessDeniedText, serverNeedsAccessPrompt } from '../shared/forum-access.mjs';
 import { announce } from './status-line.mjs';
-import { modelCatalog, orderModelChoices, pickDefaultModel } from '../shared/model-catalog.mjs';
+import { MODEL_LIST_DEBOUNCE_MS, modelCatalog, orderModelChoices, pickDefaultModel } from '../shared/model-catalog.mjs';
 
 // Wait for a pause in typing before reading the provider's model list.
-const MODEL_LIST_DEBOUNCE_MS = 600;
 const MODEL_HINT = 'Prefilled with a fast, low-cost default. You can change it any time.';
 
 const CHOICE_LABELS = {

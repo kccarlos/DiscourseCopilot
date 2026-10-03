@@ -1,8 +1,13 @@
+// Content script for enabled Discourse forums (registered at runtime, see
+// shared/forum-access.mjs): detects Discourse and the current topic, tells the
+// side panel when the page changes, answers its page-state requests, and adds
+// the floating launcher button unless the user turned it off in Settings.
 import { extractForumTopicId } from '../shared/topic-route.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
+import { normalizePreferences } from '../shared/preferences.mjs';
 import { buildTopicKey, forumDisplayName, normalizeBasePath, siteUrlFromPageUrl } from '../shared/forum-site.mjs';
 
-const { MESSAGES } = DiscourseCopilotConstants;
+const { MESSAGES, STORAGE_KEYS } = DiscourseCopilotConstants;
 const LAUNCHER_ID = 'discourse-copilot-page-launcher';
 // DiscourseCopilot logo (white bubble, "on-dark" variant) pixel-hinted for
 // small sizes; source: assets/brand/icon/sizes/discoursecopilot-icon-32-on-dark.svg
@@ -43,6 +48,10 @@ class DiscourseCopilotContent {
     this.forumName = '';
     this.currentUrl = '';
     this.urlCheckTimer = null;
+    // Whether to show the launcher: null until the stored preference is read
+    // (no button flashes up for someone who turned it off).
+    this.showLauncher = null;
+    this.onStorageChanged = null;
   }
 
   init() {
@@ -74,6 +83,7 @@ class DiscourseCopilotContent {
     if (this.urlCheckTimer !== null) {
       return;
     }
+    this.watchLauncherPreference();
     this.refreshLocation();
     window.addEventListener('popstate', () => this.refreshLocation());
     window.addEventListener('hashchange', () => this.refreshLocation());
@@ -85,7 +95,41 @@ class DiscourseCopilotContent {
       window.clearInterval(this.urlCheckTimer);
       this.urlCheckTimer = null;
     }
+    if (this.onStorageChanged) {
+      try {
+        chrome.storage.onChanged.removeListener(this.onStorageChanged);
+      } catch {
+        // The extension context is gone (reload or update).
+      }
+      this.onStorageChanged = null;
+    }
     this.isDiscourse = false;
+  }
+
+  // Reads the "show the button" preference once and follows later changes, so
+  // Settings applies to open tabs without a reload. Page-change detection
+  // (the timer and listeners above) doesn't depend on it; only the launcher
+  // element is added or removed.
+  watchLauncherPreference() {
+    const apply = stored => {
+      this.showLauncher = normalizePreferences(stored).showForumButton;
+      this.syncLauncher();
+    };
+    this.onStorageChanged = (changes, area) => {
+      if (area === 'local' && changes[STORAGE_KEYS.PREFERENCES]) {
+        apply(changes[STORAGE_KEYS.PREFERENCES].newValue);
+      }
+    };
+    chrome.storage.onChanged.addListener(this.onStorageChanged);
+    chrome.storage.local
+      .get(STORAGE_KEYS.PREFERENCES)
+      .then(values => {
+        // A change that arrived while reading is newer than what was read.
+        if (this.showLauncher === null) apply(values?.[STORAGE_KEYS.PREFERENCES]);
+      })
+      .catch(() => {
+        apply(undefined);
+      });
   }
 
   get topicKey() {
@@ -130,7 +174,7 @@ class DiscourseCopilotContent {
 
   syncLauncher() {
     const existing = document.getElementById(LAUNCHER_ID);
-    if (!this.isDiscourse || !this.postId) {
+    if (!this.isDiscourse || !this.postId || this.showLauncher !== true) {
       existing?.remove();
       return;
     }

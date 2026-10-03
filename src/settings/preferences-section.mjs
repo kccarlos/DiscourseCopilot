@@ -1,4 +1,5 @@
-// Settings → "Ask the forum", "Reading topics" and "History & privacy": the
+// Settings → "Ask the forum", "Reading topics", "History & privacy" and the
+// forum-button toggle (under "Forum access"): the
 // preference fields, their inline errors, "Restore defaults" per section and
 // the effective values shown under each section (derived from the draft the
 // way the extension applies them once saved).
@@ -109,6 +110,7 @@ export class PreferencesSection {
     });
     $('topicPageLimit').value = String(preferences.topicPageLimit);
     $('maxSavedTopics').value = String(preferences.maxSavedTopics);
+    $('showForumButton').checked = preferences.showForumButton;
     $('forumContextLimit').value = String(this.draftForumContextLimit);
     this.render();
   }
@@ -155,6 +157,10 @@ export class PreferencesSection {
         this.syncErrors(field);
       });
     }
+    $('showForumButton').addEventListener('change', event => {
+      this.store.updatePreferences({ showForumButton: event.target.checked });
+      this.dispatch({ type: 'edited', clearStatus: true });
+    });
     document.querySelectorAll('[data-restore]').forEach(button => {
       button.addEventListener('click', () => this.restoreDefaults(button.dataset.restore));
     });

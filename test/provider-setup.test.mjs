@@ -67,8 +67,8 @@ test('model suggestions start with the default and add that provider’s favorit
     'anthropic/claude-sonnet-4.5',
     'moonshotai/kimi-k2'
   ]);
-  assert.deepEqual(suggestSetupModels('anthropic', null, configs), ['claude-haiku-4-5', 'claude-sonnet-5', 'claude-opus-5-5']);
-  assert.equal(configs.anthropic.defaultModel, 'claude-haiku-4-5');
+  assert.deepEqual(suggestSetupModels('anthropic', null, configs), ['claude-sonnet-5', 'claude-haiku-4-5', 'claude-opus-5-5']);
+  assert.equal(configs.anthropic.defaultModel, 'claude-sonnet-5');
   // Suggestions without a curated list fall back to suggestedModels.
   assert.deepEqual(suggestSetupModels('x', [], { x: { defaultModel: 'a', suggestedModels: ['b', 'a'] } }), ['a', 'b']);
 });
@@ -79,7 +79,7 @@ test('every provider’s default is the first of its curated models, cheap/fast 
     assert.equal(config.defaultModel, config.recommendedModels[0], provider);
     assert.equal(new Set(config.recommendedModels).size, config.recommendedModels.length, provider);
   }
-  assert.deepEqual(configs.anthropic.suggestedModels, ['claude-haiku-4-5', 'claude-sonnet-5', 'claude-opus-5-5']);
+  assert.deepEqual(configs.anthropic.suggestedModels, ['claude-sonnet-5', 'claude-haiku-4-5', 'claude-opus-5-5']);
   // Retired or deprecated former defaults are gone.
   const all = Object.values(configs).flatMap(config => config.recommendedModels);
   for (const retired of ['gemini-1.5-flash', 'llama-3.1-8b-instant', 'grok-3', 'moonshotai/kimi-k2']) {

@@ -22,6 +22,8 @@ import { DiscourseCopilotConstants } from './constants.js';
 const { PROVIDER_CONFIGS } = DiscourseCopilotConstants;
 
 export const MODEL_LIST_TIMEOUT_MS = 8000;
+// How long typing must pause before the model list is fetched (Settings and the setup card).
+export const MODEL_LIST_DEBOUNCE_MS = 700;
 export const MODEL_LIST_TTL_MS = 10 * 60 * 1000;
 const CACHE_PREFIX = 'modelCatalog:';
 const LOCAL_PROVIDERS = new Set(['ollama', 'lmstudio']);

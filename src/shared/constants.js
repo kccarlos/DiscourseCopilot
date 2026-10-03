@@ -7,14 +7,14 @@
 // the list, so a retired default can't break setup. Saved models are never
 // changed automatically.
 //
-// Sources (checked 2026-09-25):
+// Sources (checked 2026-10-02):
 //   openrouter  https://openrouter.ai/api/v1/models (public list): openai/gpt-6-luna,
 //               1.05M context, $0.10/$0.50 per M tokens; fallbacks from the same list
 //   openai      https://developers.openai.com/api/docs/models ("GPT-6 Luna: our most
 //               efficient model") and .../docs/models/all
-//   anthropic   https://platform.claude.com/docs/en/about-claude/models/overview (Haiku 4.5:
-//               "fastest", $1/$5; retirement not sooner than 2026-10-15, so the live list
-//               falls back to Sonnet 5 once it's gone)
+//   anthropic   https://platform.claude.com/docs/en/about-claude/models/overview (Sonnet 5 is
+//               the default because Haiku 4.5 retires after 2026-10-15; Haiku stays as a
+//               fallback until the live list stops offering it)
 //   groq        https://console.groq.com/docs/models and /docs/deprecations
 //               (llama-3.1-8b-instant deprecated; gpt-oss-20b is the named replacement)
 //   gemini      https://ai.google.dev/gemini-api/docs/models (stable; flash-lite is the
@@ -28,7 +28,7 @@
 const RECOMMENDED_MODELS = Object.freeze({
   openrouter: Object.freeze(['openai/gpt-6-luna', 'google/gemini-3.5-flash-lite', 'deepseek/deepseek-v4.1-flash']),
   openai: Object.freeze(['gpt-6-luna', 'gpt-5.6-luna', 'gpt-5.4-mini']),
-  anthropic: Object.freeze(['claude-haiku-4-5', 'claude-sonnet-5', 'claude-opus-5-5']),
+  anthropic: Object.freeze(['claude-sonnet-5', 'claude-haiku-4-5', 'claude-opus-5-5']),
   groq: Object.freeze(['openai/gpt-oss-20b', 'openai/gpt-oss-120b']),
   gemini: Object.freeze(['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.8-flash']),
   ollama: Object.freeze(['llama3.2', 'qwen3', 'gemma3']),

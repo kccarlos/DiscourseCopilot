@@ -1,16 +1,10 @@
 import { buildTopicUrl, FORUM_TOOL_LIMITS, ForumToolError } from './forum-tools.mjs';
-import { PREFERENCE_RANGES, RESEARCH_PRESETS } from '../shared/preferences.mjs';
+import { DEFAULT_RESEARCH_LIMITS, PREFERENCE_RANGES } from '../shared/preferences.mjs';
 import { buildTopicKey, forumDisplayName, normalizeSiteUrl } from '../shared/forum-site.mjs';
 import { buildAgentSourceContext, deriveSearchQueries, rankSearchResults } from '../services/agent-context.mjs';
 
 // Sources handed to the model; matches AGENT_CONTEXT_LIMITS.maxSourceCount.
 const MAX_SELECTED_SOURCES = 12;
-
-// The research budget when the caller passes none (the Balanced preset).
-export const DEFAULT_RESEARCH_LIMITS = Object.freeze({
-  ...RESEARCH_PRESETS.balanced,
-  rawFallbacks: Math.ceil(RESEARCH_PRESETS.balanced.topicsRead / 2)
-});
 
 function boundedCount(value, fallback, min, max) {
   const number = Number(value);

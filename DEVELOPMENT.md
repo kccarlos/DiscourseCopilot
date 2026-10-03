@@ -22,7 +22,7 @@ pnpm install
 
 ```bash
 pnpm build   # build the extension into dist/
-pnpm dev     # rebuild on change (vite build --watch)
+pnpm dev     # rebuild on change (vite build --watch --mode development; also turns on DiscourseCopilotLogger.log traces)
 pnpm test          # run unit tests (node --test)
 pnpm test:ui       # build, then run the UI flows in Chromium (light and dark)
 pnpm shots:readme  # build, then render the README screenshots into tools/ui/out/readme/
@@ -37,7 +37,7 @@ The UI commands need Playwright's Chromium once: `pnpm exec playwright install c
 
 ### Linting and formatting
 
-[Biome](https://biomejs.dev) lints and formats the JavaScript and JSON (CSS is linted only; HTML and the vendored stylesheets are left alone). The configuration is `biome.jsonc`, with three small GritQL rules in `tools/lint/`; `.editorconfig` gives editors the same basics (2 spaces, LF, 140 columns), and the Biome editor extension can format on save with the same configuration. Beyond the recommended rules it enforces `===` (except `== null`), `const`/no `var`, no unused variables or imports (prefix an intentionally unused parameter with `_`), no undeclared globals (`chrome` is declared, read-only), imports that resolve with their file extension, and in `src/`: no `console.log` (use `console.warn`/`console.error`, or `DiscourseCopilotLogger.log` for traces), no `alert`/`confirm`/`prompt`, no `eval`, `new Function` or string timers (the Chrome Web Store forbids dynamic code), no Node globals, and in `src/background/` no `window`/`document`/`localStorage`. An inline `// biome-ignore <rule>: <reason>` needs a reason. CI fails on any lint error or unformatted file.
+[Biome](https://biomejs.dev) lints and formats the JavaScript and JSON (CSS is linted only; HTML and the vendored stylesheets are left alone). The configuration is `biome.jsonc`, with three small GritQL rules in `tools/lint/`; `.editorconfig` gives editors the same basics (2 spaces, LF, 140 columns), and the Biome editor extension can format on save with the same configuration. Beyond the recommended rules it enforces `===` (except `== null`), `const`/no `var`, no unused variables or imports (prefix an intentionally unused parameter with `_`), no undeclared globals (`chrome` is declared, read-only), imports that resolve with their file extension, and in `src/`: no `console.log` (use `console.warn`/`console.error`, or `DiscourseCopilotLogger.log` for traces, which print only in development builds: `vite.config.js` sets `import.meta.env.DEV` to true only for `--mode development`, i.e. `pnpm dev`), no `alert`/`confirm`/`prompt`, no `eval`, `new Function` or string timers (the Chrome Web Store forbids dynamic code), no Node globals, and in `src/background/` no `window`/`document`/`localStorage`. An inline `// biome-ignore <rule>: <reason>` needs a reason. CI fails on any lint error or unformatted file.
 
 Formatting-only commits are listed in `.git-blame-ignore-revs`; to have `git blame` skip them locally, run once: `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 
@@ -76,7 +76,8 @@ src/
     topic-fetcher.mjs     Reads a topic's raw posts page by page (cache reuse, rate-limit retries)
     job-queue.mjs, agent-runner.mjs, forum-tools.mjs  Queue engine, Agent loop, forum search tools
   content/          Content script on enabled forums (registered at runtime): detects Discourse,
-                    topic IDs, in-page launcher
+                    topic IDs, in-page launcher (hidden when the
+                    `showForumButton` preference is off; follows storage changes live)
   popup/            Side panel (popup.html/css)
     popup.js              Entry: composes the modules below; page changes, broadcast routing,
                           panel-wide render (updateUI)
@@ -263,8 +264,11 @@ Draft edits (`selectProvider`, `updateField`, `updateDraft`, `updatePreferences`
 | `topicPageMode` + `topicPageLimit` | Every page (`'all'`); the limit, when chosen, starts at 20 pages (2,000 posts) | `'all'` / `'limit'` (limit 1–100, only validated in `'limit'` mode) | `topic-fetcher.mjs` via the task's snapshot (`resolveTopicPageLimit()` → pages, or `null` for every page); summary coverage in the side panel |
 | `historyRetention` | 1 day | 1d / 3d / 7d / 30d / forever | `TopicSessionDatabase.setRetention()` in the background (cleanup) and side panel (lazy expiry, Saved list, labels) |
 | `maxSavedTopics` | 40 | 10–200 | saved-topic pruning |
+| `showForumButton` | `true` | boolean (anything else reads as `true`) | `content.js`: reads it at start and on `chrome.storage.onChanged`, adding or removing the launcher without a reload; page-change detection runs either way. Settings: checkbox under Forum access |
 
-Hard caps stay in code: `FORUM_TOOL_LIMITS` (search pages ≤ 3, raw pages ≤ 20), `MAX_UNKNOWN_TOPIC_PAGES`, the forum request pacing, `MAX_AGENT_SEARCH_QUERIES`/`MAX_AGENT_TOOL_CALLS` (sized for the largest budget) and a 7-day ceiling on finished task records.
+`preferences.mjs` is the single source for the user-tunable defaults (`DEFAULT_RETENTION_MS`, `DEFAULT_MAX_SAVED_TOPICS`, `DEFAULT_RESEARCH_LIMITS`); `task-record.mjs`, `topic-session.mjs` and `agent-runner.mjs` import them.
+
+Hard caps stay in code (including `MAX_TASK_RECORDS`, 100 stored task records): `FORUM_TOOL_LIMITS` (search pages ≤ 3, raw pages ≤ 20), `MAX_UNKNOWN_TOPIC_PAGES`, the forum request pacing, `MAX_AGENT_SEARCH_QUERIES`/`MAX_AGENT_TOOL_CALLS` (sized for the largest budget) and a 7-day ceiling on finished task records.
 
 ```
   storage ──readConfig()──▶ normalizePreferences()     missing keys → defaults,
@@ -409,7 +413,7 @@ Then add the service account's email under **Account → Service account** in th
 
 ```
 tools/ui/
-  flows.mjs           UI regression suite: ~35 scenarios, ~435 checks per theme
+  flows.mjs           UI regression suite: ~38 scenarios, ~460 checks per theme (incl. content.js on a stand-in forum page, fixtures/discourse-topic.html)
   readme-shots.mjs    docs/screenshots/*.png: panels → framed composition → palette PNG
   store-shots.mjs     store-assets/*.png: 1280x800 screenshots and promo tiles (24-bit, no alpha)
   pixdiff.mjs         compare two PNGs or two folders of PNGs

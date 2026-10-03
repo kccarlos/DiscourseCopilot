@@ -25,7 +25,7 @@ body:
     id: provider
     attributes:
       label: AI provider and model
-      description: e.g. OpenRouter / anthropic/claude-sonnet-5. Never paste your API key.
+      description: e.g. OpenRouter and the model name shown in the side panel header. Never paste your API key.
   - type: textarea
     id: logs
     attributes:

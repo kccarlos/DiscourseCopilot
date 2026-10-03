@@ -149,6 +149,7 @@ Open **Settings** from the side panel (or right-click the extension icon and cho
 - **History & privacy: Keep conversations and Agent answers for.** Chats and answers you haven't kept are removed after **1 day** by default. You can choose 3, 7, or 30 days, or **Until I delete them**. Anything you **Keep** stays.
 - **History & privacy: Saved topics.** Up to 40 topic summaries are remembered by default (10 to 200). Past that, the oldest ones you haven't kept are removed.
 - **Forum access.** Every forum you allowed, with **Remove access**. Your saved summaries and answers stay.
+- **Forum access: Show the DiscourseCopilot button on forum pages.** On by default. Turn it off to hide the floating button on forums; it disappears from open forum tabs as soon as you save, and you can always open the side panel from the toolbar icon.
 - **Reset all settings.** Removes every provider, key, model, favorite, custom instructions, and preference after you confirm on the page. Saved summaries and answers are not deleted.
 
 ## Privacy in plain words
@@ -182,6 +183,9 @@ Click the DiscourseCopilot icon in the toolbar while the forum is open, and clic
 
 **My summary says "Page limit reached" or "first 1,999 of 2,430 replies".**
 You've set a limit on **Pages read per topic**, so a longer topic is summarized from its first pages. To include more, choose **Read every page** (or a higher limit) in Settings, then click **Check for new replies**. It will take longer and cost a bit more. By default there is no limit. On the rare forum that doesn't report a topic's length, reading stops after 100 pages (10,000 posts) as a safety net.
+
+**How do I hide the DiscourseCopilot button on forum pages?**
+Open Settings, scroll to **Forum access**, and turn off **Show the DiscourseCopilot button on forum pages**, then click **Save Settings**. The button goes away on open forum tabs right away. The toolbar icon still opens the side panel.
 
 **What gets sent, and to whom?**
 Only the forum content needed for your request and your question, sent to the AI provider you set up. Nothing is sent to us. The forum itself only sees normal page requests from your browser, like when you browse it.

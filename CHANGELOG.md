@@ -6,13 +6,18 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ### Added
 - Model selection from the provider's live list: once a key (or local server address) is entered, the setup card and Settings list the models the provider offers today and pre-select a curated fast, low-cost model (or a sensible available one). A saved model is never changed; Settings warns when the provider no longer offers it.
+- A setting to hide the in-page DiscourseCopilot button: **Settings → Forum access → Show the DiscourseCopilot button on forum pages** (on by default). It applies to open forum tabs when you save, without a reload; the toolbar icon always opens the side panel.
 - Undo for deletes: deleting a saved summary or an Ask the forum answer takes effect at once and can be undone for 8 seconds (the **Undo** button, or Ctrl/⌘+Z).
 - Developer tooling: Playwright UI flows in light and dark mode (`pnpm test:ui`, also in CI), README and store screenshot generators (`pnpm shots:readme`, `pnpm shots:store` with `--check` / `--write`), and Biome linting and formatting (`pnpm lint`, `pnpm format`, `pnpm check`, a CI job), with `.editorconfig` and `.git-blame-ignore-revs`.
 
 ### Changed
 - Summaries and follow-up chat are told when only part of a topic was read (page limit, or a topic of unknown length), so the answer says so.
 - **Reset all settings** asks for confirmation inline on the page. The extension no longer uses browser dialogs.
-- Curated default models refreshed for every provider.
+- Curated default models refreshed for every provider. Anthropic now defaults to Claude Sonnet 5, with Haiku 4.5 as a fallback, because Haiku 4.5 retires after 2026-10-15.
+- Diagnostic trace logging (`DiscourseCopilotLogger.log`) is off in production builds; it is on only for `pnpm dev`. Warnings and errors are unchanged.
+- Retention and saved-topic defaults, and the Agent's default research budget, now come from one place (`src/shared/preferences.mjs`).
+- The model list is fetched after the same typing pause (700 ms) in Settings and in the setup card.
+- Store and README screenshots show a neutral avatar.
 - Upgraded the AI SDK to v7 (every provider on its matching major), Vite to 8 and marked to 18.
 - Code split into smaller modules; a test enforces which folders each layer may import from.
 

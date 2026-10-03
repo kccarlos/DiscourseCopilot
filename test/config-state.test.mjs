@@ -118,7 +118,7 @@ test('reads stored provider settings over defaults and ignores empty or non-stri
   });
   assert.equal(config.provider, 'openai');
   assert.deepEqual(config.providers.openai, { apiKey: 'sk-1', model: 'gpt-6-luna' });
-  assert.deepEqual(config.providers.anthropic, { apiKey: '', model: 'claude-haiku-4-5' });
+  assert.deepEqual(config.providers.anthropic, { apiKey: '', model: 'claude-sonnet-5' });
   assert.deepEqual(config.providers.ollama, { url: 'http://box:11434', model: 'llama3.2' });
 });
 
@@ -177,7 +177,7 @@ test('a chosen provider without a key is incomplete with a field error', () => {
   const status = deriveConfigStatus(readConfig({ selectedProvider: 'anthropic' }));
   assert.equal(status.status, CONFIG_STATUS.INCOMPLETE);
   assert.equal(status.fieldErrors.apiKey, 'Anthropic API key is required.');
-  assert.equal(status.model, 'claude-haiku-4-5');
+  assert.equal(status.model, 'claude-sonnet-5');
 });
 
 test('a local provider with an invalid URL is incomplete on the url field', () => {
