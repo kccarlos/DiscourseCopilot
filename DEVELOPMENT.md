@@ -71,10 +71,12 @@ src/
     task-service.mjs      Job queue + request validation (incl. forum access), IndexedDB persistence,
                           broadcasts, wake-up alarm, per-task provider configuration
     topic-executors.mjs   Summary and follow-up chat tasks
-    agent-executor.mjs    Agent (forum research) tasks
-    agent-activity-store.mjs  Agent activity records: ordered saves + broadcasts
+    agent-executor.mjs    Agent tasks: runs the loop, resumes from the saved record
+    agent-loop.mjs        The agent loop for one turn (plan → tool → observation → answer)
+    agent-tools.mjs       The agent's read-only tools, bound to the run's forum
+    agent-activity-store.mjs  Agent activity records: ordered saves + broadcasts, follow-up turns
     topic-fetcher.mjs     Reads a topic's raw posts page by page (cache reuse, rate-limit retries)
-    job-queue.mjs, agent-runner.mjs, forum-tools.mjs  Queue engine, Agent loop, forum search tools
+    job-queue.mjs, forum-tools.mjs  Queue engine, forum request client (search, latest, topic, raw page)
   content/          Content script on enabled forums (registered at runtime): detects Discourse,
                     topic IDs, in-page launcher (hidden when the
                     `showForumButton` preference is off; follows storage changes live)
@@ -91,13 +93,14 @@ src/
     summary-view.mjs      Summary card, reading progress, topic task status line
     chat-view.mjs         Follow-up chat, message editing, forum context limit
     agent-controller.mjs  Agent research: composes the agent-* modules; broadcasts, detail view,
-                          answer actions (stop, copy, keep, dismiss, delete with Undo)
+                          answer actions (stop, copy, keep, dismiss, delete with Undo, follow-up)
     agent-runs.mjs        The runs the panel knows about (activities + queue tasks), which run
                           shows where (selectAgentRunView), opened/dismissed/deleted marks
     agent-panel.mjs       Inline answer panel and pill on the topic view
     agent-composer.mjs    "Ask the forum" composer (queues the Agent task)
-    agent-requests.mjs    Continue / Retry, with the forum access request
-    agent-answer-view.mjs Renders one Agent run (shared by the inline panel and the detail view)
+    agent-requests.mjs    Continue / Retry / follow-up, with the forum access request
+    agent-answer-view.mjs Renders one Agent run: live steps, thread, answer, sources, follow-up box
+                          (shared by the inline panel and the detail view)
     activity-view.mjs     Activity screen: Tasks/Saved tabs, Agent detail, deleting saved items
     forum-groups.mjs      Activity lists grouped by forum, forum filter chips
     activity-cards.mjs    Task and saved-item cards
@@ -125,13 +128,16 @@ src/
     settings-helpers.mjs  Model choices for the model field, latest-request check, re-exported
                           provider-setup validation
   services/         AI provider calls
-    ai-service.js         Summary, follow-up chat and Agent answer entry points (AIService)
+    ai-service.js         Summary, follow-up chat and Agent step/answer entry points (AIService)
     summary-strategies.mjs  Single pass → hierarchical fallback (OP + replies, map-reduce),
                           retries with halved content / minimal prompts, final assembly
-    text-stream.mjs       Streamed chat/Agent answers; system messages → instructions
+    text-stream.mjs       Streamed chat/Agent calls; system messages → instructions
     ai-errors.mjs         Cancellation, token-limit classification, token estimates
     provider-config.js    Provider → AI SDK client (defaults come from constants.js)
-    prompts.js, chat-context.mjs, agent-context.mjs  Prompts and chat/Agent context
+    prompts.js, chat-context.mjs  Prompts and chat context
+    agent-prompt.mjs      The agent's tool specs, system prompt and conversation messages
+    agent-action.mjs      Parsing the model's JSON action; the one corrective retry
+    agent-context.mjs     Question bounds and citation extraction
   shared/           Used across the above (never imports a page, see Layering)
     config-state.mjs      The ConfigStore (see below); re-exports config-model.mjs
     config-model.mjs      The configuration as data: storage keys, readConfig(), status, writes
@@ -140,7 +146,7 @@ src/
                           retention cleanup, take()/restore() for Undo
     history-schema.mjs    The IndexedDB schema, upgrades and request helpers
     topic-route.mjs       Topic ID from a forum URL (content script and side panel)
-    preferences.mjs       Research depth, topic page limit and history retention: defaults, ranges,
+    preferences.mjs       Agent budget, topic page limit and history retention: defaults, ranges,
                           normalization/validation and the resolve*() helpers
     provider-setup.mjs    Provider validation, connection test, failure messages
     model-catalog.mjs     Providers' live model lists (fetch, filter, cache) and the default
@@ -148,7 +154,7 @@ src/
     forum-access.mjs      Per-forum host permissions, the access error, content script sync
     constants.js          Storage keys, message names, provider list, curated models (RECOMMENDED_MODELS)
     task-record.mjs       Task records: statuses, types, normalization
-    agent-activity.mjs    Agent activity records (progress, sources, answer) and their retention
+    agent-activity.mjs    Agent activity records (steps, transcript, turns, sources) and their retention
     forum-site.mjs        Forum identity: site URL (origin + subfolder), topic keys
     forum-response.mjs    Classifying forum responses (login required, rate limits);
                           MAX_UNKNOWN_TOPIC_PAGES
@@ -260,15 +266,15 @@ Draft edits (`selectProvider`, `updateField`, `updateDraft`, `updatePreferences`
 
 | Option | Default | Range / choices | Consumed by |
 | --- | --- | --- | --- |
-| `researchDepth` + `customResearch` | Balanced (3 searches, 1 result page, 6 discussions) | Quick / Balanced / Thorough / Custom (queries 1–4, result pages 1–3, discussions 1–12) | `agent-runner.mjs` via the task's snapshot |
+| `researchDepth` + `customBudget` | Balanced (15 steps, 8 topic reads, 30,000 characters per read) | Quick (6/3/12k) / Balanced / Thorough (25/14/45k) / Custom (steps 3–40, topic reads 1–20, characters per read 5,000–60,000) | `agent-loop.mjs` via the task's snapshot |
 | `topicPageMode` + `topicPageLimit` | Every page (`'all'`); the limit, when chosen, starts at 20 pages (2,000 posts) | `'all'` / `'limit'` (limit 1–100, only validated in `'limit'` mode) | `topic-fetcher.mjs` via the task's snapshot (`resolveTopicPageLimit()` → pages, or `null` for every page); summary coverage in the side panel |
 | `historyRetention` | 1 day | 1d / 3d / 7d / 30d / forever | `TopicSessionDatabase.setRetention()` in the background (cleanup) and side panel (lazy expiry, Saved list, labels) |
 | `maxSavedTopics` | 40 | 10–200 | saved-topic pruning |
 | `showForumButton` | `true` | boolean (anything else reads as `true`) | `content.js`: reads it at start and on `chrome.storage.onChanged`, adding or removing the launcher without a reload; page-change detection runs either way. Settings: checkbox under Forum access |
 
-`preferences.mjs` is the single source for the user-tunable defaults (`DEFAULT_RETENTION_MS`, `DEFAULT_MAX_SAVED_TOPICS`, `DEFAULT_RESEARCH_LIMITS`); `task-record.mjs`, `topic-session.mjs` and `agent-runner.mjs` import them.
+`preferences.mjs` is the single source for the user-tunable defaults (`DEFAULT_RETENTION_MS`, `DEFAULT_MAX_SAVED_TOPICS`, `DEFAULT_AGENT_BUDGET`); `task-record.mjs`, `topic-session.mjs` and `agent-loop.mjs` import them. Older stored `customResearch` limits (searches × result pages, discussions) and old task snapshots (`limits.research`) are converted to an equivalent budget by `normalizePreferences()` / `normalizeTaskLimits()`: the same topic reads, and steps = searches × pages + topic reads + 2.
 
-Hard caps stay in code (including `MAX_TASK_RECORDS`, 100 stored task records): `FORUM_TOOL_LIMITS` (search pages ≤ 3, raw pages ≤ 20), `MAX_UNKNOWN_TOPIC_PAGES`, the forum request pacing, `MAX_AGENT_SEARCH_QUERIES`/`MAX_AGENT_TOOL_CALLS` (sized for the largest budget) and a 7-day ceiling on finished task records.
+Hard caps stay in code (including `MAX_TASK_RECORDS`, 100 stored task records): `FORUM_TOOL_LIMITS` (search pages ≤ 3, raw pages ≤ 20), `MAX_UNKNOWN_TOPIC_PAGES`, the forum request pacing, `PREFERENCE_RANGES` (the loop clamps any budget to them), `MAX_AGENT_STEPS`/`MAX_AGENT_TURNS`/`MAX_AGENT_TRANSCRIPT_CHARS` (stored per run) and a 7-day ceiling on finished task records.
 
 ```
   storage ──readConfig()──▶ normalizePreferences()     missing keys → defaults,
@@ -288,7 +294,7 @@ Hard caps stay in code (including `MAX_TASK_RECORDS`, 100 stored task records): 
 
 Consumers never read the raw fields; effective values always come from the `resolve*()` helpers.
 
-- **Snapshot rule.** When the background queues a task, `TaskService.enqueue()` reads the saved preferences and stores `snapshotTaskLimits(type, preferences)` on the task record (`task.limits`: `research` for Agent tasks, `topicPageLimit` for summary/chat, where `null` means every page). Records without `limits` (or without `topicPageLimit`) predate the snapshot and fall back to the current preferences. Executors only use `task.limits` (through `getTaskConfiguration()`), and the record is persisted, so queued and running tasks — including ones resumed after a worker restart — keep the values they started with. Tasks queued after a change use the new values.
+- **Snapshot rule.** When the background queues a task, `TaskService.enqueue()` reads the saved preferences and stores `snapshotTaskLimits(type, preferences)` on the task record (`task.limits`: `agent` for Agent tasks, `topicPageLimit` for summary/chat, where `null` means every page). Records without `limits` (or without `topicPageLimit`) predate the snapshot and fall back to the current preferences. Executors only use `task.limits` (through `getTaskConfiguration()`), and the record is persisted, so queued and running tasks — including ones resumed after a worker restart — keep the values they started with. Tasks queued after a change use the new values.
 - **Retention.** The background holds a `ConfigStore` subscription; on every change it calls `TaskService.applyRetention(resolveRetention(prefs))`, which updates the database and re-runs chat/task/Agent cleanup and pruning (also done at startup, *after* reading the preferences). Agent answers expire `retention` after `retainedFrom` (completion, or the moment they were unkept), recomputed with the current setting, so shortening the period applies immediately. The side panel applies the same retention to its own database instance and re-renders the Saved list, the "expires in …" labels and the Keep button titles when the preferences change in any page.
 - **Page limit and truncation.** Stored preferences from before `topicPageMode` existed read as `'all'` (a stored `topicPageLimit` was written on every save, so it says nothing about intent; it is kept as the value offered in limit mode). With every page, a topic of known size is read in full; a topic whose size is unknown (no pagination metadata) still stops at `MAX_UNKNOWN_TOPIC_PAGES` and reports it. A topic longer than the page limit is read from its first pages; the fetch result carries `truncated`/`coveredPosts`, the task status says "(page limit; the topic has N)", and the session stores `summaryTruncated`/`summaryCoveredPosts`, shown as "first X of Y replies" plus a note on the summary. Replies added past the limit don't trigger a re-read or a new summary.
 
@@ -306,6 +312,56 @@ The settings page layers its form lifecycle on top of this in `settings-form-sta
 The status line, the save bar's state label ("Unsaved changes", "Saving…", "Saved", "Fix the highlighted fields", …), the header's "Unsaved changes" indicator and the disabled buttons are all derived from that state.
 
 **Reset all settings** asks first, inline: `reset-requested` sets `confirmingReset` (no phase change) and opens a panel under the button ("This removes every provider, API key, model, favorite, prompt and preference on this page. Saved summaries and answers are not deleted." with **Reset everything** and **Cancel**; Escape cancels). `reset-started` is ignored unless that panel is open, and an edit, Test, Save or Restore defaults closes it. Focus moves to **Reset everything** when the panel opens and back to **Reset all settings** when it closes.
+
+### Ask the forum (the agent)
+
+Ask the forum is a read-only agent. The model is asked for **one JSON action per turn**, `{"tool": "...", "arguments": {...}, "reason": "..."}`, so it works with every provider and needs no native tool calling. The loop (`src/background/agent-loop.mjs`) runs the action, appends the observation, and asks again until `final_answer` or the step budget is spent.
+
+```
+  User        Panel            Executor / loop            Model             Forum
+   │ question   │                    │                       │                 │
+   ├───────────▶│ enqueue(agent) ───▶│ activity saved        │                 │
+   │            │                    │  ┌─ plan: transcript ─▶│                 │
+   │            │                    │  │◀─ one JSON action ──┤                 │
+   │            │◀─ step "running" ──┤  │ run tool ───────────────────────────▶│ (paced, same forum)
+   │            │◀─ step + result ───┤  │◀── observation ─────────────────────┤
+   │            │   (saved each step)│  └─ repeat until final_answer / budget  │
+   │            │                    ├─ answer: transcript + "write the answer" ▶│
+   │◀─ streamed Markdown, [S#] chips ◀┤◀──────────── streamed text ─────────────┤
+   │ follow-up  │ enqueue(followUp) ▶│ same run, new turn, fresh budget        │
+```
+
+| Module | Role |
+| --- | --- |
+| `services/agent-prompt.mjs` | Tool specs (`requiresApproval` flag, all `false`: no tool writes), the system prompt (tools, budgets, untrusted-content and citation rules, response language, the user's custom instructions appended), goal / observation / follow-up / out-of-budget / final-answer messages |
+| `services/agent-action.mjs` | `parseAgentAction()`: fenced blocks first, then balanced-brace scan (string aware); `tool`/`action`/`name`, `arguments`/`args`, scalar arguments coerced to text. `planAgentStep()`: an unreadable reply gets one corrective message, a second failure fails the step (a failed `plan` step, then the run fails) |
+| `services/ai-service.js` | `completeAgentStep()` (planning call) and `streamAgentAnswer()` (answer call); both go through `streamAnswer()`, so `samplingOptions()` (no temperature for Anthropic, `maxOutputTokens`) applies to every call |
+| `background/agent-tools.mjs` | The tools below; arguments validated, topic ids reduced to digits, observations are compact text with truncation markers |
+| `background/agent-loop.mjs` | One turn: budgets, S# sources, pending-step replay, final answer |
+| `background/agent-executor.mjs` | Task wrapper: activity status, access/login waiting, failure and cancel handling |
+| `shared/agent-activity.mjs` | The stored record, `describeAgentStep()` (the wording the panel shows), turns, transcript compaction |
+
+**Tools** (all read-only, all bound to the run's `siteUrl`; URLs are built from it and never taken from the model):
+
+| Tool | Arguments | What it does |
+| --- | --- | --- |
+| `search_forum` | `query` (Discourse search syntax), `page` 1–3 | `/search.json`; up to 20 topics with id, title, posts, last activity, excerpt |
+| `list_latest` | none | `/latest.json`; about 30 topics |
+| `read_topic` | `topic_id` (digits), `page` (optional) | Topic metadata plus posts from `/raw/{id}`; returns a source number `[S#]`. A topic over 100 posts is read as its opening (page 1) plus its newest replies (last page) with a marker for the omitted middle; `page` reads another part. Trimmed to `maxCharsPerRead` (40% head, 60% tail) |
+| `saved_summaries` | `query` (optional) | The user's saved summaries for this forum from IndexedDB (no network); with a query, the matching text, each with a source number |
+| `final_answer` | `answer` (a one-sentence gist) | Ends the loop; the full answer is then written by one streamed call |
+
+**Budgets** (per question and per follow-up, snapshotted at enqueue): `maxSteps` (tool calls), `maxTopicReads` (distinct topics; re-reading one is free), `maxCharsPerRead`. A tool error (bad argument, unknown topic, exhausted topic budget, failed request) comes back to the model as an `ERROR` observation and still costs a step. When the steps run out the planner is not asked again: the answer call is made directly with a note that the budget ran out (`turns[].outOfBudget` shows a line under the answer).
+
+**Streaming.** The final answer is a separate streamed call over the same conversation ("now write the answer as Markdown, cite only these sources"), not the JSON `answer` field: Markdown inside a JSON string cannot be streamed robustly (partial escapes), and long JSON answers are where weak models break. The planner's `final_answer.arguments.answer` is only a gist (used if the streamed call returns nothing). The cost is one extra call per answer, with the transcript (cached by providers that support it). Chunks go to the panel as `taskStream` messages; screen readers are only told when the run's status changes (answer ready, failed, waiting), never per step or token.
+
+**Sources.** A topic gets `S1…` when it is read (`read_topic`) or a saved summary's text is returned; numbers continue across follow-ups. Search and list observations show plain ids. The Sources panel lists the source cards (links built from `siteUrl`); `[S#]` markers in the answer become chips only for sources that exist.
+
+**Persistence and resume.** `agentActivities` records (schema version 2) hold `steps` (tool, arguments, reason, status, outcome, timings), `transcript` (the conversation the model has seen, trimmed to 240,000 characters by dropping the oldest observations), `turns` (question and answer of the first question and each follow-up), `sourceRefs`, `budget` and `progress`. The loop saves after every step and marks a step `running` *before* running its tool. After a worker restart the queue re-runs the task, the executor reloads the record and the loop continues: a `running` step is run again instead of asking the model, otherwise the model is asked about the next step with the saved transcript. A forum that needs a login, or access that was removed, leaves the step `running` and the task `WAITING_USER_ACTION`; **Continue** resumes the same task and runs that step. Cancelling stops between and inside steps (every model and forum call gets the abort signal); the busy step is shown as stopped. Broadcasts leave the transcript out. Runs saved before steps existed (`schemaVersion` 1) show their searches as steps and can still be followed up (the conversation is rebuilt from the question and answer).
+
+**Follow-ups.** A follow-up is a new Agent task with the run's `agentRunId` and `followUp: true`; the queue's resource key serializes it behind the run. `TaskService.enqueue()` refuses it when the run is unfinished, gone, unanswered or on another forum, and `AgentActivityStore.startFollowUp()` adds a turn (an unanswered earlier follow-up is replaced, with its steps and messages). The loop continues the same transcript with a **fresh budget** (snapshotted from the preferences at that moment): what is left of the first budget is usually nothing, and a user who asks again expects the agent to be able to look again. Source numbers continue; earlier answers stay in the thread above the new one.
+
+**Risks.** Weak or very small local models may not keep to one JSON object per turn; the corrective retry helps but does not remove it. Long transcripts are trimmed oldest-observation-first, so an agent may forget details of early reads in a long run.
 
 ### Deleting in the side panel (Undo)
 
@@ -413,7 +469,7 @@ Then add the service account's email under **Account → Service account** in th
 
 ```
 tools/ui/
-  flows.mjs           UI regression suite: ~38 scenarios, ~460 checks per theme (incl. content.js on a stand-in forum page, fixtures/discourse-topic.html)
+  flows.mjs           UI regression suite: ~41 scenarios, ~540 checks per theme (incl. content.js on a stand-in forum page, fixtures/discourse-topic.html)
   readme-shots.mjs    docs/screenshots/*.png: panels → framed composition → palette PNG
   store-shots.mjs     store-assets/*.png: 1280x800 screenshots and promo tiles (24-bit, no alpha)
   pixdiff.mjs         compare two PNGs or two folders of PNGs

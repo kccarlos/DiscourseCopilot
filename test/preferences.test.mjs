@@ -4,28 +4,26 @@ import test from 'node:test';
 import {
   DEFAULT_MAX_SAVED_TOPICS,
   DEFAULT_PREFERENCES,
-  DEFAULT_RESEARCH_LIMITS,
+  DEFAULT_AGENT_BUDGET,
   DEFAULT_RETENTION_MS,
   HISTORY_RETENTION_OPTIONS,
   MAX_TASK_RETENTION_MS,
   PREFERENCE_RANGES,
-  RESEARCH_PRESETS,
+  AGENT_BUDGET_PRESETS,
   defaultPreferences,
   formatExpiresIn,
   normalizePreferences,
   normalizeTaskLimits,
   preferencesEqual,
-  researchRequestBudget,
-  resolveResearchLimits,
+  clampAgentBudget,
+  resolveAgentBudget,
   resolveRetention,
   resolveTopicPageLimit,
   retentionEqual,
   snapshotTaskLimits,
   validatePreferences
 } from '../src/shared/preferences.mjs';
-import { FORUM_TOOL_LIMITS } from '../src/background/forum-tools.mjs';
-import { MAX_AGENT_SEARCH_QUERIES, MAX_AGENT_TOOL_CALLS } from '../src/shared/agent-activity.mjs';
-import { AGENT_CONTEXT_LIMITS } from '../src/services/agent-context.mjs';
+import { MAX_AGENT_STEPS } from '../src/shared/agent-activity.mjs';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -35,7 +33,7 @@ test('missing or garbage preferences normalize to the defaults', () => {
   for (const value of [undefined, null, 'x', 42, [], {}]) {
     assert.deepEqual(normalizePreferences(value), {
       researchDepth: 'balanced',
-      customResearch: { searchQueries: 3, searchPages: 1, topicsRead: 6 },
+      customBudget: { maxSteps: 15, maxTopicReads: 8, maxCharsPerRead: 30000 },
       topicPageMode: 'all',
       topicPageLimit: 20,
       historyRetention: '1d',
@@ -47,10 +45,10 @@ test('missing or garbage preferences normalize to the defaults', () => {
 });
 
 test('partial (older) preferences keep what they have and fill in the rest', () => {
-  const migrated = normalizePreferences({ historyRetention: '7d', customResearch: { topicsRead: 9 } });
+  const migrated = normalizePreferences({ historyRetention: '7d', customBudget: { maxTopicReads: 9 } });
   assert.equal(migrated.historyRetention, '7d');
   assert.equal(migrated.researchDepth, 'balanced');
-  assert.deepEqual(migrated.customResearch, { searchQueries: 3, searchPages: 1, topicsRead: 9 });
+  assert.deepEqual(migrated.customBudget, { maxSteps: 15, maxTopicReads: 9, maxCharsPerRead: 30000 });
   assert.equal(migrated.topicPageLimit, 20);
   assert.equal(migrated.topicPageMode, 'all');
 });
@@ -86,13 +84,13 @@ test('switching between every page and a limit', () => {
 test('stored numbers are clamped and rounded; unknown enums fall back', () => {
   const normalized = normalizePreferences({
     researchDepth: 'extreme',
-    customResearch: { searchQueries: 99, searchPages: 0, topicsRead: '7.6' },
+    customBudget: { maxSteps: 99, maxTopicReads: 0, maxCharsPerRead: '7000.6' },
     topicPageLimit: -5,
     historyRetention: '2y',
     maxSavedTopics: 5000
   });
   assert.equal(normalized.researchDepth, 'balanced');
-  assert.deepEqual(normalized.customResearch, { searchQueries: 4, searchPages: 1, topicsRead: 8 });
+  assert.deepEqual(normalized.customBudget, { maxSteps: 40, maxTopicReads: 1, maxCharsPerRead: 7001 });
   assert.equal(normalized.topicPageLimit, 1);
   assert.equal(normalized.historyRetention, '1d');
   assert.equal(normalized.maxSavedTopics, 200);
@@ -115,8 +113,8 @@ test('the forum button is shown by default and only a boolean turns it off', () 
 test('retention and saved-topic defaults come from the preferences', () => {
   assert.equal(DEFAULT_RETENTION_MS, resolveRetention(undefined).chatMs);
   assert.equal(DEFAULT_MAX_SAVED_TOPICS, resolveRetention(undefined).maxSavedTopics);
-  assert.equal(DEFAULT_RESEARCH_LIMITS.topicsRead, resolveResearchLimits(undefined).topicsRead);
-  assert.equal(DEFAULT_RESEARCH_LIMITS.rawFallbacks, resolveResearchLimits(undefined).rawFallbacks);
+  assert.equal(DEFAULT_AGENT_BUDGET.maxTopicReads, resolveAgentBudget(undefined).maxTopicReads);
+  assert.equal(DEFAULT_AGENT_BUDGET.maxSteps, resolveAgentBudget(undefined).maxSteps);
 });
 
 // ---------- validation ----------
@@ -125,14 +123,14 @@ test('validation reports per-field errors without clamping', () => {
   const invalid = validatePreferences({
     ...defaultPreferences(),
     researchDepth: 'custom',
-    customResearch: { searchQueries: '0', searchPages: '2', topicsRead: 'lots' },
+    customBudget: { maxSteps: '0', maxTopicReads: '2', maxCharsPerRead: 'lots' },
     topicPageMode: 'limit',
     topicPageLimit: '101',
     maxSavedTopics: '9'
   });
   assert.equal(invalid.valid, false);
   assert.equal(invalid.preferences, null);
-  assert.deepEqual(Object.keys(invalid.fieldErrors).sort(), ['maxSavedTopics', 'searchQueries', 'topicPageLimit', 'topicsRead']);
+  assert.deepEqual(Object.keys(invalid.fieldErrors).sort(), ['maxCharsPerRead', 'maxSavedTopics', 'maxSteps', 'topicPageLimit']);
   assert.match(invalid.fieldErrors.topicPageLimit, /from 1 to 100/);
   assert.equal(invalid.errors.length, 4);
 
@@ -154,11 +152,11 @@ test('the page limit is only validated while a limit is chosen', () => {
   assert.match(limit.fieldErrors.topicPageLimit, /Pages read per topic must be a whole number from 1 to 100/);
 });
 
-test('custom research fields are only validated while Custom is chosen', () => {
+test('custom budget fields are only validated while Custom is chosen', () => {
   const draft = {
     ...defaultPreferences(),
     researchDepth: 'quick',
-    customResearch: { searchQueries: '', searchPages: 'x', topicsRead: 99 }
+    customBudget: { maxSteps: '', maxTopicReads: 'x', maxCharsPerRead: 99 }
   };
   assert.equal(validatePreferences(draft).valid, true);
   assert.equal(validatePreferences({ ...draft, researchDepth: 'custom' }).valid, false);
@@ -168,66 +166,76 @@ test('valid string input validates to normalized numbers', () => {
   const result = validatePreferences({
     ...defaultPreferences(),
     researchDepth: 'custom',
-    customResearch: { searchQueries: '2', searchPages: '3', topicsRead: ' 12 ' },
+    customBudget: { maxSteps: '20', maxTopicReads: '12', maxCharsPerRead: ' 40000 ' },
     topicPageMode: 'limit',
     topicPageLimit: '50'
   });
   assert.equal(result.valid, true);
-  assert.deepEqual(result.preferences.customResearch, { searchQueries: 2, searchPages: 3, topicsRead: 12 });
+  assert.deepEqual(result.preferences.customBudget, { maxSteps: 20, maxTopicReads: 12, maxCharsPerRead: 40000 });
   assert.equal(result.preferences.topicPageLimit, 50);
   assert.equal(resolveTopicPageLimit(result.preferences), 50);
 });
 
 // ---------- effective values ----------
 
-test('resolveResearchLimits maps presets and custom values', () => {
-  assert.deepEqual(resolveResearchLimits({}), {
-    depth: 'balanced',
-    searchQueries: 3,
-    searchPages: 1,
-    topicsRead: 6,
-    rawFallbacks: 3
-  });
-  assert.deepEqual(resolveResearchLimits({ researchDepth: 'quick' }), {
+test('resolveAgentBudget maps presets and custom values', () => {
+  assert.deepEqual(resolveAgentBudget({}), { depth: 'balanced', maxSteps: 15, maxTopicReads: 8, maxCharsPerRead: 30000 });
+  assert.deepEqual(resolveAgentBudget({ researchDepth: 'quick' }), {
     depth: 'quick',
-    searchQueries: 1,
-    searchPages: 1,
-    topicsRead: 3,
-    rawFallbacks: 2
+    maxSteps: 6,
+    maxTopicReads: 3,
+    maxCharsPerRead: 12000
   });
-  assert.equal(resolveResearchLimits({ researchDepth: 'thorough' }).searchPages, 2);
-  const custom = resolveResearchLimits({
-    researchDepth: 'custom',
-    customResearch: { searchQueries: 2, searchPages: 3, topicsRead: 11 }
+  assert.deepEqual(resolveAgentBudget({ researchDepth: 'thorough' }), {
+    depth: 'thorough',
+    maxSteps: 25,
+    maxTopicReads: 14,
+    maxCharsPerRead: 45000
   });
-  assert.deepEqual(custom, { depth: 'custom', searchQueries: 2, searchPages: 3, topicsRead: 11, rawFallbacks: 6 });
+  const custom = resolveAgentBudget({ researchDepth: 'custom', customBudget: { maxSteps: 12, maxTopicReads: 5, maxCharsPerRead: 20000 } });
+  assert.deepEqual(custom, { depth: 'custom', maxSteps: 12, maxTopicReads: 5, maxCharsPerRead: 20000 });
   // Custom values are remembered while a preset is active, but not applied.
   assert.equal(
-    resolveResearchLimits({
-      researchDepth: 'quick',
-      customResearch: { searchQueries: 4, searchPages: 3, topicsRead: 12 }
-    }).topicsRead,
+    resolveAgentBudget({ researchDepth: 'quick', customBudget: { maxSteps: 40, maxTopicReads: 20, maxCharsPerRead: 60000 } }).maxTopicReads,
     3
   );
 });
 
-test('the largest research budget fits the hard caps', () => {
-  const max = {
-    searchQueries: PREFERENCE_RANGES.searchQueries.max,
-    searchPages: PREFERENCE_RANGES.searchPages.max,
-    topicsRead: PREFERENCE_RANGES.topicsRead.max
-  };
-  assert.ok(max.searchPages <= FORUM_TOOL_LIMITS.maxSearchPage);
-  assert.ok(max.searchQueries * max.searchPages <= MAX_AGENT_SEARCH_QUERIES);
-  // search calls + (metadata + posts + raw fallback) per discussion.
-  assert.ok(max.searchQueries * max.searchPages + max.topicsRead * 3 <= MAX_AGENT_TOOL_CALLS);
-  assert.ok(max.topicsRead <= AGENT_CONTEXT_LIMITS.maxSourceCount);
-  for (const preset of Object.values(RESEARCH_PRESETS)) {
+test('the presets and the largest budget fit the hard caps', () => {
+  for (const preset of Object.values(AGENT_BUDGET_PRESETS)) {
     for (const [field, value] of Object.entries(preset)) {
-      assert.ok(value >= PREFERENCE_RANGES[field].min && value <= PREFERENCE_RANGES[field].max);
+      assert.ok(value >= PREFERENCE_RANGES[field].min && value <= PREFERENCE_RANGES[field].max, field);
     }
   }
-  assert.equal(researchRequestBudget(resolveResearchLimits({})), 15);
+  // A few follow-ups at the largest budget still fit the stored step limit.
+  assert.ok(PREFERENCE_RANGES.maxSteps.max * 5 <= MAX_AGENT_STEPS);
+  assert.deepEqual(clampAgentBudget({ maxSteps: 500, maxTopicReads: -3, maxCharsPerRead: 1 }), {
+    maxSteps: 40,
+    maxTopicReads: 1,
+    maxCharsPerRead: 5000
+  });
+  assert.deepEqual(clampAgentBudget(undefined), DEFAULT_AGENT_BUDGET);
+});
+
+test('stored research settings from before the agent become an equivalent budget', () => {
+  // Old custom limits: 2 queries × 2 pages, 7 discussions → 4 + 7 + 2 steps.
+  const migrated = normalizePreferences({
+    researchDepth: 'custom',
+    customResearch: { searchQueries: 2, searchPages: 2, topicsRead: 7 }
+  });
+  assert.equal(migrated.researchDepth, 'custom', 'the chosen depth is kept');
+  assert.deepEqual(migrated.customBudget, { maxSteps: 13, maxTopicReads: 7, maxCharsPerRead: 30000 });
+  assert.equal('customResearch' in migrated, false);
+  assert.deepEqual(resolveAgentBudget(migrated), { depth: 'custom', maxSteps: 13, maxTopicReads: 7, maxCharsPerRead: 30000 });
+  // Old presets keep their names; a new customBudget wins over leftover old limits.
+  assert.equal(normalizePreferences({ researchDepth: 'thorough', customResearch: { topicsRead: 10 } }).researchDepth, 'thorough');
+  assert.equal(normalizePreferences({ customResearch: { topicsRead: 3 }, customBudget: { maxSteps: 9 } }).customBudget.maxSteps, 9);
+  // Out-of-range old values are clamped before the conversion.
+  assert.equal(
+    normalizePreferences({ customResearch: { searchQueries: 99, searchPages: 99, topicsRead: 99 } }).customBudget.maxSteps,
+    26,
+    'the old maximum: 4 × 3 searches + 12 reads + 2'
+  );
 });
 
 test('resolveTopicPageLimit and resolveRetention', () => {
@@ -265,9 +273,7 @@ test('resolveTopicPageLimit and resolveRetention', () => {
 
 test('snapshotTaskLimits takes only what each task type uses', () => {
   const preferences = { researchDepth: 'thorough', topicPageMode: 'limit', topicPageLimit: 5 };
-  assert.deepEqual(snapshotTaskLimits('agent', preferences), {
-    research: { searchQueries: 4, searchPages: 2, topicsRead: 10, rawFallbacks: 5 }
-  });
+  assert.deepEqual(snapshotTaskLimits('agent', preferences), { agent: { maxSteps: 25, maxTopicReads: 14, maxCharsPerRead: 45000 } });
   assert.deepEqual(snapshotTaskLimits('summary', preferences), { topicPageLimit: 5 });
   assert.deepEqual(snapshotTaskLimits('chat', preferences), { topicPageLimit: 5 });
   assert.deepEqual(snapshotTaskLimits('other', preferences), {});
@@ -283,12 +289,14 @@ test('normalizeTaskLimits keeps snapshots in range and ignores records without t
   // null is "every page", not a missing snapshot (and never clamped to 1).
   assert.deepEqual(normalizeTaskLimits('summary', { topicPageLimit: null }), { topicPageLimit: null });
   assert.deepEqual(normalizeTaskLimits('chat', { topicPageLimit: null }), { topicPageLimit: null });
-  assert.deepEqual(
-    normalizeTaskLimits('agent', {
-      research: { searchQueries: 9, searchPages: 2, topicsRead: 4, rawFallbacks: 50 }
-    }),
-    { research: { searchQueries: 4, searchPages: 2, topicsRead: 4, rawFallbacks: 4 } }
-  );
+  assert.deepEqual(normalizeTaskLimits('agent', { agent: { maxSteps: 99, maxTopicReads: 4, maxCharsPerRead: 100 } }), {
+    agent: { maxSteps: 40, maxTopicReads: 4, maxCharsPerRead: 5000 }
+  });
+  // A task queued before the agent still carries research limits.
+  assert.deepEqual(normalizeTaskLimits('agent', { research: { searchQueries: 3, searchPages: 1, topicsRead: 6, rawFallbacks: 3 } }), {
+    agent: { maxSteps: 11, maxTopicReads: 6, maxCharsPerRead: 30000 }
+  });
+  assert.equal(normalizeTaskLimits('agent', { research: 'junk' }), null);
 });
 
 // ---------- labels ----------

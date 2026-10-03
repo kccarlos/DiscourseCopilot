@@ -1536,7 +1536,7 @@
         <div class="section-head">
           <div>
             <h2 id="researchHeading" class="section-title">Ask the forum</h2>
-            <p class="section-lede">How much research the Agent does for each question you ask a forum.</p>
+            <p class="section-lede">How much the agent may do for each question you ask a forum.</p>
           </div>
           <button type="button" class="btn-restore" data-restore="research" aria-label="Restore Ask the forum defaults">Restore defaults</button>
         </div>
@@ -1547,17 +1547,17 @@
             <label class="choice-card">
               <input type="radio" name="researchDepth" value="quick">
               <span class="choice-title">Quick</span>
-              <span class="choice-detail">1 search · reads 3 discussions</span>
+              <span class="choice-detail">Up to 6 steps · reads 3 topics</span>
             </label>
             <label class="choice-card">
               <input type="radio" name="researchDepth" value="balanced">
               <span class="choice-title">Balanced <span class="choice-badge">Default</span></span>
-              <span class="choice-detail">3 searches · reads 6 discussions</span>
+              <span class="choice-detail">Up to 15 steps · reads 8 topics</span>
             </label>
             <label class="choice-card">
               <input type="radio" name="researchDepth" value="thorough">
               <span class="choice-title">Thorough</span>
-              <span class="choice-detail">4 searches × 2 result pages · reads 10 discussions</span>
+              <span class="choice-detail">Up to 25 steps · reads 14 topics</span>
             </label>
             <label class="choice-card">
               <input type="radio" name="researchDepth" value="custom">
@@ -1566,29 +1566,30 @@
             </label>
           </div>
           <p id="researchHelp" class="help-text">
-            Deeper research finds more sources, but takes longer, uses more AI tokens, and sends more
-            requests to the forum (always paced, one at a time).
+            The agent decides what to search and read, one step at a time, until it can answer or runs out of
+            steps. Deeper research finds more, but takes longer, uses more AI tokens, and sends more requests
+            to the forum (always paced, one at a time). Each follow-up question gets the same budget again.
           </p>
         </fieldset>
 
         <div id="customResearch" class="custom-fields" hidden>
           <div class="form-group">
-            <label for="searchQueries">Search queries</label>
-            <input type="number" id="searchQueries" min="1" max="4" step="1" inputmode="numeric" aria-describedby="searchQueriesHelp searchQueriesError">
-            <small id="searchQueriesHelp" class="help-text">1–4. Rewordings of your question; near-duplicates are merged.</small>
-            <small id="searchQueriesError" class="field-error" hidden></small>
+            <label for="maxSteps">Steps per question</label>
+            <input type="number" id="maxSteps" min="3" max="40" step="1" inputmode="numeric" aria-describedby="maxStepsHelp maxStepsError">
+            <small id="maxStepsHelp" class="help-text">3–40. A step is one search, one topic read or one list of latest topics.</small>
+            <small id="maxStepsError" class="field-error" hidden></small>
           </div>
           <div class="form-group">
-            <label for="searchPages">Result pages per search</label>
-            <input type="number" id="searchPages" min="1" max="3" step="1" inputmode="numeric" aria-describedby="searchPagesHelp searchPagesError">
-            <small id="searchPagesHelp" class="help-text">1–3. Later pages reach less relevant matches.</small>
-            <small id="searchPagesError" class="field-error" hidden></small>
+            <label for="maxTopicReads">Topics read</label>
+            <input type="number" id="maxTopicReads" min="1" max="20" step="1" inputmode="numeric" aria-describedby="maxTopicReadsHelp maxTopicReadsError">
+            <small id="maxTopicReadsHelp" class="help-text">1–20 different topics opened per question.</small>
+            <small id="maxTopicReadsError" class="field-error" hidden></small>
           </div>
           <div class="form-group">
-            <label for="topicsRead">Discussions read</label>
-            <input type="number" id="topicsRead" min="1" max="12" step="1" inputmode="numeric" aria-describedby="topicsReadHelp topicsReadError">
-            <small id="topicsReadHelp" class="help-text">1–12. The most relevant ones are opened and cited.</small>
-            <small id="topicsReadError" class="field-error" hidden></small>
+            <label for="maxCharsPerRead">Characters per read</label>
+            <input type="number" id="maxCharsPerRead" min="5000" max="60000" step="1" inputmode="numeric" aria-describedby="maxCharsPerReadHelp maxCharsPerReadError">
+            <small id="maxCharsPerReadHelp" class="help-text">5,000–60,000. Longer topics are trimmed to the opening post and the latest replies.</small>
+            <small id="maxCharsPerReadError" class="field-error" hidden></small>
           </div>
         </div>
 

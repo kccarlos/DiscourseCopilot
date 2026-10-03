@@ -29,7 +29,7 @@ Discourse forums are hosted on arbitrary domains, so the extension cannot list t
 Only from forums you enabled, and only the forum of the current page or task:
 - Topic metadata (`/t/{id}.json`)
 - Raw topic markdown (`/raw/{id}`)
-- Search results (`/search.json`) and selected posts (`/t/{id}/posts.json`), for **Ask the forum** only
+- Search results (`/search.json`) and the latest topics (`/latest.json`), for **Ask the forum** only. Forum text the agent reads is sent to your AI provider as part of the conversation, like a summary is.
 
 ### What the extension does NOT collect
 - **Personal information**: No names, email addresses, or other personal identifiers are collected by the developer.

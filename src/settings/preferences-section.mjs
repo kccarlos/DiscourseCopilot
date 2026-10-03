@@ -8,15 +8,14 @@ import {
   DEFAULT_PREFERENCES,
   HISTORY_RETENTION_OPTIONS,
   POSTS_PER_RAW_PAGE,
-  researchRequestBudget,
-  resolveResearchLimits,
+  resolveAgentBudget,
   resolveRetention,
   validatePreferences
 } from '../shared/preferences.mjs';
 import { plural } from './settings-helpers.mjs';
 
 // Preference inputs (ids match the validation field names).
-const CUSTOM_RESEARCH_FIELDS = ['searchQueries', 'searchPages', 'topicsRead'];
+const CUSTOM_RESEARCH_FIELDS = ['maxSteps', 'maxTopicReads', 'maxCharsPerRead'];
 export const PREFERENCE_NUMBER_FIELDS = [...CUSTOM_RESEARCH_FIELDS, 'topicPageLimit', 'maxSavedTopics', 'forumContextLimit'];
 export const PREFERENCE_INPUT_IDS = new Set(PREFERENCE_NUMBER_FIELDS);
 
@@ -24,7 +23,7 @@ export const PREFERENCE_INPUT_IDS = new Set(PREFERENCE_NUMBER_FIELDS);
 const RESTORE_SECTIONS = {
   research: {
     label: 'Ask the forum',
-    keys: ['researchDepth', 'customResearch'],
+    keys: ['researchDepth', 'customBudget'],
     fields: CUSTOM_RESEARCH_FIELDS
   },
   reading: {
@@ -103,7 +102,7 @@ export class PreferencesSection {
       input.checked = input.value === preferences.historyRetention;
     });
     for (const field of CUSTOM_RESEARCH_FIELDS) {
-      $(field).value = String(preferences.customResearch[field]);
+      $(field).value = String(preferences.customBudget[field]);
     }
     document.querySelectorAll('input[name="topicPageMode"]').forEach(input => {
       input.checked = input.value === preferences.topicPageMode;
@@ -168,7 +167,7 @@ export class PreferencesSection {
 
   updateField(field, value) {
     if (CUSTOM_RESEARCH_FIELDS.includes(field)) {
-      this.store.updatePreferences({ customResearch: { [field]: value } });
+      this.store.updatePreferences({ customBudget: { [field]: value } });
     } else if (field === 'forumContextLimit') {
       this.store.updateDraft({ forumContextLimit: value });
     } else {
@@ -226,11 +225,10 @@ export class PreferencesSection {
     if (researchInvalid) {
       research.textContent = 'Fix the highlighted field to see what each question will do.';
     } else {
-      const limits = resolveResearchLimits(validation.preferences || draft);
-      const pages = limits.searchPages > 1 ? ` × ${plural(limits.searchPages, 'result page')}` : '';
+      const budget = resolveAgentBudget(validation.preferences || draft);
       setRichText(
         research,
-        `Each question: **up to ${plural(limits.searchQueries, 'search', 'searches')}${pages}**, reading **up to ${plural(limits.topicsRead, 'discussion')}** — at most ${plural(researchRequestBudget(limits), 'forum request')}.`
+        `Each question: **up to ${plural(budget.maxSteps, 'step')}**, reading **up to ${plural(budget.maxTopicReads, 'topic')}** (about ${budget.maxCharsPerRead.toLocaleString('en-US')} characters from each).`
       );
     }
 

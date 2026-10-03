@@ -9,7 +9,11 @@ export const FORUM_TOOL_LIMITS = Object.freeze({
   maxRawPage: 20,
   maxExcerptChars: 5000,
   maxPostChars: 16000,
-  maxRawChars: 30000
+  maxRawChars: 30000,
+  // A raw page (100 posts) the agent may take whole before trimming it to
+  // the read budget.
+  maxRawPageChars: 400000,
+  maxLatestTopics: 30
 });
 
 function cleanText(value, maxLength = 500) {
@@ -155,8 +159,39 @@ function normalizeSearchResponse(data) {
     : [];
   return {
     more: data?.more_results === true,
-    hits: [...posts, ...topics]
+    hits: [...posts, ...topics],
+    topicSummaries: summarizeTopics(data?.topics, data?.posts)
   };
+}
+
+// Topics of a search or latest listing as the agent sees them: id, title,
+// size, activity and one excerpt (the best-matching post's blurb when the
+// response has one).
+function summarizeTopics(topics, posts = []) {
+  const blurbs = new Map();
+  for (const post of Array.isArray(posts) ? posts : []) {
+    const topicId = String(post?.topic_id || '').trim();
+    const blurb = cleanText(post?.blurb || post?.excerpt, 300);
+    if (/^\d+$/.test(topicId) && blurb && !blurbs.has(topicId)) {
+      blurbs.set(topicId, blurb);
+    }
+  }
+  return (Array.isArray(topics) ? topics : [])
+    .map(topic => {
+      const topicId = String(topic?.id || topic?.topic_id || '').trim();
+      if (!/^\d+$/.test(topicId)) {
+        return null;
+      }
+      return {
+        topicId,
+        title: cleanText(topic.title || topic.fancy_title, 300) || `Topic ${topicId}`,
+        slug: cleanText(topic.slug, 180),
+        postsCount: Number.isInteger(topic.posts_count) ? topic.posts_count : null,
+        lastPostedAt: cleanText(topic.last_posted_at, 80),
+        excerpt: cleanText(topic.excerpt, 300) || blurbs.get(topicId) || ''
+      };
+    })
+    .filter(Boolean);
 }
 
 function normalizeTopic(data, topicId) {
@@ -311,16 +346,25 @@ export class ForumToolClient {
     return normalizePostsResponse(data, normalizedTopicId);
   }
 
-  async getRawPage({ topicId, page = 1 } = {}) {
+  // The forum's most recently active topics (about 30), same URL policy.
+  async listLatest() {
+    const data = await this.request('listLatest', requestUrl(this.siteUrl, '/latest.json'));
+    return { topics: summarizeTopics(data?.topic_list?.topics).slice(0, FORUM_TOOL_LIMITS.maxLatestTopics) };
+  }
+
+  // `maxChars` (default FORUM_TOOL_LIMITS.maxRawChars) bounds the text kept;
+  // the agent asks for a whole page to trim it itself.
+  async getRawPage({ topicId, page = 1, maxChars = FORUM_TOOL_LIMITS.maxRawChars } = {}) {
     const normalizedTopicId = positiveId(topicId, 'topicId');
     const normalizedPage = boundedPage(page, 'page', FORUM_TOOL_LIMITS.maxRawPage);
+    const keep = Math.max(1, Math.min(FORUM_TOOL_LIMITS.maxRawPageChars, Math.floor(Number(maxChars)) || FORUM_TOOL_LIMITS.maxRawChars));
     const content = await this.request('getRawPage', requestUrl(this.siteUrl, `/raw/${normalizedTopicId}`, { page: normalizedPage }), {
       parse: 'text'
     });
     return {
       topicId: normalizedTopicId,
       page: normalizedPage,
-      content: cleanText(content, FORUM_TOOL_LIMITS.maxRawChars)
+      content: cleanText(content, keep)
     };
   }
 }

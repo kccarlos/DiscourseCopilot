@@ -68,7 +68,7 @@ const captureUntil =
 const openSources = async page => {
   await page.evaluate(() => {
     for (const d of document.querySelectorAll('#agentPanel details')) {
-      if (/Sources/.test(d.querySelector('summary')?.textContent || '')) d.open = true;
+      if (/Steps/.test(d.querySelector('summary')?.textContent || '')) d.open = true;
     }
   });
   await page.waitForTimeout(150);

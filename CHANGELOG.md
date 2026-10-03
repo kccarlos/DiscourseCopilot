@@ -5,12 +5,17 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 ## [Unreleased]
 
 ### Added
+- Ask the forum is now an agent. It plans one step at a time (search the forum, list the latest topics, read a topic, check your saved summaries), you can watch and open each step, and it answers with [S#] sources that link to the topics it read. It works with every AI provider (the model replies with one JSON action per turn, no native tool calling needed), and the answer streams in.
+- Follow-up questions under an answer continue the same run on the same forum, with a fresh budget, and add a new answer.
+- A run is saved after every step: it resumes from the last finished step after a browser or service-worker restart, and **Continue** after a login or forum-access pause picks up the step that was waiting.
 - Model selection from the provider's live list: once a key (or local server address) is entered, the setup card and Settings list the models the provider offers today and pre-select a curated fast, low-cost model (or a sensible available one). A saved model is never changed; Settings warns when the provider no longer offers it.
 - A setting to hide the in-page DiscourseCopilot button: **Settings → Forum access → Show the DiscourseCopilot button on forum pages** (on by default). It applies to open forum tabs when you save, without a reload; the toolbar icon always opens the side panel.
 - Undo for deletes: deleting a saved summary or an Ask the forum answer takes effect at once and can be undone for 8 seconds (the **Undo** button, or Ctrl/⌘+Z).
 - Developer tooling: Playwright UI flows in light and dark mode (`pnpm test:ui`, also in CI), README and store screenshot generators (`pnpm shots:readme`, `pnpm shots:store` with `--check` / `--write`), and Biome linting and formatting (`pnpm lint`, `pnpm format`, `pnpm check`, a CI job), with `.editorconfig` and `.git-blame-ignore-revs`.
 
 ### Changed
+- Settings → Ask the forum now sets the agent's budget instead of searches and result pages: steps, topics read and characters per read (Quick 6/3/12k, Balanced 15/8/30k, Thorough 25/14/45k, Custom). Earlier custom limits are converted to an equivalent budget; runs already queued keep what they were queued with.
+- Saved and Activity cards for Ask the forum show the question, the number of steps and sources. Answers from before this change still open, with their searches shown as steps.
 - Summaries and follow-up chat are told when only part of a topic was read (page limit, or a topic of unknown length), so the answer says so.
 - **Reset all settings** asks for confirmation inline on the page. The extension no longer uses browser dialogs.
 - Curated default models refreshed for every provider. Anthropic now defaults to Claude Sonnet 5, with Haiku 4.5 as a fallback, because Haiku 4.5 retires after 2026-10-15.
@@ -29,20 +34,30 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 First release published through the automated Chrome Web Store pipeline. No changes to the extension since 2.1.0.
 
 ### Added
+- Ask the forum is now an agent. It plans one step at a time (search the forum, list the latest topics, read a topic, check your saved summaries), you can watch and open each step, and it answers with [S#] sources that link to the topics it read. It works with every AI provider (the model replies with one JSON action per turn, no native tool calling needed), and the answer streams in.
+- Follow-up questions under an answer continue the same run on the same forum, with a fresh budget, and add a new answer.
+- A run is saved after every step: it resumes from the last finished step after a browser or service-worker restart, and **Continue** after a login or forum-access pause picks up the step that was waiting.
 - Release workflow uploads each tagged version to the Chrome Web Store (API v2, signed in through Workload Identity Federation, no stored keys) and submits it for review when enabled.
 
 ### Changed
+- Settings → Ask the forum now sets the agent's budget instead of searches and result pages: steps, topics read and characters per read (Quick 6/3/12k, Balanced 15/8/30k, Thorough 25/14/45k, Custom). Earlier custom limits are converted to an equivalent budget; runs already queued keep what they were queued with.
+- Saved and Activity cards for Ask the forum show the question, the number of steps and sources. Answers from before this change still open, with their searches shown as steps.
 - README installs from the Chrome Web Store; the GitHub Releases zip is the alternative.
 
 ## [2.1.0] - 2026-09-23
 
 ### Changed
+- Settings → Ask the forum now sets the agent's budget instead of searches and result pages: steps, topics read and characters per read (Quick 6/3/12k, Balanced 15/8/30k, Thorough 25/14/45k, Custom). Earlier custom limits are converted to an equivalent budget; runs already queued keep what they were queued with.
+- Saved and Activity cards for Ask the forum show the question, the number of steps and sources. Answers from before this change still open, with their searches shown as steps.
 - Forum access is requested per forum instead of for all websites (`<all_urls>` removed). At install the extension can reach only the AI providers' APIs and your own computer (local models); each Discourse forum is allowed the first time you use it (**Allow access to {forum}**), and the in-page button runs only on allowed forums. Forums used with 2.0 need one click on **Allow access**. New `activeTab` and `scripting` permissions let the side panel check a page for Discourse after you click the toolbar icon, and register the in-page script for allowed forums.
 - The side panel shows one guidance card per page state: page not checked yet, not a Discourse forum, allow access (with Chrome's prompt steps), forum home, and a two-step checklist when provider setup is also pending.
 - Background tasks check forum access and explain how to allow it; Ask the forum waits for access and continues once it is granted.
 - Store listing description no longer lists AI provider names (the Chrome Web Store flagged the list as keyword spam).
 
 ### Added
+- Ask the forum is now an agent. It plans one step at a time (search the forum, list the latest topics, read a topic, check your saved summaries), you can watch and open each step, and it answers with [S#] sources that link to the topics it read. It works with every AI provider (the model replies with one JSON action per turn, no native tool calling needed), and the answer streams in.
+- Follow-up questions under an answer continue the same run on the same forum, with a fresh budget, and add a new answer.
+- A run is saved after every step: it resumes from the last finished step after a browser or service-worker restart, and **Continue** after a login or forum-access pause picks up the step that was waiting.
 - **Settings → Forum access** lists the allowed forums, with **Remove access** (saved summaries and answers are kept).
 
 ## [2.0.0] - 2026-09-23
@@ -50,6 +65,9 @@ First release published through the automated Chrome Web Store pipeline. No chan
 First public release.
 
 ### Added
+- Ask the forum is now an agent. It plans one step at a time (search the forum, list the latest topics, read a topic, check your saved summaries), you can watch and open each step, and it answers with [S#] sources that link to the topics it read. It works with every AI provider (the model replies with one JSON action per turn, no native tool calling needed), and the answer streams in.
+- Follow-up questions under an answer continue the same run on the same forum, with a fresh budget, and add a new answer.
+- A run is saved after every step: it resumes from the last finished step after a browser or service-worker restart, and **Continue** after a login or forum-access pause picks up the step that was waiting.
 - Side panel for any Discourse forum: topic summaries (original post, how people responded, key takeaways), follow-up chat, and **Ask the forum**, which searches the forum, reads the best matches and answers with numbered, clickable sources.
 - Bring your own AI: OpenRouter, OpenAI, Anthropic, Google Gemini, Groq, xAI, DeepSeek, or a local Ollama or LM Studio server.
 - Work runs in the background and can be picked up later; Activity lists saved summaries, chats and answers grouped by forum, with **Keep**.

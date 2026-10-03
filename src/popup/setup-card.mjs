@@ -27,7 +27,7 @@ import { announce } from './status-line.mjs';
 import { MODEL_LIST_DEBOUNCE_MS, modelCatalog, orderModelChoices, pickDefaultModel } from '../shared/model-catalog.mjs';
 
 // Wait for a pause in typing before reading the provider's model list.
-const MODEL_HINT = 'Prefilled with a fast, low-cost default. You can change it any time.';
+const MODEL_HINT = 'Prefilled with a recommended model. You can change it any time.';
 
 const CHOICE_LABELS = {
   ollama: 'Local (Ollama)'

@@ -33,7 +33,7 @@
 //   storage ──readConfig()──▶ normalizePreferences()   missing keys → defaults,
 //      ▲                          │                     out of range → clamped
 //      │                          ▼
-//      │                   config.preferences ──▶ resolveResearchLimits()
+//      │                   config.preferences ──▶ resolveAgentBudget()
 //      │                          │                   resolveTopicPageLimit()
 //      │                          │                   resolveRetention()
 //      │                          ▼
@@ -313,15 +313,15 @@ export class ConfigStore {
     return this.draft.preferences ?? structuredClone(this.config.preferences);
   }
 
-  // Merges a patch into the draft preferences; `customResearch` merges too.
+  // Merges a patch into the draft preferences; `customBudget` merges too.
   updatePreferences(patch = {}) {
     const current = this.draftPreferences;
     this.draft.preferences = {
       ...current,
       ...patch,
-      customResearch: {
-        ...current.customResearch,
-        ...(patch.customResearch || {})
+      customBudget: {
+        ...current.customBudget,
+        ...(patch.customBudget || {})
       }
     };
     return this.draft.preferences;

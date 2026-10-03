@@ -23,6 +23,7 @@ import {
   modelRoutes,
   savedSessionHistory
 } from './fixtures/flows.mjs';
+import { RATE_LIMIT_QUESTION, RATE_LIMIT_SOURCES, RATE_LIMIT_STEPS, agentActivity, agentAnswer } from './fixtures/forums.mjs';
 
 const args = parseArgs();
 const THEMES = { light: ['light'], dark: ['dark'], both: ['light', 'dark'] }[args.theme || 'both'];
@@ -141,7 +142,7 @@ scenario('popup-setup-models', 'src/popup/popup.html', { store: {}, routes: mode
   check('curated default before a key', (await page.inputValue('#setupModel')) === 'claude-sonnet-5', await page.inputValue('#setupModel'));
   check(
     'curated hint',
-    (await text(page, '#setupModelHint')).startsWith('Prefilled with a fast, low-cost default'),
+    (await text(page, '#setupModelHint')).startsWith('Prefilled with a recommended model'),
     await text(page, '#setupModelHint')
   );
   check('no list request without a key', !requests.some(r => r.url.includes('/v1/models')));
@@ -220,7 +221,7 @@ scenario(
     check('curated default kept', (await page.inputValue('#setupModel')) === 'gpt-6-luna', await page.inputValue('#setupModel'));
     check(
       'curated hint kept',
-      (await text(page, '#setupModelHint')).startsWith('Prefilled with a fast, low-cost default'),
+      (await text(page, '#setupModelHint')).startsWith('Prefilled with a recommended model'),
       await text(page, '#setupModelHint')
     );
     const options = await datalistOptions(page, '#setupModelList');
@@ -394,6 +395,53 @@ scenario(
   }
 );
 
+// Agent runs for the flows: the same builders the README and store images use.
+const CACHING_SOURCES = [
+  { topicId: 1, slug: 'caching', title: 'Caching guide', excerpt: 'Turn it on in settings.' },
+  { topicId: 2, slug: 'using-a-cdn', title: 'Using a CDN', excerpt: 'A CDN serves static files closer to people.' }
+];
+const SEARCH_STEP = {
+  tool: 'search_forum',
+  args: { query: 'enable caching' },
+  resultCount: 3,
+  reason: 'Find the relevant guide.',
+  detail: 'Search results: 3 topics.'
+};
+const READ_STEP = {
+  tool: 'read_topic',
+  args: { topic_id: '1' },
+  title: 'Caching guide',
+  resultCount: 12,
+  topicId: 1,
+  sourceId: 'S1',
+  reason: 'The guide looks right.',
+  detail: '[S1] Topic 1: Caching guide'
+};
+const CACHING_ANSWER = 'Enable it in the admin panel [S1].';
+// A run on the forum the panel is open on (Discourse Meta).
+const cachingRun = (overrides = {}) =>
+  agentActivity({
+    id: '1',
+    question: 'How do I enable caching?',
+    siteUrl: SITE,
+    forumName: 'Discourse Meta',
+    sources: CACHING_SOURCES.slice(0, 1),
+    ...overrides
+  });
+const fireActivity = (page, activity) =>
+  page.evaluate(record => window.__fire('onMessage', { action: 'activityUpdated', activity: record }, {}), activity);
+const fireTask = (page, task) => page.evaluate(record => window.__fire('onMessage', { action: 'taskUpdated', task: record }, {}), task);
+const fireStream = (page, taskId, chunk) =>
+  page.evaluate(
+    ([id, text]) => window.__fire('onMessage', { action: 'taskStream', taskId: id, type: 'agent', chunk: text }, {}),
+    [taskId, chunk]
+  );
+// What each step says (its label and outcome, not the expandable details).
+const stepTexts = (page, root = '#agentPanel') =>
+  page.$$eval(`${root} .agent-step, ${root} .agent-step-turn`, items =>
+    items.map(item => (item.querySelector('.agent-step-text, summary') || item).textContent.trim().replace(/\s+/g, ' '))
+  );
+
 scenario(
   'popup-agent',
   'src/popup/popup.html',
@@ -433,120 +481,96 @@ scenario(
     check('ask the forum enabled while another run is going', await page.$eval('#agentLaunchBtn', b => !b.disabled));
     check('agent question', (await text(page, '#agentPanel [data-part="question"]')).includes('caching'));
     await shot('running');
-    await page.evaluate(() => {
-      const now = Date.now();
-      window.__fire(
-        'onMessage',
-        {
-          action: 'activityUpdated',
-          activity: {
-            schemaVersion: 1,
-            activityId: 'run-1',
-            activityType: 'agent',
-            taskId: 'agent-1',
-            agentRunId: 'run-1',
-            title: 'How do I enable caching?',
-            question: 'How do I enable caching?',
-            siteUrl: 'https://meta.discourse.org',
-            forumName: 'Discourse Meta',
-            searchQueries: [{ query: 'enable caching', resultCount: 3 }],
-            toolCalls: [],
-            sourceRefs: [
-              {
-                sourceId: 'S1',
-                title: 'Caching guide',
-                url: 'https://meta.discourse.org/t/caching/1',
-                excerpt: 'Turn it on in settings.',
-                siteUrl: 'https://meta.discourse.org'
-              }
-            ],
-            answer: 'Enable it in the admin panel [S1].',
-            answerStatus: 'answered',
-            status: 'running',
-            phase: 'generating',
-            statusText: 'Writing',
-            progress: { percent: 90 },
-            error: null,
-            provider: 'openai',
-            model: 'gpt-4o-mini',
-            createdAt: now - 5000,
-            updatedAt: now,
-            startedAt: now - 4000,
-            completedAt: 0,
-            expiresAt: 0,
-            kept: false,
-            retryOf: '',
-            lastOpenedAt: 0,
-            dismissedAt: 0
-          }
-        },
-        {}
-      );
-      const task = {
-        id: 'agent-1',
-        type: 'agent',
-        siteUrl: 'https://meta.discourse.org',
-        topicKey: '',
-        agentRunId: 'run-1',
-        title: 'How do I enable caching?',
-        question: 'How do I enable caching?',
-        status: 'completed',
-        phase: 'completed',
-        statusText: 'Completed',
-        progress: null,
-        error: '',
-        createdAt: now - 5000,
-        updatedAt: now
-      };
-      window.__fire('onMessage', { action: 'taskUpdated', task }, {});
-      window.__fire(
-        'onMessage',
-        {
-          action: 'activityUpdated',
-          activity: {
-            schemaVersion: 1,
-            activityId: 'run-1',
-            activityType: 'agent',
-            taskId: 'agent-1',
-            agentRunId: 'run-1',
-            title: 'How do I enable caching?',
-            question: 'How do I enable caching?',
-            siteUrl: 'https://meta.discourse.org',
-            forumName: 'Discourse Meta',
-            searchQueries: [{ query: 'enable caching', resultCount: 3 }],
-            toolCalls: [],
-            sourceRefs: [
-              {
-                sourceId: 'S1',
-                title: 'Caching guide',
-                url: 'https://meta.discourse.org/t/caching/1',
-                excerpt: 'Turn it on in settings.',
-                siteUrl: 'https://meta.discourse.org'
-              }
-            ],
-            answer: 'Enable it in the admin panel [S1].',
-            answerStatus: 'answered',
-            status: 'completed',
-            phase: 'completed',
-            statusText: 'Completed',
-            progress: { percent: 100 },
-            error: null,
-            provider: 'openai',
-            model: 'gpt-4o-mini',
-            createdAt: now - 5000,
-            updatedAt: now + 1,
-            startedAt: now - 4000,
-            completedAt: now,
-            expiresAt: now + 86400000,
-            kept: false,
-            retryOf: '',
-            lastOpenedAt: 0,
-            dismissedAt: 0
-          }
-        },
-        {}
-      );
+
+    // The agent searches, then starts reading: the step list is live.
+    await fireActivity(
+      page,
+      cachingRun({
+        status: 'running',
+        answer: '',
+        steps: [SEARCH_STEP, { ...READ_STEP, status: 'running', title: '', resultCount: null, sourceId: '', detail: '' }],
+        sources: [],
+        phase: 'running_tool',
+        progress: { percent: 13, completedSteps: 1, totalSteps: 15, sourceCount: 0 }
+      })
+    );
+    await page.waitForTimeout(250);
+    check('steps open while running', await page.$eval('#agentPanel [data-part="steps"]', d => d.open && !d.classList.contains('hidden')));
+    check('two steps listed', (await stepTexts(page)).length === 2, JSON.stringify(await stepTexts(page)));
+    check('search step', (await stepTexts(page))[0] === 'Searched “enable caching” · 3 results', (await stepTexts(page))[0]);
+    check('running step', (await stepTexts(page))[1] === 'Reading topic 1…', (await stepTexts(page))[1]);
+    check('step count', (await text(page, '#agentPanel [data-part="step-count"]')) === '2');
+    check('icon per tool', (await page.$$('#agentPanel .agent-step[data-tool="search_forum"] .agent-step-icon svg')).length === 1);
+    check('running step flagged', await page.$eval('#agentPanel .agent-step:last-child', li => li.dataset.status === 'running'));
+    check(
+      'progress is step n of max',
+      (await text(page, '#agentPanel [data-part="progress-label"]')) === 'Step 2 of 15 · Reading topic 1…',
+      await text(page, '#agentPanel [data-part="progress-label"]')
+    );
+    check('progress bar', await page.$eval('#agentPanel [data-part="progress-bar"]', bar => bar.value === 13));
+    check('stop available', await page.$eval('#agentPanel [data-agent-action="stop"]', b => !b.disabled && b.offsetParent !== null));
+    check('no announcement per step', (await text(page, '#agentAnnouncer')) === '', await text(page, '#agentAnnouncer'));
+    await shot('running-steps');
+
+    // A step's details expand, and stay expanded as new steps arrive.
+    await page.click('#agentPanel .agent-step:first-child summary');
+    check('step details open', await page.$eval('#agentPanel .agent-step:first-child details', d => d.open));
+    check('reason shown', (await text(page, '#agentPanel .agent-step:first-child .agent-step-reason')) === 'Find the relevant guide.');
+    check('result shown', (await text(page, '#agentPanel .agent-step:first-child .agent-step-detail')).includes('3 topics'));
+    await fireActivity(
+      page,
+      cachingRun({
+        status: 'running',
+        answer: '',
+        steps: [SEARCH_STEP, READ_STEP],
+        phase: 'running_tool',
+        updatedAt: Date.now() + 10,
+        progress: { percent: 13, completedSteps: 2, totalSteps: 15, sourceCount: 1 }
+      })
+    );
+    await page.waitForTimeout(200);
+    check('read step done', (await stepTexts(page))[1] === 'Read “Caching guide” (12 posts)', (await stepTexts(page))[1]);
+    check('expanded step stays open', await page.$eval('#agentPanel .agent-step:first-child details', d => d.open));
+    await shot('step-details');
+
+    // The final answer streams in; only the state changes are announced.
+    await fireActivity(
+      page,
+      cachingRun({ status: 'running', answer: '', steps: [SEARCH_STEP, READ_STEP], phase: 'answering', updatedAt: Date.now() + 20 })
+    );
+    await fireStream(page, 'agent-1', 'Enable it in the ');
+    await fireStream(page, 'agent-1', 'admin panel [S1].');
+    await page.waitForTimeout(400);
+    check('writing label', (await text(page, '#agentPanel [data-part="progress-label"]')) === 'Writing the answer…');
+    check(
+      'answer streams',
+      (await text(page, '#agentPanel [data-part="answer"]')).includes('Enable it in the admin panel'),
+      await text(page, '#agentPanel [data-part="answer"]')
+    );
+    check('still no announcement', (await text(page, '#agentAnnouncer')) === '', await text(page, '#agentAnnouncer'));
+    await shot('answering');
+
+    // Done: the answer with its citation, the steps tucked away, a follow-up box.
+    await fireTask(page, {
+      id: 'agent-1',
+      type: 'agent',
+      siteUrl: SITE,
+      topicKey: '',
+      agentRunId: 'run-1',
+      title: 'How do I enable caching?',
+      question: 'How do I enable caching?',
+      status: 'completed',
+      phase: 'completed',
+      statusText: 'Completed',
+      progress: null,
+      error: '',
+      createdAt: Date.now() - 5000,
+      updatedAt: Date.now()
     });
+    await fireActivity(
+      page,
+      cachingRun({ steps: [SEARCH_STEP, READ_STEP], answer: CACHING_ANSWER, updatedAt: Date.now() + 30, lastOpenedAt: 0 })
+    );
     await page.waitForTimeout(400);
     check(
       'answer rendered',
@@ -555,12 +579,82 @@ scenario(
     );
     check('citation linked', (await page.$$('#agentPanel .agent-citation')).length === 1);
     check('answer announced', (await text(page, '#agentAnnouncer')) === 'Answer ready', await text(page, '#agentAnnouncer'));
+    check('steps tucked away', await page.$eval('#agentPanel [data-part="steps"]', d => !d.open && !d.classList.contains('hidden')));
+    check(
+      'meta counts steps and sources',
+      (await text(page, '#agentPanel .agent-panel-meta')).includes('2 steps · 1 source'),
+      await text(page, '#agentPanel .agent-panel-meta')
+    );
+    check('progress hidden when done', !(await visible(page, '#agentPanel [data-part="progress"]')));
+    check('follow-up box', await visible(page, '#agentPanel [data-part="followup-input"]'));
+    check(
+      'follow-up names the forum',
+      (await text(page, '#agentPanel [data-part="followup-label"]')) === 'Ask a follow-up on Discourse Meta'
+    );
     check(
       'copy action',
       (await text(page, '#agentPanel [data-part="actions"]')).includes('Copy answer'),
       await text(page, '#agentPanel [data-part="actions"]')
     );
+    await page.click('#agentPanel .agent-citation');
+    await page.waitForTimeout(150);
+    check(
+      'citation opens its source card',
+      await page.$eval('#agentPanel .agent-source-card.is-highlighted', card => card.dataset.sourceId === 'S1').catch(() => false)
+    );
     await shot('answered');
+
+    // A follow-up on the same run, on the same forum.
+    await page.fill('#agentPanel [data-part="followup-input"]', 'And what about a CDN?');
+    await page.click('#agentPanel [data-part="followup-send"]');
+    await page.waitForTimeout(300);
+    const sent = await page.evaluate(() => window.__sent.find(m => m.action === 'enqueueTask' && m.followUp === true));
+    check(
+      'follow-up queued on the run',
+      sent?.agentRunId === 'run-1' && sent?.question === 'And what about a CDN?' && sent?.siteUrl === 'https://meta.discourse.org',
+      JSON.stringify(sent)
+    );
+    check('follow-up box cleared', (await page.$eval('#agentPanel [data-part="followup-input"]', i => i.value)) === '');
+    const followUpRun = (overrides = {}, followUp = {}) =>
+      cachingRun({
+        steps: [SEARCH_STEP, READ_STEP],
+        answer: CACHING_ANSWER,
+        followUps: [{ question: 'And what about a CDN?', ...followUp }],
+        ...overrides
+      });
+    await fireActivity(page, followUpRun({ status: 'running', phase: 'planning', updatedAt: Date.now() + 40, completedAt: 0 }));
+    await page.waitForTimeout(250);
+    check('follow-up question shown', (await text(page, '#agentPanel [data-part="turn-question"]')) === 'And what about a CDN?');
+    check('first answer kept above', (await text(page, '#agentPanel [data-part="thread"]')).includes('admin panel'));
+    check('no follow-up box while working', !(await visible(page, '#agentPanel [data-part="followup-input"]')));
+    check('stop while working', await page.$eval('#agentPanel [data-agent-action="stop"]', b => b.offsetParent !== null));
+    await shot('follow-up-running');
+    await fireActivity(
+      page,
+      followUpRun(
+        { updatedAt: Date.now() + 50 },
+        {
+          answer: 'Put a CDN in front of the forum [S1].',
+          steps: [{ tool: 'list_latest', resultCount: 30, reason: 'See what is new.' }]
+        }
+      )
+    );
+    await page.waitForTimeout(300);
+    check(
+      'follow-up answer appended',
+      (await text(page, '#agentPanel [data-part="answer"]')).includes('CDN in front'),
+      await text(page, '#agentPanel [data-part="answer"]')
+    );
+    check('earlier answer in the thread', (await text(page, '#agentPanel [data-part="thread"]')).includes('admin panel'));
+    check(
+      'follow-up step listed after a divider',
+      (await stepTexts(page)).some(t => t.startsWith('Follow-up · And what about a CDN?'))
+        && (await stepTexts(page)).at(-1) === 'Listed latest topics · 30 topics',
+      JSON.stringify(await stepTexts(page))
+    );
+    check('follow-up announced again', (await text(page, '#agentAnnouncer')) === 'Answer ready', await text(page, '#agentAnnouncer'));
+    await shot('follow-up-answered');
+
     // Composer.
     await page.click('#agentPanel [data-agent-action="ask-another"]');
     await page.waitForTimeout(100);
@@ -578,7 +672,7 @@ scenario(
     check(
       'agent enqueue sent',
       await page.evaluate(() =>
-        window.__sent.some(m => m.action === 'enqueueTask' && m.taskType === 'agent' && m.question === 'What about CDN?')
+        window.__sent.some(m => m.action === 'enqueueTask' && m.taskType === 'agent' && m.question === 'What about CDN?' && !m.followUp)
       )
     );
     check('composer closed', !(await visible(page, '#agentComposer')));
@@ -606,6 +700,160 @@ scenario(
     await shot('switched');
   }
 );
+
+// The states an Agent run can end in, and the older runs from before steps:
+// every one is scripted through background broadcasts.
+scenario('popup-agent-states', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  let created = Date.now();
+  const nextCreatedAt = () => {
+    created += 1000;
+    return created;
+  };
+  const run = (id, overrides = {}) => cachingRun({ id, createdAt: nextCreatedAt(), updatedAt: Date.now(), ...overrides });
+  const show = async activity => {
+    await fireActivity(page, activity);
+    await page.waitForTimeout(250);
+  };
+  const enqueued = () => page.evaluate(() => window.__sent.filter(m => m.action === 'enqueueTask').at(-1));
+  // A retry queues a new run that the panel then follows; close it to look at the next state.
+  const closeFollowedRun = async () => {
+    await page.click('#agentPanel [data-agent-action="dismiss"]');
+    await page.waitForTimeout(150);
+  };
+
+  // Failed: the model could not produce an action. The failed step stays in the list.
+  await show(
+    run('f1', {
+      status: 'failed',
+      answer: '',
+      steps: [
+        SEARCH_STEP,
+        { tool: 'plan', status: 'failed', error: 'The model did not reply with a valid action, even after a correction.' }
+      ],
+      error: { code: 'NO_OBJECT', message: 'The model did not reply with a valid action, even after a correction.', retryable: true },
+      completedAt: Date.now()
+    })
+  );
+  check(
+    'failed notice',
+    (await text(page, '#agentPanel [data-part="notice"]')).includes('did not reply with a valid action'),
+    await text(page, '#agentPanel [data-part="notice"]')
+  );
+  check('failed step marked', await page.$eval('#agentPanel .agent-step:last-child', li => li.dataset.status === 'failed'));
+  check(
+    'failed step text',
+    (await stepTexts(page)).at(-1) === 'The model did not reply with a valid action',
+    (await stepTexts(page)).at(-1)
+  );
+  check('retry offered', await visible(page, '#agentPanel [data-agent-action="retry"]'));
+  check('no follow-up box on a failed run', !(await visible(page, '#agentPanel [data-part="followup-input"]')));
+  await shot('failed');
+  await page.click('#agentPanel [data-agent-action="retry"]');
+  await page.waitForTimeout(300);
+  check(
+    'retry asks the first question again',
+    (await enqueued())?.question === 'How do I enable caching?' && !(await enqueued())?.followUp,
+    JSON.stringify(await enqueued())
+  );
+  await closeFollowedRun();
+
+  // Stopped before an answer.
+  await show(
+    run('c1', {
+      status: 'cancelled',
+      answer: '',
+      steps: [SEARCH_STEP, { ...READ_STEP, status: 'stopped', title: '', resultCount: null }],
+      completedAt: Date.now()
+    })
+  );
+  check(
+    'stopped notice',
+    (await text(page, '#agentPanel [data-part="notice"]')).includes('Research stopped before an answer was written'),
+    await text(page, '#agentPanel [data-part="notice"]')
+  );
+  check('stopped step', (await stepTexts(page)).at(-1) === 'Reading topic 1 · stopped', (await stepTexts(page)).at(-1));
+  check('ask again offered', await visible(page, '#agentPanel [data-agent-action="ask-again"]'));
+  await shot('cancelled');
+
+  // A follow-up that failed or was stopped is asked again on its run.
+  await show(
+    run('f2', {
+      status: 'failed',
+      steps: [SEARCH_STEP, READ_STEP],
+      answer: CACHING_ANSWER,
+      followUps: [{ question: 'And a CDN?', answer: '' }],
+      error: { code: 'HTTP_ERROR', message: 'The provider is unavailable', retryable: true },
+      completedAt: Date.now()
+    })
+  );
+  check('first answer stays above a failed follow-up', (await text(page, '#agentPanel [data-part="thread"]')).includes('admin panel'));
+  check('follow-up question shown', (await text(page, '#agentPanel [data-part="turn-question"]')) === 'And a CDN?');
+  await page.click('#agentPanel [data-agent-action="retry"]');
+  await page.waitForTimeout(300);
+  check(
+    'retry asks the follow-up again on the same run',
+    (await enqueued())?.followUp === true && (await enqueued())?.question === 'And a CDN?' && (await enqueued())?.agentRunId === 'run-f2',
+    JSON.stringify(await enqueued())
+  );
+  await shot('follow-up-failed');
+  await closeFollowedRun();
+  await show(
+    run('c2', {
+      status: 'cancelled',
+      steps: [SEARCH_STEP, READ_STEP],
+      answer: CACHING_ANSWER,
+      followUps: [{ question: 'And a CDN?', answer: '' }],
+      completedAt: Date.now()
+    })
+  );
+  check(
+    'stopped follow-up notice',
+    (await text(page, '#agentPanel [data-part="notice"]')).includes('The follow-up was stopped'),
+    await text(page, '#agentPanel [data-part="notice"]')
+  );
+
+  // The step budget ran out: the answer says so.
+  const budgetRun = run('b1', { steps: [SEARCH_STEP, READ_STEP], answer: CACHING_ANSWER, completedAt: Date.now() });
+  budgetRun.turns[0].outOfBudget = true;
+  await show(budgetRun);
+  check('step limit noted', await visible(page, '#agentPanel [data-part="budget-note"]'));
+  await shot('step-limit');
+
+  // A run from before steps and follow-ups still reads well.
+  await show(
+    run('l1', {
+      schemaVersion: 1,
+      steps: [],
+      transcript: [],
+      turns: [],
+      budget: null,
+      searchQueries: [
+        { query: 'enable caching', resultCount: 3 },
+        { query: 'caching admin panel', resultCount: 5 }
+      ],
+      answer: CACHING_ANSWER,
+      completedAt: Date.now()
+    })
+  );
+  check('legacy answer', (await text(page, '#agentPanel [data-part="answer"]')).includes('admin panel'));
+  check(
+    'legacy searches as steps',
+    JSON.stringify(await stepTexts(page))
+      === JSON.stringify(['Searched “enable caching” · 3 results', 'Searched “caching admin panel” · 5 results']),
+    JSON.stringify(await stepTexts(page))
+  );
+  check(
+    'legacy meta',
+    (await text(page, '#agentPanel .agent-panel-meta')).includes('2 steps · 1 source'),
+    await text(page, '#agentPanel .agent-panel-meta')
+  );
+  check(
+    'legacy has no follow-up divider or thread',
+    !(await visible(page, '#agentPanel [data-part="turn-question"]')) && (await text(page, '#agentPanel [data-part="thread"]')) === ''
+  );
+  check('legacy run can be followed up', await visible(page, '#agentPanel [data-part="followup-input"]'));
+  await shot('legacy');
+});
 
 scenario(
   'popup-activity',
@@ -1055,6 +1303,106 @@ scenario(
   }
 );
 
+// Saved Agent runs in Activity: their cards, and their detail view (shared
+// renderer) for a run on another forum, with a follow-up that stays there.
+scenario('popup-agent-activity', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  const openaiRun = agentAnswer({
+    id: 'a1',
+    question: RATE_LIMIT_QUESTION,
+    steps: RATE_LIMIT_STEPS,
+    sources: RATE_LIMIT_SOURCES,
+    answer: 'Back off using the `Retry-After` header [S2], and batch tool calls where you can [S3].',
+    followUps: [
+      {
+        question: 'Does it differ for the Responses API?',
+        answer: 'The advice is the same [S1].',
+        steps: [{ tool: 'list_latest', resultCount: 30 }]
+      }
+    ]
+  });
+  const legacyRun = {
+    ...agentActivity({
+      id: 'a2',
+      question: 'Which plugins handle SSO?',
+      siteUrl: SITE,
+      forumName: 'Discourse Meta',
+      sources: CACHING_SOURCES.slice(0, 1),
+      answer: 'Use the OAuth2 plugin [S1].'
+    }),
+    schemaVersion: 1,
+    steps: [],
+    turns: [],
+    budget: null,
+    searchQueries: [{ query: 'sso plugin', resultCount: 4 }]
+  };
+  await seedHistory(page, { sessions: [], entries: [], activities: [openaiRun, legacyRun] });
+  await page.reload();
+  await page.waitForTimeout(700);
+  check(
+    'the run on this forum shows inline',
+    (await text(page, '#agentPanel [data-part="question"]')) === 'Which plugins handle SSO?',
+    await text(page, '#agentPanel [data-part="question"]')
+  );
+  await page.click('#savedBtn');
+  await page.waitForTimeout(300);
+  await page.click('#summariesTab');
+  await page.waitForTimeout(300);
+  const cards = await page.$$eval('#savedList .agent-saved-card', items => items.map(item => item.textContent.replace(/\s+/g, ' ').trim()));
+  check('two Agent cards', cards.length === 2, JSON.stringify(cards));
+  const modern = cards.find(card => card.includes('rate limits')) || '';
+  check('card shows the goal', modern.includes('Agent · How are people handling rate limits during streaming?'), modern);
+  check('card shows steps (with follow-up) and sources', /7 steps/.test(modern) && /4 sources/.test(modern), modern);
+  check('card shows the latest answer', modern.includes('The advice is the same'), modern);
+  const legacy = cards.find(card => card.includes('SSO')) || '';
+  check('legacy card counts its searches as steps', /1 step/.test(legacy) && /1 source/.test(legacy), legacy);
+  await shot('cards');
+
+  // Detail view of the other forum's run.
+  await page.click('[data-saved-key="agent:run-a1"] .open-saved');
+  await page.waitForTimeout(400);
+  check('detail open', await visible(page, '#agentDetailView'));
+  check('detail heading is the goal', (await text(page, '#agentDetailHeading')).includes('rate limits'));
+  check(
+    'detail meta names forum, steps and sources',
+    /OpenAI Developer Community · 7 steps · 4 sources/.test(await text(page, '#agentDetailMeta')),
+    await text(page, '#agentDetailMeta')
+  );
+  const detailSteps = await stepTexts(page, '#agentDetailView');
+  check(
+    'detail lists every step with the follow-up divider',
+    detailSteps.length === 8
+      && detailSteps[0] === 'Searched “streaming rate limit 429” · 6 results'
+      && detailSteps[6].startsWith('Follow-up · Does it differ'),
+    JSON.stringify(detailSteps)
+  );
+  check('steps tucked away for a finished run', await page.$eval('#agentDetailView [data-part="steps"]', d => !d.open));
+  await page.click('#agentDetailView [data-part="steps"] > summary');
+  await page.click('#agentDetailView .agent-step:nth-child(3) summary');
+  check(
+    'expanded step shows the reason',
+    (await text(page, '#agentDetailView .agent-step:nth-child(3) .agent-step-reason')).includes('best match')
+  );
+  check('thread holds the first answer', (await text(page, '#agentDetailView [data-part="thread"]')).includes('Retry-After'));
+  check('latest answer below', (await text(page, '#agentDetailView [data-part="answer"]')).includes('advice is the same'));
+  check(
+    'follow-up names its own forum',
+    (await text(page, '#agentDetailView [data-part="followup-label"]')) === 'Ask a follow-up on OpenAI Developer Community'
+  );
+  await shot('detail');
+  await page.fill('#agentDetailView [data-part="followup-input"]', 'What about WebSockets?');
+  await page.click('#agentDetailView [data-part="followup-send"]');
+  await page.waitForTimeout(300);
+  const sent = await page.evaluate(() => window.__sent.filter(m => m.action === 'enqueueTask').at(-1));
+  check(
+    'follow-up goes to the run, on its own forum rather than the current tab',
+    sent?.followUp === true
+      && sent?.agentRunId === 'run-a1'
+      && sent?.siteUrl === 'https://community.openai.com'
+      && sent?.question === 'What about WebSockets?',
+    JSON.stringify(sent)
+  );
+});
+
 scenario(
   'popup-agent-detail',
   'src/popup/popup.html',
@@ -1159,7 +1507,7 @@ scenario(
     await page.waitForTimeout(300);
     check('detail open', await visible(page, '#agentDetailView'));
     check('detail heading', (await text(page, '#agentDetailHeading')) === 'Other forum question', await text(page, '#agentDetailHeading'));
-    check('detail meta', (await text(page, '#agentDetailMeta')).includes('Researching'), await text(page, '#agentDetailMeta'));
+    check('detail meta', (await text(page, '#agentDetailMeta')).includes('Working'), await text(page, '#agentDetailMeta'));
     check('back label', await page.$eval('#closeAgentDetailBtn', b => b.getAttribute('aria-label') === 'Back to current page'));
     await shot('detail');
     await page.click('#closeAgentDetailBtn');
@@ -1452,7 +1800,7 @@ scenario('settings-preferences', 'src/settings/settings.html', { store: configur
   check('limit input disabled by default', await page.$eval('#topicPageLimit', i => i.disabled && i.value === '20'));
   check(
     'effective research',
-    (await text(page, '#researchEffective')).includes('up to 3 searches'),
+    (await text(page, '#researchEffective')).includes('up to 15 steps, reading up to 8 topics'),
     await text(page, '#researchEffective')
   );
   check(
@@ -1534,7 +1882,7 @@ scenario('settings-preferences', 'src/settings/settings.html', { store: configur
   check('bar dirty', (await text(page, '#formStateText')) === 'Unsaved changes', await text(page, '#formStateText'));
   check(
     'effective updates live',
-    (await text(page, '#researchEffective')).includes('4 searches × 2 result pages'),
+    (await text(page, '#researchEffective')).includes('up to 25 steps, reading up to 14 topics'),
     await text(page, '#researchEffective')
   );
   await page.click('input[name="historyRetention"][value="7d"]');
@@ -1549,22 +1897,31 @@ scenario('settings-preferences', 'src/settings/settings.html', { store: configur
   // Invalid custom number → inline error, save blocked.
   await page.click('input[name="researchDepth"][value="custom"]');
   check('custom visible', await visible(page, '#customResearch'));
-  await page.fill('#topicsRead', '40');
-  await page.press('#topicsRead', 'Tab');
+  await page.fill('#maxTopicReads', '40');
+  await page.press('#maxTopicReads', 'Tab');
   await page.waitForTimeout(50);
-  check('inline error', (await text(page, '#topicsReadError')).includes('from 1 to 12'), await text(page, '#topicsReadError'));
-  check('aria-invalid', await page.$eval('#topicsRead', i => i.getAttribute('aria-invalid') === 'true'));
-  check('described by error', await page.$eval('#topicsRead', i => i.getAttribute('aria-describedby').includes('topicsReadError')));
+  check('inline error', (await text(page, '#maxTopicReadsError')).includes('from 1 to 20'), await text(page, '#maxTopicReadsError'));
+  check('aria-invalid', await page.$eval('#maxTopicReads', i => i.getAttribute('aria-invalid') === 'true'));
+  check('described by error', await page.$eval('#maxTopicReads', i => i.getAttribute('aria-describedby').includes('maxTopicReadsError')));
   await page.click('#saveBtn');
   await page.waitForTimeout(200);
   check('save blocked', (await page.evaluate(() => window.__store.preferences.researchDepth)) === 'thorough');
-  check('error status', (await text(page, '#status')).includes('Discussions read must be'), await text(page, '#status'));
+  check('error status', (await text(page, '#status')).includes('Topics read must be'), await text(page, '#status'));
   check('bar invalid', (await text(page, '#formStateText')) === 'Fix the highlighted fields', await text(page, '#formStateText'));
-  check('focus on field', await page.evaluate(() => document.activeElement?.id === 'topicsRead'));
+  check('focus on field', await page.evaluate(() => document.activeElement?.id === 'maxTopicReads'));
   await shot('invalid');
-  await page.fill('#topicsRead', '8');
+  await page.fill('#maxTopicReads', '8');
   await page.waitForTimeout(50);
-  check('error cleared', !(await visible(page, '#topicsReadError')));
+  check('error cleared', !(await visible(page, '#maxTopicReadsError')));
+  // The custom budget is edited as a whole: steps and characters too.
+  await page.fill('#maxSteps', '12');
+  await page.fill('#maxCharsPerRead', '20000');
+  await page.waitForTimeout(50);
+  check(
+    'effective custom budget',
+    (await text(page, '#researchEffective')).includes('up to 12 steps, reading up to 8 topics (about 20,000 characters'),
+    await text(page, '#researchEffective')
+  );
   check('bar dirty after fix', (await text(page, '#formStateText')) === 'Unsaved changes', await text(page, '#formStateText'));
   // Restore section defaults → save.
   await page.click('[data-restore="research"]');

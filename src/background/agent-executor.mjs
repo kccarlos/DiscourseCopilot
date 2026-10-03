@@ -1,14 +1,23 @@
-// Executor for Agent tasks: researches a forum with the forum tools, writes
-// an answer, and keeps the task's activity record (progress, sources,
-// answer, outcome) up to date for the side panel.
-import { AGENT_ACTIVITY_STATUS, agentActivityFromTask } from '../shared/agent-activity.mjs';
+// Executor for Agent tasks: runs the agent loop (agent-loop.mjs) for a
+// question or a follow-up and keeps the task's activity record (steps,
+// transcript, sources, answers, outcome) up to date for the side panel. The
+// record is what makes a run resumable: after a worker restart, or after the
+// user allows forum access, the same task continues from the last saved step.
+import {
+  AGENT_ACTIVITY_STATUS,
+  agentActivityFromTask,
+  agentTurnsOf,
+  currentAgentTurnIndex,
+  settleRunningAgentSteps
+} from '../shared/agent-activity.mjs';
 import { TASK_STATUS } from '../shared/task-record.mjs';
 import { normalizeSiteUrl } from '../shared/forum-site.mjs';
 import { isAbortError } from '../shared/rate-limit-retry.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { FORUM_ACCESS_ERROR_CODE, forumAccessMessage, isForumAccessError } from '../shared/forum-access.mjs';
+import { clampAgentBudget } from '../shared/preferences.mjs';
 import { ForumToolClient, ForumToolError } from './forum-tools.mjs';
-import { isAgentUserActionError, runAgentTask } from './agent-runner.mjs';
+import { runAgentLoop } from './agent-loop.mjs';
 
 const { MESSAGES } = DiscourseCopilotConstants;
 
@@ -22,6 +31,10 @@ function forumAccessToolError(siteUrl) {
     retryable: false,
     needsUserAction: true
   });
+}
+
+export function isAgentUserActionError(error) {
+  return error instanceof ForumToolError && error.needsUserAction === true;
 }
 
 function waitingStatusText(error) {
@@ -67,6 +80,8 @@ export function agentFailurePatch(error, { cancelled, needsUserAction }, now = D
  * @param {object} deps.governor ForumRequestGovernor shared by all Agent runs
  * @param {(siteUrl: string) => Promise<boolean>} [deps.hasForumAccess] whether the
  *   user enabled the forum (forum-access.mjs)
+ * @param {{list: Function, get: Function}} [deps.savedSummaries] the saved-summary
+ *   store the saved_summaries tool reads (default: the history database)
  */
 export function createAgentExecutor({
   aiService,
@@ -74,7 +89,11 @@ export function createAgentExecutor({
   broadcast,
   getTaskConfiguration,
   governor,
-  hasForumAccess = async () => true
+  hasForumAccess = async () => true,
+  savedSummaries = {
+    list: () => activities.db.list(),
+    get: topicKey => activities.db.get(topicKey)
+  }
 }) {
   return async function executeAgentTask(task, { signal, report }) {
     let activity = await activities.get(task.agentRunId || task.id);
@@ -83,7 +102,8 @@ export function createAgentExecutor({
     }
 
     // A restarted task whose answer was already written is done.
-    if (activity.status === AGENT_ACTIVITY_STATUS.COMPLETED && activity.answer) {
+    const turn = agentTurnsOf(activity)[currentAgentTurnIndex(activity)];
+    if (activity.status === AGENT_ACTIVITY_STATUS.COMPLETED && turn?.answer) {
       activities.announce(activity);
       return;
     }
@@ -92,8 +112,8 @@ export function createAgentExecutor({
       activity,
       {
         status: AGENT_ACTIVITY_STATUS.RUNNING,
-        phase: 'starting',
-        statusText: 'Starting forum research…',
+        phase: activity.steps.length ? 'resuming' : 'starting',
+        statusText: activity.steps.length ? 'Continuing…' : 'Starting forum research…',
         error: null,
         startedAt: activity.startedAt || Date.now()
       },
@@ -116,36 +136,28 @@ export function createAgentExecutor({
       const toolClient = new ForumToolClient({ siteUrl, signal, governor });
 
       const configuration = await getTaskConfiguration(task);
-      const result = await runAgentTask({
-        question: activity.question,
-        systemPrompt: configuration.systemPrompt,
-        responseLanguage: configuration.responseLanguage,
+      const result = await runAgentLoop({
+        activity,
+        // Snapshotted when the task was queued (task-service.mjs); each
+        // follow-up is its own task, so it carries a fresh budget.
+        budget: clampAgentBudget(configuration.limits?.agent),
         forumName: configuration.forumName,
-        // Snapshotted when the task was queued (task-service.mjs).
-        limits: configuration.limits?.research,
+        responseLanguage: configuration.responseLanguage,
+        customInstructions: configuration.systemPrompt,
         signal,
         toolClient,
-        generateAnswer: ({ question, sources, systemPrompt, responseLanguage, forumName, signal: answerSignal, onProgress, onStream }) =>
-          aiService.generateAgentAnswer(
-            configuration.provider,
-            { question, sources, systemPrompt, responseLanguage, forumName },
-            configuration.settings,
-            { abortSignal: answerSignal, onProgress, onStream }
-          ),
-        onProgress: async (patch, durable = false) => {
-          await report(patch, { durable });
-          await updateActivity(
-            {
-              phase: patch.phase,
-              statusText: patch.statusText,
-              progress: patch.progress
-            },
-            { durable: durable || patch.phase === 'generating' }
-          ).catch(() => {});
+        savedSummaries,
+        save: async (patch, options) => {
+          await updateActivity(patch, options);
         },
-        onActivityPatch: async (patch, durable = true) => {
-          await updateActivity(patch, { durable });
-        },
+        planAction: (system, messages) =>
+          aiService.completeAgentStep(configuration.provider, { system, messages }, configuration.settings, { abortSignal: signal }),
+        writeAnswer: ({ system, messages, onStream }) =>
+          aiService.streamAgentAnswer(configuration.provider, { system, messages }, configuration.settings, {
+            abortSignal: signal,
+            onStream
+          }),
+        report: patch => report(patch, { durable: false }),
         onStream: chunk => {
           broadcast({
             action: MESSAGES.TASK_STREAM,
@@ -160,18 +172,17 @@ export function createAgentExecutor({
       const completedAt = Date.now();
       activity = await updateActivity(
         {
-          ...result,
+          ...result.patch,
           status: AGENT_ACTIVITY_STATUS.COMPLETED,
           phase: 'completed',
-          statusText: result.answerStatus === 'no_results' ? 'No matching discussions found' : 'Completed',
-          answer: result.answer,
+          statusText: result.outOfBudget ? 'Completed at the step limit' : 'Completed',
           completedAt,
           retainedFrom: completedAt,
           progress: {
             percent: 100,
-            completedSteps: activity.progress?.totalSteps || null,
-            totalSteps: activity.progress?.totalSteps || null,
-            sourceCount: result.sourceRefs.length,
+            completedSteps: result.patch.steps.filter(step => step.turn === currentAgentTurnIndex(activity)).length,
+            totalSteps: result.patch.budget.maxSteps,
+            sourceCount: result.patch.sourceRefs.length,
             etaMs: 0
           },
           error: null
@@ -195,7 +206,18 @@ export function createAgentExecutor({
           ? forumAccessToolError(task.siteUrl)
           : caught;
       const needsUserAction = !cancelled && (isAgentUserActionError(error) || error?.needsUserAction === true);
-      await updateActivity(agentFailurePatch(error, { cancelled, needsUserAction }), { durable: true });
+      const failure = agentFailurePatch(error, { cancelled, needsUserAction });
+      await updateActivity(
+        // A run that ends shows its busy step as stopped or failed; one that
+        // waits keeps it, to run it again on Continue.
+        needsUserAction
+          ? failure
+          : {
+              ...failure,
+              steps: settleRunningAgentSteps(activity.steps, { status: cancelled ? 'stopped' : 'failed', error: failure.error?.message })
+            },
+        { durable: true }
+      );
       if (needsUserAction) {
         throw Object.assign(error, {
           taskStatus: TASK_STATUS.WAITING_USER_ACTION,

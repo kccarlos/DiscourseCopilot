@@ -3,6 +3,8 @@
 // the click (no awaits before it); a forum that already is enabled resolves
 // at once, without a prompt.
 import { TASK_TYPE } from '../shared/task-record.mjs';
+import { agentTurnsOf, currentAgentTurnIndex } from '../shared/agent-activity.mjs';
+import { normalizeAgentQuestion } from '../services/agent-context.mjs';
 import { forumAccessHost, requestForumAccess } from '../shared/forum-access.mjs';
 import { forumAccessDeniedText } from './forum-access-card.mjs';
 
@@ -61,8 +63,61 @@ export class AgentRequests {
     }
   }
 
+  // A follow-up question on a finished run: the same run, the same forum
+  // (never the forum in the current tab), a fresh budget.
+  askFollowUp(activity, question, { root = null } = {}) {
+    return this.withForumAccess(activity?.siteUrl, root, () => this.askGrantedFollowUp(activity, question, { root }));
+  }
+
+  async askGrantedFollowUp(activity, rawQuestion, { root = null } = {}) {
+    const question = normalizeAgentQuestion(rawQuestion);
+    if (!question || !activity?.agentRunId) {
+      return false;
+    }
+    if (!this.config.isReady()) {
+      this.report('Finish setting up an AI provider first', 'warning', root);
+      return false;
+    }
+    const { config } = this.config;
+    try {
+      const task = await this.tasks.enqueue(
+        {
+          taskType: TASK_TYPE.AGENT,
+          agentRunId: activity.agentRunId,
+          followUp: true,
+          clientRequestId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          title: question,
+          question,
+          siteUrl: activity.siteUrl,
+          forumName: activity.forumName,
+          provider: config.provider,
+          settings: this.config.activeSettings,
+          systemPrompt: config.systemPrompt,
+          responseLanguage: config.responseLanguage
+        },
+        'Unable to ask the follow-up'
+      );
+      if (!task) {
+        throw new Error('Unable to ask the follow-up');
+      }
+      this.runs.currentRuns.set(activity.siteUrl, activity.activityId);
+      this.hooks.onTaskChanged(task);
+      return true;
+    } catch (error) {
+      this.report(`Unable to ask the follow-up: ${error.message}`, 'error', root);
+      return false;
+    }
+  }
+
   async retryGrantedTask(value, { root = null } = {}) {
     const activity = value?.activityType === 'agent' ? value : await this.runs.get(value);
+    // A follow-up that failed or was stopped is asked again on its run
+    // (the question and answer before it stay).
+    const lastIndex = currentAgentTurnIndex(activity || {});
+    if (activity && lastIndex > 0 && !agentTurnsOf(activity)[lastIndex].answer) {
+      await this.askGrantedFollowUp(activity, agentTurnsOf(activity)[lastIndex].question, { root });
+      return;
+    }
     const question = activity?.question || value?.question;
     if (!question) {
       this.report('The Agent question is unavailable', 'error', root);

@@ -1557,32 +1557,223 @@ details[open] > summary .chevron {
     padding: 0 0.75rem 0.75rem;
 }
 
-.agent-search-list {
+.agent-step-list {
+    display: grid;
+    gap: 0.1rem;
+    margin: 0;
+    padding: 0 0.6rem 0.65rem;
+    list-style: none;
+}
+
+.agent-step {
+    display: grid;
+    grid-template-columns: 1.5rem minmax(0, 1fr);
+    gap: 0.45rem;
+    align-items: start;
+    min-width: 0;
+    padding: 0.3rem 0.15rem;
+}
+
+.agent-step-icon {
+    display: grid;
+    width: 1.5rem;
+    height: 1.5rem;
+    place-items: center;
+    border-radius: 8px;
+    background: var(--uc-agent-soft);
+    color: var(--uc-agent-ink);
+}
+
+.agent-step-icon svg {
+    width: 0.9rem;
+    height: 0.9rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.9;
+}
+
+.agent-step[data-status="failed"] .agent-step-icon {
+    background: var(--uc-danger-soft, var(--uc-surface-soft));
+    color: var(--uc-danger);
+}
+
+.agent-step[data-status="running"] .agent-step-icon {
+    animation: agent-step-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes agent-step-pulse {
+    50% {
+        opacity: 0.45;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .agent-step[data-status="running"] .agent-step-icon {
+        animation: none;
+    }
+}
+
+.agent-step-main {
+    min-width: 0;
+}
+
+.agent-step-text,
+.agent-step-main > details > summary {
+    display: block;
+    min-width: 0;
+    color: var(--uc-ink);
+    font-size: 0.7rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.agent-step-main > details > summary {
+    cursor: pointer;
+    list-style: none;
+}
+
+.agent-step-main > details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.agent-step-main > details > summary:focus-visible {
+    outline: 2px solid var(--uc-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.agent-step-main > details > summary::after {
+    content: " ▾";
+    color: var(--uc-muted);
+    font-size: 0.6rem;
+}
+
+.agent-step-main > details[open] > summary::after {
+    content: " ▴";
+}
+
+.agent-step-meta {
+    margin-left: 0.3rem;
+    color: var(--uc-muted);
+    font-size: 0.64rem;
+    white-space: nowrap;
+}
+
+.agent-step[data-status="failed"] .agent-step-text,
+.agent-step[data-status="failed"] .agent-step-main > details > summary {
+    color: var(--uc-danger);
+}
+
+.agent-step-body {
+    margin-top: 0.3rem;
+    padding: 0.45rem 0.55rem;
+    border-radius: 8px;
+    background: var(--uc-surface-soft);
+}
+
+.agent-step-reason {
+    margin: 0 0 0.35rem;
+    color: var(--uc-muted);
+    font-size: 0.65rem;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+.agent-step-detail {
+    max-height: 9rem;
+    margin: 0;
+    padding: 0;
+    overflow: auto;
+    background: transparent;
+    color: var(--uc-ink);
+    font-family: inherit;
+    font-size: 0.64rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.agent-step-turn {
+    margin: 0.35rem 0 0.1rem;
+    padding: 0.35rem 0.15rem 0;
+    border-top: 1px dashed var(--uc-line-strong);
+    color: var(--uc-muted);
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+
+.agent-thread:empty {
+    display: none;
+}
+
+.agent-turn-question,
+.agent-thread-question {
+    margin: 0.85rem 0 0;
+    color: var(--uc-ink);
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.agent-turn-question::before,
+.agent-thread-question::before {
+    content: "Follow-up";
+    display: block;
+    margin-bottom: 0.1rem;
+    color: var(--uc-agent-ink);
+    font-size: 0.6rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.agent-note {
+    margin: 0.5rem 0 0;
+    color: var(--uc-muted);
+    font-size: 0.66rem;
+    line-height: 1.4;
+}
+
+.agent-followup {
+    margin-top: 0.85rem;
+}
+
+.agent-followup-label {
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--uc-muted);
+    font-size: 0.66rem;
+    font-weight: 650;
+}
+
+.agent-followup-row {
     display: grid;
     gap: 0.45rem;
+}
+
+.agent-followup .agent-followup-input {
+    width: 100%;
+    min-height: 3.4rem;
     margin: 0;
-    padding: 0 0.85rem 0.8rem 2rem;
-}
-
-.agent-search-item {
-    min-width: 0;
-    padding-left: 0.15rem;
-}
-
-.agent-search-query {
-    display: block;
-    overflow-wrap: anywhere;
-    color: var(--uc-ink);
-    font-size: 0.68rem;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.74rem;
     line-height: 1.4;
-    white-space: pre-wrap;
+    resize: vertical;
 }
 
-.agent-search-meta {
-    display: block;
-    margin-top: 0.12rem;
-    color: var(--uc-muted);
-    font-size: 0.61rem;
+.agent-followup .agent-followup-send {
+    width: auto;
+    min-height: 2.4rem;
+    margin: 0;
+    padding: 0.2rem 1.1rem;
+    justify-self: end;
+    font-size: 0.72rem;
+    font-weight: 650;
 }
 
 .agent-source-card {

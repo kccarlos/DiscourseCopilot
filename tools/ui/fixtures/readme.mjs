@@ -8,7 +8,7 @@ import {
   chat,
   agentAnswer,
   RATE_LIMIT_QUESTION,
-  RATE_LIMIT_QUERIES,
+  RATE_LIMIT_STEPS,
   RATE_LIMIT_SOURCES,
   STREAMING_TOPIC,
   LONG_THREADS_TOPIC
@@ -93,7 +93,7 @@ A long-running community thread where site owners share what they're building on
 export const agentRun = agentAnswer({
   id: 'readme',
   question: RATE_LIMIT_QUESTION,
-  searchQueries: RATE_LIMIT_QUERIES,
+  steps: RATE_LIMIT_STEPS,
   sources: RATE_LIMIT_SOURCES,
   answer: `Rate-limit errors during streaming usually come from **retrying too fast**: a failed stream triggers an immediate new request [S1]. The fix most people report is exponential backoff that starts from the \`Retry-After\` header instead of a fixed delay [S2].
 

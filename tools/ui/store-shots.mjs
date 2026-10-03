@@ -54,7 +54,7 @@ const longThreadsTab = onTopic(OPENAI, LONG_THREADS_TOPIC, `${LONG_THREADS_TOPIC
 const openSources = async page => {
   await page.evaluate(() => {
     for (const d of document.querySelectorAll('#agentPanel details')) {
-      if (/Sources/.test(d.querySelector('summary')?.textContent || '')) d.open = true;
+      if (/Steps/.test(d.querySelector('summary')?.textContent || '')) d.open = true;
     }
   });
   await page.waitForTimeout(150);
@@ -170,7 +170,7 @@ const SHOTS = [
         url: `community.openai.com/t/${STREAMING_TOPIC.slug}/${STREAMING_TOPIC.topicId}`,
         forumHtml: topicView(FORUM_LOOKS.openai, streamingForumTopic),
         title: 'Ask the whole forum — answers with sources',
-        sub: 'It searches the forum, reads the best matches, and cites the posts it used.'
+        sub: 'An agent searches and reads step by step, then cites the posts it used.'
       })
   },
   {

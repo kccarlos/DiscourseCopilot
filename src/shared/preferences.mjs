@@ -1,5 +1,5 @@
 // User preferences that tune how much work the extension does and how long it
-// remembers things: Ask-the-forum research depth, how many raw pages of a
+// remembers things: the Ask-the-forum agent's budget, how many raw pages of a
 // topic are read, and history retention; plus whether forum pages show the
 // DiscourseCopilot button. Pure functions only; the persisted
 // copy lives in the configuration model (config-state.mjs), which normalizes
@@ -8,7 +8,7 @@
 // Stored shape (chrome.storage.local "preferences"):
 //   {
 //     researchDepth: 'quick' | 'balanced' | 'thorough' | 'custom',
-//     customResearch: { searchQueries, searchPages, topicsRead },
+//     customBudget: { maxSteps, maxTopicReads, maxCharsPerRead },
 //     topicPageMode: 'all' | 'limit',  // read every page (default) or only the first ones
 //     topicPageLimit: number,          // raw pages of 100 posts per topic, used in 'limit'
 //                                      // mode and remembered while 'all' is chosen
@@ -18,7 +18,7 @@
 //   }
 //
 // Consumers never read these fields directly; they ask for the effective
-// values with resolveResearchLimits(), resolveTopicPageLimit() and
+// values with resolveAgentBudget(), resolveTopicPageLimit() and
 // resolveRetention(), so a preset, a custom value or a missing key all
 // resolve in exactly one place. resolveTopicPageLimit() returns the page
 // limit, or null for "every page" (the default).
@@ -34,21 +34,22 @@ const DAY_MS = 24 * HOUR_MS;
 // Discourse's raw endpoint serves 100 posts per page.
 export const POSTS_PER_RAW_PAGE = 100;
 
-// Hard bounds. The research maxima are also the forum tools' safety caps:
-// deriveSearchQueries() yields at most 4 distinct queries and the search tool
-// accepts result pages 1–3 (FORUM_TOOL_LIMITS.maxSearchPage).
+// Hard bounds. The agent maxima are also its safety caps (the loop clamps
+// whatever a task carries to these ranges).
 export const PREFERENCE_RANGES = Object.freeze({
-  searchQueries: Object.freeze({ min: 1, max: 4 }),
-  searchPages: Object.freeze({ min: 1, max: 3 }),
-  topicsRead: Object.freeze({ min: 1, max: 12 }),
+  maxSteps: Object.freeze({ min: 3, max: 40 }),
+  maxTopicReads: Object.freeze({ min: 1, max: 20 }),
+  maxCharsPerRead: Object.freeze({ min: 5000, max: 60000 }),
   topicPageLimit: Object.freeze({ min: 1, max: 100 }),
   maxSavedTopics: Object.freeze({ min: 10, max: 200 })
 });
 
-export const RESEARCH_PRESETS = Object.freeze({
-  quick: Object.freeze({ searchQueries: 1, searchPages: 1, topicsRead: 3 }),
-  balanced: Object.freeze({ searchQueries: 3, searchPages: 1, topicsRead: 6 }),
-  thorough: Object.freeze({ searchQueries: 4, searchPages: 2, topicsRead: 10 })
+// The agent's budget per question (and per follow-up): tool calls, distinct
+// topics read, and characters taken from one read.
+export const AGENT_BUDGET_PRESETS = Object.freeze({
+  quick: Object.freeze({ maxSteps: 6, maxTopicReads: 3, maxCharsPerRead: 12000 }),
+  balanced: Object.freeze({ maxSteps: 15, maxTopicReads: 8, maxCharsPerRead: 30000 }),
+  thorough: Object.freeze({ maxSteps: 25, maxTopicReads: 14, maxCharsPerRead: 45000 })
 });
 
 export const RESEARCH_DEPTHS = Object.freeze(['quick', 'balanced', 'thorough', 'custom']);
@@ -75,7 +76,7 @@ export const MAX_TASK_RETENTION_MS = 7 * DAY_MS;
 
 export const DEFAULT_PREFERENCES = Object.freeze({
   researchDepth: 'balanced',
-  customResearch: RESEARCH_PRESETS.balanced,
+  customBudget: AGENT_BUDGET_PRESETS.balanced,
   // Every page of a topic is read. When the user opts into a limit, it
   // starts at 20 pages (the first 2,000 posts).
   topicPageMode: 'all',
@@ -91,13 +92,10 @@ export const DEFAULT_PREFERENCES = Object.freeze({
 const DEFAULT_RETENTION_OPTION = RETENTION_BY_VALUE.get(DEFAULT_PREFERENCES.historyRetention);
 export const DEFAULT_RETENTION_MS = DEFAULT_RETENTION_OPTION.ms;
 export const DEFAULT_MAX_SAVED_TOPICS = DEFAULT_PREFERENCES.maxSavedTopics;
-// The Agent's research budget when a caller passes none (the Balanced preset).
-export const DEFAULT_RESEARCH_LIMITS = Object.freeze({
-  ...RESEARCH_PRESETS.balanced,
-  rawFallbacks: Math.ceil(RESEARCH_PRESETS.balanced.topicsRead / 2)
-});
+// The agent's budget when a caller passes none (the Balanced preset).
+export const DEFAULT_AGENT_BUDGET = AGENT_BUDGET_PRESETS.balanced;
 
-export const PREFERENCE_FIELDS = Object.freeze(['searchQueries', 'searchPages', 'topicsRead', 'topicPageLimit', 'maxSavedTopics']);
+export const PREFERENCE_FIELDS = Object.freeze(['maxSteps', 'maxTopicReads', 'maxCharsPerRead', 'topicPageLimit', 'maxSavedTopics']);
 
 function clampInteger(value, { min, max }, fallback) {
   const number = typeof value === 'string' && value.trim() === '' ? NaN : Number(value);
@@ -107,13 +105,27 @@ function clampInteger(value, { min, max }, fallback) {
   return Math.min(max, Math.max(min, Math.round(number)));
 }
 
-function normalizeResearch(value, fallback = RESEARCH_PRESETS.balanced) {
+function normalizeBudget(value, fallback = AGENT_BUDGET_PRESETS.balanced) {
   const raw = value && typeof value === 'object' ? value : {};
   return {
-    searchQueries: clampInteger(raw.searchQueries, PREFERENCE_RANGES.searchQueries, fallback.searchQueries),
-    searchPages: clampInteger(raw.searchPages, PREFERENCE_RANGES.searchPages, fallback.searchPages),
-    topicsRead: clampInteger(raw.topicsRead, PREFERENCE_RANGES.topicsRead, fallback.topicsRead)
+    maxSteps: clampInteger(raw.maxSteps, PREFERENCE_RANGES.maxSteps, fallback.maxSteps),
+    maxTopicReads: clampInteger(raw.maxTopicReads, PREFERENCE_RANGES.maxTopicReads, fallback.maxTopicReads),
+    maxCharsPerRead: clampInteger(raw.maxCharsPerRead, PREFERENCE_RANGES.maxCharsPerRead, fallback.maxCharsPerRead)
   };
+}
+
+// Before the agent, "Ask the forum" ran a fixed pipeline with its own limits
+// ({ searchQueries, searchPages, topicsRead }). Those carry over as an
+// equivalent budget: the same topic reads, and one step per search request,
+// per topic read, plus a couple for the answer.
+function budgetFromLegacyResearch(value) {
+  const raw = value && typeof value === 'object' ? value : null;
+  if (!raw) {
+    return null;
+  }
+  const searches = clampInteger(raw.searchQueries, { min: 1, max: 4 }, 3) * clampInteger(raw.searchPages, { min: 1, max: 3 }, 1);
+  const topics = clampInteger(raw.topicsRead, { min: 1, max: 12 }, 6);
+  return normalizeBudget({ maxSteps: searches + topics + 2, maxTopicReads: topics }, AGENT_BUDGET_PRESETS.balanced);
 }
 
 /**
@@ -125,7 +137,10 @@ export function normalizePreferences(value) {
   const raw = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   return {
     researchDepth: RESEARCH_DEPTHS.includes(raw.researchDepth) ? raw.researchDepth : DEFAULT_PREFERENCES.researchDepth,
-    customResearch: normalizeResearch(raw.customResearch, DEFAULT_PREFERENCES.customResearch),
+    customBudget: normalizeBudget(
+      raw.customBudget && typeof raw.customBudget === 'object' ? raw.customBudget : budgetFromLegacyResearch(raw.customResearch),
+      DEFAULT_PREFERENCES.customBudget
+    ),
     topicPageMode: TOPIC_PAGE_MODES.includes(raw.topicPageMode) ? raw.topicPageMode : DEFAULT_PREFERENCES.topicPageMode,
     topicPageLimit: clampInteger(raw.topicPageLimit, PREFERENCE_RANGES.topicPageLimit, DEFAULT_PREFERENCES.topicPageLimit),
     historyRetention: RETENTION_BY_VALUE.has(raw.historyRetention) ? raw.historyRetention : DEFAULT_PREFERENCES.historyRetention,
@@ -143,9 +158,9 @@ export function preferencesEqual(left, right) {
 }
 
 const FIELD_LABELS = Object.freeze({
-  searchQueries: 'Search queries',
-  searchPages: 'Result pages per search',
-  topicsRead: 'Discussions read',
+  maxSteps: 'Steps per question',
+  maxTopicReads: 'Topics read',
+  maxCharsPerRead: 'Characters per read',
   topicPageLimit: 'Pages read per topic',
   maxSavedTopics: 'Saved topics'
 });
@@ -163,7 +178,7 @@ function checkInteger(value, range) {
  * Validates preferences being edited (values may be strings straight from
  * inputs). Unlike normalizePreferences(), nothing is clamped: an
  * out-of-range or non-numeric entry is an error the user must fix.
- * Custom research fields are only checked while the custom depth is chosen.
+ * Custom budget fields are only checked while the custom depth is chosen.
  * @returns {{ valid: boolean, errors: string[], fieldErrors: Record<string, string>,
  *   preferences: ReturnType<typeof normalizePreferences> | null }}
  */
@@ -177,9 +192,9 @@ export function validatePreferences(value) {
     }
   };
   if (raw.researchDepth === 'custom') {
-    check('searchQueries', raw.customResearch?.searchQueries);
-    check('searchPages', raw.customResearch?.searchPages);
-    check('topicsRead', raw.customResearch?.topicsRead);
+    check('maxSteps', raw.customBudget?.maxSteps);
+    check('maxTopicReads', raw.customBudget?.maxTopicReads);
+    check('maxCharsPerRead', raw.customBudget?.maxCharsPerRead);
   }
   // The page limit only matters (and is only checked) when a limit is chosen.
   if (raw.topicPageMode === 'limit') {
@@ -198,26 +213,18 @@ export function validatePreferences(value) {
 // ---------- Effective values ----------
 
 /**
- * The Agent's research budget for one run.
- * @returns {{ depth: string, searchQueries: number, searchPages: number,
- *   topicsRead: number, rawFallbacks: number }}
+ * The agent's budget for one question (or follow-up).
+ * @returns {{ depth: string, maxSteps: number, maxTopicReads: number, maxCharsPerRead: number }}
  */
-export function resolveResearchLimits(value) {
+export function resolveAgentBudget(value) {
   const preferences = normalizePreferences(value);
-  const research = preferences.researchDepth === 'custom' ? preferences.customResearch : RESEARCH_PRESETS[preferences.researchDepth];
-  return {
-    depth: preferences.researchDepth,
-    ...research,
-    // Discussions without a matching post are read from their first raw
-    // page; at most half of them (rounded up), so one run stays light.
-    rawFallbacks: Math.ceil(research.topicsRead / 2)
-  };
+  const budget = preferences.researchDepth === 'custom' ? preferences.customBudget : AGENT_BUDGET_PRESETS[preferences.researchDepth];
+  return { depth: preferences.researchDepth, ...budget };
 }
 
-// The most forum requests one research run can make (search + topic
-// metadata + posts or raw fallback). Used for the settings help text.
-export function researchRequestBudget(limits) {
-  return limits.searchQueries * limits.searchPages + limits.topicsRead * 2;
+// Clamps a budget (a task's snapshot, a caller's value) to the hard ranges.
+export function clampAgentBudget(value) {
+  return normalizeBudget(value, DEFAULT_AGENT_BUDGET);
 }
 
 /**
@@ -268,8 +275,8 @@ export function retentionEqual(left, right) {
  */
 export function snapshotTaskLimits(type, preferences) {
   if (type === 'agent') {
-    const { searchQueries, searchPages, topicsRead, rawFallbacks } = resolveResearchLimits(preferences);
-    return { research: { searchQueries, searchPages, topicsRead, rawFallbacks } };
+    const { maxSteps, maxTopicReads, maxCharsPerRead } = resolveAgentBudget(preferences);
+    return { agent: { maxSteps, maxTopicReads, maxCharsPerRead } };
   }
   if (type === 'summary' || type === 'chat') {
     // null = read every page.
@@ -284,14 +291,9 @@ export function normalizeTaskLimits(type, value) {
     return null;
   }
   if (type === 'agent') {
-    if (!value.research || typeof value.research !== 'object') return null;
-    const research = normalizeResearch(value.research, RESEARCH_PRESETS.balanced);
-    return {
-      research: {
-        ...research,
-        rawFallbacks: clampInteger(value.research.rawFallbacks, { min: 0, max: research.topicsRead }, Math.ceil(research.topicsRead / 2))
-      }
-    };
+    // Tasks queued before the agent carry the old research limits.
+    const budget = value.agent && typeof value.agent === 'object' ? value.agent : budgetFromLegacyResearch(value.research);
+    return budget ? { agent: normalizeBudget(budget, AGENT_BUDGET_PRESETS.balanced) } : null;
   }
   if (type === 'summary' || type === 'chat') {
     // undefined: the record predates limits. null: every page.

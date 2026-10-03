@@ -3,7 +3,7 @@
 // open views, the wake-up alarm that keeps the worker alive while tasks run,
 // the per-task provider configuration and limits, and history retention.
 //
-// Snapshot rule: a task's limits (Agent research budget, topic page limit)
+// Snapshot rule: a task's limits (Agent budget, topic page limit)
 // are read from the saved preferences once, when the task is queued, and
 // stored on the task record (they survive a worker restart). Executors only
 // ever use task.limits, so changing a preference affects tasks queued after
@@ -280,6 +280,15 @@ export class TaskService {
     const limits = snapshotTaskLimits(type, preferences);
 
     const id = createTaskId();
+    const followUp = type === TASK_TYPE.AGENT && request.followUp === true && Boolean(request.agentRunId);
+    if (
+      followUp
+      && this.queue
+        .list()
+        .some(task => task.type === TASK_TYPE.AGENT && task.agentRunId === request.agentRunId && !isTerminalTaskStatus(task.status))
+    ) {
+      throw new Error('This run is still working. Wait for it to finish before asking a follow-up.');
+    }
     const agentRunId = type === TASK_TYPE.AGENT ? request.agentRunId || id : '';
     const record = createTaskRecord({
       id,
@@ -289,6 +298,7 @@ export class TaskService {
       agentRunId,
       clientRequestId: request.clientRequestId,
       retryOf: request.retryOf,
+      followUp,
       forumName: request.forumName,
       title: request.title,
       url: request.url,
@@ -307,13 +317,16 @@ export class TaskService {
       forumName: request.forumName
     });
     try {
-      if (type === TASK_TYPE.AGENT) {
+      if (followUp) {
+        // The run and its history stay; the new task adds a turn to it.
+        await this.agentActivities.startFollowUp(record);
+      } else if (type === TASK_TYPE.AGENT) {
         await this.agentActivities.create(agentActivityFromTask(record));
       }
       return await this.queue.enqueue(record);
     } catch (error) {
       this.runtimePayloads.delete(id);
-      if (type === TASK_TYPE.AGENT) {
+      if (type === TASK_TYPE.AGENT && !followUp) {
         await this.agentActivities.remove(agentRunId).catch(() => {});
       }
       throw error;

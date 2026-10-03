@@ -27,7 +27,7 @@ DiscourseCopilot is a free Chrome extension. It opens in your browser's side pan
 
 - **Skip the scroll.** Get the main points of a 500-reply topic without reading every post.
 - **Ask questions.** Chat about the topic: "What did people decide?" or "Is there a workaround?"
-- **Search the whole forum.** Ask a question and it looks through the forum for you, then answers with numbered sources you can click.
+- **Search the whole forum.** Ask a question and an agent looks through the forum for you, step by step, then answers with numbered sources you can click. You can watch what it does and ask follow-ups.
 - **Works on any Discourse forum.** Allow access once per forum you use; nothing else to set up.
 - **Use the AI you like.** OpenAI, Anthropic (Claude), Google Gemini, and more, or a free model running on your own computer.
 - **Private by design.** Your key and your history stay in your browser. No accounts and no tracking.
@@ -71,7 +71,7 @@ On a page that isn't a Discourse forum, the side panel says so and suggests foru
     <td width="50%" valign="top">
       <img src="docs/screenshots/feature-agent-answer.png" alt="An answer from Ask the forum with numbered sources">
       <p><strong>Ask the forum</strong><br>
-      Ask a question and it searches the forum, reads the best matches, and answers with sources like [S1] that link to the posts.</p>
+      Ask a question and the agent searches the forum, reads the best matches while you watch each step, and answers with sources like [S1] that link to the posts. Ask a follow-up right under the answer.</p>
     </td>
   </tr>
   <tr>
@@ -101,6 +101,15 @@ On a page that isn't a Discourse forum, the side panel says so and suggests foru
 </table>
 
 The top of the side panel always shows which AI provider and model you're using. If you save favorite models in Settings, you can switch between them right there.
+
+## Using Ask the forum
+
+1. Open a forum page and click **Ask the forum**, then type what you want to know ("What are people saying about X?", "What's new this week?").
+2. The side panel shows the agent's steps as it works: what it searched for, which topics it read, with how many posts. Open a step to see why it did it and what came back. **Stop** ends the run.
+3. The answer appears with numbered sources like [S1]. Click one to jump to its source card, which links to the topic.
+4. Ask a **follow-up** under the answer. It continues the same conversation, on the same forum, with a fresh budget.
+
+The agent only reads: it never posts or changes anything. It can also look at your own saved summaries of that forum. Text from the forum is treated as material to quote, never as instructions. Because the agent asks your AI model for one action at a time, a larger model works best; very small local models may struggle to answer in the format it needs.
 
 ## Choosing an AI provider
 
@@ -143,7 +152,7 @@ Open **Settings** from the side panel (or right-click the extension icon and cho
 - **Favorite models.** Save models to switch between them from the top of the side panel.
 - **Response language.** **Auto (match the discussion)** is the default: summaries follow the discussion's language, and questions are answered in the language you ask in. You can also pick one of 12 languages.
 - **Custom instructions.** Your own instructions for summaries, chats, and Ask the forum answers, in place of the built-in ones. Leave it empty to use the defaults.
-- **Ask the forum: Research depth.** **Quick** (1 search, reads 3 discussions), **Balanced** (the default: 3 searches, reads 6 discussions), **Thorough** (4 searches with 2 result pages each, reads 10 discussions), or **Custom** to set each limit yourself. Deeper searches find more sources but take longer and cost more.
+- **Ask the forum: Research depth.** The agent works in steps (a search, a topic read, a list of latest topics) until it can answer. **Quick** allows up to 6 steps and 3 topics read, **Balanced** (the default) 15 steps and 8 topics, **Thorough** 25 steps and 14 topics, and **Custom** lets you set the steps, the topics read and the characters taken from each read. Each follow-up gets the same budget again. A bigger budget finds more but takes longer and costs more.
 - **Reading topics: Pages read per topic.** **Read every page** is the default, however long the topic is. To make very long topics faster and cheaper, choose **Read only the first** and a number of pages (1 to 100; each page is 100 posts). A topic past your limit is summarized from its first pages, and the summary and chat both say so.
 - **Reading topics: Chat context.** How much of the topic is sent with each follow-up question: 30,000 characters by default (5,000 to 1,000,000). You can also change this in the side panel.
 - **History & privacy: Keep conversations and Agent answers for.** Chats and answers you haven't kept are removed after **1 day** by default. You can choose 3, 7, or 30 days, or **Until I delete them**. Anything you **Keep** stays.

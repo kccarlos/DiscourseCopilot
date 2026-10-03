@@ -18,6 +18,21 @@ import { TASK_STATUS, createTaskRecord } from '../src/shared/task-record.mjs';
 
 const SITE = 'https://forum.example.com';
 
+// A stand-in AI service: the planner replies are scripted in order and the
+// streamed answer is fixed.
+function scriptedModel(replies) {
+  const queue = [...replies];
+  return {
+    async completeAgentStep() {
+      return queue.shift() ?? '{"tool": "final_answer", "arguments": {"answer": "gist"}}';
+    },
+    async streamAgentAnswer(_provider, _request, _settings, { onStream } = {}) {
+      onStream?.('The answer');
+      return 'The answer';
+    }
+  };
+}
+
 function fakeDb() {
   const activities = new Map();
   const tasks = new Map();
@@ -171,18 +186,17 @@ test('an Agent run waits for access, then Continue finishes it', async () => {
   };
   try {
     const execute = createAgentExecutor({
-      aiService: {
-        async generateAgentAnswer() {
-          return 'answer';
-        }
-      },
+      aiService: scriptedModel([
+        '{"tool": "search_forum", "arguments": {"query": "reset password"}, "reason": "look"}',
+        '{"tool": "final_answer", "arguments": {"answer": "gist"}}'
+      ]),
       activities,
       broadcast: () => {},
       getTaskConfiguration: async () => ({
         provider: 'openai',
         settings: { model: 'm' },
         forumName: 'Example',
-        limits: { research: { searchQueries: 1, searchPages: 1, topicsRead: 1 } }
+        limits: { agent: { maxSteps: 3, maxTopicReads: 1, maxCharsPerRead: 5000 } }
       }),
       governor: new ForumRequestGovernor({ minIntervalMs: 0 }),
       hasForumAccess: async () => granted
@@ -246,11 +260,7 @@ test('access removed during Agent research waits instead of failing', async () =
   };
   try {
     const execute = createAgentExecutor({
-      aiService: {
-        async generateAgentAnswer() {
-          return 'answer';
-        }
-      },
+      aiService: scriptedModel(['{"tool": "search_forum", "arguments": {"query": "q"}}']),
       activities,
       broadcast: () => {},
       getTaskConfiguration: async () => ({ provider: 'openai', settings: {}, limits: {} }),

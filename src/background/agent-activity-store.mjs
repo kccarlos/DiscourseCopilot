@@ -1,6 +1,6 @@
 // Agent activity records in IndexedDB, written in order per activity and
 // broadcast to open extension views after each save.
-import { AGENT_ACTIVITY_STATUS } from '../shared/agent-activity.mjs';
+import { AGENT_ACTIVITY_STATUS, agentTurnsOf, appendAgentTurn, settleRunningAgentSteps } from '../shared/agent-activity.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 
 const { MESSAGES } = DiscourseCopilotConstants;
@@ -25,8 +25,11 @@ export class AgentActivityStore {
     return this.db.deleteAgentActivity(activityId);
   }
 
+  // The transcript (what the model has seen) can be large and only the
+  // worker uses it, so broadcasts leave it out; the saved record has it.
   announce(activity) {
-    this.broadcast({ action: MESSAGES.ACTIVITY_UPDATED, activity });
+    const { transcript: _transcript, ...visible } = activity;
+    this.broadcast({ action: MESSAGES.ACTIVITY_UPDATED, activity: visible });
   }
 
   // Applies `patch`, saves after any earlier save of the same activity, then
@@ -55,6 +58,26 @@ export class AgentActivityStore {
     }
   }
 
+  // Starts a follow-up turn on a finished run for `task` (same agentRunId).
+  // Throws when the run can't be continued: gone, on another forum, still
+  // unfinished, or never answered.
+  async startFollowUp(task) {
+    const activity = await this.get(task.agentRunId);
+    if (!activity || activity.siteUrl !== task.siteUrl) {
+      throw new Error('This answer is no longer available to continue. Ask a new question instead.');
+    }
+    const finished =
+      activity.status === AGENT_ACTIVITY_STATUS.COMPLETED
+      || activity.status === AGENT_ACTIVITY_STATUS.FAILED
+      || activity.status === AGENT_ACTIVITY_STATUS.CANCELLED;
+    // A follow-up that failed or was stopped can be asked again; a first
+    // question that never got an answer can't be continued.
+    if (!finished || !agentTurnsOf(activity).some(turn => turn.answer)) {
+      throw new Error('This run has no answer to follow up on yet.');
+    }
+    return this.update(activity, appendAgentTurn(activity, { taskId: task.id, question: task.question }), { prune: false });
+  }
+
   // Marks the activity of a cancelled Agent task as cancelled.
   async markCancelled(task) {
     const activity = await this.get(task.agentRunId || task.id);
@@ -69,6 +92,7 @@ export class AgentActivityStore {
         phase: 'cancelled',
         statusText: 'Cancelled',
         error: null,
+        steps: settleRunningAgentSteps(activity.steps, { status: 'stopped', now }),
         completedAt: now,
         retainedFrom: now
       },

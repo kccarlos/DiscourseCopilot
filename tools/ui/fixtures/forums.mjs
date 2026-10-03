@@ -120,59 +120,124 @@ export function history({ sessions = [], activities = [] }) {
 
 export const chat = (role, content, minsAgo) => ({ role, content, taskId: `c-${minsAgo}`, createdAt: now - minsAgo * MIN });
 
-// A finished Agent run (IndexedDB agentActivities record) on the OpenAI forum.
-export function agentAnswer({ id, question, searchQueries, sources, answer }) {
+// One agent step as stored on an activity. `spec` is { tool, args, title,
+// resultCount, reason, detail, status, topicId, sourceId }.
+export function agentStep(spec, index, { startedAt = now - 20 * MIN, turn = 0 } = {}) {
+  const step = {
+    id: `step-${index + 1}`,
+    turn,
+    tool: spec.tool,
+    args: spec.args || {},
+    reason: spec.reason || '',
+    status: spec.status || 'completed',
+    detail: spec.detail || '',
+    title: spec.title || '',
+    resultCount: spec.resultCount ?? null,
+    error: spec.error || '',
+    startedAt: startedAt + index * 4000,
+    completedAt: spec.status === 'running' ? 0 : startedAt + index * 4000 + 3000
+  };
+  if (spec.topicId) step.topicId = String(spec.topicId);
+  if (spec.sourceId) step.sourceId = spec.sourceId;
+  return step;
+}
+
+// An Agent run (IndexedDB agentActivities record) on the OpenAI forum:
+// finished by default, or in any other state through the overrides.
+export function agentActivity({
+  id,
+  question,
+  steps = [],
+  sources = [],
+  answer = '',
+  status = 'completed',
+  siteUrl = OPENAI.siteUrl,
+  forumName = OPENAI.name,
+  followUps = [],
+  budget = { maxSteps: 15, maxTopicReads: 8, maxCharsPerRead: 30000 },
+  ...overrides
+}) {
+  const startedAt = now - 21 * MIN;
+  const finished = status === 'completed';
+  const turns = [{ id: `agent-${id}`, question, answer, startedAt, completedAt: answer ? now - 20 * MIN : 0 }];
+  followUps.forEach((followUp, index) => {
+    turns.push({
+      id: `agent-${id}-f${index + 1}`,
+      question: followUp.question,
+      answer: followUp.answer || '',
+      startedAt: now - 10 * MIN,
+      completedAt: followUp.answer ? now - 8 * MIN : 0
+    });
+  });
+  const allSteps = [
+    ...steps.map((spec, index) => agentStep(spec, index, { startedAt })),
+    ...followUps.flatMap((followUp, turn) =>
+      (followUp.steps || []).map((spec, index) => agentStep(spec, steps.length + index, { startedAt: now - 10 * MIN, turn: turn + 1 }))
+    )
+  ];
+  const lastTurn = turns.at(-1);
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     activityId: `run-${id}`,
     activityType: 'agent',
-    taskId: `agent-${id}`,
+    taskId: lastTurn.id,
     agentRunId: `run-${id}`,
     title: question,
     question,
-    siteUrl: OPENAI.siteUrl,
-    forumName: OPENAI.name,
-    searchQueries,
+    siteUrl,
+    forumName,
+    steps: allSteps,
+    transcript: [],
+    turns,
+    budget,
+    searchQueries: [],
     toolCalls: [],
-    sourceRefs: sources.map((s, i) => ({
-      sourceId: `S${i + 1}`,
-      topicId: s.topicId,
-      postId: s.postId,
+    sourceRefs: sources.map((source, index) => ({
+      sourceId: `S${index + 1}`,
+      topicId: source.topicId,
+      postId: source.postId,
       retrievedAt: now - 20 * MIN,
-      title: s.title,
-      url: `${OPENAI.siteUrl}/t/${s.slug}/${s.topicId}/${s.postNumber}`,
-      postNumber: s.postNumber,
-      excerpt: s.excerpt,
-      siteUrl: OPENAI.siteUrl
+      title: source.title,
+      url: `${siteUrl}/t/${source.slug}/${source.topicId}${source.postNumber ? `/${source.postNumber}` : ''}`,
+      postNumber: source.postNumber,
+      excerpt: source.excerpt,
+      evidenceType: 'topic',
+      siteUrl
     })),
-    answer,
-    answerStatus: 'answered',
-    status: 'completed',
-    phase: 'completed',
-    statusText: 'Completed',
-    progress: { percent: 100 },
+    answer: followUps.at(-1)?.answer || answer,
+    answerStatus: answer ? 'answered' : 'pending',
+    status,
+    phase: finished ? 'completed' : 'running_tool',
+    statusText: finished ? 'Completed' : 'Working…',
+    progress: {
+      percent: finished ? 100 : 40,
+      completedSteps: allSteps.length,
+      totalSteps: budget?.maxSteps ?? null,
+      sourceCount: sources.length
+    },
     error: null,
     provider: 'openai',
     model: 'gpt-4o-mini',
     createdAt: now - 21 * MIN,
     updatedAt: now - 20 * MIN,
-    startedAt: now - 21 * MIN,
-    completedAt: now - 20 * MIN,
-    expiresAt: now + 23 * HOUR,
+    startedAt,
+    completedAt: finished ? lastTurn.completedAt : 0,
+    expiresAt: finished ? now + 23 * HOUR : 0,
     kept: false,
     retryOf: '',
     lastOpenedAt: 0,
-    dismissedAt: 0
+    dismissedAt: 0,
+    ...overrides
   };
+}
+
+// A finished Agent run with its steps, sources and answer.
+export function agentAnswer({ id, question, steps, sources, answer, followUps }) {
+  return agentActivity({ id, question, steps, sources, answer, followUps });
 }
 
 // The Agent question used in the README and store images, with its sources.
 export const RATE_LIMIT_QUESTION = 'How are people handling rate limits during streaming?';
-export const RATE_LIMIT_QUERIES = [
-  { query: 'streaming rate limit 429', resultCount: 6 },
-  { query: 'Retry-After backoff streaming', resultCount: 4 },
-  { query: 'batch tool calls rate limit', resultCount: 3 }
-];
 export const RATE_LIMIT_SOURCES = [
   {
     topicId: 1088142,
@@ -205,6 +270,67 @@ export const RATE_LIMIT_SOURCES = [
     slug: 'how-to-request-a-higher-rate-limit',
     title: 'How to request a higher rate limit',
     excerpt: 'Once your usage is steady for a couple of weeks, asking for an increase is the better long-term fix…'
+  }
+];
+
+// What the agent did to answer it: two searches, then one read per source (the store image uses the first four steps).
+export const RATE_LIMIT_STEPS = [
+  {
+    tool: 'search_forum',
+    args: { query: 'streaming rate limit 429' },
+    reason: 'Start with the most direct wording of the question.',
+    resultCount: 6,
+    detail:
+      'Search results for "streaming rate limit 429" (page 1): 6 topics.\n- id 1088142: Rate limit errors only during streamed tool calls — 42 posts, last activity 2026-09-28\n- id 1080655: Batching several tool calls in one turn — 27 posts'
+  },
+  {
+    tool: 'search_forum',
+    args: { query: 'Retry-After backoff streaming' },
+    reason: 'People may describe the fix instead of the error.',
+    resultCount: 4,
+    detail:
+      'Search results for "Retry-After backoff streaming" (page 1): 4 topics.\n- id 1071920: Guide: exponential backoff with Retry-After — 18 posts'
+  },
+  {
+    tool: 'read_topic',
+    args: { topic_id: '1088142' },
+    reason: 'The best match for the error itself.',
+    title: RATE_LIMIT_SOURCES[0].title,
+    resultCount: 42,
+    topicId: RATE_LIMIT_SOURCES[0].topicId,
+    sourceId: 'S1',
+    detail:
+      '[S1] Topic 1088142: Rate limit errors only during streamed tool calls\nShowing: the opening and the newest replies (42 posts; middle omitted)'
+  },
+  {
+    tool: 'read_topic',
+    args: { topic_id: '1071920' },
+    reason: 'A guide that explains the usual fix.',
+    title: RATE_LIMIT_SOURCES[1].title,
+    resultCount: 18,
+    topicId: RATE_LIMIT_SOURCES[1].topicId,
+    sourceId: 'S2',
+    detail: '[S2] Topic 1071920: Guide: exponential backoff with Retry-After\nShowing: all posts'
+  },
+  {
+    tool: 'read_topic',
+    args: { topic_id: '1080655' },
+    reason: 'Batching came up in two results.',
+    title: RATE_LIMIT_SOURCES[2].title,
+    resultCount: 27,
+    topicId: RATE_LIMIT_SOURCES[2].topicId,
+    sourceId: 'S3',
+    detail: '[S3] Topic 1080655: Batching several tool calls in one turn\nShowing: all posts'
+  },
+  {
+    tool: 'read_topic',
+    args: { topic_id: '1064310' },
+    reason: 'For steady, high-volume apps the question is whether to ask for more.',
+    title: RATE_LIMIT_SOURCES[3].title,
+    resultCount: 9,
+    topicId: RATE_LIMIT_SOURCES[3].topicId,
+    sourceId: 'S4',
+    detail: '[S4] Topic 1064310: How to request a higher rate limit\nShowing: all posts'
   }
 ];
 

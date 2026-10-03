@@ -211,25 +211,35 @@ test('OpenRouter follow-up streams through chat completions with temperature and
   assert.equal(request.body.messages.at(-1).content, 'Why did it move?');
 });
 
-test('Agent answers through LM Studio stream with temperature 0.3 and the source-framing system prompt', async () => {
-  const { fetch, requests } = mockFetch(() => sseResponse(chatCompletionsSse(['Use X [S1].'])));
+test('Agent steps and answers go through the same sampling rules', async () => {
+  const { fetch, requests } = mockFetch(() => sseResponse(chatCompletionsSse(['{"tool": "list_latest"}'])));
   const service = new AIService({ fetch });
+  const messages = [{ role: 'user', content: 'GOAL:\nWhat is new?' }];
 
-  const answer = await service.generateAgentAnswer(
+  const reply = await service.completeAgentStep(
     'lmstudio',
-    {
-      question: 'Which tool should I use?',
-      sources: [{ id: 'S1', title: 'Tools', url: 'https://forum.example.com/t/tools/1', excerpt: 'Use X.' }]
-    },
-    { url: 'http://localhost:1234', model: 'local-model' },
-    {}
+    { system: 'You are an agent.', messages },
+    { url: 'http://localhost:1234', model: 'local-model' }
   );
-
-  assert.equal(answer, 'Use X [S1].');
+  assert.equal(reply, '{"tool": "list_latest"}');
   assert.equal(requests[0].url, 'http://localhost:1234/v1/chat/completions');
-  assert.equal(requests[0].body.temperature, 0.3);
+  assert.equal(requests[0].body.temperature, 0.2);
   assert.equal(requests[0].body.messages[0].role, 'system');
+  assert.match(JSON.stringify(requests[0].body.messages[0].content), /You are an agent/);
   assert.ok(requests[0].body.messages.slice(1).every(message => message.role !== 'system'));
+
+  const streamed = [];
+  const answerRequests = mockFetch(() => sseResponse(chatCompletionsSse(['Use X ', '[S1].'])));
+  const answerService = new AIService({ fetch: answerRequests.fetch });
+  const answer = await answerService.streamAgentAnswer(
+    'lmstudio',
+    { system: 'You are an agent.', messages },
+    { url: 'http://localhost:1234', model: 'local-model' },
+    { onStream: chunk => streamed.push(chunk) }
+  );
+  assert.equal(answer, 'Use X [S1].');
+  assert.deepEqual(streamed, ['Use X ', '[S1].']);
+  assert.equal(answerRequests.requests[0].body.temperature, 0.3);
 });
 
 test('Ollama keeps the /api base path', async () => {

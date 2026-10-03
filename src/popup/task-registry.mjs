@@ -49,9 +49,14 @@ export class TaskRegistry {
   }
 
   // The task behind an Agent run (activity or task-shaped value).
+  // A run with follow-ups has one task per question: the unfinished one,
+  // else the newest.
   findAgentTask(activity) {
     const runId = activity?.agentRunId || activity?.activityId;
-    return this.values().find(task => task.type === TASK_TYPE.AGENT && agentRunIdOf(task) === runId) || null;
+    const tasks = this.values().filter(task => task.type === TASK_TYPE.AGENT && agentRunIdOf(task) === runId);
+    return (
+      tasks.find(task => !isTerminalTaskStatus(task.status)) || tasks.sort((left, right) => right.createdAt - left.createdAt)[0] || null
+    );
   }
 
   findUnfinishedAgentTask(agentRunId) {

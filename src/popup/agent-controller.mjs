@@ -125,6 +125,17 @@ export class AgentController {
       root.addEventListener('click', event => {
         this.handleRootClick(event, root);
       });
+      root.addEventListener('submit', event => {
+        event.preventDefault();
+        void this.submitFollowUp(root);
+      });
+      root.addEventListener('keydown', event => {
+        // Ctrl/Cmd+Enter sends the follow-up from its text box.
+        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && event.target.matches('[data-part="followup-input"]')) {
+          event.preventDefault();
+          void this.submitFollowUp(root);
+        }
+      });
     }
     this.panel.details.addEventListener('toggle', () => {
       if (this.panel.details.open) {
@@ -233,7 +244,8 @@ export class AgentController {
   }
 
   announceState(activity) {
-    const key = `${activity.activityId}:${activity.status}`;
+    // A follow-up's answer is announced like the first one.
+    const key = `${activity.activityId}:${activity.turns?.length || 1}:${activity.status}`;
     if (this.announcedStates.has(key)) {
       return;
     }
@@ -348,6 +360,33 @@ export class AgentController {
         await this.deleteActivity(activity, { from: root.id === 'agentPanel' ? 'panel' : 'detail' });
         return;
       default:
+    }
+  }
+
+  // Sends the follow-up typed under an answer (agent-requests.mjs).
+  async submitFollowUp(root) {
+    const activity = this.runRecord(root.dataset.activityId);
+    const input = this.view.part(root, 'followup-input');
+    const form = this.view.part(root, 'followup');
+    const question = input.value.trim();
+    if (!activity || !question || form.dataset.busy === 'true') {
+      return;
+    }
+    form.dataset.busy = 'true';
+    this.view.render(root, activity, { mode: root.id === 'agentPanel' ? 'inline' : 'detail' });
+    let sent = false;
+    try {
+      sent = await this.requests.askFollowUp(activity, question, { root });
+    } finally {
+      form.dataset.busy = 'false';
+    }
+    if (sent) {
+      input.value = '';
+    }
+    const latest = this.runRecord(activity.activityId) || activity;
+    this.view.render(root, latest, { mode: root.id === 'agentPanel' ? 'inline' : 'detail' });
+    if (!sent) {
+      input.focus();
     }
   }
 

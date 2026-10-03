@@ -149,32 +149,52 @@ test('saved lists completed answers from the last day and kept ones', () => {
   );
 });
 
-test('agent progress summarizes searches and the current step', () => {
+test('agent progress says which step of the budget the agent is on and what it is doing', () => {
   assert.deepEqual(describeAgentProgress({ status: 'queued' }), {
     label: 'Queued · waiting for an available worker…',
     percent: null
   });
+  const search = { id: 's1', turn: 0, tool: 'search_forum', args: { query: 'rate limit' }, status: 'completed', resultCount: 4 };
+  const read = { id: 's2', turn: 0, tool: 'read_topic', args: { topic_id: '9' }, status: 'running' };
   assert.deepEqual(
     describeAgentProgress({
       status: 'running',
-      phase: 'fetching_metadata',
-      statusText: 'Checking discussion 4 of 7…',
-      searchQueries: [{ query: 'a' }, { query: 'b' }],
-      progress: { percent: 55 }
+      phase: 'running_tool',
+      steps: [search, read],
+      budget: { maxSteps: 15 },
+      progress: { percent: 7 }
     }),
-    { label: 'Searched 2 queries · checking discussion 4 of 7…', percent: 55 }
+    { label: 'Step 2 of 15 · Reading topic 9…', percent: 7 }
+  );
+  assert.equal(
+    describeAgentProgress({ status: 'running', phase: 'planning', steps: [search], budget: { maxSteps: 15 }, progress: { percent: 7 } })
+      .label,
+    'Step 2 of 15 · Planning…'
   );
   assert.deepEqual(
+    describeAgentProgress({ status: 'running', phase: 'answering', steps: [search], budget: { maxSteps: 15 }, progress: { percent: 90 } }),
+    {
+      label: 'Writing the answer…',
+      percent: null
+    }
+  );
+  // Only the newest turn's steps count towards its own budget.
+  assert.equal(
     describeAgentProgress({
       status: 'running',
-      phase: 'generating',
-      statusText: 'Writing an answer from 3 sources…',
-      searchQueries: [{ query: 'a' }],
-      progress: { percent: 80 }
-    }),
-    { label: 'Searched 1 query · writing an answer from 3 sources…', percent: null }
+      phase: 'planning',
+      steps: [search, { ...search, id: 's9', turn: 1 }],
+      turns: [{ answer: 'a' }, { answer: '' }],
+      budget: { maxSteps: 6 }
+    }).label,
+    'Step 2 of 6 · Planning…'
   );
-  assert.equal(describeAgentProgress({ status: 'running' }).label, 'Starting forum research…');
+  assert.equal(describeAgentProgress({ status: 'running' }).label, 'Starting…');
+  // A legacy run (searches only) reads as steps too.
+  assert.match(
+    describeAgentProgress({ status: 'running', phase: 'planning', searchQueries: [{ query: 'a' }] }).label,
+    /^Step 2 · Planning/
+  );
 });
 
 test('citations become source links outside links and code', () => {

@@ -30,7 +30,7 @@ test('inline and detail Agent answers share one template without fixed IDs', asy
   assert.ok(template, 'expected a shared Agent answer template');
   assert.doesNotMatch(template[1], /\sid="/);
   assert.doesNotMatch(template[1], /aria-live/);
-  for (const part of ['progress', 'answer', 'searches', 'sources', 'actions']) {
+  for (const part of ['progress', 'steps', 'answer', 'followup', 'sources', 'actions']) {
     assert.match(template[1], new RegExp(`data-part="${part}"`));
   }
   assert.match(html, /id="agentPanel"[\s\S]*?data-agent-body/);

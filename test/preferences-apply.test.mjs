@@ -9,7 +9,6 @@ import { TopicSessionDatabase } from '../src/shared/topic-session-db.mjs';
 import { createTopicSession } from '../src/shared/topic-session.mjs';
 import { TaskService } from '../src/background/task-service.mjs';
 import { AgentActivityStore } from '../src/background/agent-activity-store.mjs';
-import { effectiveResearchLimits, runAgentTask } from '../src/background/agent-runner.mjs';
 import { createTopicFetcher, formatFetchTaskStatus, limitTopicPagination } from '../src/background/topic-fetcher.mjs';
 import { createTopicExecutors } from '../src/background/topic-executors.mjs';
 import { readConfig } from '../src/shared/config-state.mjs';
@@ -86,13 +85,13 @@ test('queued and running tasks keep the limits they were queued with; new tasks 
     settings: { model: 'm' }
   });
   assert.deepEqual(running.limits, { topicPageLimit: 5 });
-  assert.deepEqual(queuedAgent.limits.research, { searchQueries: 1, searchPages: 1, topicsRead: 3, rawFallbacks: 2 });
+  assert.deepEqual(queuedAgent.limits.agent, { maxSteps: 6, maxTopicReads: 3, maxCharsPerRead: 12000 });
 
   // The user saves new preferences while those tasks are queued/running.
   stored.preferences = { researchDepth: 'thorough', topicPageMode: 'limit', topicPageLimit: 50 };
 
   assert.deepEqual((await service.getTaskConfiguration(running)).limits, { topicPageLimit: 5 });
-  assert.equal((await service.getTaskConfiguration(queuedAgent)).limits.research.topicsRead, 3);
+  assert.equal((await service.getTaskConfiguration(queuedAgent)).limits.agent.maxTopicReads, 3);
 
   const later = await service.enqueue({
     taskType: 'summary',
@@ -121,7 +120,7 @@ test('queued and running tasks keep the limits they were queued with; new tasks 
   await restarted.ready;
   const restored = restarted.list().find(task => task.id === queuedAgent.id);
   assert.equal(restored.status, TASK_STATUS.QUEUED);
-  assert.equal((await restarted.getTaskConfiguration(restored)).limits.research.searchQueries, 1);
+  assert.equal((await restarted.getTaskConfiguration(restored)).limits.agent.maxSteps, 6);
   // "Every page" survives the restart too (null is not a missing snapshot).
   const restoredUnlimited = restarted.list().find(task => task.id === unlimited.id);
   stored.preferences = { ...stored.preferences, topicPageMode: 'limit', topicPageLimit: 4 };
@@ -264,85 +263,6 @@ test('side panel helpers follow the retention', () => {
   assert.match(retentionCopy(week).savedIntro, /expire after 7 days/);
   assert.match(retentionCopy(week).keepAnswer, /beyond 7 days/);
   assert.match(retentionCopy(resolveRetention({ historyRetention: 'forever' })).savedIntro, /until you delete them/);
-});
-
-// ---------- Agent research limits ----------
-
-function toolClient(calls, { hitsPerPage = 2, more = true, withPosts = true } = {}) {
-  let next = 100;
-  return {
-    siteUrl: SITE,
-    async searchForum({ query, page }) {
-      calls.push(['search', query, page]);
-      return {
-        more,
-        hits: Array.from({ length: hitsPerPage }, () => {
-          next++;
-          return { topicId: String(next), postId: withPosts ? String(next * 10) : '', topicTitle: `T ${next}`, excerpt: 'x' };
-        })
-      };
-    },
-    async getTopic({ topicId }) {
-      calls.push(['topic', topicId]);
-      return { topicId, title: `T ${topicId}`, slug: 't' };
-    },
-    async getPosts({ topicId, postIds }) {
-      calls.push(['posts', topicId]);
-      return { posts: [{ postId: postIds[0], text: 'evidence' }] };
-    },
-    async getRawPage({ topicId }) {
-      calls.push(['raw', topicId]);
-      return { content: 'raw evidence' };
-    }
-  };
-}
-
-async function runWith(limits, options) {
-  const calls = [];
-  const progress = [];
-  await runAgentTask({
-    question: 'How do referral bonuses work for business cards?',
-    toolClient: toolClient(calls, options),
-    generateAnswer: async () => 'answer',
-    onProgress: patch => progress.push(patch),
-    limits
-  });
-  return { calls, progress };
-}
-
-test('the Agent honors the research limits it was given', async () => {
-  const { calls, progress } = await runWith({ searchQueries: 2, searchPages: 3, topicsRead: 4, rawFallbacks: 2 });
-  const searches = calls.filter(call => call[0] === 'search');
-  assert.equal(searches.length, 6);
-  assert.deepEqual(
-    searches.map(call => call[2]),
-    [1, 2, 3, 1, 2, 3]
-  );
-  assert.equal(calls.filter(call => call[0] === 'topic').length, 4);
-  assert.equal(progress.at(-1).progress.totalSteps, 2 * 3 + 4 + 4);
-
-  const quick = await runWith({ searchQueries: 1, searchPages: 1, topicsRead: 3 });
-  assert.equal(quick.calls.filter(call => call[0] === 'search').length, 1);
-  assert.equal(quick.calls.filter(call => call[0] === 'topic').length, 2, 'only as many as were found');
-});
-
-test('the Agent stops paging a search with no more results and caps raw fallbacks', async () => {
-  const { calls } = await runWith(
-    { searchQueries: 1, searchPages: 3, topicsRead: 6, rawFallbacks: 1 },
-    { more: false, hitsPerPage: 6, withPosts: false }
-  );
-  assert.equal(calls.filter(call => call[0] === 'search').length, 1);
-  assert.equal(calls.filter(call => call[0] === 'raw').length, 1);
-});
-
-test('research limits are clamped to the hard caps', () => {
-  assert.deepEqual(effectiveResearchLimits({ searchQueries: 50, searchPages: 50, topicsRead: 50, rawFallbacks: 50 }), {
-    searchQueries: 4,
-    searchPages: 3,
-    topicsRead: 12,
-    rawFallbacks: 12
-  });
-  assert.deepEqual(effectiveResearchLimits(undefined), { searchQueries: 3, searchPages: 1, topicsRead: 6, rawFallbacks: 3 });
 });
 
 // ---------- topic page limit ----------

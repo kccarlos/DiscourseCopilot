@@ -181,7 +181,7 @@
               >
               <datalist id="setupModelList"></datalist>
               <p id="setupModelError" class="setup-field-error hidden"></p>
-              <p id="setupModelHint" class="setup-hint">Prefilled with a fast, low-cost default. You can change it any time.</p>
+              <p id="setupModelHint" class="setup-hint">Prefilled with a recommended model. You can change it any time.</p>
             </div>
 
             <div class="setup-step setup-actions">
@@ -508,17 +508,20 @@
       <p data-part="notice-text"></p>
       <div class="agent-notice-actions" data-part="notice-actions"></div>
     </div>
-    <article class="agent-answer-display summary-display" data-part="answer"></article>
-    <details class="agent-sources-panel agent-search-panel" data-part="searches">
+    <details class="agent-sources-panel agent-steps-panel" data-part="steps">
       <summary>
-        <span>Searches</span>
+        <span>Steps</span>
         <span class="agent-sources-summary-end">
-          <span class="count-badge" data-part="search-count">0</span>
+          <span class="count-badge" data-part="step-count">0</span>
           <span class="chevron" aria-hidden="true"></span>
         </span>
       </summary>
-      <ol class="agent-search-list" data-part="search-list"></ol>
+      <ol class="agent-step-list" data-part="step-list" aria-label="What the agent did"></ol>
     </details>
+    <div class="agent-thread" data-part="thread"></div>
+    <h3 class="agent-turn-question hidden" data-part="turn-question"></h3>
+    <article class="agent-answer-display summary-display" data-part="answer"></article>
+    <p class="agent-note hidden" data-part="budget-note">Stopped at the step limit, so this answer uses only what was found by then.</p>
     <details class="agent-sources-panel" data-part="sources">
       <summary>
         <span>Sources</span>
@@ -529,6 +532,13 @@
       </summary>
       <div class="agent-source-list" data-part="source-list"></div>
     </details>
+    <form class="agent-followup hidden" data-part="followup">
+      <label class="agent-followup-label" data-part="followup-label">Ask a follow-up</label>
+      <div class="agent-followup-row">
+        <textarea class="agent-followup-input" data-part="followup-input" rows="2" maxlength="4000" placeholder="Ask a follow-up about this answer…"></textarea>
+        <button class="secondary agent-followup-send" type="submit" data-part="followup-send">Ask</button>
+      </div>
+    </form>
     <p class="agent-action-status hidden" data-part="action-status" role="status"></p>
     <div class="agent-detail-actions" data-part="actions"></div>
   </template>

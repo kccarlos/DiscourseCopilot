@@ -12,7 +12,7 @@ import {
 } from '../src/services/prompts.js';
 import { DEFAULT_RESPONSE_LANGUAGE, RESPONSE_LANGUAGES, normalizeResponseLanguage } from '../src/shared/response-language.mjs';
 import { buildFollowUpMessages } from '../src/services/chat-context.mjs';
-import { buildAgentMessages } from '../src/services/agent-context.mjs';
+import { buildAgentSystemPrompt } from '../src/services/agent-prompt.mjs';
 
 test('normalizes response languages and defaults to auto', () => {
   assert.equal(DEFAULT_RESPONSE_LANGUAGE, 'auto');
@@ -99,20 +99,20 @@ test('follow-up messages use the response language and forum name', () => {
   assert.match(pinned[0].content, /Respond in Portuguese/);
 });
 
-test('Agent messages use the response language and forum name', () => {
-  const sources = [{ sourceId: 'S1', title: '', text: 'Source text' }];
-  const auto = buildAgentMessages({ question: 'How?', sources, forumName: 'Discourse Meta' });
-  assert.match(auto[0].content, /discussions on Discourse Meta/);
-  assert.match(auto[0].content, /same language as the user's question/);
-  assert.match(auto[1].content, /Title: Forum discussion/);
+test('the agent prompt uses the response language, the forum name and the custom instructions', () => {
+  const budget = { maxSteps: 15, maxTopicReads: 8, maxCharsPerRead: 30000 };
+  const auto = buildAgentSystemPrompt({ forumName: 'Discourse Meta', siteUrl: 'https://meta.discourse.org', budget });
+  assert.match(auto, /research agent for Discourse Meta \(https:\/\/meta\.discourse\.org\)/);
+  assert.match(auto, /same language as the user's question/);
+  assert.doesNotMatch(auto, /Additional instructions/);
 
-  const pinned = buildAgentMessages({
-    question: 'How?',
-    sources,
-    systemPrompt: 'Be terse.',
+  const pinned = buildAgentSystemPrompt({
+    forumName: 'Discourse Meta',
+    siteUrl: 'https://meta.discourse.org',
+    budget,
+    customInstructions: 'Be terse.',
     responseLanguage: 'ru'
   });
-  assert.match(pinned[0].content, /^Be terse\./);
-  assert.match(pinned[0].content, /a Discourse forum/);
-  assert.match(pinned[0].content, /Respond in Russian/);
+  assert.match(pinned, /Respond in Russian/);
+  assert.match(pinned, /Additional instructions from the user:\nBe terse\.$/);
 });

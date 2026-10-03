@@ -7,7 +7,6 @@
 //   ai-errors.mjs           cancellation and token-limit classification
 import { FULL_PROMPTS, getPrompt, normalizeCustomSystemPrompt, resolveSummarySystemPrompt, buildCoverageNote } from './prompts.js';
 import { buildFollowUpMessages } from './chat-context.mjs';
-import { buildAgentMessages } from './agent-context.mjs';
 import { getModel } from './provider-config.js';
 import { normalizeResponseLanguage } from '../shared/response-language.mjs';
 import { estimateTokens, isTokenLimitError, throwIfAborted } from './ai-errors.mjs';
@@ -148,27 +147,46 @@ export class AIService {
   }
 
   /**
-   * Generate a forum-wide answer from a bounded, citation-addressable source set.
-   * Forum content is framed as untrusted reference material by buildAgentMessages.
+   * One planning turn of the Ask-the-forum agent: the model's reply to the
+   * system prompt and the conversation so far (expected to be one JSON
+   * action, see agent-action.mjs). Works with every provider because it
+   * needs no native tool calling.
    */
-  async generateAgentAnswer(provider, context, settings, callbacks = {}) {
-    const { onProgress, onStream, onError, abortSignal } = callbacks;
+  async completeAgentStep(provider, { system, messages }, settings, callbacks = {}) {
+    const { abortSignal } = callbacks;
     throwIfAborted(abortSignal);
-
     if (!provider || !settings) {
       throw new Error('Provider and settings are required');
     }
+    return streamAnswer(this.getModel(provider, settings), {
+      messages: [{ role: 'system', content: system }, ...messages],
+      temperature: 0.2,
+      abortSignal,
+      emptyMessage: 'The model returned an empty reply',
+      logLabel: 'Agent step'
+    });
+  }
 
-    const messages = buildAgentMessages(context || {});
-    const model = this.getModel(provider, settings);
+  /**
+   * The agent's final answer, streamed as Markdown text: the same
+   * conversation as the planning turns, ending with the instruction to write
+   * the answer.
+   */
+  async streamAgentAnswer(provider, { system, messages }, settings, callbacks = {}) {
+    const { onProgress, onStream, onError, abortSignal } = callbacks;
+    throwIfAborted(abortSignal);
+    if (!provider || !settings) {
+      throw new Error('Provider and settings are required');
+    }
     onProgress?.({ step: 'agent-answer', message: 'Writing answer with sources…' });
-    return streamAnswer(model, {
-      messages,
+    return streamAnswer(this.getModel(provider, settings), {
+      messages: [{ role: 'system', content: system }, ...messages],
       temperature: 0.3,
       abortSignal,
       onStream,
       onError,
-      emptyMessage: 'No Agent answer was generated'
+      emptyMessage: 'No Agent answer was generated',
+      logLabel: 'Agent answer'
     });
   }
 

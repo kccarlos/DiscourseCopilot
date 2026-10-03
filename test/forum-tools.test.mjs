@@ -226,3 +226,62 @@ test('recognizes a successful HTML challenge page returned where JSON was expect
     error => error instanceof ForumToolError && error.code === 'USER_ACTION_REQUIRED' && error.needsUserAction === true
   );
 });
+
+test('lists the latest topics from /latest.json on the forum, with the same URL policy', async () => {
+  const urls = [];
+  const tools = client(async url => {
+    urls.push(url);
+    return response({
+      body: {
+        topic_list: {
+          topics: [
+            { id: 7, title: 'Seven', slug: 'seven', posts_count: 4, last_posted_at: '2026-02-01T00:00:00Z' },
+            { id: 'x', title: 'Not a topic' },
+            ...Array.from({ length: 40 }, (_, index) => ({ id: 100 + index, title: `T${index}` }))
+          ]
+        }
+      }
+    });
+  }, 'https://example.com/forum');
+  const { topics } = await tools.listLatest();
+  assert.deepEqual(urls, ['https://example.com/forum/latest.json']);
+  assert.equal(topics.length, 30);
+  assert.deepEqual(topics[0], {
+    topicId: '7',
+    title: 'Seven',
+    slug: 'seven',
+    postsCount: 4,
+    lastPostedAt: '2026-02-01T00:00:00Z',
+    excerpt: ''
+  });
+});
+
+test('search results also come back as topic summaries with the matching excerpt', async () => {
+  const tools = client(async () =>
+    response({
+      body: {
+        posts: [{ id: 1, topic_id: 5, blurb: 'The best match.' }],
+        topics: [
+          { id: 5, title: 'Five', slug: 'five', posts_count: 9 },
+          { id: 6, title: 'Six' }
+        ]
+      }
+    })
+  );
+  const result = await tools.searchForum({ query: 'five' });
+  assert.deepEqual(
+    result.topicSummaries.map(topic => [topic.topicId, topic.title, topic.postsCount, topic.excerpt]),
+    [
+      ['5', 'Five', 9, 'The best match.'],
+      ['6', 'Six', null, '']
+    ]
+  );
+  assert.equal(result.hits.length, 3, 'the original hits are unchanged');
+});
+
+test('a raw page keeps up to the requested characters, and no more than the page ceiling', async () => {
+  const tools = client(async () => response({ body: 'x'.repeat(50000), contentType: 'text/plain' }));
+  assert.equal((await tools.getRawPage({ topicId: '1' })).content.length, 30000, 'the default is unchanged');
+  assert.equal((await tools.getRawPage({ topicId: '1', maxChars: 45000 })).content.length, 45000);
+  assert.equal((await tools.getRawPage({ topicId: '1', maxChars: 10_000_000 })).content.length, 50000);
+});

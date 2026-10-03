@@ -1,7 +1,7 @@
 // Cards on the Activity screen: tasks (Tasks tab) and saved items (Saved
 // tab). Pure DOM builders; every action goes through a callback.
 import { TASK_STATUS, TASK_TYPE, isTerminalTaskStatus } from '../shared/task-record.mjs';
-import { agentActivityExpiry } from '../shared/agent-activity.mjs';
+import { agentActivityExpiry, agentStepsOf } from '../shared/agent-activity.mjs';
 import { formatExpiresIn } from '../shared/preferences.mjs';
 import { describeSummarizedReplies, formatRelativeTime, retentionCopy } from './ui-state.mjs';
 import { cleanTopicTitle } from './forum-names.mjs';
@@ -127,10 +127,13 @@ export function createAgentTaskCard(task, { queuePosition = 0, activity, onOpen,
     queuePosition
   });
 
-  if (activity?.sourceRefs?.length || activity?.answerStatus === 'no_results') {
+  const stepCount = activity ? agentStepsOf(activity).length : 0;
+  if (stepCount || activity?.sourceRefs?.length) {
     const meta = document.createElement('small');
     meta.className = 'task-card-status';
-    meta.textContent = activity.answerStatus === 'no_results' ? 'No matching sources' : plural(activity.sourceRefs.length, 'source');
+    meta.textContent = [stepCount && plural(stepCount, 'step'), activity.sourceRefs.length && plural(activity.sourceRefs.length, 'source')]
+      .filter(Boolean)
+      .join(' · ');
     card.appendChild(meta);
   }
 
@@ -260,13 +263,14 @@ export function createSavedAgentCard(
   card.appendChild(title);
 
   const excerpt = document.createElement('p');
-  excerpt.textContent =
-    activity.answerStatus === 'no_results' ? 'No matching discussions were found.' : answerExcerpt(activity.answer) || 'Saved Agent answer';
+  excerpt.textContent = answerExcerpt(activity.answer) || 'Saved Agent answer';
   card.appendChild(excerpt);
 
   const metadata = document.createElement('div');
   metadata.className = 'saved-card-meta';
+  const stepCount = agentStepsOf(activity).length;
   metadata.append(
+    ...(stepCount ? [createMetadataSpan(plural(stepCount, 'step'))] : []),
     createMetadataSpan(plural(activity.sourceRefs.length, 'source')),
     createMetadataSpan(formatRelativeTime(activity.completedAt || activity.updatedAt))
   );

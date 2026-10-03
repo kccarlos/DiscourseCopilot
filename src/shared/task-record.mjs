@@ -73,6 +73,8 @@ export function createTaskRecord(value, now = Date.now()) {
     agentRunId: type === TASK_TYPE.AGENT ? agentRunId : '',
     clientRequestId: type === TASK_TYPE.AGENT ? stringValue(value.clientRequestId, 120) : '',
     retryOf: type === TASK_TYPE.AGENT ? stringValue(value.retryOf, 120) : '',
+    // A follow-up question asked on a finished run (same agentRunId).
+    followUp: type === TASK_TYPE.AGENT && value.followUp === true,
     // Agent records always carry a display name; topic work keeps only the
     // name the page reported so a hostname fallback never masks a real name.
     forumName: type === TASK_TYPE.AGENT ? (siteUrl ? forumDisplayName(siteUrl, value.forumName) : '') : stringValue(value.forumName, 120),

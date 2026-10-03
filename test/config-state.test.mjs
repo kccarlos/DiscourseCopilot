@@ -666,18 +666,18 @@ test('preference draft edits never touch storage until save()', async () => {
   const store = createStore(storage);
   await store.load();
   store.selectProvider('ollama');
-  store.updatePreferences({ researchDepth: 'custom', customResearch: { topicsRead: '9' } });
+  store.updatePreferences({ researchDepth: 'custom', customBudget: { maxTopicReads: '9' } });
   store.updatePreferences({ historyRetention: '7d' });
   assert.equal(storage.writes.length, 0);
   assert.equal(store.config.preferences.historyRetention, '1d');
-  assert.equal(store.draftPreferences.customResearch.topicsRead, '9');
-  assert.equal(store.draftPreferences.customResearch.searchQueries, 3, 'merged, not replaced');
+  assert.equal(store.draftPreferences.customBudget.maxTopicReads, '9');
+  assert.equal(store.draftPreferences.customBudget.maxSteps, 15, 'merged, not replaced');
 
   const result = await store.save();
   assert.equal(result.ok, true);
   assert.equal(storage.writes.length, 1);
   assert.equal(storage.values.preferences.historyRetention, '7d');
-  assert.equal(storage.values.preferences.customResearch.topicsRead, 9);
+  assert.equal(storage.values.preferences.customBudget.maxTopicReads, 9);
   assert.equal(store.config.preferences.researchDepth, 'custom');
   assert.equal(store.draft.preferences, undefined, 'draft follows the saved values again');
 });
