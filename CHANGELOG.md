@@ -4,6 +4,8 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-02
+
 ### Added
 - Ask the forum is now an agent. It plans one step at a time (search the forum, list the latest topics, read a topic, check your saved summaries), you can watch and open each step, and it answers with [S#] sources that link to the topics it read. It works with every AI provider (the model replies with one JSON action per turn, no native tool calling needed), and the answer streams in.
 - Follow-up questions under an answer continue the same run on the same forum, with a fresh budget, and add a new answer.
@@ -75,7 +77,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/kccarlos/DiscourseCopilot/releases/tag/v2.0.0
