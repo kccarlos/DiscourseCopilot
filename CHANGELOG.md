@@ -4,6 +4,9 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Changed
+- GitHub release notes are built from this changelog (the version's section, plus install steps and links) instead of GitHub's auto-generated list.
+
 ## [2.2.1] - 2026-10-03
 
 ### Changed

@@ -405,13 +405,13 @@ Before pushing, `pnpm test && pnpm check && pnpm build` covers everything except
 
 1. Make sure `main` is green and holds everything that should ship.
 2. Bump `version` in **both** `manifest.json` and `package.json` (for example `2.2.0`). The Chrome Web Store only accepts a version higher than the last one uploaded, so never reuse or lower a version.
-3. In [CHANGELOG.md](CHANGELOG.md), rename **Unreleased** to the new version with today's date, start a new empty **Unreleased** section, and update the compare links at the bottom.
+3. In [CHANGELOG.md](CHANGELOG.md), rename **Unreleased** to the new version with today's date, start a new empty **Unreleased** section, and update the compare links at the bottom. This section becomes the GitHub release notes, so write it for users: a one-line summary right under the heading (it opens the notes), then **Added / Changed / Fixed** in plain language. Preview with `node tools/release-notes.mjs X.Y.Z`; the release fails before publishing anything if the section is missing or empty.
 4. Commit to `main` (for example "Release 2.2.0") and push.
 5. Tag and push the tag: `git tag v2.2.0 && git push origin v2.2.0`. Only repository admins can create `v*` tags (see [Repository protections](#repository-protections)).
 
 `.github/workflows/release.yml` then runs on the tag:
 
-1. **release** job: installs, fails unless the tag equals the manifest version (and both version files agree), runs `pnpm test` and `pnpm build`, zips the contents of `dist/` as `discourse-copilot-<version>.zip`, and creates a GitHub Release for the tag with the zip and auto-generated notes.
+1. **release** job: installs, fails unless the tag equals the manifest version (and both version files agree), runs `pnpm test` and `pnpm build`, zips the contents of `dist/` as `discourse-copilot-<version>.zip`, and creates a GitHub Release for the tag with the zip. Its notes come from the version's CHANGELOG.md section plus an install footer and changelog links (`tools/release-notes.mjs`).
 2. **chrome-web-store** job: signs in to Google Cloud through Workload Identity Federation (below), uploads the zip with the [Chrome Web Store API v2](https://developer.chrome.com/docs/webstore/api) and waits until the store has processed it. Then:
    - `CWS_AUTO_PUBLISH` = `true`: submits the item for review (`publishType: DEFAULT_PUBLISH`, so it goes live automatically once approved).
    - anything else (the current setting is `false`): leaves the upload as a draft. Open the [developer dashboard](https://chrome.google.com/webstore/devconsole), check the draft (listing text, see [store-assets/LISTING.md](store-assets/LISTING.md)) and click **Submit for review**.

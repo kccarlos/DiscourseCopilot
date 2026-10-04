@@ -56,6 +56,13 @@ jobs:
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${m}\n`);
           '
 
+      - name: Prepare release notes from CHANGELOG.md
+        run: |
+          if ! node tools/release-notes.mjs "${{ steps.version.outputs.version }}" > release-notes.md 2> notes-error.txt; then
+            echo "::error::$(cat notes-error.txt)"; exit 1
+          fi
+          cat release-notes.md
+
       - name: Test
         run: pnpm test
 
@@ -76,7 +83,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$TAG" "${{ steps.zip.outputs.zip }}" \
-            --title "$TAG" --generate-notes --verify-tag
+            --title "$TAG" --notes-file release-notes.md --verify-tag
 
       - name: Upload zip for publish job
         uses: actions/upload-artifact@v7
