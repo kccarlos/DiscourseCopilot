@@ -194,6 +194,8 @@ So the service worker, the content script and the shared modules never depend on
 
 The manifest asks only for the AI providers' API hosts and `localhost`/`127.0.0.1` (Ollama, LM Studio) as `host_permissions`. Forums are `optional_host_permissions` (`https://*/*`, plus `http://*/*` for a local-model server on another computer), granted one origin at a time (`https://forum.example.com/*`; subfolder installs and ports share it). There is no static content script and no `tabs` permission. `src/shared/forum-access.mjs` owns all of it.
 
+**Network surface (keep the privacy claims true).** The README, `PRIVACY.md` and the store listing say the extension makes no analytics or other third-party calls. Today its only network requests are: the forum's own `/t/{id}.json`, `/raw/{id}`, `/search.json` and `/latest.json` (background, credentials included, only for an allowed forum), the forum's `/favicon.ico` as an `<img>` in the side panel's forum bar (the current forum, even before access is allowed), the AI provider's API and its model-list endpoint (`model-catalog.mjs`, the key sent only to that provider), and local model servers. There are no remote fonts, scripts, CDNs or tracking calls, and the provider "Get a key" links only open on click. If you add a request to anywhere else, update those documents first.
+
 ```
   side panel: page without access                       background (service worker)
   ─────────────────────────────                         ───────────────────────────
@@ -333,7 +335,7 @@ The status line, the save bar's state label ("Unsaved changes", "Saving…", "Sa
 
 ### Ask the forum (the agent)
 
-Ask the forum is a read-only agent. The model is asked for **one JSON action per turn**, `{"tool": "...", "arguments": {...}, "reason": "..."}`, so it works with every provider and needs no native tool calling. The loop (`src/background/agent-loop.mjs`) runs the action, appends the observation, and asks again until `final_answer` or the step budget is spent.
+Ask the forum is a read-only agent. The model is asked for **one JSON action per turn**, `{"tool": "...", "arguments": {...}, "reason": "..."}`, so it needs no native tool calling and can work with any supported provider (very small local models may not keep to the format; see Risks below). The loop (`src/background/agent-loop.mjs`) runs the action, appends the observation, and asks again until `final_answer` or the step budget is spent.
 
 ```
   User        Panel            Executor / loop            Model             Forum
@@ -365,7 +367,7 @@ Ask the forum is a read-only agent. The model is asked for **one JSON action per
 | --- | --- | --- |
 | `search_forum` | `query` (Discourse search syntax), `page` 1–3 | `/search.json`; up to 20 topics with id, title, posts, last activity, excerpt |
 | `list_latest` | none | `/latest.json`; about 30 topics |
-| `read_topic` | `topic_id` (digits), `page` (optional) | Topic metadata plus posts from `/raw/{id}`; returns a source number `[S#]`. A topic over 100 posts is read as its opening (page 1) plus its newest replies (last page) with a marker for the omitted middle; `page` reads another part. Trimmed to `maxCharsPerRead` (40% head, 60% tail) |
+| `read_topic` | `topic_id` (digits), `page` (optional) | Topic metadata plus posts from `/raw/{id}`; returns a source number `[S#]`. A topic over 100 posts is read as its opening (page 1) plus its newest replies (last page) with a marker for the omitted middle; `page` reads another part. Trimmed to `maxCharsPerRead`: 40% head, 60% tail for the opening-plus-newest view; a one-page topic or an explicit `page` keeps 70% head, 30% tail |
 | `saved_summaries` | `query` (optional) | The user's saved summaries for this forum from IndexedDB (no network); with a query, the matching text, each with a source number |
 | `final_answer` | `answer` (a one-sentence gist) | Ends the loop; the full answer is then written by one streamed call |
 
@@ -414,7 +416,7 @@ Before pushing, `pnpm test && pnpm check && pnpm build` covers everything except
    - `CWS_AUTO_PUBLISH` = `true`: submits the item for review (`publishType: DEFAULT_PUBLISH`, so it goes live automatically once approved).
    - anything else (the current setting is `false`): leaves the upload as a draft. Open the [developer dashboard](https://chrome.google.com/webstore/devconsole), check the draft (listing text, see [store-assets/LISTING.md](store-assets/LISTING.md)) and click **Submit for review**.
 
-Google reviews every update before it reaches users; the dashboard shows the review status. To switch automatic submission on or off: `gh variable set CWS_AUTO_PUBLISH --body true` (or `false`).
+Google reviews every update before it reaches users, which can take from a few hours to several days, so the store can lag behind the GitHub Release (the README tells users so and points them to the release zip); the dashboard shows the review status. The README's store-version badge shows what the store currently serves. To switch automatic submission on or off: `gh variable set CWS_AUTO_PUBLISH --body true` (or `false`).
 
 The workflow can also be started by hand (**Actions → Release → Run workflow**, with an existing tag). That only rebuilds and creates the GitHub Release; the store job runs for tag pushes only, because the identity provider trusts nothing else.
 
@@ -487,7 +489,7 @@ Then add the service account's email under **Account → Service account** in th
 
 ```
 tools/ui/
-  flows.mjs           UI regression suite: ~41 scenarios, ~540 checks per theme (incl. content.js on a stand-in forum page, fixtures/discourse-topic.html)
+  flows.mjs           UI regression suite: one scenario per flow, every check run in light and dark (incl. content.js on a stand-in forum page, fixtures/discourse-topic.html)
   readme-shots.mjs    docs/screenshots/*.png: panels → framed composition → palette PNG
   store-shots.mjs     store-assets/*.png: 1280x800 screenshots and promo tiles (24-bit, no alpha)
   pixdiff.mjs         compare two PNGs or two folders of PNGs

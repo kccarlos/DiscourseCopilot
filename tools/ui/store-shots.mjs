@@ -182,7 +182,7 @@ const SHOTS = [
         panel: 'activity-light',
         url: 'community.openai.com/latest',
         forumHtml: topicList(FORUM_LOOKS.openai, openaiLatest, '#0e76bd'),
-        title: 'Works on every Discourse forum',
+        title: 'Made for Discourse forums',
         sub: 'One click enables each forum you use. Saved summaries and answers stay grouped by forum.'
       })
   },

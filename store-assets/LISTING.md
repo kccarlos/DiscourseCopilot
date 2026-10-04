@@ -1,6 +1,6 @@
 # Chrome Web Store listing
 
-The text submitted to the Chrome Web Store for DiscourseCopilot, kept here so it changes together with the extension. Update it whenever `manifest.json` permissions or user-facing features change. Current as of version 2.2.1. The release workflow uploads only the package: listing text, screenshots and permission justifications are edited by hand in the [developer dashboard](https://chrome.google.com/webstore/devconsole), so copy any change made here there too (and the other way round). The short description comes from `description` in `manifest.json`.
+The text submitted to the Chrome Web Store for DiscourseCopilot, kept here so it changes together with the extension. Update it whenever `manifest.json` permissions or user-facing features change. Current as of version 2.2.1. The release workflow uploads only the package, never this text: the listing text, screenshots and permission justifications are pasted by hand into the [developer dashboard](https://chrome.google.com/webstore/devconsole), so copy any change made here there too (and the other way round). The short description comes from `description` in `manifest.json`.
 
 ## Summary (short description, max 132 characters)
 
@@ -15,13 +15,13 @@ DiscourseCopilot helps you catch up on any Discourse forum in seconds, right fro
 • Summarize long topics: the original post, how people responded, and the key takeaways, even on topics with thousands of replies.
 • Ask follow-up questions about the topic you're reading.
 • Ask the forum: an agent searches the forum, reads the most relevant discussions step by step (you can watch each step), and answers with numbered sources you can click. Ask follow-up questions on the same answer.
-• Works on any forum built with Discourse, including your own community. One click allows each forum you use; there's no access to other websites.
+• Made for forums built with Discourse, including your own community. One click allows each forum you use; the extension does not read other websites.
 • Bring your own AI: connect the AI provider you already use with your own API key, or run a model on your own computer.
 • Your language: answers follow the language of the discussion, or one you choose.
 • Organized history: saved summaries, chats and answers, grouped by forum. Keep the ones you need.
 • Light and dark mode.
 
-Private by design: your API key and history stay in your browser. Forum content is sent only to the AI provider you choose. DiscourseCopilot reads only the forums you allow, and you can remove access anytime in Settings. No accounts, no analytics, no tracking.
+Privacy first: your API key and history stay in your browser. Forum content is sent only to the AI provider you choose (or stays on your computer with a local model). DiscourseCopilot reads only the forums you allow, and you can remove access anytime in Settings. No accounts, no analytics, no tracking.
 
 Free and open source (Apache-2.0): https://github.com/kccarlos/DiscourseCopilot
 
@@ -69,7 +69,7 @@ Captions (title, then subtitle), also free of provider brand names:
 
 1. `01-summarize-topics.png`: **Summarize any Discourse topic in seconds.** Get the main points of a long thread, then ask follow-up questions about it.
 2. `02-ask-the-forum.png`: **Ask the whole forum — answers with sources.** An agent searches and reads step by step, then cites the posts it used.
-3. `03-every-discourse-forum.png`: **Works on every Discourse forum.** One click enables each forum you use. Saved summaries and answers stay grouped by forum.
+3. `03-every-discourse-forum.png`: **Made for Discourse forums.** One click enables each forum you use. Saved summaries and answers stay grouped by forum.
 4. `04-bring-your-own-ai.png`: **Bring your own AI.** Connect the AI provider you already use, or run a model on your own computer. Your key stays in your browser.
 5. `05-light-and-dark-mode.png`: **Light and dark mode.** The side panel follows your system theme automatically.
 

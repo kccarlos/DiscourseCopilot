@@ -1,14 +1,16 @@
 # Changelog
 
-Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each release is on the [Chrome Web Store](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac) and on the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases).
+Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each release is published on the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases) (with the installable zip) and submitted to the [Chrome Web Store](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac). The store offers a version only after Google's review, which can take from a few hours to several days, so it may lag behind the newest release.
 
 ## [Unreleased]
+
+## [2.2.1] - 2026-10-03
 
 ### Changed
 
 - Security: replaced the vulnerable dev-only `web-ext-run` dependency tree (pulled in by `vite-plugin-web-extension`, used only for its browser-launch mode) with a local stub, clearing all 13 `pnpm audit` findings. Also bumped the AI SDK packages, Biome, Vite and sharp within their ranges.
+- Docs: README highlights the privacy-first design, explains that Chrome Web Store updates wait for Google's review, and no longer overclaims; store screenshot 3 now reads "Made for Discourse forums".
 
-## [2.2.1] - 2026-10-03
 
 ### Fixed
 - Local models (Ollama, LM Studio): summaries, chat and Ask the forum failed with "Forbidden" on a default Ollama install, because Ollama refuses requests that carry a browser extension's `Origin` header. The extension now removes that header from its own requests to `localhost`, `127.0.0.1` and a local server address you allowed (one `declarativeNetRequestWithHostAccess` rule, no new install warning). Requests from web pages are not changed. `OLLAMA_ORIGINS` is no longer needed; the setup and settings hints about it are gone, and the 403 message only suggests it as a fallback.
@@ -19,7 +21,7 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 ## [2.2.0] - 2026-10-02
 
 ### Added
-- Ask the forum is now an agent. It plans one step at a time (search the forum, list the latest topics, read a topic, check your saved summaries), you can watch and open each step, and it answers with [S#] sources that link to the topics it read. It works with every AI provider (the model replies with one JSON action per turn, no native tool calling needed), and the answer streams in.
+- Ask the forum is now an agent. It plans one step at a time (search the forum, list the latest topics, read a topic, check your saved summaries), you can watch and open each step, and it answers with [S#] sources that link to the topics it read. It does not need native tool calling from the provider (the model replies with one JSON action per turn), so it can work with any of the supported providers, though very small local models may struggle to keep to the format. The answer streams in.
 - Follow-up questions under an answer continue the same run on the same forum, with a fresh budget, and add a new answer.
 - A run is saved after every step: it resumes from the last finished step after a browser or service-worker restart, and **Continue** after a login or forum-access pause picks up the step that was waiting.
 - Model selection from the provider's live list: once a key (or local server address) is entered, the setup card and Settings list the models the provider offers today and pre-select a curated fast, low-cost model (or a sensible available one). A saved model is never changed; Settings warns when the provider no longer offers it.
@@ -48,30 +50,20 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 First release published through the automated Chrome Web Store pipeline. No changes to the extension since 2.1.0.
 
 ### Added
-- Ask the forum is now an agent. It plans one step at a time (search the forum, list the latest topics, read a topic, check your saved summaries), you can watch and open each step, and it answers with [S#] sources that link to the topics it read. It works with every AI provider (the model replies with one JSON action per turn, no native tool calling needed), and the answer streams in.
-- Follow-up questions under an answer continue the same run on the same forum, with a fresh budget, and add a new answer.
-- A run is saved after every step: it resumes from the last finished step after a browser or service-worker restart, and **Continue** after a login or forum-access pause picks up the step that was waiting.
 - Release workflow uploads each tagged version to the Chrome Web Store (API v2, signed in through Workload Identity Federation, no stored keys) and submits it for review when enabled.
 
 ### Changed
-- Settings → Ask the forum now sets the agent's budget instead of searches and result pages: steps, topics read and characters per read (Quick 6/3/12k, Balanced 15/8/30k, Thorough 25/14/45k, Custom). Earlier custom limits are converted to an equivalent budget; runs already queued keep what they were queued with.
-- Saved and Activity cards for Ask the forum show the question, the number of steps and sources. Answers from before this change still open, with their searches shown as steps.
 - README installs from the Chrome Web Store; the GitHub Releases zip is the alternative.
 
 ## [2.1.0] - 2026-09-23
 
 ### Changed
-- Settings → Ask the forum now sets the agent's budget instead of searches and result pages: steps, topics read and characters per read (Quick 6/3/12k, Balanced 15/8/30k, Thorough 25/14/45k, Custom). Earlier custom limits are converted to an equivalent budget; runs already queued keep what they were queued with.
-- Saved and Activity cards for Ask the forum show the question, the number of steps and sources. Answers from before this change still open, with their searches shown as steps.
 - Forum access is requested per forum instead of for all websites (`<all_urls>` removed). At install the extension can reach only the AI providers' APIs and your own computer (local models); each Discourse forum is allowed the first time you use it (**Allow access to {forum}**), and the in-page button runs only on allowed forums. Forums used with 2.0 need one click on **Allow access**. New `activeTab` and `scripting` permissions let the side panel check a page for Discourse after you click the toolbar icon, and register the in-page script for allowed forums.
 - The side panel shows one guidance card per page state: page not checked yet, not a Discourse forum, allow access (with Chrome's prompt steps), forum home, and a two-step checklist when provider setup is also pending.
 - Background tasks check forum access and explain how to allow it; Ask the forum waits for access and continues once it is granted.
 - Store listing description no longer lists AI provider names (the Chrome Web Store flagged the list as keyword spam).
 
 ### Added
-- Ask the forum is now an agent. It plans one step at a time (search the forum, list the latest topics, read a topic, check your saved summaries), you can watch and open each step, and it answers with [S#] sources that link to the topics it read. It works with every AI provider (the model replies with one JSON action per turn, no native tool calling needed), and the answer streams in.
-- Follow-up questions under an answer continue the same run on the same forum, with a fresh budget, and add a new answer.
-- A run is saved after every step: it resumes from the last finished step after a browser or service-worker restart, and **Continue** after a login or forum-access pause picks up the step that was waiting.
 - **Settings → Forum access** lists the allowed forums, with **Remove access** (saved summaries and answers are kept).
 
 ## [2.0.0] - 2026-09-23
@@ -79,9 +71,6 @@ First release published through the automated Chrome Web Store pipeline. No chan
 First public release.
 
 ### Added
-- Ask the forum is now an agent. It plans one step at a time (search the forum, list the latest topics, read a topic, check your saved summaries), you can watch and open each step, and it answers with [S#] sources that link to the topics it read. It works with every AI provider (the model replies with one JSON action per turn, no native tool calling needed), and the answer streams in.
-- Follow-up questions under an answer continue the same run on the same forum, with a fresh budget, and add a new answer.
-- A run is saved after every step: it resumes from the last finished step after a browser or service-worker restart, and **Continue** after a login or forum-access pause picks up the step that was waiting.
 - Side panel for any Discourse forum: topic summaries (original post, how people responded, key takeaways), follow-up chat, and **Ask the forum**, which searches the forum, reads the best matches and answers with numbered, clickable sources.
 - Bring your own AI: OpenRouter, OpenAI, Anthropic, Google Gemini, Groq, xAI, DeepSeek, or a local Ollama or LM Studio server.
 - Work runs in the background and can be picked up later; Activity lists saved summaries, chats and answers grouped by forum, with **Keep**.
