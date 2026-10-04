@@ -1,6 +1,6 @@
 # Chrome Web Store listing
 
-The text submitted to the Chrome Web Store for DiscourseCopilot, kept here so it changes together with the extension. Update it whenever `manifest.json` permissions or user-facing features change. Current as of version 2.2.0. The release workflow uploads only the package: listing text, screenshots and permission justifications are edited by hand in the [developer dashboard](https://chrome.google.com/webstore/devconsole), so copy any change made here there too (and the other way round). The short description comes from `description` in `manifest.json`.
+The text submitted to the Chrome Web Store for DiscourseCopilot, kept here so it changes together with the extension. Update it whenever `manifest.json` permissions or user-facing features change. Current as of version 2.2.1. The release workflow uploads only the package: listing text, screenshots and permission justifications are edited by hand in the [developer dashboard](https://chrome.google.com/webstore/devconsole), so copy any change made here there too (and the other way round). The short description comes from `description` in `manifest.json`.
 
 ## Summary (short description, max 132 characters)
 

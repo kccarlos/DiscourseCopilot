@@ -4,6 +4,8 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-10-03
+
 ### Fixed
 - Local models (Ollama, LM Studio): summaries, chat and Ask the forum failed with "Forbidden" on a default Ollama install, because Ollama refuses requests that carry a browser extension's `Origin` header. The extension now removes that header from its own requests to `localhost`, `127.0.0.1` and a local server address you allowed (one `declarativeNetRequestWithHostAccess` rule, no new install warning). Requests from web pages are not changed. `OLLAMA_ORIGINS` is no longer needed; the setup and settings hints about it are gone, and the 403 message only suggests it as a fallback.
 
@@ -83,7 +85,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.1...HEAD
+[2.2.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.0.0...v2.1.0
