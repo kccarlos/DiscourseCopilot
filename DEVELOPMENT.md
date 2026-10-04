@@ -50,6 +50,12 @@ Formatting-only commits are listed in `.git-blame-ignore-revs`; to have `git bla
 4. After each rebuild, click the reload icon on the extension's card in `chrome://extensions` (and refresh any open forum tabs) to pick up the change.
 5. Open a Discourse forum, click the toolbar icon, and click **Allow access to …** in the side panel (then **Allow** in Chrome's prompt). Allowed forums survive reloads; remove them under **Settings → Forum access** (or the extension's **Site access** in `chrome://extensions`) to test the first-run flow again.
 
+### The `web-ext-run` stub
+
+`vite-plugin-web-extension` imports `web-ext-run` (the Firefox/Chrome launcher) at top level, but only uses it to open a browser in its serve mode. `web-ext-run` drags in vulnerable packages (adm-zip, node-forge, shell-quote, tmp, uuid), some with no patched release. We never use that mode (`disableAutoLaunch: true` in `vite.config.js`; `pnpm dev` is `vite build --watch`), so `package.json` overrides it with the local stub in `tools/stubs/web-ext-run/` (`pnpm.overrides`, `link:`). The stub exports only what the plugin imports and throws a clear error if the launch path is ever called.
+
+To remove it once the plugin drops or fixes the dependency: delete the `pnpm.overrides` entry and `tools/stubs/`, run `pnpm install`, then check `pnpm audit` is still clean.
+
 ## Project structure
 
 Plain JavaScript ES modules, bundled by Vite (`vite-plugin-web-extension` reads `manifest.json`). Logic that needs no DOM or `chrome.*` API at import time lives in modules unit-tested under `test/` (state derivations, the config model, the settings form machine, the task service, executors' helpers); the DOM-bound view classes are kept thin on top of them.

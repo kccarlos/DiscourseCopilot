@@ -1,0 +1,11 @@
+{
+  "name": "web-ext-run",
+  "version": "0.0.0-stub",
+  "private": true,
+  "description": "Local stub that replaces web-ext-run (see DEVELOPMENT.md). Browser-launch mode of vite-plugin-web-extension is unsupported.",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./util/logger": "./logger.js"
+  }
+}

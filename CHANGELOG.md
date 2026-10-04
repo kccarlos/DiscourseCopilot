@@ -4,6 +4,10 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Changed
+
+- Security: replaced the vulnerable dev-only `web-ext-run` dependency tree (pulled in by `vite-plugin-web-extension`, used only for its browser-launch mode) with a local stub, clearing all 13 `pnpm audit` findings. Also bumped the AI SDK packages, Biome, Vite and sharp within their ranges.
+
 ## [2.2.1] - 2026-10-03
 
 ### Fixed
