@@ -357,11 +357,7 @@ export class SetupCard {
           ? 'Start Ollama on this computer, then keep the default address.'
           : 'Start the local server in LM Studio (Developer tab), then keep the default address.';
       this.setLink($('setupDownloadLink'), link?.url, link?.label || 'Download');
-      $('setupOllamaOrigins').classList.toggle('hidden', provider !== 'ollama');
-      $('setupServerUrl').setAttribute(
-        'aria-describedby',
-        provider === 'ollama' ? 'setupServerUrlHint setupOllamaOrigins setupServerUrlError' : 'setupServerUrlHint setupServerUrlError'
-      );
+      $('setupServerUrl').setAttribute('aria-describedby', 'setupServerUrlHint setupServerUrlError');
     } else {
       $('setupApiKeyLabel').textContent = `${config.name} API key`;
       $('setupApiKey').value = draft.apiKey || '';

@@ -2164,19 +2164,6 @@ details[open] > summary .chevron {
     text-decoration: underline;
 }
 
-.setup-origins-hint {
-    display: block;
-}
-
-.setup-origins-hint code {
-    padding: 0.05rem 0.25rem;
-    border-radius: 4px;
-    background: var(--uc-surface-sunken);
-    color: var(--uc-ink-soft);
-    font-size: 0.95em;
-    overflow-wrap: anywhere;
-}
-
 .setup-field-error {
     color: var(--uc-danger);
     font-weight: 650;

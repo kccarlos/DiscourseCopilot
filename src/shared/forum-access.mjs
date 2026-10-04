@@ -177,7 +177,7 @@ export function serverNeedsAccessPrompt(serverUrl) {
 }
 
 export function serverAccessDeniedText(serverUrl) {
-  return `DiscourseCopilot wasn’t allowed to connect to ${forumAccessHost(serverUrl)}. Try again and choose Allow, or start the server so it accepts requests from the extension (for Ollama: OLLAMA_ORIGINS=chrome-extension://*).`;
+  return `DiscourseCopilot wasn’t allowed to connect to ${forumAccessHost(serverUrl)}. Try again and choose Allow.`;
 }
 
 export async function revokeForumAccess(siteUrl, { permissions = chromePermissions() } = {}) {

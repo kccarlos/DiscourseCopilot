@@ -5,7 +5,7 @@ import { AIService } from '../services/ai-service.js';
 import { topicSessionDatabase } from '../shared/topic-session-db.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { TASK_TYPE } from '../shared/task-record.mjs';
-import { ConfigStore } from '../shared/config-state.mjs';
+import { CONFIG_STORAGE_KEYS, ConfigStore, readConfig } from '../shared/config-state.mjs';
 import { resolveRetention } from '../shared/preferences.mjs';
 import { ForumRequestGovernor } from './forum-tools.mjs';
 import { AgentActivityStore } from './agent-activity-store.mjs';
@@ -14,6 +14,7 @@ import { createTopicFetcher } from './topic-fetcher.mjs';
 import { createTopicExecutors } from './topic-executors.mjs';
 import { createAgentExecutor } from './agent-executor.mjs';
 import { createMessageRouter, respondAsync } from './message-router.mjs';
+import { syncLocalModelHeaders } from '../shared/local-model-headers.mjs';
 import {
   forumOriginPattern,
   hasForumAccess,
@@ -92,12 +93,34 @@ configStore.subscribe(event => {
   if (event.type !== 'loaded') {
     return;
   }
+  void syncLocalModelAccess();
   void taskService.ready
     .then(() => taskService.applyRetention(resolveRetention(configStore.config.preferences)))
     .catch(error => {
       console.warn('Background: Unable to apply history retention:', error);
     });
 });
+
+// Local model servers: Ollama refuses requests that carry the extension's
+// Origin header, so a declarativeNetRequest rule strips it from the
+// extension's own requests to localhost and the user's custom server hosts.
+// Syncs run one at a time, at every worker start (install, update, browser
+// start), when the saved server URLs change and when host access changes.
+let localModelSync = Promise.resolve();
+function syncLocalModelAccess() {
+  localModelSync = localModelSync
+    .catch(() => {})
+    .then(async () => {
+      // Read storage directly: configStore.load() would notify this very subscriber again.
+      const values = await configStore.storageArea.get([...CONFIG_STORAGE_KEYS]);
+      return syncLocalModelHeaders(readConfig(values, configStore.providerConfigs));
+    })
+    .catch(error => {
+      console.warn('Background: Unable to sync the local model header rule:', error);
+    });
+  return localModelSync;
+}
+void syncLocalModelAccess();
 
 // Forum access: the content script runs only on forums the user enabled.
 // Registrations are serialized (registerContentScripts rejects a duplicate
@@ -115,6 +138,8 @@ function syncContentScripts() {
 }
 void syncContentScripts();
 subscribeForumAccess(({ type, origins }) => {
+  // A custom model server's host is an optional host permission too.
+  void syncLocalModelAccess();
   void syncContentScripts().then(() =>
     type === 'added'
       ? // Show the launcher in tabs already open on a newly enabled forum.

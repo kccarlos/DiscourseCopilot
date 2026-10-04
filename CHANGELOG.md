@@ -4,6 +4,12 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Fixed
+- Local models (Ollama, LM Studio): summaries, chat and Ask the forum failed with "Forbidden" on a default Ollama install, because Ollama refuses requests that carry a browser extension's `Origin` header. The extension now removes that header from its own requests to `localhost`, `127.0.0.1` and a local server address you allowed (one `declarativeNetRequestWithHostAccess` rule, no new install warning). Requests from web pages are not changed. `OLLAMA_ORIGINS` is no longer needed; the setup and settings hints about it are gone, and the 403 message only suggests it as a fallback.
+
+### Added
+- `pnpm test:local-models`: a local-only end-to-end check of Ollama (and LM Studio when running) in real Chromium with the built extension.
+
 ## [2.2.0] - 2026-10-02
 
 ### Added

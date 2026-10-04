@@ -134,13 +134,7 @@ Once you paste a key, the model field lists the models your provider offers toda
 <details>
 <summary>Using Ollama on your computer</summary>
 
-Start Ollama so the extension is allowed to reach it:
-
-```bash
-OLLAMA_ORIGINS=chrome-extension://* ollama serve
-```
-
-Then choose **Local (Ollama)** in setup. The address `http://localhost:11434` is filled in for you. LM Studio uses `http://localhost:1234` by default. If the server runs on another computer, enter its address; Chrome asks once for permission to connect to it when you click **Test & save**.
+Start Ollama, then choose **Local (Ollama)** in setup. No Ollama settings are needed: the extension takes care of the browser header that Ollama would otherwise refuse (see the FAQ below). The address `http://localhost:11434` is filled in for you. LM Studio uses `http://localhost:1234` by default. If the server runs on another computer, enter its address; Chrome asks once for permission to connect to it when you click **Test & save**.
 
 </details>
 
@@ -195,6 +189,9 @@ You've set a limit on **Pages read per topic**, so a longer topic is summarized 
 
 **How do I hide the DiscourseCopilot button on forum pages?**
 Open Settings, scroll to **Forum access**, and turn off **Show the DiscourseCopilot button on forum pages**, then click **Save Settings**. The button goes away on open forum tabs right away. The toolbar icon still opens the side panel.
+
+**Ollama says "refused the connection (403)".**
+DiscourseCopilot removes the `Origin` header from its own requests to `localhost`, `127.0.0.1` and any local server address you allowed, which is what lets a default Ollama install accept it. Web pages are not affected, so Ollama still refuses them. If you still see a 403, update Ollama and reload the extension; as a fallback, start Ollama with `OLLAMA_ORIGINS=chrome-extension://*`.
 
 **What gets sent, and to whom?**
 Only the forum content needed for your request and your question, sent to the AI provider you set up. Nothing is sent to us. The forum itself only sees normal page requests from your browser, like when you browse it.

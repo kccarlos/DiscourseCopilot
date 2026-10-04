@@ -157,7 +157,10 @@ test('connection failures map to the field the user should fix', () => {
   const offlineLocal = classifyConnectionFailure('ollama', { status: 0 }, configs);
   assert.equal(offlineLocal.field, 'url');
   assert.match(offlineLocal.message, /Can't reach Ollama/);
-  assert.match(classifyConnectionFailure('ollama', { status: 403 }, configs).message, /OLLAMA_ORIGINS=chrome-extension:\/\/\*/);
+  assert.match(
+    classifyConnectionFailure('ollama', { status: 403 }, configs).message,
+    /refused the connection \(403\).*OLLAMA_ORIGINS=chrome-extension:\/\/\*/
+  );
   assert.doesNotMatch(classifyConnectionFailure('lmstudio', { status: 403 }, configs).message, /OLLAMA_ORIGINS/);
   assert.equal(classifyConnectionFailure('openai', { status: 0 }, configs).field, null);
 });

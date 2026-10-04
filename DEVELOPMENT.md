@@ -25,6 +25,7 @@ pnpm build   # build the extension into dist/
 pnpm dev     # rebuild on change (vite build --watch --mode development; also turns on DiscourseCopilotLogger.log traces)
 pnpm test          # run unit tests (node --test)
 pnpm test:ui       # build, then run the UI flows in Chromium (light and dark)
+pnpm test:local-models  # build, then check Ollama / LM Studio for real (local only, see Local model servers)
 pnpm shots:readme  # build, then render the README screenshots into tools/ui/out/readme/
 pnpm shots:store   # build, then render the Chrome Web Store images into tools/ui/out/store/
 pnpm clean         # remove dist/
@@ -152,6 +153,8 @@ src/
     model-catalog.mjs     Providers' live model lists (fetch, filter, cache) and the default
                           pick from them; curated cheap/fast models live in constants.js
     forum-access.mjs      Per-forum host permissions, the access error, content script sync
+    local-model-headers.mjs  The declarativeNetRequest rule that strips Origin from the extension's
+                          own requests to local model servers (see Local model servers)
     constants.js          Storage keys, message names, provider list, curated models (RECOMMENDED_MODELS)
     task-record.mjs       Task records: statuses, types, normalization
     agent-activity.mjs    Agent activity records (steps, transcript, turns, sources) and their retention
@@ -212,6 +215,15 @@ The manifest asks only for the AI providers' API hosts and `localhost`/`127.0.0.
 - **"Checked" tabs.** A toolbar click records the tab ID in `storage.session` (`actionClickedTabs`) so a page that stays hidden afterwards (new tab page, `chrome://`) reads as "Not a Discourse forum" rather than "Page not checked yet". The panel drops the record when the tab starts loading another page (activeTab ends on a cross-site navigation); with the panel closed during that navigation the record can go stale until the next click. `content.js` ignores a second injection into a page that already has a live instance, and replaces an instance orphaned by an extension reload.
 - **What the panel can see.** Without `tabs`, `tab.url`/`title` exist only for enabled forums, provider hosts, and tabs where the icon was clicked (activeTab, until the tab navigates to another site). A content script already running keeps answering after access is removed; the panel checks `permissions.contains` and shows the Allow access card again. Opening a forum link from the panel still works (`tabs.create/update` need no permission), but an existing tab on a forum that isn't enabled can't be found and reused.
 - **Custom local-model servers.** Test/Save in the setup card and Settings request the server's origin in the click when it isn't `localhost`/`127.0.0.1`; Settings leaves such origins out of the forum list.
+
+### Local model servers
+
+Ollama answers HTTP 403 to any request with an `Origin: chrome-extension://…` header unless `OLLAMA_ORIGINS` is set. Chrome adds that header to the extension's POST requests (the service worker's summary, chat and agent calls; a page's `POST /api/chat`), while a page's plain GET (`/api/tags`: the model list, Test Connection) carries none and succeeds. `src/shared/local-model-headers.mjs` fixes this with one `declarativeNetRequest` rule (`modifyHeaders`: remove `origin`):
+
+- **Permission.** `declarativeNetRequestWithHostAccess`. It needs host access for the request URL and initiator, which the manifest already grants for `localhost`/`127.0.0.1`, and Chrome lists no install warning for it (plain `declarativeNetRequest` warns "Block content on any page").
+- **Scope.** `initiatorDomains: [chrome.runtime.id]`, so only the extension's own requests change; a web page's request to Ollama keeps its Origin and is still refused (a security requirement, covered by `test/local-model-headers.test.mjs` and the real e2e). `requestDomains` is `localhost`, `127.0.0.1`, plus the host of a saved Ollama / LM Studio URL (including `[::1]`) whose optional host permission is granted. `resourceTypes` are `xmlhttprequest` (a service-worker `fetch`) and `other`. Only `Origin` is removed; Ollama accepts the other headers Chrome sends.
+- **Dynamic rule, one ID.** Dynamic rules persist across browser restarts, so the rule exists before the worker runs (the settings page can test a connection right after the browser starts); a session rule would vanish on every restart. `syncLocalModelHeaders()` compares with the stored rule and rewrites it only when different, so it is idempotent. `background.js` runs it at every worker start (install, update, browser start), on every `loaded` config event (a saved URL changed) and on forum/host permission changes, one at a time. It reads storage directly because `ConfigStore.load()` notifies its own subscribers.
+- **Real check.** `pnpm test:local-models` (`tools/ui/local-models-e2e.mjs`) loads `dist/` into Playwright's Chromium (`channel: 'chromium'`, headless, `--load-extension`) and uses the Ollama and models actually running on the machine: the settings page's model list and Test Connection, a real summary and follow-up through the background queue against a fixture forum on localhost, scoping against a web page on another host name, and the custom-host add/remove path. It skips with a message when Ollama is not reachable, so it never runs in CI. `--agent` also runs one Ask the forum run; `--dist=<dir>` tests another build.
 
 ### Model catalog (live model lists)
 

@@ -17,6 +17,7 @@ test('background service registers queue and action listeners during startup', a
   const registered = new Map();
   const scriptingCalls = [];
 
+  let dynamicRules = [];
   globalThis.indexedDB = new IDBFactory();
   globalThis.IDBKeyRange = IDBKeyRange;
   globalThis.chrome = {
@@ -41,7 +42,16 @@ test('background service registers queue and action listeners during startup', a
         }
       }
     },
+    declarativeNetRequest: {
+      async getDynamicRules() {
+        return dynamicRules;
+      },
+      async updateDynamicRules({ removeRuleIds = [], addRules = [] }) {
+        dynamicRules = [...dynamicRules.filter(rule => !removeRuleIds.includes(rule.id)), ...addRules];
+      }
+    },
     runtime: {
+      id: 'test-id',
       async sendMessage() {},
       getURL(path) {
         return `chrome-extension://test-id/${path}`;
@@ -172,6 +182,23 @@ test('background service registers queue and action listeners during startup', a
     allFrames: false,
     persistAcrossSessions: true
   });
+
+  // The local-model header rule is written at start, scoped to this extension.
+  assert.equal(dynamicRules.length, 1);
+  assert.deepEqual(dynamicRules[0].condition.initiatorDomains, ['test-id']);
+  assert.deepEqual(dynamicRules[0].condition.requestDomains, ['localhost', '127.0.0.1']);
+
+  // A custom model server: saved URL + granted host joins the rule; revoking removes it.
+  storage.ollamaUrl = 'http://192.168.1.20:11434';
+  granted.add('http://192.168.1.20/*');
+  permissionListeners.added[0]({ origins: ['http://192.168.1.20/*'] });
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.ok(dynamicRules[0].condition.requestDomains.includes('192.168.1.20'));
+  granted.delete('http://192.168.1.20/*');
+  permissionListeners.removed[0]({ origins: ['http://192.168.1.20/*'] });
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.ok(!dynamicRules[0].condition.requestDomains.includes('192.168.1.20'));
+  delete storage.ollamaUrl;
 
   // A new grant: the registration follows, and open tabs of that forum
   // get the script without a reload.

@@ -6,7 +6,10 @@ export const LOCAL_PROVIDER_IDS = new Set(['ollama', 'lmstudio']);
 // Shown as large choices in the side panel; every other provider is listed
 // under "More providers".
 // Ollama rejects requests from browser extensions unless they are allowed.
-export const OLLAMA_ORIGINS_HINT = 'Start Ollama with OLLAMA_ORIGINS=chrome-extension://* so the extension can reach it.';
+// The extension removes its Origin header from requests to local servers, so a 403 means
+// the rule is not in effect (an old Ollama that checks more, or a proxy in between).
+export const OLLAMA_ORIGINS_HINT =
+  'Ollama refused the connection (403). Update Ollama, or start it with OLLAMA_ORIGINS=chrome-extension://*.';
 
 export const RECOMMENDED_PROVIDERS = Object.freeze(['openrouter', 'openai', 'anthropic', 'ollama']);
 
@@ -235,7 +238,9 @@ export function classifyConnectionFailure(provider, error, providerConfigs = {})
       field: LOCAL_PROVIDER_IDS.has(provider) ? 'url' : 'apiKey',
       message: withDetail(
         LOCAL_PROVIDER_IDS.has(provider)
-          ? `${name} refused the request.${provider === 'ollama' ? ` ${OLLAMA_ORIGINS_HINT}` : ''}`
+          ? provider === 'ollama'
+            ? OLLAMA_ORIGINS_HINT
+            : `${name} refused the request.`
           : `${name} didn't accept this API key. Check it and try again.`
       )
     };
