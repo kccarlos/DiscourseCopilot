@@ -492,7 +492,8 @@ Then add the service account's email under **Account → Service account** in th
 tools/ui/
   flows.mjs           UI regression suite: one scenario per flow, every check run in light and dark (incl. content.js on a stand-in forum page, fixtures/discourse-topic.html)
   readme-shots.mjs    docs/screenshots/*.png: panels → framed composition → palette PNG
-  store-shots.mjs     store-assets/*.png: 1280x800 screenshots and promo tiles (24-bit, no alpha)
+  store-shots.mjs     store-assets/*.png: 1280x800 screenshots, promo tiles and the GitHub social
+                      preview (24-bit, no alpha)
   demo-gif.mjs        docs/screenshots/demo.gif: the side panel driven step by step (summary, follow-up,
                       Ask the forum) over the store page template, encoded with ffmpeg
   pixdiff.mjs         compare two PNGs or two folders of PNGs
