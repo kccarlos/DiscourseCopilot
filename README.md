@@ -28,7 +28,7 @@
   to follow new releases. It is free, and it helps other forum readers find DiscourseCopilot.
 </p>
 
-![DiscourseCopilot in the Chrome side panel: a topic summary, an answer with sources, and dark mode](docs/screenshots/hero.png)
+![DiscourseCopilot in action: summarizing a Discourse topic, asking a follow-up, and asking the whole forum for an answer with sources](docs/screenshots/demo.gif)
 
 DiscourseCopilot is a free, open-source Chrome extension. It opens in your browser's side panel next to a forum built on Discourse, like [meta.discourse.org](https://meta.discourse.org), [community.openai.com](https://community.openai.com), or your own community. You bring your own AI (a provider's API key, or a model on your own computer), and **it has no servers, accounts, or analytics of its own**: see [Privacy first](#privacy-first).
 
