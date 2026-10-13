@@ -13,7 +13,7 @@ Kept short and free of brand-name lists: the Chrome Web Store's keyword-spam che
 DiscourseCopilot helps you catch up on any Discourse forum in seconds, right from Chrome's side panel.
 
 • Summarize long topics: the original post, how people responded, and the key takeaways, even on topics with thousands of replies.
-• Ask follow-up questions about the topic you're reading.
+• Ask follow-up questions about the topic you're reading. The whole thread, every reply, is the context, so answers can point to the posts that said it.
 • Ask the forum: an agent searches the forum, reads the most relevant discussions step by step (you can watch each step), and answers with numbered sources you can click. Ask follow-up questions on the same answer.
 • Made for forums built with Discourse, including your own community. One click allows each forum you use; the extension does not read other websites.
 • Bring your own AI: connect the AI provider you already use with your own API key, or run a model on your own computer.
@@ -74,6 +74,8 @@ Captions (title, then subtitle), also free of provider brand names:
 5. `05-light-and-dark-mode.png`: **Light and dark mode.** The side panel follows your system theme automatically.
 
 Promo tiles: `promo-small-440x280.png` and `promo-marquee-1400x560.png`.
+
+GitHub social preview (not a store image): `social-preview-1280x640.png`, the marquee tile re-laid for 2:1. Upload it in the repository's **Settings → General → Social preview**; it is what X, Slack, WeChat and others show for a link to the repository.
 
 `store-assets/01-…05-*.png` are 1280×800 (24-bit, no alpha). They show the side panel on forums that are already allowed; the "Allow DiscourseCopilot on {forum}" card is pictured in the README (`docs/screenshots/feature-allow-access.png`).
 

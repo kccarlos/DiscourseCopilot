@@ -395,6 +395,47 @@ scenario(
   }
 );
 
+// The one-time rating / GitHub star card after the fifth summary.
+scenario(
+  'popup-star-prompt',
+  'src/popup/popup.html',
+  { store: { ...configuredStore, starPrompt: { summaries: 4 } } },
+  async ({ page, check, shot }) => {
+    check('hidden before the fifth summary', !(await visible(page, '#starPrompt')));
+    // The background counts the fifth summary while the panel is open.
+    await page.evaluate(() => chrome.storage.local.set({ starPrompt: { summaries: 5, shownAt: 0, dismissedAt: 0 } }));
+    await page.waitForTimeout(200);
+    check('shown after the fifth summary', await visible(page, '#starPrompt'));
+    check(
+      'marked as shown',
+      await page.evaluate(() => window.__store.starPrompt.shownAt > 0),
+      await page.evaluate(() => JSON.stringify(window.__store.starPrompt))
+    );
+    check(
+      'links to the store reviews and GitHub',
+      JSON.stringify(await page.$$eval('#starPrompt a', links => links.map(a => [a.target, new URL(a.href).hostname])))
+        === '[["_blank","chromewebstore.google.com"],["_blank","github.com"]]'
+    );
+    await shot('shown');
+    await page.click('#starPrompt [data-star-action="dismiss"]');
+    await page.waitForTimeout(100);
+    check('dismissed', !(await visible(page, '#starPrompt')));
+    check('dismissal saved', await page.evaluate(() => window.__store.starPrompt.dismissedAt > 0));
+    await page.reload();
+    await page.waitForTimeout(700);
+    check('not shown again', !(await visible(page, '#starPrompt')));
+  }
+);
+
+scenario(
+  'popup-star-prompt-once',
+  'src/popup/popup.html',
+  { store: { ...configuredStore, starPrompt: { summaries: 5, shownAt: 1 } } },
+  async ({ page, check }) => {
+    check('a card another panel showed is not shown again', !(await visible(page, '#starPrompt')));
+  }
+);
+
 // Agent runs for the flows: the same builders the README and store images use.
 const CACHING_SOURCES = [
   { topicId: 1, slug: 'caching', title: 'Caching guide', excerpt: 'Turn it on in settings.' },

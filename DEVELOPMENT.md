@@ -28,6 +28,7 @@ pnpm test:ui       # build, then run the UI flows in Chromium (light and dark)
 pnpm test:local-models  # build, then check Ollama / LM Studio for real (local only, see Local model servers)
 pnpm shots:readme  # build, then render the README screenshots into tools/ui/out/readme/
 pnpm shots:store   # build, then render the Chrome Web Store images into tools/ui/out/store/
+pnpm shots:demo    # build, then record the animated README demo into tools/ui/out/demo/demo.gif
 pnpm clean         # remove dist/
 pnpm lint          # lint (Biome); pnpm lint:fix applies the safe fixes
 pnpm format        # format every file in place; pnpm format:check only reports
@@ -491,7 +492,10 @@ Then add the service account's email under **Account → Service account** in th
 tools/ui/
   flows.mjs           UI regression suite: one scenario per flow, every check run in light and dark (incl. content.js on a stand-in forum page, fixtures/discourse-topic.html)
   readme-shots.mjs    docs/screenshots/*.png: panels → framed composition → palette PNG
-  store-shots.mjs     store-assets/*.png: 1280x800 screenshots and promo tiles (24-bit, no alpha)
+  store-shots.mjs     store-assets/*.png: 1280x800 screenshots, promo tiles and the GitHub social
+                      preview (24-bit, no alpha)
+  demo-gif.mjs        docs/screenshots/demo.gif: the side panel driven step by step (summary, follow-up,
+                      Ask the forum) over the store page template, encoded with ffmpeg
   pixdiff.mjs         compare two PNGs or two folders of PNGs
   lib/
     chrome-stub.mjs   chrome.* stand-in (storage with onChanged, permissions, scripting probe,
@@ -528,6 +532,8 @@ pnpm shots:store --check      # same for store-assets/
 pnpm shots:readme --write     # render and overwrite docs/screenshots/*.png
 pnpm shots:store --write --only=01,promo-marquee
 ```
+
+**Demo GIF.** `pnpm shots:demo` records the README's animated demo into `tools/ui/out/demo/demo.gif` (`--write` also copies it to `docs/screenshots/demo.gif`, `--width=` sets the GIF width, 960 by default). It needs `ffmpeg` on the PATH; `CHROMIUM_PATH` points it at a Chromium other than Playwright's.
 
 `--check` reports each image as a match or with the size of the difference (pixels differing by more than a small anti-aliasing threshold), and exits non-zero on a material difference. Run it after a UI change to see which committed images went stale, look at the new ones in `tools/ui/out/`, then `--write` those. Rendering uses the system font stack, so regenerate the committed images on macOS (where they were made); other systems render text slightly differently.
 

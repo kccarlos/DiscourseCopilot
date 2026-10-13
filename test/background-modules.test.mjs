@@ -145,7 +145,7 @@ function createFakeAlarms() {
   };
 }
 
-function createService({ execute = () => new Promise(() => {}), readConfig: read } = {}) {
+function createService({ execute = () => new Promise(() => {}), readConfig: read, onSummaryCompleted } = {}) {
   const db = createFakeDb();
   const alarms = createFakeAlarms();
   const messages = [];
@@ -156,7 +156,8 @@ function createService({ execute = () => new Promise(() => {}), readConfig: read
     agentActivities,
     broadcast,
     alarms,
-    readConfig: read || (async () => readConfig({}))
+    readConfig: read || (async () => readConfig({})),
+    onSummaryCompleted
   });
   service.start(execute);
   return { service, db, alarms, messages };
@@ -186,6 +187,25 @@ test('enqueue keeps provider settings in memory only and broadcasts the task', a
   assert.equal(configuration.systemPrompt, 'P');
   assert.equal(configuration.responseLanguage, 'ja');
   assert.equal(configuration.forumName, 'f.example');
+});
+
+test('each completed summary is counted once; chats and failed summaries are not', async () => {
+  let counted = 0;
+  const { service } = createService({
+    execute: async task => {
+      if (task.title === 'fail') throw new Error('Boom');
+      return {};
+    },
+    onSummaryCompleted: () => {
+      counted++;
+    }
+  });
+  await service.enqueue({ taskType: 'summary', topicId: '1', siteUrl: 'https://f.example', title: 'ok' });
+  await service.enqueue({ taskType: 'summary', topicId: '2', siteUrl: 'https://f.example', title: 'fail' });
+  await service.enqueue({ taskType: 'chat', topicId: '1', siteUrl: 'https://f.example', question: 'Q?' });
+  await service.queue.waitForIdle();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(counted, 1);
 });
 
 test('a repeated summary request joins the active task; Agent requests dedupe by client ID', async () => {

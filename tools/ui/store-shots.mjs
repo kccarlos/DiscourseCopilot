@@ -1,5 +1,5 @@
-// Chrome Web Store images (store-assets/*.png): five 1280x800 screenshots and
-// the two promo tiles.
+// Chrome Web Store images (store-assets/*.png): five 1280x800 screenshots,
+// the two promo tiles, and the 1280x640 GitHub social preview.
 //
 //   1. panels:  the dist/ side panel with the chrome.* stub and
 //               fixtures/store.mjs data, 440x732 at 2x      → out/store/panels/
@@ -7,7 +7,7 @@
 //               tiles) rendered at 2x                       → out/store/html/ (generated pages)
 //   3. downsample to 1x (lanczos3), flatten, no alpha      → out/store/
 //
-// Usage: node tools/ui/store-shots.mjs [--only=01,promo-small] [--check] [--write]
+// Usage: node tools/ui/store-shots.mjs [--only=01,promo-small,social-preview] [--check] [--write]
 //   --check  compare out/store/ with store-assets/ (exit 1 on a material difference)
 //   --write  also copy the results over store-assets/
 import fs from 'node:fs';
@@ -218,6 +218,15 @@ const JOBS = [
   ...SHOTS.map(s => ({ ...s, w: 1280, h: 800, sel: '.stage' })),
   { id: 'promo-small', file: 'promo-small-440x280.png', template: 'store/promo-small.html', panels: [], w: 440, h: 280, sel: '.tile' },
   {
+    id: 'social-preview',
+    file: 'social-preview-1280x640.png',
+    template: 'store/social-preview.html',
+    panels: ['marquee-summary', 'marquee-agent'],
+    w: 1280,
+    h: 640,
+    sel: '.tile'
+  },
+  {
     id: 'promo-marquee',
     file: 'promo-marquee-1400x560.png',
     template: 'store/promo-marquee.html',
@@ -276,7 +285,7 @@ fs.mkdirSync(htmlDir, { recursive: true });
 
 const dist = await startServer({ '/': DIST });
 const server = await startServer({ '/': outDir, '/templates/': TEMPLATES, '/brand/': BRAND });
-const browser = await chromium.launch();
+const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 let problems = 0;
 try {
   for (const name of panels) problems += await renderPanel(browser, dist.base, name, PANELS[name]);

@@ -64,6 +64,8 @@ export class TaskService {
    * @param {(storage?: object) => Promise<object>} [options.readConfig] config-state loadConfig
    * @param {(siteUrl: string) => Promise<boolean>} [options.hasForumAccess] whether the
    *   user enabled the forum (forum-access.mjs); requests for other forums are refused
+   * @param {() => Promise<void>|void} [options.onSummaryCompleted] called once per
+   *   summary task that completes (counts summaries for the star prompt)
    */
   constructor({
     db,
@@ -72,6 +74,7 @@ export class TaskService {
     alarms = globalThis.chrome?.alarms,
     readConfig = loadConfig,
     hasForumAccess = async () => true,
+    onSummaryCompleted = () => {},
     concurrency = 2,
     maxQueued = 50
   }) {
@@ -81,6 +84,7 @@ export class TaskService {
     this.alarms = alarms;
     this.readConfig = readConfig;
     this.hasForumAccess = hasForumAccess;
+    this.onSummaryCompleted = onSummaryCompleted;
     this.executor = null;
     // Provider settings sent with a request; kept in memory only, never
     // persisted with the task (they include API keys).
@@ -150,6 +154,11 @@ export class TaskService {
 
   async persistAndBroadcast(task, { durable = false } = {}) {
     this.broadcast({ action: MESSAGES.TASK_UPDATED, task });
+    if (durable && task.type === TASK_TYPE.SUMMARY && task.status === TASK_STATUS.COMPLETED) {
+      Promise.resolve()
+        .then(() => this.onSummaryCompleted())
+        .catch(error => console.warn('Background: Unable to count a completed summary:', error));
+    }
 
     const now = Date.now();
     const lastPersisted = this.persistedAt.get(task.id) || 0;

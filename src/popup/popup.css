@@ -3554,3 +3554,56 @@ details[open] > summary .chevron {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* One-time rating / GitHub star card (star-prompt-card.mjs). */
+.star-prompt {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+    padding: 0.7rem 0.6rem 0.75rem 0.85rem;
+    border: 1px solid var(--uc-accent-line);
+    border-radius: 14px;
+    background: var(--uc-accent-soft);
+    animation: enter-up 280ms ease both;
+}
+
+.star-prompt-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.star-prompt-copy strong {
+    color: var(--uc-ink);
+    font-size: 0.8rem;
+}
+
+.star-prompt-copy p {
+    margin: 0.2rem 0 0.5rem;
+    color: var(--uc-muted);
+    font-size: 0.74rem;
+    line-height: 1.4;
+}
+
+.star-prompt-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1rem;
+}
+
+.star-prompt-link {
+    color: var(--uc-accent);
+    font-size: 0.74rem;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.star-prompt-link:hover {
+    text-decoration: underline;
+}
+
+.star-prompt-close {
+    flex: 0 0 auto;
+    font-size: 1rem;
+    line-height: 1;
+}
