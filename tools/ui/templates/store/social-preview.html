@@ -16,9 +16,12 @@
     linear-gradient(125deg, #3A5BE0 0%, #6440CC 50%, #8E2DB5 100%);
   clip-path: polygon(70px 0, 100% 0, 100% 100%, 0 100%); }
 .card { position: absolute; width: 330px; border-radius: 16px; overflow: hidden; box-shadow: 0 28px 60px -12px rgba(15,5,50,0.6), 0 0 0 1px rgba(255,255,255,0.25); }
+.card { background: #fff; }
 .card img { display: block; width: 100%; }
-.c1 { left: 64px; top: 50px; height: 640px; }
-.c2 { left: 262px; top: 110px; height: 640px; }
+/* The cards end inside the tile, each between two blocks of the panel, so nothing is cut mid-line. */
+.card::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: linear-gradient(to bottom, rgba(255,255,255,0), #fff); }
+.c1 { left: 64px; top: 84px; height: 474px; }
+.c2 { left: 262px; top: 130px; height: 424px; }
 </style></head><body><div class="tile">
 <div class="left">
   <img src="/brand/wordmark/discoursecopilot-wordmark-horizontal-on-light.svg" alt="DiscourseCopilot">
