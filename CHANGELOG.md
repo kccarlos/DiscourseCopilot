@@ -4,8 +4,14 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+- After your fifth summary, the side panel shows a small "Enjoying DiscourseCopilot?" card once, with links to rate the extension or star it on GitHub. Close it and it never comes back.
+- Settings ends with a quiet "Star on GitHub · Rate it" line.
+- A Chinese README (README.zh-CN.md) and an animated demo at the top of the README.
+
 ### Changed
 - GitHub release notes are built from this changelog (the version's section, plus install steps and links) instead of GitHub's auto-generated list.
+- README and store listing: follow-up questions use the whole thread as context, so answers can point to the posts that said it.
 
 ## [2.2.1] - 2026-10-03
 

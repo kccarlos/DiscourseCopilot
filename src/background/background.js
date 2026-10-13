@@ -7,6 +7,7 @@ import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { TASK_TYPE } from '../shared/task-record.mjs';
 import { CONFIG_STORAGE_KEYS, ConfigStore, readConfig } from '../shared/config-state.mjs';
 import { resolveRetention } from '../shared/preferences.mjs';
+import { recordSummaryCompleted } from '../shared/star-prompt.mjs';
 import { ForumRequestGovernor } from './forum-tools.mjs';
 import { AgentActivityStore } from './agent-activity-store.mjs';
 import { TaskService } from './task-service.mjs';
@@ -44,7 +45,8 @@ const taskService = new TaskService({
   db: topicSessionDatabase,
   agentActivities,
   broadcast,
-  hasForumAccess: siteUrl => hasForumAccess(siteUrl)
+  hasForumAccess: siteUrl => hasForumAccess(siteUrl),
+  onSummaryCompleted: () => recordSummaryCompleted(chrome.storage.local)
 });
 const getTaskConfiguration = task => taskService.getTaskConfiguration(task);
 

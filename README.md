@@ -7,6 +7,8 @@
 
 <h3 align="center">Catch up on any Discourse forum in seconds.</h3>
 
+<p align="center"><b>English</b> · <a href="README.zh-CN.md">简体中文</a></p>
+
 <p align="center">
   Summarize long topics, ask follow-up questions, and let AI search the whole forum for you, with links to the posts it used.
 </p>
@@ -49,7 +51,7 @@ The details, including what is stored and for how long, are in the [privacy poli
 ## Why you'll like it
 
 - **Skip the scroll.** Get the main points of a 500-reply topic without reading every post.
-- **Ask questions.** Chat about the topic: "What did people decide?" or "Is there a workaround?"
+- **Ask about the whole thread.** Every reply goes into the conversation, not just a few search hits, so you can ask "What did people decide?" or "Which reply mentioned a workaround?" and get an answer that points to the posts.
 - **Search the whole forum.** Ask a question and an agent looks through the forum for you, step by step, then answers with numbered sources you can click. You can watch what it does and ask follow-ups.
 - **Made for Discourse forums.** Allow access once per forum you use; nothing else to set up.
 - **Use the AI you like.** OpenAI, Anthropic (Claude), Google Gemini, and more (see [the list](#choosing-an-ai-provider)), or a free model running on your own computer.

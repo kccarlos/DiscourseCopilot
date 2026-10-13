@@ -22,6 +22,7 @@
 //                     the Allow access request
 //   background-link   reaching the background worker, restart banner
 //   undo-toast        Undo for deletes (saved summaries, Agent answers)
+//   star-prompt-card  the one-time rating / GitHub star card
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { subscribeForumAccess } from '../shared/forum-access.mjs';
 import { DiscourseCopilotLogger } from '../shared/logger.js';
@@ -48,6 +49,7 @@ import { ActivityView } from './activity-view.mjs';
 import { ForumAccessCard } from './forum-access-card.mjs';
 import { BackgroundLink } from './background-link.mjs';
 import { UndoToast } from './undo-toast.mjs';
+import { StarPromptCard } from './star-prompt-card.mjs';
 import { GUIDANCE_STATE, derivePageGuidance } from './page-guidance.mjs';
 import { applyTopicControls, deriveTopicControls, deriveTopicHelper } from './topic-controls.mjs';
 
@@ -95,6 +97,7 @@ class DiscourseCopilotPopup {
       status: this.status,
       onUnavailable: () => this.updateControls()
     });
+    this.starPrompt = new StarPromptCard({ element: $('starPrompt') });
     this.undo = new UndoToast({
       element: $('undoToast'),
       onError: error => {
@@ -259,6 +262,7 @@ class DiscourseCopilotPopup {
     this.page.mount();
     this.background.mount();
     this.undo.mount();
+    this.starPrompt.mount();
   }
 
   listen() {

@@ -13,7 +13,7 @@ Kept short and free of brand-name lists: the Chrome Web Store's keyword-spam che
 DiscourseCopilot helps you catch up on any Discourse forum in seconds, right from Chrome's side panel.
 
 • Summarize long topics: the original post, how people responded, and the key takeaways, even on topics with thousands of replies.
-• Ask follow-up questions about the topic you're reading.
+• Ask follow-up questions about the topic you're reading. The whole thread, every reply, is the context, so answers can point to the posts that said it.
 • Ask the forum: an agent searches the forum, reads the most relevant discussions step by step (you can watch each step), and answers with numbered sources you can click. Ask follow-up questions on the same answer.
 • Made for forums built with Discourse, including your own community. One click allows each forum you use; the extension does not read other websites.
 • Bring your own AI: connect the AI provider you already use with your own API key, or run a model on your own computer.

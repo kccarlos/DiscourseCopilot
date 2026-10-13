@@ -24,6 +24,7 @@ Discourse forums are hosted on arbitrary domains, so the extension cannot list t
 - **Follow-up chat and Agent answers**: Recent questions, answers, search queries, and source references.
 - **Task status**: Queued, running, completed, failed, and cancelled task metadata so work can be restored and managed.
 - **API keys and settings**: Your AI provider credentials, model choices, favorite models, custom instructions, response language, and other preferences (research depth, pages read per topic, chat context, history settings), stored in Chrome local storage. Chrome does not encrypt this storage, so anyone who can use your Chrome profile on your computer could read your keys; remove them in Settings (or uninstall the extension) if you no longer want them there.
+- **Rating reminder**: How many summaries have completed (counted up to 5) and when the one-time "Enjoying DiscourseCopilot?" card was shown or closed, stored in Chrome local storage so the card appears only once. It never leaves your browser.
 - **Model lists**: The list of models your provider offers, kept for about 10 minutes in Chrome session storage (cleared when the browser closes) so the model field doesn't ask again on every keystroke. It is stored under a one-way hash of your key, never the key itself.
 
 ### What the extension fetches from a forum
