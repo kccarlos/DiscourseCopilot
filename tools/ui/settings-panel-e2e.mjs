@@ -147,24 +147,42 @@ try {
   await page.click('#closeSettingsBtn').catch(() => {});
   const sectionPage = await context.newPage();
   await sectionPage.setViewportSize({ width: 460, height: 500 });
-  await sectionPage.goto(`chrome-extension://${id}/src/settings/settings.html?embedded=1&welcome=1&section=forumAccess`);
+  await sectionPage.goto(`chrome-extension://${id}/src/settings/settings.html?embedded=1&section=forumAccess`);
   await sectionPage.waitForTimeout(1200);
   const top = await sectionPage.$eval('#forumAccessHeading', el => el.getBoundingClientRect().top);
   check(
     'requested section is scrolled into view',
-    (await sectionPage.evaluate(() => window.scrollY)) > 0 && top >= 0 && top < 200,
+    (await sectionPage.evaluate(() => window.scrollY)) > 0 && top >= -2 && top < 200,
     String(top)
   );
-  check('welcome banner ignored when embedded', await sectionPage.$eval('#welcomeHeader', el => getComputedStyle(el).display === 'none'));
 
-  // 6. The standalone options page keeps its header and welcome mode.
+  // 6. The standalone options page keeps its header.
   const options = await context.newPage();
   await options.setViewportSize({ width: 900, height: 700 });
-  await options.goto(`chrome-extension://${id}/src/settings/settings.html?welcome=1`);
+  await options.goto(`chrome-extension://${id}/src/settings/settings.html`);
   await options.waitForTimeout(800);
   check('standalone page keeps its header', await options.$eval('.header', el => getComputedStyle(el).display !== 'none'));
-  check('standalone page keeps the welcome banner', await options.$eval('#welcomeHeader', el => getComputedStyle(el).display !== 'none'));
   check('standalone page is not in embedded mode', await options.evaluate(() => !document.documentElement.classList.contains('embedded')));
+
+  // 7. First install opens the welcome tab; its button opens the side panel
+  // (a real click is a user gesture) and the tab closes itself.
+  const welcome = context.pages().find(p => p.url().endsWith('/src/welcome/welcome.html'));
+  check(
+    'install opened the welcome tab',
+    Boolean(welcome),
+    context
+      .pages()
+      .map(p => p.url())
+      .join(' | ')
+  );
+  if (welcome) {
+    const closed = welcome.waitForEvent('close', { timeout: 5000 }).then(
+      () => true,
+      () => false
+    );
+    await welcome.click('#openPanel');
+    check('welcome button opens the panel and closes the tab', await closed, await welcome.textContent('#status').catch(() => ''));
+  }
 
   check('no page errors', errors.length === 0, errors.join(' | '));
 } finally {

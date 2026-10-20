@@ -29,6 +29,7 @@ import { t } from '../shared/i18n.mjs';
 const { MESSAGES, SESSION_KEYS } = DiscourseCopilotConstants;
 const MAX_ACTION_CLICKED_TABS = 50;
 const SIDE_PANEL_PATH = 'src/popup/popup.html';
+const WELCOME_PAGE_PATH = 'src/welcome/welcome.html';
 
 // Sends to every open extension view; nobody listening is fine.
 function broadcast(message) {
@@ -173,7 +174,8 @@ async function dropLegacyWildcardAccess() {
   }
 }
 
-// First install: open the settings page in welcome mode so setup starts right away.
+// First install: Chrome opens the side panel only on a user action, so open
+// a welcome tab whose button opens the panel, where setup starts.
 chrome.runtime.onInstalled?.addListener(details => {
   if (details?.reason === 'update') {
     void dropLegacyWildcardAccess()
@@ -183,8 +185,7 @@ chrome.runtime.onInstalled?.addListener(details => {
   if (details?.reason !== 'install') {
     return;
   }
-  const optionsPage = chrome.runtime.getManifest?.().options_page || 'src/settings/settings.html';
-  Promise.resolve(chrome.tabs.create({ url: `${chrome.runtime.getURL(optionsPage)}?welcome=1` })).catch(error => {
+  Promise.resolve(chrome.tabs.create({ url: chrome.runtime.getURL(WELCOME_PAGE_PATH) })).catch(error => {
     console.warn('Background: Unable to open the welcome page:', error);
   });
 });

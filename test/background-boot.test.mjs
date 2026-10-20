@@ -225,7 +225,7 @@ test('background service registers queue and action listeners during startup', a
   assert.ok(granted.has('https://www.uscardforum.com/*'), 'enabled forums stay');
   assert.deepEqual(createdTabs, [], 'updates must not open the welcome page');
   installedListeners[0]({ reason: 'install' });
-  assert.deepEqual(createdTabs, [{ url: 'chrome-extension://test-id/src/settings/settings.html?welcome=1' }]);
+  assert.deepEqual(createdTabs, [{ url: 'chrome-extension://test-id/src/welcome/welcome.html' }]);
 
   const listener = runtimeListeners[0];
   const pageChangedResponse = new Promise(resolve => {

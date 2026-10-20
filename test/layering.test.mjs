@@ -5,14 +5,15 @@ import test from 'node:test';
 
 // Which top-level folders under src/ each layer may import from. The service
 // worker, the content script and the shared modules never depend on a page
-// (popup/ or settings/); pages don't depend on each other.
+// (popup/, settings/ or welcome/); pages don't depend on each other.
 const ALLOWED_IMPORTS = {
   shared: ['shared'],
   services: ['services', 'shared'],
   content: ['content', 'shared'],
   background: ['background', 'services', 'shared'],
   popup: ['popup', 'services', 'shared'],
-  settings: ['settings', 'services', 'shared']
+  settings: ['settings', 'services', 'shared'],
+  welcome: ['welcome', 'shared']
 };
 
 const SRC = resolve(import.meta.dirname, '..', 'src');

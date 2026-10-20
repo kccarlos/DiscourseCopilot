@@ -4,6 +4,11 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-10-20
+
+### Changed
+- First install opens a small welcome tab instead of the settings page. Its **Open DiscourseCopilot** button opens the side panel, where setup happens, and closes the tab (Chrome opens the side panel only after a click, so it can't pop up on its own). The settings page no longer has a welcome mode.
+
 ## [2.3.0] - 2026-10-19
 
 ### Added
@@ -98,7 +103,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.1...HEAD
+[2.3.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.1.1...v2.2.0

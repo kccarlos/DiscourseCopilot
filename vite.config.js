@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
       // The content script is registered at runtime (per granted forum) with
       // chrome.scripting, so the manifest no longer references it. Build it
       // as a standalone script at the path FORUM_CONTENT_SCRIPT_FILE names.
-      additionalInputs: ['src/content/content.js'],
+      additionalInputs: ['src/content/content.js', 'src/welcome/welcome.html'],
       // web-ext-run is stubbed (tools/stubs/web-ext-run); never launch a browser.
       disableAutoLaunch: true
     })

@@ -8,12 +8,6 @@ export default {
   'settings.cancel': '取消',
   'settings.restoreDefaults': '恢复默认值',
   'settings.header.currentlySaved': '当前已保存',
-  'settings.welcome.title': '欢迎使用 DiscourseCopilot——三步即可开始',
-  'settings.welcome.intro':
-    'DiscourseCopilot 可以在<strong>任何 Discourse 论坛</strong>上总结长话题，并给出带来源的回答。请在下方连接你自己的 AI 服务商，也可以在侧边栏中完成设置，那里会带你走同样的步骤。',
-  'settings.welcome.step1': '<strong>选择服务商。</strong>OpenRouter 一个密钥即可使用多种模型；Ollama 则在你的电脑上本地运行。',
-  'settings.welcome.step2': '<strong>粘贴 API 密钥</strong>（或本地服务器地址）。它只保存在此浏览器中。',
-  'settings.welcome.step3': '<strong>选择模型</strong>，然后点击<em>测试连接</em>和<em>保存设置</em>。',
   'settings.nav.label': '设置分区',
   'settings.section.provider': 'AI 服务商',
   'settings.section.prompt': '提示词与语言',
@@ -168,8 +162,6 @@ export default {
   'settings.formState.saved': '已保存',
   'settings.formState.allSaved': '所有更改均已保存',
   'settings.formState.notSetUp': '尚未设置',
-  'settings.status.welcomeSaved':
-    '设置已保存，一切就绪——打开任意 Discourse 话题，点击 DiscourseCopilot 图标，允许访问该论坛，然后点击“总结贴文”。',
   'settings.status.loadingSaved': '正在加载已保存的设置…',
   'settings.status.loaded': '设置已加载。',
   'settings.status.loadFailed': '无法加载已保存的设置：{error}',

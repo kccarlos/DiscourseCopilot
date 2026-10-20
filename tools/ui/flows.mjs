@@ -1988,14 +1988,33 @@ scenario(
   }
 );
 
-scenario('settings-welcome', 'src/settings/settings.html?welcome=1', { store: {} }, async ({ page, check, shot }) => {
-  check('welcome header', await visible(page, '#welcomeHeader'));
-  check('status cleared', !(await visible(page, '#status')));
-  await page.fill('#openrouterApiKey', 'or-key');
-  await page.click('#saveBtn');
-  await page.waitForTimeout(300);
-  check('welcome save copy', (await text(page, '#status')).startsWith('Settings saved. You’re set'), await text(page, '#status'));
-  await shot();
+// ---------- First install ----------
+// The welcome tab's button opens the side panel for this window, then closes the tab.
+scenario('welcome', 'src/welcome/welcome.html', { store: {} }, async ({ page, check, shot }) => {
+  check('heading', (await text(page, 'h1')) === 'Welcome to DiscourseCopilot', await text(page, 'h1'));
+  await shot('fresh');
+  await page.click('#openPanel');
+  await page.waitForTimeout(150);
+  check(
+    'opens the side panel for this window',
+    await page.evaluate(() => JSON.stringify(window.__sidePanelOpened) === JSON.stringify([{ windowId: 1 }])),
+    await page.evaluate(() => JSON.stringify(window.__sidePanelOpened))
+  );
+  check(
+    'closes its own tab',
+    await page.evaluate(() => JSON.stringify(window.__removedTabs) === '[7]'),
+    await page.evaluate(() => JSON.stringify(window.__removedTabs))
+  );
+  // A fresh tab where Chrome refuses to open the panel.
+  await page.reload();
+  await page.evaluate(() => {
+    window.__sidePanelFails = true;
+  });
+  await page.click('#openPanel');
+  await page.waitForTimeout(150);
+  check('explains the toolbar icon when it cannot open', (await text(page, '#status')).includes('toolbar'), await text(page, '#status'));
+  check('button usable again', !(await page.$eval('#openPanel', b => b.disabled)));
+  await shot('failed');
 });
 
 // ---------- Preferences ----------
@@ -3016,9 +3035,9 @@ zhScenario('settings', 'src/settings/settings.html', { store: configuredStore },
   await page.screenshot({ path: path.join(outDir, 'zh-settings-full.png'), fullPage: true });
 });
 
-zhScenario('settings-fresh', 'src/settings/settings.html?welcome=1', { store: {} }, async ({ page, check, shot }) => {
-  await zhScreen(page, check, 'welcome', ['三步即可开始']);
-  await shot('welcome');
+zhScenario('welcome', 'src/welcome/welcome.html', { store: {} }, async ({ page, check, shot }) => {
+  await zhScreen(page, check, 'welcome page', ['欢迎使用 DiscourseCopilot', '打开 DiscourseCopilot']);
+  await shot();
 });
 
 zhScenario(

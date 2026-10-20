@@ -212,7 +212,20 @@ export function installChromeStub(options) {
       },
       onChanged: ev('onChanged')
     },
+    // The welcome page opens the panel for its window, then closes itself.
+    sidePanel: {
+      async open(options) {
+        if (window.__sidePanelFails) throw new Error('sidePanel.open() may only be called in response to a user gesture');
+        window.__sidePanelOpened = [...(window.__sidePanelOpened || []), options];
+      }
+    },
     tabs: {
+      async getCurrent() {
+        return { id: 7, windowId: 1 };
+      },
+      async remove(tabId) {
+        window.__removedTabs = [...(window.__removedTabs || []), tabId];
+      },
       async query() {
         // Without the "tabs" permission Chrome hides URL and title of pages
         // the extension has no host access to (unless activeTab).

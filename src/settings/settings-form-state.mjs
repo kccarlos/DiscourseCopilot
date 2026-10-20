@@ -66,8 +66,6 @@ export const FORM_PHASE = Object.freeze({
 
 const BUSY_PHASES = new Set([FORM_PHASE.LOADING, FORM_PHASE.TESTING, FORM_PHASE.SAVING, FORM_PHASE.RESETTING]);
 
-export const WELCOME_SAVED_MESSAGE = t('settings.status.welcomeSaved');
-
 // status: null (hidden) or { message, type: info|success|error, autoHide }.
 function status(message, type = 'info', autoHide = type === 'success') {
   return { message, type, autoHide };
@@ -125,9 +123,8 @@ export function transitionForm(state, event) {
         phase: FORM_PHASE.PRISTINE,
         edited: false,
         fieldErrors: {},
-        // First install (?welcome=1) and the side panel's Settings view start
-        // with a quiet form.
-        status: event.welcomeMode || event.quiet ? null : status(t('settings.status.loaded'), 'success')
+        // The side panel's Settings view starts with a quiet form.
+        status: event.quiet ? null : status(t('settings.status.loaded'), 'success')
       };
     case 'load-failed':
       return {
@@ -219,7 +216,7 @@ export function transitionForm(state, event) {
         edited,
         savingRevision: null,
         fieldErrors: {},
-        status: event.welcomeMode ? status(WELCOME_SAVED_MESSAGE, 'success', false) : status(t('settings.status.saved'), 'success')
+        status: status(t('settings.status.saved'), 'success')
       };
     }
     case 'save-failed':
