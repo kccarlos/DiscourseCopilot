@@ -84,11 +84,13 @@
         </div>
         <div class="hero-action">
           <div class="hero-action-buttons">
-            <button data-i18n="controls.summary.create" id="summarizeBtn" class="summarize-main-btn" type="button">
-              Create summary
+            <button id="summarizeBtn" class="summarize-main-btn has-icon" type="button">
+              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7V3Z"/><path d="M15 3v5h5M10 12h6M10 16h6"/></svg>
+              <span data-i18n="controls.summary.create" class="btn-label">Create summary</span>
             </button>
-            <button data-i18n="common.askForum" id="agentLaunchBtn" class="outline agent-launch-btn" type="button">
-              Ask the forum
+            <button id="agentLaunchBtn" class="outline agent-launch-btn has-icon" type="button">
+              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z"/><path d="m20 20-4-4"/></svg>
+              <span data-i18n="common.askForum" class="btn-label">Ask the forum</span>
             </button>
           </div>
           <small data-i18n="popup.background">Runs in the background. You can keep browsing.</small>
@@ -267,7 +269,10 @@
             <h2 data-i18n="agent.searchThisForum" id="agentComposerHeading">Search this forum</h2>
             <p data-i18n="popup.composer.intro">Search relevant discussions on this forum and answer with sources.</p>
           </div>
-          <button data-i18n="popup.close" id="agentCloseBtn" class="text-btn" type="button">Close</button>
+          <button id="agentCloseBtn" class="text-btn has-icon" type="button">
+            <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            <span data-i18n="popup.close" class="btn-label">Close</span>
+          </button>
         </div>
         <form id="agentForm" class="agent-form">
           <label data-i18n="popup.composer.label" for="agentInput">What would you like to find?</label>
@@ -283,7 +288,10 @@
             <button data-i18n="popup.composer.q3.label" data-i18n-attr="data-agent-question:popup.composer.q3.question" type="button" data-agent-question="How do the most active recent discussions compare?">Compare discussions</button>
           </div>
           <small data-i18n="popup.composer.hint" class="composer-hint">Searches the forum. The task continues while you browse elsewhere.</small>
-          <button data-i18n="agent.searchThisForum" id="sendAgentBtn" class="summarize-main-btn" type="submit">Search this forum</button>
+          <button id="sendAgentBtn" class="summarize-main-btn has-icon" type="submit">
+            <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z"/><path d="m20 20-4-4"/></svg>
+            <span data-i18n="agent.searchThisForum" class="btn-label">Search this forum</span>
+          </button>
         </form>
       </section>
       <section id="backgroundRecovery" class="recovery-card hidden" role="alert">
@@ -333,10 +341,19 @@
           <article id="summaryDisplay" class="summary-display">
             <p data-i18n="popup.summary.placeholder">Your summary will appear here…</p>
           </article>
-          <div data-i18n-attr="aria-label:popup.summary.actions" class="button-group" aria-label="Summary actions">
-            <button data-i18n="popup.summary.copy" id="copyBtn" class="secondary" type="button" disabled>Copy summary</button>
-            <button data-i18n="popup.summary.copyPost" id="copyPostBtn" class="outline secondary" type="button" disabled>Copy full post</button>
-            <button data-i18n="popup.summary.download" id="exportBtn" class="outline secondary" type="button" disabled>Download</button>
+          <div data-i18n-attr="aria-label:popup.summary.actions" class="action-toolbar" role="group" aria-label="Summary actions">
+            <button data-i18n-attr="aria-label:popup.summary.copy;title:popup.summary.copy" id="copyBtn" class="tool-btn has-icon" type="button" aria-label="Copy summary" title="Copy summary" disabled>
+              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M9 9h10v11H9z"/><path d="M5 15V4h10"/></svg>
+              <span data-i18n="popup.summary.copy" class="btn-label">Copy summary</span>
+            </button>
+            <button data-i18n-attr="aria-label:popup.summary.copyPost;title:popup.summary.copyPost" id="copyPostBtn" class="tool-btn has-icon" type="button" aria-label="Copy full post" title="Copy full post" disabled>
+              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M8 4h8l3 3v13H8z"/><path d="M16 4v3h3M11 12h5M11 16h5"/></svg>
+              <span data-i18n="popup.summary.copyPost" class="btn-label">Copy full post</span>
+            </button>
+            <button data-i18n-attr="aria-label:popup.summary.download;title:popup.summary.download" id="exportBtn" class="tool-btn has-icon" type="button" aria-label="Download" title="Download" disabled>
+              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7.5 11 4.5 4.5 4.5-4.5"/><path d="M5 20h14"/></svg>
+              <span data-i18n="popup.summary.download" class="btn-label">Download</span>
+            </button>
           </div>
         </div>
       </details>
@@ -369,7 +386,10 @@
         <div class="panel-body chat-panel-body">
           <div class="chat-toolbar">
             <span data-i18n="chat.start" id="chatCount">Start a conversation</span>
-            <button data-i18n="popup.chat.clear" id="clearChatBtn" class="text-btn" type="button">Clear conversation</button>
+            <button id="clearChatBtn" class="text-btn has-icon" type="button">
+              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 7h14"/><path d="M10 4h4"/><path d="M7 7l1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></svg>
+              <span data-i18n="popup.chat.clear" class="btn-label">Clear conversation</span>
+            </button>
           </div>
 
           <div data-i18n-attr="aria-label:popup.chat.suggestions" id="chatSuggestions" class="chat-suggestions" aria-label="Suggested questions">
@@ -506,10 +526,14 @@
   </div>
 
   <template id="agentAnswerTemplate">
+    <div class="agent-turns" data-part="turns"></div>
     <div class="agent-progress hidden" data-part="progress">
       <div class="agent-progress-row">
         <span data-i18n="agent.starting" class="agent-progress-label" data-part="progress-label">Starting forum research…</span>
-        <button data-i18n="answer.stop" class="outline secondary agent-stop-btn" type="button" data-agent-action="stop">Stop</button>
+        <button class="outline secondary agent-stop-btn has-icon" type="button" data-agent-action="stop">
+          <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 7h10v10H7z"/></svg>
+          <span data-i18n="answer.stop" class="btn-label">Stop</span>
+        </button>
       </div>
       <progress class="agent-progress-bar" data-part="progress-bar" max="100"></progress>
     </div>
@@ -517,39 +541,17 @@
       <p data-part="notice-text"></p>
       <div class="agent-notice-actions" data-part="notice-actions"></div>
     </div>
-    <details class="agent-sources-panel agent-steps-panel" data-part="steps">
-      <summary>
-        <span data-i18n="popup.steps">Steps</span>
-        <span class="agent-sources-summary-end">
-          <span class="count-badge" data-part="step-count">0</span>
-          <span class="chevron" aria-hidden="true"></span>
-        </span>
-      </summary>
-      <ol data-i18n-attr="aria-label:popup.agentDid" class="agent-step-list" data-part="step-list" aria-label="What the agent did"></ol>
-    </details>
-    <div class="agent-thread" data-part="thread"></div>
-    <h3 class="agent-turn-question hidden" data-part="turn-question"></h3>
-    <article class="agent-answer-display summary-display" data-part="answer"></article>
-    <p data-i18n="popup.budgetNote" class="agent-note hidden" data-part="budget-note">Stopped at the step limit, so this answer uses only what was found by then.</p>
-    <details class="agent-sources-panel" data-part="sources">
-      <summary>
-        <span data-i18n="popup.sources">Sources</span>
-        <span class="agent-sources-summary-end">
-          <span class="count-badge" data-part="source-count">0</span>
-          <span class="chevron" aria-hidden="true"></span>
-        </span>
-      </summary>
-      <div class="agent-source-list" data-part="source-list"></div>
-    </details>
     <form class="agent-followup hidden" data-part="followup">
-      <label data-i18n="answer.followUp" class="agent-followup-label" data-part="followup-label">Ask a follow-up</label>
-      <div class="agent-followup-row">
-        <textarea data-i18n-attr="placeholder:popup.followUpPlaceholder" class="agent-followup-input" data-part="followup-input" rows="2" maxlength="4000" placeholder="Ask a follow-up about this answer…"></textarea>
-        <button data-i18n="popup.ask" class="secondary agent-followup-send" type="submit" data-part="followup-send">Ask</button>
+      <label data-i18n="answer.followUp" class="sr-only" data-part="followup-label">Ask a follow-up</label>
+      <div class="chat-composer agent-followup-composer">
+        <textarea data-i18n-attr="placeholder:popup.followUpPlaceholder" class="agent-followup-input" data-part="followup-input" rows="1" maxlength="4000" placeholder="Ask a follow-up about this answer…"></textarea>
+        <button data-i18n-attr="aria-label:popup.chat.send;title:popup.chat.send" class="agent-followup-send" type="submit" data-part="followup-send" aria-label="Send question" title="Send question" disabled>
+          <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 14-7-4 14-3-6-7-1Z"/><path d="m12 13 7-8"/></svg>
+        </button>
       </div>
     </form>
     <p class="agent-action-status hidden" data-part="action-status" role="status"></p>
-    <div class="agent-detail-actions" data-part="actions"></div>
+    <div class="action-toolbar agent-toolbar" data-part="actions"></div>
   </template>
 
   <script type="module" src="popup.js"></script>

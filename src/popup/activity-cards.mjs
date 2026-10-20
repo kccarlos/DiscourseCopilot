@@ -6,6 +6,7 @@ import { formatExpiresIn } from '../shared/preferences.mjs';
 import { describeSummarizedReplies, formatRelativeTime, retentionCopy } from './ui-state.mjs';
 import { cleanTopicTitle } from './forum-names.mjs';
 import { t, tn } from '../shared/i18n.mjs';
+import { setIconButton } from './icons.mjs';
 
 // data-saved-key of a saved card (focus after a delete, tests).
 export const savedTopicKey = entry => `topic:${entry.topicKey}`;
@@ -13,11 +14,24 @@ export const savedAgentKey = activity => `agent:${activity.activityId}`;
 
 const statusLabel = status => t(`task.status.${status}`);
 
-function createButton(label, className, onClick) {
+// `icon` adds a line icon before the label; `iconOnly` keeps just the icon
+// and gives the label as the accessible name and tooltip.
+function createButton(label, className, onClick, { icon = '', iconOnly = false } = {}) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = className;
-  button.textContent = label;
+  if (icon) {
+    // The label stays in the button (visually hidden when icon-only) so
+    // later label changes keep working.
+    setIconButton(button, { icon, label });
+  } else {
+    button.textContent = label;
+  }
+  if (iconOnly) {
+    button.classList.add('icon-only');
+    button.setAttribute('aria-label', label);
+    button.title = label;
+  }
   button.addEventListener('click', onClick);
   return button;
 }
@@ -29,8 +43,11 @@ function createMetadataSpan(text) {
 }
 
 function createCancelButton(task, onCancel) {
-  const cancel = createButton(task.phase === 'cancelling' ? t('answer.stopping') : t('activity.stopTask'), 'outline secondary', () =>
-    onCancel(task.id)
+  const cancel = createButton(
+    task.phase === 'cancelling' ? t('answer.stopping') : t('activity.stopTask'),
+    'outline secondary',
+    () => onCancel(task.id),
+    { icon: 'stop' }
   );
   cancel.disabled = task.phase === 'cancelling';
   return cancel;
@@ -103,7 +120,9 @@ export function createTopicTaskCard(task, { queuePosition, forumName, isCurrentT
   });
   card.appendChild(
     createActions('task-card-actions', [
-      createButton(isCurrentTopic ? t('activity.viewSession') : t('activity.openPost'), 'outline secondary', () => onOpen(task)),
+      createButton(isCurrentTopic ? t('activity.viewSession') : t('activity.openPost'), 'outline secondary', () => onOpen(task), {
+        icon: 'open'
+      }),
       !isTerminalTaskStatus(task.status) && createCancelButton(task, onCancel)
     ])
   );
@@ -151,15 +170,20 @@ export function createAgentTaskCard(task, { queuePosition = 0, activity, onOpen,
       : t('activity.viewProgress');
   card.appendChild(
     createActions('task-card-actions', [
-      createButton(openLabel, 'outline secondary', () => {
-        if (waiting) {
-          onResume(task.id);
-        } else {
-          onOpen(task);
-        }
-      }),
+      createButton(
+        openLabel,
+        'outline secondary',
+        () => {
+          if (waiting) {
+            onResume(task.id);
+          } else {
+            onOpen(task);
+          }
+        },
+        { icon: waiting ? 'play' : 'open' }
+      ),
       (task.status === TASK_STATUS.FAILED || task.status === TASK_STATUS.CANCELLED)
-        && createButton(t('common.retry'), 'outline secondary', () => onRetry(task)),
+        && createButton(t('common.retry'), 'outline secondary', () => onRetry(task), { icon: 'retry' }),
       !isTerminalTaskStatus(task.status) && createCancelButton(task, onCancel)
     ])
   );
@@ -167,7 +191,15 @@ export function createAgentTaskCard(task, { queuePosition = 0, activity, onOpen,
 }
 
 function createKeepButton({ kept, label, title, disabledTitle, onToggle }) {
-  const keepButton = createButton(kept ? t('common.unkeep') : t('common.keep'), 'outline secondary keep-saved', () => onToggle(keepButton));
+  const keepButton = createButton(
+    kept ? t('common.unkeep') : t('common.keep'),
+    'outline secondary keep-saved',
+    () => onToggle(keepButton),
+    {
+      icon: 'bookmark',
+      iconOnly: true
+    }
+  );
   keepButton.setAttribute('aria-pressed', String(kept === true));
   keepButton.setAttribute('aria-label', t(kept ? 'activity.unkeepAria' : 'activity.keepAria', { label }));
   keepButton.title = title;
@@ -220,9 +252,14 @@ export function createSavedTopicCard(
   );
   card.appendChild(metadata);
 
-  const openButton = createButton(isCurrent ? t('activity.viewCurrent') : t('activity.openSaved'), 'open-saved', () => onOpen(entry));
+  const openButton = createButton(isCurrent ? t('activity.viewCurrent') : t('activity.openSaved'), 'open-saved', () => onOpen(entry), {
+    icon: 'open'
+  });
 
-  const deleteButton = createButton(t('common.delete'), 'outline secondary delete-saved', () => onDelete(entry));
+  const deleteButton = createButton(t('common.delete'), 'outline secondary delete-saved', () => onDelete(entry), {
+    icon: 'trash',
+    iconOnly: true
+  });
   deleteButton.setAttribute('aria-label', t('activity.deleteSummaryAria', { title: topicTitle }));
   if (hasActiveTasks) {
     deleteButton.disabled = true;
@@ -299,11 +336,14 @@ export function createSavedAgentCard(
     onToggle: button => onKeep(activity, button)
   });
 
-  const deleteButton = createButton(t('common.delete'), 'outline secondary delete-saved', () => onDelete(activity));
+  const deleteButton = createButton(t('common.delete'), 'outline secondary delete-saved', () => onDelete(activity), {
+    icon: 'trash',
+    iconOnly: true
+  });
   deleteButton.setAttribute('aria-label', t('activity.deleteAnswerAria', { title: activity.title }));
   card.appendChild(
     createActions('saved-card-actions', [
-      createButton(t('activity.viewAnswer'), 'open-saved', () => onOpen(activity)),
+      createButton(t('activity.viewAnswer'), 'open-saved', () => onOpen(activity), { icon: 'open' }),
       keepButton,
       deleteButton
     ])

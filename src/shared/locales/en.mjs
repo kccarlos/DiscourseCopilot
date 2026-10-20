@@ -394,7 +394,6 @@ export default {
   'answer.stop': 'Stop',
   'answer.placeholderQueued': 'The agent starts as soon as a worker is free. You can keep browsing.',
   'answer.placeholderRunning': 'The answer appears here once the agent has what it needs.',
-  'answer.followUpMarker': 'Follow-up · {question}',
   'answer.followUpOn': 'Ask a follow-up on {forum}',
   'answer.followUp': 'Ask a follow-up',
   'answer.notice.needAccess':
@@ -402,7 +401,7 @@ export default {
   'answer.notice.allowContinue': 'Allow access to {host} & continue',
   'answer.notice.needLogin':
     '{forum} asked for a login or verification before the research can continue. Log in in a browser tab, then choose Continue.',
-  'answer.notice.login': 'Log in to {forum} ↗',
+  'answer.notice.login': 'Log in to {forum}',
   'common.continue': 'Continue',
   'common.retry': 'Retry',
   'answer.notice.followUpStopped': 'The follow-up was stopped before an answer was written.',
@@ -415,8 +414,9 @@ export default {
   'answer.openActivity': 'Open in Activity',
   'common.delete': 'Delete',
   'answer.noExcerpt': 'Source content was not excerpted.',
-  'answer.openPost': 'Open post {number} ↗',
-  'answer.openTopic': 'Open topic ↗',
+  'answer.openPost': 'Open post {number}',
+  'answer.openTopic': 'Open topic',
+  'answer.copyShort': 'Copy',
   // Agent controller
   'agent.retryQueued': 'Agent retry queued.',
   'agent.announce.needsAccess': 'Research on {forum} is waiting for you to allow access to the forum',
@@ -596,12 +596,10 @@ export default {
   'popup.agentDetail.loading': 'Loading answer…',
   'popup.undo.group': 'Undo delete',
   'popup.undo': 'Undo',
-  'popup.steps': 'Steps',
   'popup.agentDid': 'What the agent did',
   'popup.budgetNote': 'Stopped at the step limit, so this answer uses only what was found by then.',
   'popup.sources': 'Sources',
   'popup.followUpPlaceholder': 'Ask a follow-up about this answer…',
-  'popup.ask': 'Ask',
   // Side panel markup
   // Tabs
   'popup.tab.tasks': 'Tasks',

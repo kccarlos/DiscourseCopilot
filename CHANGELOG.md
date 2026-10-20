@@ -13,6 +13,8 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 - A Chinese README (README.zh-CN.md) and an animated demo at the top of the README.
 
 ### Changed
+- Ask the forum answers read as a conversation: each question has its own block with its research steps (one line, opens on click), its answer and the sources that answer cites. Follow-up questions show as chat bubbles, and the follow-up box sends with Enter like the topic chat.
+- Buttons have icons. The answer and summary actions are a compact toolbar (Copy, Keep, Activity, Ask another; Copy summary, Copy full post, Download), and on narrow panels only the icons show. Activity cards' Keep and Delete are icon buttons.
 - GitHub release notes are built from this changelog (the version's section, plus install steps, links and a line asking for a rating or a star) instead of GitHub's auto-generated list.
 - README and store listing: follow-up questions use the whole thread as context, so answers can point to the posts that said it.
 

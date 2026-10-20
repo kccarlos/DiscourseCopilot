@@ -21,6 +21,7 @@ import {
   savedTopicKey
 } from './activity-cards.mjs';
 import { t } from '../shared/i18n.mjs';
+import { getButtonLabel, setButtonLabel } from './icons.mjs';
 
 const $ = id => document.getElementById(id);
 
@@ -366,9 +367,9 @@ export class ActivityView {
   // ---------- Saved topic actions ----------
 
   async setSavedSessionKept(entry, kept, button) {
-    const previousLabel = button.textContent;
+    const previousLabel = getButtonLabel(button);
     button.disabled = true;
-    button.textContent = kept ? t('activity.keeping') : t('activity.updating');
+    setButtonLabel(button, kept ? t('activity.keeping') : t('activity.updating'));
     try {
       const session = await topicSessionDatabase.setKept(entry.topicKey, kept);
       this.sessions.cache(session);
@@ -378,7 +379,7 @@ export class ActivityView {
       await this.loadSavedList();
     } catch (error) {
       button.disabled = false;
-      button.textContent = previousLabel;
+      setButtonLabel(button, previousLabel);
       DiscourseCopilotLogger.error('Popup: Unable to update saved session retention:', error);
       this.showSavedStatus(t('activity.retentionFailed', { error: error.message }), 'error');
     }

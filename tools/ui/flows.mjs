@@ -481,8 +481,23 @@ const fireStream = (page, taskId, chunk) =>
   );
 // What each step says (its label and outcome, not the expandable details).
 const stepTexts = (page, root = '#agentPanel') =>
-  page.$$eval(`${root} .agent-step, ${root} .agent-step-turn`, items =>
+  page.$$eval(`${root} .agent-step`, items =>
     items.map(item => (item.querySelector('.agent-step-text, summary') || item).textContent.trim().replace(/\s+/g, ' '))
+  );
+// The steps of one turn only (0-based), and the thread's blocks.
+const turnStepTexts = (page, index, root = '#agentPanel') =>
+  page.$$eval(`${root} .agent-turn:nth-child(${index + 1}) .agent-step`, items =>
+    items.map(item => (item.querySelector('.agent-step-text, summary') || item).textContent.trim().replace(/\s+/g, ' '))
+  );
+const turnCount = (page, root = '#agentPanel') => page.$$eval(`${root} .agent-turn`, blocks => blocks.length);
+// Every button of a toolbar has an accessible name and a tooltip.
+const toolbarNames = (page, selector) =>
+  page.$$eval(`${selector} button`, buttons =>
+    buttons.map(button => ({
+      name: button.getAttribute('aria-label') || button.textContent.trim(),
+      title: button.title,
+      pressed: button.getAttribute('aria-pressed')
+    }))
   );
 
 scenario(
@@ -538,11 +553,18 @@ scenario(
       })
     );
     await page.waitForTimeout(250);
-    check('steps open while running', await page.$eval('#agentPanel [data-part="steps"]', d => d.open && !d.classList.contains('hidden')));
+    check(
+      'steps open while running',
+      await page.$eval('#agentPanel .agent-turn:last-child [data-part="steps"]', d => d.open && !d.classList.contains('hidden'))
+    );
     check('two steps listed', (await stepTexts(page)).length === 2, JSON.stringify(await stepTexts(page)));
     check('search step', (await stepTexts(page))[0] === 'Searched “enable caching” · 3 results', (await stepTexts(page))[0]);
     check('running step', (await stepTexts(page))[1] === 'Reading topic 1…', (await stepTexts(page))[1]);
-    check('step count', (await text(page, '#agentPanel [data-part="step-count"]')) === '2');
+    check(
+      'research label counts steps',
+      (await text(page, '#agentPanel [data-part="research-label"]')) === '2 steps',
+      await text(page, '#agentPanel [data-part="research-label"]')
+    );
     check('icon per tool', (await page.$$('#agentPanel .agent-step[data-tool="search_forum"] .agent-step-icon svg')).length === 1);
     check('running step flagged', await page.$eval('#agentPanel .agent-step:last-child', li => li.dataset.status === 'running'));
     check(
@@ -587,8 +609,8 @@ scenario(
     check('writing label', (await text(page, '#agentPanel [data-part="progress-label"]')) === 'Writing the answer…');
     check(
       'answer streams',
-      (await text(page, '#agentPanel [data-part="answer"]')).includes('Enable it in the admin panel'),
-      await text(page, '#agentPanel [data-part="answer"]')
+      (await text(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')).includes('Enable it in the admin panel'),
+      await text(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')
     );
     check('still no announcement', (await text(page, '#agentAnnouncer')) === '', await text(page, '#agentAnnouncer'));
     await shot('answering');
@@ -617,12 +639,15 @@ scenario(
     await page.waitForTimeout(400);
     check(
       'answer rendered',
-      (await text(page, '#agentPanel [data-part="answer"]')).includes('admin panel'),
-      await text(page, '#agentPanel [data-part="answer"]')
+      (await text(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')).includes('admin panel'),
+      await text(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')
     );
     check('citation linked', (await page.$$('#agentPanel .agent-citation')).length === 1);
     check('answer announced', (await text(page, '#agentAnnouncer')) === 'Answer ready', await text(page, '#agentAnnouncer'));
-    check('steps tucked away', await page.$eval('#agentPanel [data-part="steps"]', d => !d.open && !d.classList.contains('hidden')));
+    check(
+      'steps tucked away',
+      await page.$eval('#agentPanel .agent-turn:last-child [data-part="steps"]', d => !d.open && !d.classList.contains('hidden'))
+    );
     check(
       'meta counts steps and sources',
       (await text(page, '#agentPanel .agent-panel-meta')).includes('2 steps · 1 source'),
@@ -636,8 +661,8 @@ scenario(
     );
     check(
       'copy action',
-      (await text(page, '#agentPanel [data-part="actions"]')).includes('Copy answer'),
-      await text(page, '#agentPanel [data-part="actions"]')
+      (await page.$eval('#agentPanel [data-part="actions"] [data-agent-action="copy"]', b => b.getAttribute('aria-label')))
+        === 'Copy answer'
     );
     await page.click('#agentPanel .agent-citation');
     await page.waitForTimeout(150);
@@ -667,8 +692,35 @@ scenario(
       });
     await fireActivity(page, followUpRun({ status: 'running', phase: 'planning', updatedAt: Date.now() + 40, completedAt: 0 }));
     await page.waitForTimeout(250);
-    check('follow-up question shown', (await text(page, '#agentPanel [data-part="turn-question"]')) === 'And what about a CDN?');
-    check('first answer kept above', (await text(page, '#agentPanel [data-part="thread"]')).includes('admin panel'));
+    check(
+      'follow-up question shown',
+      (await text(page, '#agentPanel .agent-turn:last-child [data-part="turn-question"]')) === 'And what about a CDN?'
+    );
+    check(
+      'first answer kept above',
+      (await text(page, '#agentPanel .agent-turn:first-child [data-part="answer"]')).includes('admin panel')
+    );
+    check('thread has a block per turn', (await turnCount(page)) === 2);
+    check(
+      'follow-up question is a user bubble',
+      await page.$eval(
+        '#agentPanel .agent-turn:last-child [data-part="turn-question"]',
+        el => el.classList.contains('chat-message') && el.classList.contains('user')
+      )
+    );
+    check(
+      'first question stays in the header only',
+      !(await visible(page, '#agentPanel .agent-turn:first-child [data-part="turn-question"]'))
+    );
+    check(
+      'progress sits in the working turn',
+      await page.$eval('#agentPanel .agent-turn:last-child [data-part="progress"]', el => !el.classList.contains('hidden'))
+    );
+    check('first turn keeps its steps', (await turnStepTexts(page, 0)).length === 2, JSON.stringify(await turnStepTexts(page, 0)));
+    check(
+      'working turn has its research open',
+      await page.$eval('#agentPanel .agent-turn:last-child [data-part="steps"]', d => d.open || d.classList.contains('hidden'))
+    );
     check('no follow-up box while working', !(await visible(page, '#agentPanel [data-part="followup-input"]')));
     check('stop while working', await page.$eval('#agentPanel [data-agent-action="stop"]', b => b.offsetParent !== null));
     await shot('follow-up-running');
@@ -685,17 +737,59 @@ scenario(
     await page.waitForTimeout(300);
     check(
       'follow-up answer appended',
-      (await text(page, '#agentPanel [data-part="answer"]')).includes('CDN in front'),
-      await text(page, '#agentPanel [data-part="answer"]')
+      (await text(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')).includes('CDN in front'),
+      await text(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')
     );
-    check('earlier answer in the thread', (await text(page, '#agentPanel [data-part="thread"]')).includes('admin panel'));
     check(
-      'follow-up step listed after a divider',
-      (await stepTexts(page)).some(t => t.startsWith('Follow-up · And what about a CDN?'))
-        && (await stepTexts(page)).at(-1) === 'Listed latest topics · 30 topics',
-      JSON.stringify(await stepTexts(page))
+      'earlier answer in the thread',
+      (await text(page, '#agentPanel .agent-turn:first-child [data-part="answer"]')).includes('admin panel')
+    );
+    check(
+      'follow-up steps sit in their own turn',
+      (await turnStepTexts(page, 1)).join('|') === 'Listed latest topics · 30 topics' && (await turnStepTexts(page, 0)).length === 2,
+      JSON.stringify([await turnStepTexts(page, 0), await turnStepTexts(page, 1)])
+    );
+    check(
+      'research disclosure per turn',
+      (await text(page, '#agentPanel .agent-turn:nth-child(1) [data-part="research-label"]')) === '2 steps · 1 source'
+        && (await text(page, '#agentPanel .agent-turn:nth-child(2) [data-part="research-label"]')) === '1 step · 1 source',
+      `${await text(page, '#agentPanel .agent-turn:nth-child(1) [data-part="research-label"]')} / ${await text(page, '#agentPanel .agent-turn:nth-child(2) [data-part="research-label"]')}`
+    );
+    check(
+      'research collapsed once answered',
+      await page.$$eval('#agentPanel [data-part="steps"]', all => all.length === 2 && all.every(d => !d.open))
+    );
+    check(
+      'each turn lists the sources its answer cites',
+      await page.$$eval('#agentPanel .agent-turn', blocks =>
+        blocks.every(block => block.querySelectorAll('.agent-source-card[data-source-id="S1"]').length === 1)
+      )
+    );
+    check(
+      'follow-up citation opens its own turn source',
+      await (async () => {
+        await page.click('#agentPanel .agent-turn:last-child .agent-citation');
+        await page.waitForTimeout(100);
+        return page
+          .$eval('#agentPanel .agent-turn:last-child .agent-source-card.is-highlighted', card => card.dataset.sourceId === 'S1')
+          .catch(() => false);
+      })()
+    );
+    check(
+      'toolbar buttons are named',
+      (await toolbarNames(page, '#agentPanel [data-part="actions"]')).every(b => b.name && b.title),
+      JSON.stringify(await toolbarNames(page, '#agentPanel [data-part="actions"]'))
+    );
+    check(
+      'toolbar offers copy, keep, activity, new question',
+      (await toolbarNames(page, '#agentPanel [data-part="actions"]')).map(b => b.name).join('|')
+        === 'Copy answer|Keep|Open in Activity|Ask another',
+      JSON.stringify(await toolbarNames(page, '#agentPanel [data-part="actions"]'))
     );
     check('follow-up announced again', (await text(page, '#agentAnnouncer')) === 'Answer ready', await text(page, '#agentAnnouncer'));
+    // Leave the clicked citation so the shot doesn't catch its hover colors mid-transition.
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(300);
     await shot('follow-up-answered');
 
     // Composer.
@@ -829,8 +923,11 @@ scenario('popup-agent-states', 'src/popup/popup.html', { store: configuredStore 
       completedAt: Date.now()
     })
   );
-  check('first answer stays above a failed follow-up', (await text(page, '#agentPanel [data-part="thread"]')).includes('admin panel'));
-  check('follow-up question shown', (await text(page, '#agentPanel [data-part="turn-question"]')) === 'And a CDN?');
+  check(
+    'first answer stays above a failed follow-up',
+    (await text(page, '#agentPanel .agent-turn:first-child [data-part="answer"]')).includes('admin panel')
+  );
+  check('follow-up question shown', (await text(page, '#agentPanel .agent-turn:last-child [data-part="turn-question"]')) === 'And a CDN?');
   await page.click('#agentPanel [data-agent-action="retry"]');
   await page.waitForTimeout(300);
   check(
@@ -878,7 +975,7 @@ scenario('popup-agent-states', 'src/popup/popup.html', { store: configuredStore 
       completedAt: Date.now()
     })
   );
-  check('legacy answer', (await text(page, '#agentPanel [data-part="answer"]')).includes('admin panel'));
+  check('legacy answer', (await text(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')).includes('admin panel'));
   check(
     'legacy searches as steps',
     JSON.stringify(await stepTexts(page))
@@ -892,7 +989,7 @@ scenario('popup-agent-states', 'src/popup/popup.html', { store: configuredStore 
   );
   check(
     'legacy has no follow-up divider or thread',
-    !(await visible(page, '#agentPanel [data-part="turn-question"]')) && (await text(page, '#agentPanel [data-part="thread"]')) === ''
+    !(await visible(page, '#agentPanel .agent-turn:last-child [data-part="turn-question"]')) && (await turnCount(page)) === 1
   );
   check('legacy run can be followed up', await visible(page, '#agentPanel [data-part="followup-input"]'));
   await shot('legacy');
@@ -1099,6 +1196,18 @@ scenario('popup-chat', 'src/popup/popup.html', { store: configuredStore }, async
     await text(page, '#topicHelper')
   );
   check('copy post enabled', await page.$eval('#copyPostBtn', b => !b.disabled));
+  check(
+    'summary toolbar buttons are named',
+    (await toolbarNames(page, '#summaryContainer .action-toolbar')).map(b => b.name).join('|') === 'Copy summary|Copy full post|Download'
+      && (await toolbarNames(page, '#summaryContainer .action-toolbar')).every(b => b.title),
+    JSON.stringify(await toolbarNames(page, '#summaryContainer .action-toolbar'))
+  );
+  check(
+    'hero buttons keep an icon beside their label',
+    await page.$$eval('#summarizeBtn, #agentLaunchBtn', buttons =>
+      buttons.every(b => b.querySelector('svg.btn-icon') && b.querySelector('.btn-label').textContent.trim())
+    )
+  );
   check(
     'context help',
     (await text(page, '#forumContextLimitHelp')).startsWith('The full discussion fits'),
@@ -1411,29 +1520,58 @@ scenario('popup-agent-activity', 'src/popup/popup.html', { store: configuredStor
     await text(page, '#agentDetailMeta')
   );
   const detailSteps = await stepTexts(page, '#agentDetailView');
+  const firstTurnSteps = await turnStepTexts(page, 0, '#agentDetailView');
+  const secondTurnSteps = await turnStepTexts(page, 1, '#agentDetailView');
   check(
-    'detail lists every step with the follow-up divider',
-    detailSteps.length === 8
-      && detailSteps[0] === 'Searched “streaming rate limit 429” · 6 results'
-      && detailSteps[6].startsWith('Follow-up · Does it differ'),
-    JSON.stringify(detailSteps)
+    'detail lists every step, each in its own turn',
+    detailSteps.length === 7
+      && firstTurnSteps.length === 6
+      && firstTurnSteps[0] === 'Searched “streaming rate limit 429” · 6 results'
+      && secondTurnSteps.length === 1,
+    JSON.stringify([firstTurnSteps, secondTurnSteps])
   );
-  check('steps tucked away for a finished run', await page.$eval('#agentDetailView [data-part="steps"]', d => !d.open));
-  await page.click('#agentDetailView [data-part="steps"] > summary');
+  check(
+    'follow-up question is shown in its turn',
+    (await text(page, '#agentDetailView .agent-turn:last-child [data-part="turn-question"]')).startsWith('Does it differ')
+  );
+  check(
+    'steps tucked away for a finished run',
+    await page.$eval('#agentDetailView .agent-turn:first-child [data-part="steps"]', d => !d.open)
+  );
+  await page.click('#agentDetailView .agent-turn:first-child [data-part="steps"] > summary');
   await page.click('#agentDetailView .agent-step:nth-child(3) summary');
   check(
     'expanded step shows the reason',
     (await text(page, '#agentDetailView .agent-step:nth-child(3) .agent-step-reason')).includes('best match')
   );
-  check('thread holds the first answer', (await text(page, '#agentDetailView [data-part="thread"]')).includes('Retry-After'));
-  check('latest answer below', (await text(page, '#agentDetailView [data-part="answer"]')).includes('advice is the same'));
+  check(
+    'thread holds the first answer',
+    (await text(page, '#agentDetailView .agent-turn:first-child [data-part="answer"]')).includes('Retry-After')
+  );
+  check(
+    'detail toolbar is named',
+    (await toolbarNames(page, '#agentDetailView [data-part="actions"]')).map(b => b.name).join('|') === 'Copy answer|Keep|Delete',
+    JSON.stringify(await toolbarNames(page, '#agentDetailView [data-part="actions"]'))
+  );
+  check(
+    'latest answer below',
+    (await text(page, '#agentDetailView .agent-turn:last-child [data-part="answer"]')).includes('advice is the same')
+  );
   check(
     'follow-up names its own forum',
     (await text(page, '#agentDetailView [data-part="followup-label"]')) === 'Ask a follow-up on OpenAI Developer Community'
   );
   await shot('detail');
+  check('send is off until there is a question', await page.$eval('#agentDetailView [data-part="followup-send"]', b => b.disabled));
   await page.fill('#agentDetailView [data-part="followup-input"]', 'What about WebSockets?');
-  await page.click('#agentDetailView [data-part="followup-send"]');
+  await page.press('#agentDetailView [data-part="followup-input"]', 'Shift+Enter');
+  check(
+    'Shift+Enter adds a line instead of sending',
+    (await page.$eval('#agentDetailView [data-part="followup-input"]', i => i.value.includes('\n')))
+      && !(await page.evaluate(() => window.__sent.some(m => m.followUp === true)))
+  );
+  await page.press('#agentDetailView [data-part="followup-input"]', 'Backspace');
+  await page.press('#agentDetailView [data-part="followup-input"]', 'Enter');
   await page.waitForTimeout(300);
   const sent = await page.evaluate(() => window.__sent.filter(m => m.action === 'enqueueTask').at(-1));
   check(
@@ -2726,8 +2864,45 @@ zhScenario('popup-agent', 'src/popup/popup.html', { store: configuredStore }, as
     run({ status: 'completed', answer: CACHING_ANSWER, steps: [SEARCH_STEP, READ_STEP], sources: CACHING_SOURCES.slice(0, 1) })
   );
   await page.waitForTimeout(300);
-  await zhScreen(page, check, 'completed', ['2 个步骤', '1 个来源', '继续追问', '再问一个', '在记录中打开']);
+  await zhScreen(page, check, 'completed', ['2 个步骤', '1 个来源', '再问一个', '记录']);
+  check(
+    'toolbar buttons are named in Chinese',
+    (await toolbarNames(page, '#agentPanel [data-part="actions"]')).map(b => b.name).join('|') === '复制回答|保留|在记录中打开|再问一个'
+      && (await toolbarNames(page, '#agentPanel [data-part="actions"]')).every(b => b.title),
+    JSON.stringify(await toolbarNames(page, '#agentPanel [data-part="actions"]'))
+  );
+  check(
+    'follow-up composer is named in Chinese',
+    (await page.$eval('#agentPanel [data-part="followup-send"]', b => b.getAttribute('aria-label'))) === '发送问题'
+  );
   await shot('completed');
+  // A follow-up: its own turn with the question, research and sources.
+  await fireActivity(
+    page,
+    run({
+      status: 'completed',
+      answer: CACHING_ANSWER,
+      steps: [SEARCH_STEP, READ_STEP],
+      sources: CACHING_SOURCES.slice(0, 1),
+      followUps: [
+        {
+          question: '那 CDN 呢？',
+          answer: '在论坛前面放一个 CDN [S1]。',
+          steps: [{ tool: 'list_latest', resultCount: 30, reason: '看看有什么新内容。' }]
+        }
+      ]
+    })
+  );
+  await page.waitForTimeout(300);
+  await zhScreen(page, check, 'follow-up', ['那 CDN 呢？', '2 个步骤 · 1 个来源', '1 个步骤 · 1 个来源']);
+  check(
+    'follow-up turns in Chinese',
+    (await turnCount(page)) === 2
+      && (await text(page, '#agentPanel .agent-turn:last-child [data-part="turn-question"]')) === '那 CDN 呢？'
+      && (await turnStepTexts(page, 1)).length === 1,
+    JSON.stringify(await turnStepTexts(page, 1))
+  );
+  await shot('follow-up');
   await fireActivity(
     page,
     run({ status: 'failed', answer: '', error: { code: 'AGENT_ERROR', message: '模型没有返回有效的操作', retryable: true } })
