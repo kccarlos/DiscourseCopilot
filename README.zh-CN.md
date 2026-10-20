@@ -58,6 +58,14 @@ DiscourseCopilot 的设计原则是：你看了什么，只有你自己知道。
 - **后台运行，不用等。** 任务在后台跑，你可以继续看别的帖子，回来再看结果。
 - **答案可以核对。** AI 也会出错。总结和回答都链接回原帖，重要的内容你可以自己确认。
 
+## 支持哪些论坛
+
+所有基于 [Discourse](https://www.discourse.org) 搭建的论坛都可以用，不管是什么域名，也包括需要登录的私有社区。下面是一些常见的 Discourse 论坛：
+
+[美卡论坛 US Card Forum](https://www.uscardforum.com)、[LINUX DO](https://linux.do)、[Discourse Meta](https://meta.discourse.org)、[OpenAI 开发者社区](https://community.openai.com)、[Cursor 论坛](https://forum.cursor.com)、[Hugging Face 论坛](https://discuss.huggingface.co)、[PyTorch 论坛](https://discuss.pytorch.org)、[Python 社区](https://discuss.python.org)、[Rust 用户论坛](https://users.rust-lang.org)、[Swift 论坛](https://forums.swift.org)、[Obsidian 论坛](https://forum.obsidian.md)、[Home Assistant 社区](https://community.home-assistant.io)、[Docker 社区论坛](https://forums.docker.com)、[Unity 讨论区](https://discussions.unity.com)、[Godot 论坛](https://forum.godotengine.org)、[n8n 社区](https://community.n8n.io)，以及成千上万个其他社区。
+
+不确定某个论坛是不是 Discourse？打开它，点一下 DiscourseCopilot 图标，侧边栏会告诉你。以上论坛仅作举例，DiscourseCopilot 与它们没有任何关联。各论坛自己的规则仍然有效，人机验证比较严格的论坛可能会拦截部分请求（见[常见问题](#常见问题)）。
+
 ## 三步上手
 
 **1. 安装扩展。**
@@ -81,7 +89,7 @@ DiscourseCopilot 的设计原则是：你看了什么，只有你自己知道。
 **2. 连接一个 AI 服务商。**
 点 DiscourseCopilot 图标打开侧边栏。设置卡片会让你选服务商、粘贴 API key、选模型（会根据服务商当前提供的模型自动推荐一个，通常是又快又便宜的那种）。不知道选哪个，可以看[选择 AI 服务商](#选择-ai-服务商)。
 
-**3. 打开一个论坛帖子，授权访问，然后点"Create summary"。**
+**3. 打开一个论坛帖子，授权访问，然后点“总结贴文”。**
 打开任意 Discourse 论坛的帖子（如果需要登录，先登录），点 DiscourseCopilot 图标。第一次在某个论坛使用时，侧边栏会显示 **在 *论坛名* 上启用 DiscourseCopilot**：点 **允许访问**，然后在 Chrome 弹窗里选 **允许**。之后点 **总结贴文** 就行。每个论坛只需要授权一次，之后论坛页面右下角也会出现 DiscourseCopilot 按钮。
 
 <img src="docs/screenshots/feature-allow-access.png" alt="侧边栏请求在某个论坛上启用 DiscourseCopilot，有三个简短步骤和一个 Allow access 按钮" width="420">

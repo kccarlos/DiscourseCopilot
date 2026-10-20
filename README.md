@@ -59,6 +59,14 @@ The details, including what is stored and for how long, are in the [privacy poli
 - **In your language.** The interface is in English and Simplified Chinese, following your browser's language.
 - **Check the answers.** AI can be wrong. Summaries and answers link back to the posts so you can verify what matters.
 
+## Works with
+
+Any forum built on [Discourse](https://www.discourse.org), on any domain, including private and login-only communities. Some well-known Discourse forums it works with:
+
+[Discourse Meta](https://meta.discourse.org), [OpenAI Developer Community](https://community.openai.com), [Cursor Forum](https://forum.cursor.com), [Hugging Face Forums](https://discuss.huggingface.co), [PyTorch Forums](https://discuss.pytorch.org), [Python Discourse](https://discuss.python.org), [Rust Users Forum](https://users.rust-lang.org), [Swift Forums](https://forums.swift.org), [Julia Discourse](https://discourse.julialang.org), [Obsidian Forum](https://forum.obsidian.md), [Home Assistant Community](https://community.home-assistant.io), [Docker Community Forums](https://forums.docker.com), [Let's Encrypt Community](https://community.letsencrypt.org), [freeCodeCamp Forum](https://forum.freecodecamp.org), [Godot Forum](https://forum.godotengine.org), [Unity Discussions](https://discussions.unity.com), [Elastic Discuss](https://discuss.elastic.co), [n8n Community](https://community.n8n.io), [Fly.io Community](https://community.fly.io), [Level1Techs Forums](https://forum.level1techs.com), [Ethereum Research](https://ethresear.ch), [US Card Forum (美卡论坛)](https://www.uscardforum.com), [LINUX DO](https://linux.do), and thousands more.
+
+Not sure whether a forum runs Discourse? Open it and click the DiscourseCopilot icon: the side panel tells you. These forums are listed only as examples; DiscourseCopilot is not affiliated with them. Each forum's own rules still apply, and a forum with strict bot checks can block some requests (see the [FAQ](#faq)).
+
 ## Get started in 3 steps
 
 **1. Install the extension.**
