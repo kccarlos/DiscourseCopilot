@@ -71,23 +71,24 @@ export class ProviderHeader {
    * @param {object} deps.status StatusLine
    * @param {object} deps.setupCard SetupCard
    * @param {() => void} deps.onSetupJump "Not set up" was pressed
-   * @param {() => void} deps.openSettings open the settings page
+   * @param {(section?: string) => void} deps.openSettings open Settings (in the panel), at a section
+   * @param {() => void} deps.toggleSettings the header button: open Settings, or leave it
    */
-  constructor({ config, status, setupCard, onSetupJump, openSettings }) {
+  constructor({ config, status, setupCard, onSetupJump, openSettings, toggleSettings }) {
     this.config = config;
     this.status = status;
     this.setupCard = setupCard;
     this.onSetupJump = onSetupJump;
     this.openSettings = openSettings;
+    this.toggleSettings = toggleSettings;
   }
 
   mount() {
     $('settingsBtn').addEventListener('click', () => {
-      this.openSettings();
+      this.toggleSettings();
     });
     $('modelChipBtn').addEventListener('click', () => {
-      // The AI provider section is the top of the settings page.
-      this.openSettings();
+      this.openSettings('provider');
     });
     $('setupJumpBtn').addEventListener('click', () => {
       this.onSetupJump();

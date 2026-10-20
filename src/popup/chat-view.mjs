@@ -5,6 +5,9 @@ import { TASK_STATUS, TASK_TYPE, isTerminalTaskStatus } from '../shared/task-rec
 import { FORUM_CONTEXT_LIMIT, formatForumContextLimit, normalizeForumContextLimit } from '../shared/chat-context-limit.mjs';
 import { normalizeChatQuestion, prepareChatEdit } from './conversation-state.mjs';
 import { renderMarkdown } from './markdown.mjs';
+import { ANSWER_CLAMP_PX, setClamp } from './clamp.mjs';
+import { FOCUS_CARD } from './reading-focus.mjs';
+import { formatRelativeTime } from './ui-state.mjs';
 import { t, tn } from '../shared/i18n.mjs';
 
 export function getChatCountLabel(history = []) {
@@ -56,6 +59,8 @@ export class ChatView {
     // An in-flight save of an edited conversation.
     this.editPersistence = null;
     this.editNeedsSave = false;
+    // Older answers the user opened with Show all (by task ID, else position).
+    this.expandedAnswers = new Set();
   }
 
   get input() {
@@ -136,12 +141,14 @@ export class ChatView {
     if (!this.state.session?.summary) {
       chatContainer.classList.add('hidden');
       $('chatCount').textContent = t('chat.start');
+      this.renderMeta([]);
       this.hooks.updateControls();
       return;
     }
 
     chatContainer.classList.remove('hidden');
     $('chatCount').textContent = getChatCountLabel(history);
+    this.renderMeta(history);
     $('chatSuggestions').classList.toggle('hidden', Boolean((history || []).length));
     for (const [index, message] of (history || []).entries()) {
       const bubble = this.appendBubble(
@@ -157,7 +164,33 @@ export class ChatView {
         renderMarkdown(bubble, message.content);
       }
     }
+    this.clampOlderAnswers();
     this.hooks.updateControls();
+  }
+
+  // The card's one-line summary while it is folded.
+  renderMeta(history) {
+    const meta = $('chatMeta');
+    const updatedAt = this.state.session?.chatUpdatedAt;
+    meta.textContent = history.length
+      ? t('chat.meta.saved', { count: getChatCountLabel(history), time: formatRelativeTime(updatedAt || this.state.session?.updatedAt) })
+      : t('chat.meta.empty');
+  }
+
+  // Every assistant answer but the newest is cut off with a Show all button;
+  // the newest (or one still streaming in) is always shown in full.
+  clampOlderAnswers() {
+    const answers = [...$('chatMessages').querySelectorAll('.chat-message.assistant')];
+    answers.forEach((bubble, index) => {
+      const key = bubble.dataset.taskId || `#${index}`;
+      const clamped = index < answers.length - 1 && !bubble.classList.contains('pending');
+      setClamp(bubble, {
+        enabled: clamped,
+        limit: ANSWER_CLAMP_PX,
+        expanded: this.expandedAnswers.has(key),
+        onToggle: expanded => this.expandedAnswers[expanded ? 'add' : 'delete'](key)
+      });
+    });
   }
 
   appendBubble(role, content, extraClasses = [], { onEdit = null } = {}) {
@@ -306,9 +339,11 @@ export class ChatView {
       }
 
       if (isStillOnPage()) {
+        this.hooks.readingStart?.(FOCUS_CARD.CHAT);
         if (!isTerminalTaskStatus(task.status)) {
           this.bubbleFor('user', task.id, question);
           this.bubbleFor('assistant', task.id, task.status === TASK_STATUS.QUEUED ? t('chat.queued') : t('chat.thinking'), ['pending']);
+          this.clampOlderAnswers();
         } else {
           await this.hooks.reloadCurrentSession();
         }
@@ -335,6 +370,7 @@ export class ChatView {
       return;
     }
     this.hooks.cancelActiveOperation();
+    this.expandedAnswers.clear();
     session.history = [];
     session.chatUpdatedAt = 0;
     session.updatedAt = Date.now();

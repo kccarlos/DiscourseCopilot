@@ -16,9 +16,26 @@
 //   probe            result of the one-off Discourse check (null: the page couldn't be read)
 //   permissionAnswer what Chrome's permission prompt answers (default: Allow)
 //
+// A page inside an iframe of another stubbed page shares that page's chrome.*.
+//
 // Test hooks on window: __store, __sent (runtime messages), __granted,
 // __permissionRequests, __permissionAnswer, __grant(origin), __fire(event, ...args).
 export function installChromeStub(options) {
+  // A page in an iframe of another extension page (Settings in the side panel)
+  // is the same extension in the same profile: it shares the parent's chrome.*
+  // (storage, permissions, messages) and test hooks.
+  if (window.parent !== window && window.parent.chrome?.storage) {
+    window.chrome = window.parent.chrome;
+    for (const hook of ['__store', '__sent', '__granted', '__permissionRequests', '__listeners', '__grant', '__fire']) {
+      window[hook] = window.parent[hook];
+    }
+    for (const name of ['alert', 'confirm', 'prompt']) {
+      window[name] = () => {
+        throw new Error(`window.${name}() is not allowed in extension pages`);
+      };
+    }
+    return;
+  }
   const store = { ...(options.store || {}) };
   const listeners = { onChanged: [], onMessage: [], onActivated: [], onUpdated: [], onAdded: [], onRemoved: [] };
   const granted = new Set(['https://api.openai.com/*', 'http://localhost/*', ...(options.granted ?? ['https://meta.discourse.org/*'])]);

@@ -378,7 +378,7 @@
             </span>
             <span>
               <strong data-i18n="popup.chat.title">Ask about this post</strong>
-              <small data-i18n="popup.chat.subtitle">Use the post and summary as context</small>
+              <small data-i18n="chat.meta.empty" id="chatMeta" class="chat-meta">Use the post and summary as context</small>
             </span>
           </span>
           <span class="chevron" aria-hidden="true"></span>
@@ -462,11 +462,7 @@
         <button data-i18n-attr="aria-label:popup.backToPost" id="closeSavedBtn" class="back-btn" type="button" aria-label="Back to current post">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
         </button>
-        <div>
-          <span data-i18n="popup.activity.eyebrow" class="eyebrow">Your workspace</span>
-          <h2 data-i18n="popup.activity" id="savedHeading">Activity</h2>
-          <p data-i18n="popup.activity.intro">Track background work and reopen saved summaries.</p>
-        </div>
+        <h2 data-i18n="popup.activity" id="savedHeading">Activity</h2>
       </div>
       <div id="savedStatus" class="status hidden" role="status" aria-live="polite"></div>
 
@@ -482,10 +478,7 @@
       <div data-i18n-attr="aria-label:popup.activity.filter" id="forumFilter" class="forum-filter hidden" role="group" aria-label="Filter activity by forum"></div>
 
       <section id="tasksPanel" class="tab-panel" role="tabpanel" aria-labelledby="tasksTab">
-        <div class="section-intro">
-          <h3 data-i18n="popup.activity.tasks" id="taskHeading">Background tasks</h3>
-          <p data-i18n="popup.activity.concurrency">Two tasks can run at once. Work for the same post stays in order.</p>
-        </div>
+        <p data-i18n="popup.activity.concurrency" class="section-note">Two tasks can run at once. Work for the same post stays in order.</p>
         <div id="activeTaskList" class="task-list"></div>
         <details id="recentTasks" class="recent-tasks" open>
           <summary>
@@ -497,10 +490,15 @@
       </section>
 
       <section id="summariesPanel" class="tab-panel hidden" role="tabpanel" aria-labelledby="summariesTab">
-        <div class="section-intro">
-          <h3 data-i18n="popup.activity.savedHeading">Saved summaries and answers</h3>
-          <p id="savedExpiryIntro">Conversations and Agent answers expire after 1 day. Keep one to preserve it.</p>
+        <div class="saved-search">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z"/><path d="m20 20-4-4"/></svg>
+          <label data-i18n="activity.search.label" class="sr-only" for="savedSearch">Search saved items</label>
+          <input data-i18n-attr="placeholder:activity.search.placeholder" id="savedSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Search saved items…">
+          <button data-i18n-attr="aria-label:activity.search.clear;title:activity.search.clear" id="savedSearchClear" class="saved-search-clear hidden" type="button" aria-label="Clear search" title="Clear search">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
         </div>
+        <p id="savedExpiryIntro" class="section-note">Conversations and Agent answers expire after 1 day. Keep one to preserve it.</p>
         <div id="savedList" class="saved-list"></div>
       </section>
 
@@ -517,6 +515,24 @@
         </div>
         <div id="agentDetailBody" data-agent-body></div>
       </section>
+    </section>
+
+    <section id="settingsView" class="settings-view hidden" aria-labelledby="settingsHeading">
+      <div class="saved-view-header settings-view-header">
+        <button data-i18n-attr="aria-label:popup.settings.back;title:popup.settings.back" id="closeSettingsBtn" class="back-btn" type="button" aria-label="Close settings" title="Close settings">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <h2 data-i18n="popup.settings" id="settingsHeading" tabindex="-1">Settings</h2>
+      </div>
+      <div id="settingsLeave" class="settings-leave hidden" role="alertdialog" aria-labelledby="settingsLeaveTitle" aria-describedby="settingsLeaveText">
+        <strong data-i18n="popup.settings.leave.title" id="settingsLeaveTitle">Discard your unsaved changes?</strong>
+        <p data-i18n="popup.settings.leave.text" id="settingsLeaveText">Settings you changed have not been saved yet.</p>
+        <div class="settings-leave-actions">
+          <button data-i18n="popup.settings.leave.discard" id="settingsLeaveDiscard" class="outline secondary" type="button">Discard changes</button>
+          <button data-i18n="popup.settings.leave.keep" id="settingsLeaveKeep" class="secondary" type="button">Keep editing</button>
+        </div>
+      </div>
+      <iframe data-i18n-attr="title:popup.settings.frame" id="settingsFrame" class="settings-frame" title="Settings form"></iframe>
     </section>
   </main>
 

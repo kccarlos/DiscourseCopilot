@@ -7,12 +7,17 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 ## [2.3.0] - 2026-10-19
 
 ### Added
+- Settings opens inside the side panel (header Settings button, the model chip, Advanced settings) instead of a separate tab; Back returns to where you were, and leaving with unsaved edits asks first. The extension's Options page works as before.
+- Activity's Saved tab has a search box (title or question), and empty Tasks and Saved lists say what to do next.
+- Long summaries, earlier answers in an Ask the forum thread and older chat answers are cut off with a soft fade and a Show all / Show less button.
 - After your fifth summary, the side panel shows a small "Enjoying DiscourseCopilot?" card once, with links to rate the extension or star it on GitHub. Close it and it never comes back.
 - Settings ends with a quiet "Star on GitHub · Rate it" line.
 - The interface is available in Simplified Chinese, chosen automatically from the browser language (summaries and answers still follow Settings → Response language).
 - A Chinese README (README.zh-CN.md) and an animated demo at the top of the README.
 
 ### Changed
+- The side panel keeps your attention on what matters: starting a chat question, an Ask the forum question or a follow-up opens that card and folds the others to a one-line header (for example "11 replies · saved 2m ago"), and a finished answer opens itself unless you moved on to something else. You can still open or close any card.
+- Activity is calmer and denser: a compact header, a type icon on every card, forum, status and time on one line, and icon buttons for open, stop, retry, keep and delete.
 - Ask the forum answers read as a conversation: each question has its own block with its research steps (one line, opens on click), its answer and the sources that answer cites. Follow-up questions show as chat bubbles, and the follow-up box sends with Enter like the topic chat.
 - Buttons have icons. The answer and summary actions are a compact toolbar (Copy, Keep, Activity, Ask another; Copy summary, Copy full post, Download), and on narrow panels only the icons show. Activity cards' Keep and Delete are icon buttons.
 - GitHub release notes are built from this changelog (the version's section, plus install steps, links and a line asking for a rating or a star) instead of GitHub's auto-generated list.

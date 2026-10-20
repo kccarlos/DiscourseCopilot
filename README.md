@@ -178,7 +178,7 @@ Start Ollama, then choose **Local (Ollama)** in setup. No Ollama settings are ne
 
 ## Customize
 
-Open **Settings** from the side panel (or right-click the extension icon and choose **Options**). Most changes apply when you click **Save Settings** (favorites and forum access change right away), and the Ask the forum, Reading topics, and History & privacy sections each have **Restore defaults**.
+Open **Settings** from the side panel; it opens inside the panel, so there is no extra tab to close (the extension's **Options** page in `chrome://extensions` shows the same settings). Most changes apply when you click **Save Settings** (favorites and forum access change right away), and the Ask the forum, Reading topics, and History & privacy sections each have **Restore defaults**.
 
 - **AI provider.** Switch providers, keys, or models. The model list comes from your provider (click **Refresh models** to reload it). Your saved model is never changed for you; if your provider stops offering it, Settings warns you so you can pick another.
 - **Favorite models.** Save models to switch between them from the top of the side panel.

@@ -17,6 +17,7 @@ import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { topicKeyFromUrl } from './conversation-state.mjs';
 import { formatRelativeTime, retentionCopy } from './ui-state.mjs';
 import { citedSourceIds, renderMarkdown } from './markdown.mjs';
+import { ANSWER_CLAMP_PX, clearClamp, setClamp } from './clamp.mjs';
 import { openForumTarget } from './forum-tabs.mjs';
 import { createIcon, setButtonLabel, setIconButton } from './icons.mjs';
 import { t, tn } from '../shared/i18n.mjs';
@@ -300,6 +301,7 @@ export class AgentAnswerView {
     answer.dataset.citations = (activity.sourceRefs || []).map(source => source.sourceId).join(',');
     if (isLast && stream && (live || !turn.answer)) {
       answer.classList.remove('hidden');
+      clearClamp(answer);
       this.markdown.schedule(answer, stream);
       answer.dataset.renderKey = '';
     } else if (turn.answer) {
@@ -309,8 +311,11 @@ export class AgentAnswerView {
         answer.dataset.renderKey = renderKey;
         renderMarkdown(answer, turn.answer);
       }
+      // Earlier turns are cut off with a Show all button; the newest answer is shown in full.
+      setClamp(answer, { enabled: !isLast, limit: ANSWER_CLAMP_PX });
     } else if (live) {
       answer.classList.remove('hidden');
+      clearClamp(answer);
       answer.dataset.renderKey = '';
       const placeholder = document.createElement('p');
       placeholder.className = 'streaming-placeholder';
@@ -319,6 +324,7 @@ export class AgentAnswerView {
       answer.replaceChildren(placeholder);
     } else {
       answer.dataset.renderKey = '';
+      clearClamp(answer);
       answer.replaceChildren();
       answer.classList.add('hidden');
     }

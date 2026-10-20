@@ -11,6 +11,7 @@
     "test": "node --test",
     "test:local-models": "vite build && node tools/ui/local-models-e2e.mjs",
     "test:ui": "vite build && node tools/ui/flows.mjs --theme=both",
+    "test:settings-panel": "vite build && node tools/ui/settings-panel-e2e.mjs",
     "shots:readme": "vite build && node tools/ui/readme-shots.mjs",
     "shots:store": "vite build && node tools/ui/store-shots.mjs",
     "shots:demo": "vite build && node tools/ui/demo-gif.mjs",

@@ -20,6 +20,8 @@ import { openForumTarget } from './forum-tabs.mjs';
 import { announce } from './status-line.mjs';
 import { AgentAnswerView } from './agent-answer-view.mjs';
 import { createIcon, setButtonLabel } from './icons.mjs';
+import { expandClampAround } from './clamp.mjs';
+import { FOCUS_CARD } from './reading-focus.mjs';
 import { AgentRuns } from './agent-runs.mjs';
 import { AgentPanel } from './agent-panel.mjs';
 import { AgentComposer } from './agent-composer.mjs';
@@ -83,6 +85,7 @@ export class AgentController {
       onQueued: task => {
         this.runs.trackQueuedTask(task);
         this.composer.hide();
+        this.hooks.readingStart?.(FOCUS_CARD.AGENT);
         this.panel.focus();
       }
     });
@@ -238,6 +241,9 @@ export class AgentController {
       this.announceState(activity);
     }
     this.renderPanel();
+    if (previous && previous.status !== activity.status && activity.status === AGENT_ACTIVITY_STATUS.COMPLETED) {
+      this.hooks.readingFinish?.(FOCUS_CARD.AGENT);
+    }
     this.refreshDetail(activity.activityId);
     if (this.state.savedViewOpen && !this.state.agentDetailOpen) {
       this.nav.renderTaskList();
@@ -309,6 +315,7 @@ export class AgentController {
     const citation = event.target.closest('.agent-citation');
     if (citation && root.contains(citation)) {
       event.preventDefault();
+      expandClampAround(citation);
       this.view.focusSource(root, citation.dataset.citation, citation.closest('.agent-turn') || root);
       return;
     }
@@ -390,6 +397,9 @@ export class AgentController {
     }
     if (sent) {
       input.value = '';
+      if (root === this.panel.root) {
+        this.hooks.readingStart?.(FOCUS_CARD.AGENT);
+      }
     }
     const latest = this.runRecord(activity.activityId) || activity;
     this.view.render(root, latest, { mode: root.id === 'agentPanel' ? 'inline' : 'detail' });

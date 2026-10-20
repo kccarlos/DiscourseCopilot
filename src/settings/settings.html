@@ -1280,6 +1280,41 @@
     .project-footer a:hover {
       text-decoration: underline;
     }
+
+    /* ---------- Embedded in the side panel (?embedded=1) ---------- */
+
+    html.embedded body {
+      min-height: 0;
+      padding: 0;
+    }
+
+    html.embedded .container {
+      max-width: none;
+      min-height: 100vh;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    html.embedded .header,
+    html.embedded .welcome-header {
+      display: none;
+    }
+
+    html.embedded .content {
+      padding: 14px 16px;
+    }
+
+    html.embedded .action-bar {
+      padding: 10px 16px;
+    }
+
+    html.embedded .button-group button {
+      flex: 1 1 100%;
+    }
+
+    html.embedded .section-head {
+      flex-direction: column;
+    }
   </style>
 </head>
 <body>

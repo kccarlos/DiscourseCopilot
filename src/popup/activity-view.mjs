@@ -9,7 +9,7 @@ import { resolveRetention } from '../shared/preferences.mjs';
 import { partitionTasks, retentionCopy } from './ui-state.mjs';
 import { agentRecentWindowMs, getDefaultActivityTab, selectSavedAgentActivities } from './agent-runs.mjs';
 import { cleanTopicTitle } from './forum-names.mjs';
-import { ForumGroups, emptyMessage } from './forum-groups.mjs';
+import { ForumGroups, emptyMessage, emptyState } from './forum-groups.mjs';
 import { openForumTarget } from './forum-tabs.mjs';
 import { announce } from './status-line.mjs';
 import {
@@ -52,6 +52,9 @@ export class ActivityView {
     this.activityTab = 'tasks';
     this.savedEntries = [];
     this.savedItems = [];
+    // The Saved tab's search box (lower-cased, trimmed).
+    this.savedQuery = '';
+    this.savedLoaded = false;
     this.groups = new ForumGroups({
       state,
       forums,
@@ -95,7 +98,7 @@ export class ActivityView {
 
   mount() {
     $('savedBtn').addEventListener('click', () => {
-      this.show();
+      this.hooks.beforeNavigate(() => void this.show());
     });
     $('closeSavedBtn').addEventListener('click', () => {
       this.hide();
@@ -118,6 +121,24 @@ export class ActivityView {
     $('closeAgentDetailBtn').addEventListener('click', () => {
       this.hideAgentDetail();
     });
+    $('savedSearch').addEventListener('input', event => {
+      this.setSavedQuery(event.target.value);
+    });
+    $('savedSearchClear').addEventListener('click', () => {
+      $('savedSearch').value = '';
+      this.setSavedQuery('');
+      $('savedSearch').focus();
+    });
+  }
+
+  // Filters the saved list as the user types (title or question, in the
+  // browser; the forum filter applies on top).
+  setSavedQuery(value) {
+    this.savedQuery = value.trim().toLowerCase();
+    $('savedSearchClear').classList.toggle('hidden', !value);
+    if (this.savedLoaded) {
+      this.renderSavedList();
+    }
   }
 
   // ---------- Navigation ----------
@@ -272,23 +293,46 @@ export class ActivityView {
       ].sort((left, right) => right.updatedAt - left.updatedAt);
       this.savedEntries = entries;
       this.savedItems = savedItems;
+      this.savedLoaded = true;
       this.forums.refresh();
       this.groups.renderFilter();
       $('savedCount').textContent = String(savedItems.length);
-      list.replaceChildren();
-      if (!savedItems.length) {
-        list.appendChild(emptyMessage('saved-empty', t('activity.noSaved')));
-        return;
-      }
-
-      this.groups.render(list, savedItems, 'saved', item =>
-        item.kind === 'agent' ? this.createSavedAgentCard(item.activity) : this.createSavedTopicCard(item.entry)
-      );
+      this.renderSavedList();
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Unable to list saved summaries:', error);
       list.replaceChildren();
       this.showSavedStatus(t('activity.loadSavedFailed'), 'error');
     }
+  }
+
+  // What the search box matches: the title and, for an answer, its question.
+  savedItemText(item) {
+    const forumName = this.forums.label(item.siteUrl, item.forumName);
+    return (
+      item.kind === 'agent'
+        ? [item.activity.title, item.activity.question]
+        : [cleanTopicTitle(item.entry.title, forumName), item.entry.title]
+    )
+      .join(' ')
+      .toLowerCase();
+  }
+
+  renderSavedList() {
+    const list = $('savedList');
+    list.replaceChildren();
+    const items = this.savedItems;
+    if (!items.length) {
+      list.appendChild(emptyState('saved-empty', 'bookmark', t('activity.empty.saved.title'), t('activity.empty.saved.hint')));
+      return;
+    }
+    const visible = this.savedQuery ? items.filter(item => this.savedItemText(item).includes(this.savedQuery)) : items;
+    if (!visible.length) {
+      list.appendChild(emptyMessage('saved-empty', t('activity.noMatches', { query: $('savedSearch').value.trim() })));
+      return;
+    }
+    this.groups.render(list, visible, 'saved', item =>
+      item.kind === 'agent' ? this.createSavedAgentCard(item.activity) : this.createSavedTopicCard(item.entry)
+    );
   }
 
   renderTaskList() {
@@ -305,7 +349,7 @@ export class ActivityView {
     this.groups.renderFilter();
 
     if (!active.length) {
-      activeList.appendChild(emptyMessage('task-empty', t('activity.nothingRunning')));
+      activeList.appendChild(emptyState('task-empty', 'activity', t('activity.empty.tasks.title'), t('activity.empty.tasks.hint')));
     }
 
     const queuedIds = active
@@ -327,6 +371,7 @@ export class ActivityView {
     if (task.type === TASK_TYPE.AGENT) {
       return createAgentTaskCard(task, {
         queuePosition,
+        forumName: this.forums.label(task.siteUrl, task.forumName),
         activity: this.agent.activities.get(task.agentRunId || task.id),
         onOpen: value => void this.openAgentActivity(value),
         onResume: taskId => void this.agent.resumeTask(taskId),
@@ -357,6 +402,7 @@ export class ActivityView {
 
   createSavedAgentCard(activity) {
     return createSavedAgentCard(activity, {
+      forumName: this.forums.label(activity.siteUrl, activity.forumName),
       onOpen: value => void this.openAgentActivity(value),
       onKeep: (value, button) => void this.agent.setKept(value, value.kept !== true, button),
       onDelete: value => void this.deleteSavedAgent(value),
