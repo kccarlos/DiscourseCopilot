@@ -15,7 +15,6 @@
 
 <p align="center">
   <a href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac"><img src="https://img.shields.io/chrome-web-store/v/dpngnaiiofobfjleabbhnfmdflddnhac?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4" alt="Chrome Web Store 版本"></a>
-  <a href="https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp"><img src="https://img.shields.io/badge/Edge%20Add--ons-available-0078D7?logo=microsoftedge&logoColor=white" alt="Microsoft Edge 加载项"></a>
   <a href="https://github.com/kccarlos/DiscourseCopilot/releases/latest"><img src="https://img.shields.io/github/v/release/kccarlos/DiscourseCopilot?label=release&logo=github" alt="最新 GitHub Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="许可证：Apache-2.0"></a>
   <img src="https://img.shields.io/badge/Manifest-V3-4285F4?logo=googlechrome&logoColor=white" alt="Chrome 扩展，Manifest V3">
@@ -23,7 +22,9 @@
 </p>
 
 <p align="center">
-  <a href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac"><strong>➜ 免费添加到 Chrome</strong></a> · <a href="https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp"><strong>添加到 Microsoft Edge</strong></a>
+  <a href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac"><img src="docs/badges/chrome-web-store.png" height="56" alt="在 Chrome 应用商店中获取"></a>
+  &nbsp;
+  <a href="https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp"><img src="docs/badges/microsoft-edge-add-ons.zh-CN.png" height="56" alt="从 Microsoft Edge 获取"></a>
 </p>
 
 <p align="center">
