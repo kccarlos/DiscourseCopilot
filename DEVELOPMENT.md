@@ -493,18 +493,24 @@ Then add the service account's email under **Account → Service account** in th
 
 ### Edge Add-ons publishing setup
 
-Microsoft offers no keyless sign-in for this API, so the job uses an API key stored as a GitHub secret:
+Microsoft offers no keyless sign-in for this API, so the job needs a Client ID and an API key. They live in 1Password, not in GitHub, so rotating the key means editing one 1Password item:
 
-- **Partner Center → Microsoft Edge → Publish API**: enable the new experience (v1.1) and click **Create API credentials**. This shows the **Client ID** and an **API key** with an expiry date. The key is only valid until that date: create a new one in time and update the secret.
-- **Product ID**: Partner Center → Microsoft Edge → Overview → the extension → **Extension identity** (also the GUID in the page URL).
-- **GitHub**: variables `EDGE_PRODUCT_ID` and `EDGE_AUTO_PUBLISH` (`true`/`false`), secrets `EDGE_CLIENT_ID` and `EDGE_API_KEY`. If the product ID or either secret is missing the job logs a notice and skips the upload.
+- **Partner Center → Microsoft Edge → Publish API**: enable the new experience (v1.1) and click **Create API credentials**. This shows the **Client ID** and an **API key** with an expiry date. The key is only valid until that date: create a new one in time and paste it into the 1Password item; the next release picks it up and nothing in the repository changes.
+- **1Password**: item `edge-addons-api` in vault `github`, fields `client_id` and `api_key` (single-line values).
+- **GitHub environment `release`** (Settings → Environments), deployment policy "tags matching `v*`". Its one secret is `OP_SERVICE_ACCOUNT_TOKEN`, the token of the 1Password service account that can read only vault `github`. The job declares `environment: release`, installs the 1Password CLI and loads the two fields with `tools/op-load.sh` (copied from herdr-sheepdog), which retries each `op read` up to four times and masks every value. They reach only the steps that name them.
+- **Repository variables**: `EDGE_PRODUCT_ID` (Partner Center → Microsoft Edge → Overview → the extension → **Extension identity**, also the GUID in the page URL; not secret) and `EDGE_AUTO_PUBLISH` (`true`/`false`). If the product ID or the token is missing the job logs a notice and skips the upload.
 
 ```bash
+gh api -X PUT repos/OWNER/REPO/environments/release \
+  --input - <<<'{"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}'
+gh api -X POST repos/OWNER/REPO/environments/release/deployment-branch-policies -f name='v*' -f type=tag
+op read -n "op://Private/OP service account github-actions/credential" \
+  | gh secret set OP_SERVICE_ACCOUNT_TOKEN --env release
 gh variable set EDGE_PRODUCT_ID --body "<product ID>"
 gh variable set EDGE_AUTO_PUBLISH --body true
-gh secret set EDGE_CLIENT_ID   # paste when asked
-gh secret set EDGE_API_KEY     # paste when asked
 ```
+
+Use `op read -n`: a token stored with a trailing newline makes every load fail with `(400) ... structure of request was invalid`.
 
 The API only updates the package: the listing text, screenshots and new products are managed in Partner Center.
 
@@ -528,8 +534,9 @@ The API only updates the package: the listing text, screenshots and new products
 | Authenticate to Google Cloud fails (`unauthorized_client`, `Permission 'iam.serviceAccounts.getAccessToken' denied`) | The run wasn't a `v*` tag push from this repository (the provider's condition), the variables name the wrong provider/service account, or the `workloadIdentityUser` binding is missing. |
 | Upload returns HTTP 400/403 | 400 with a version error: the manifest version isn't higher than the last upload, so bump and tag again. 403: the service account isn't linked in the dashboard, or `CWS_PUBLISHER_ID`/`CWS_ITEM_ID` is wrong. |
 | Upload state isn't `SUCCEEDED` | The store rejected the package (the response is printed in the log); fix and release a new version. |
-| "Edge Add-ons publishing is not configured; skipping store upload." | `EDGE_PRODUCT_ID`, `EDGE_CLIENT_ID` or `EDGE_API_KEY` is missing (`gh variable list`, `gh secret list`). |
-| Edge upload returns HTTP 401 | The API key has expired or was replaced. Create a new one under **Publish API** and run `gh secret set EDGE_API_KEY`. 404: wrong `EDGE_PRODUCT_ID`. |
+| "Edge Add-ons publishing is not configured…" | `EDGE_PRODUCT_ID` is missing (`gh variable list`) or the `release` environment has no `OP_SERVICE_ACCOUNT_TOKEN` (`gh secret list --env release`). |
+| `could not read CLIENT_ID from 1Password` | The item `edge-addons-api` or its field is missing in vault `github`, or the service account token is wrong or stored with a newline. |
+| Edge upload returns HTTP 401 | The API key has expired or was replaced. Create a new one under **Publish API** and update `api_key` in the 1Password item. 404: wrong `EDGE_PRODUCT_ID`. |
 | Edge upload or submission ends in `Failed` | The log prints `errorCode` and `message`. `InProgressSubmission`: an earlier version is still in certification, so publish this draft from Partner Center once that one finishes. `NoModulesUpdated`: the draft already holds this package. |
 | Submit for review fails | Usually an item already in review or a listing problem shown in the dashboard. The upload itself is kept as a draft; submit it from the dashboard. |
 

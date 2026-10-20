@@ -194,18 +194,19 @@ jobs:
 
   edge-addons:
     # Uploads the release zip to Microsoft Edge Add-ons with the Update REST
-    # API v1.1 (Client ID + API key from Partner Center → Publish API). Tag
-    # pushes only, like the Chrome Web Store job.
+    # API v1.1. The Client ID and API key live in 1Password (vault `github`,
+    # item `edge-addons-api`); the only GitHub secret is the `release`
+    # environment's OP_SERVICE_ACCOUNT_TOKEN. Tag pushes only, like the
+    # Chrome Web Store job.
     needs: release
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: release
     permissions:
       contents: read
     env:
       PRODUCT_ID: ${{ vars.EDGE_PRODUCT_ID }}
-      CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
-      API_KEY: ${{ secrets.EDGE_API_KEY }}
       AUTO_PUBLISH: ${{ vars.EDGE_AUTO_PUBLISH }}
       VERSION: ${{ needs.release.outputs.version }}
       ZIP: ${{ needs.release.outputs.zip }}
@@ -213,21 +214,48 @@ jobs:
     steps:
       - name: Check Edge Add-ons configuration
         id: check
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
         run: |
-          if [ -n "$PRODUCT_ID" ] && [ -n "$CLIENT_ID" ] && [ -n "$API_KEY" ]; then
+          if [ -n "$PRODUCT_ID" ] && [ -n "$OP_SERVICE_ACCOUNT_TOKEN" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Edge Add-ons publishing is not configured; skipping store upload."
+            echo "::notice::Edge Add-ons publishing is not configured (EDGE_PRODUCT_ID or the release environment's OP_SERVICE_ACCOUNT_TOKEN); skipping store upload."
           fi
+
+      - uses: actions/checkout@v7
+        if: steps.check.outputs.enabled == 'true'
+        with:
+          ref: ${{ env.TAG }}
+          sparse-checkout: tools/op-load.sh
+          sparse-checkout-cone-mode: false
 
       - uses: actions/download-artifact@v8
         if: steps.check.outputs.enabled == 'true'
         with:
           name: extension-zip
 
+      - name: Install the 1Password CLI
+        if: steps.check.outputs.enabled == 'true'
+        uses: 1password/install-cli-action@v4
+
+      # Step outputs, masked, so only the steps that name them see the values.
+      - name: Secrets from 1Password
+        id: op
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+        run: >-
+          tools/op-load.sh
+          CLIENT_ID=op://github/edge-addons-api/client_id
+          API_KEY=op://github/edge-addons-api/api_key
+
       - name: Upload to Edge Add-ons
         if: steps.check.outputs.enabled == 'true'
+        env:
+          CLIENT_ID: ${{ steps.op.outputs.CLIENT_ID }}
+          API_KEY: ${{ steps.op.outputs.API_KEY }}
         run: |
           set -euo pipefail
           # The operation ID comes back in the Location header (an ID or a path ending in it).
@@ -261,6 +289,9 @@ jobs:
 
       - name: Submit for certification
         if: steps.check.outputs.enabled == 'true' && env.AUTO_PUBLISH == 'true'
+        env:
+          CLIENT_ID: ${{ steps.op.outputs.CLIENT_ID }}
+          API_KEY: ${{ steps.op.outputs.API_KEY }}
         run: |
           set -euo pipefail
           NOTES=$(jq -n --arg n "Release $VERSION. Changes: https://github.com/${{ github.repository }}/releases/tag/v$VERSION" '{notes: $n}')
