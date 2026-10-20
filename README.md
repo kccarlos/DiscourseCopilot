@@ -22,7 +22,9 @@
 </p>
 
 <p align="center">
-  <a href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac"><strong>➜ Add DiscourseCopilot to Chrome</strong></a> (free)
+  <a href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac"><img src="docs/badges/chrome-web-store.png" height="56" alt="Available in the Chrome Web Store"></a>
+  &nbsp;
+  <a href="https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp"><img src="docs/badges/microsoft-edge-add-ons.png" height="56" alt="Get it from Microsoft Edge"></a>
 </p>
 
 <p align="center">
@@ -70,16 +72,16 @@ Not sure whether a forum runs Discourse? Open it and click the DiscourseCopilot 
 ## Get started in 3 steps
 
 **1. Install the extension.**
-Open [DiscourseCopilot in the Chrome Web Store](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac) and click **Add to Chrome**. Then click the puzzle-piece icon in the toolbar and pin **DiscourseCopilot** so it's easy to reach.
+Open [DiscourseCopilot in the Chrome Web Store](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac) and click **Add to Chrome**. In Microsoft Edge, open [DiscourseCopilot in Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp) and click **Get**. Then click the puzzle-piece icon in the toolbar and pin **DiscourseCopilot** so it's easy to reach.
 
-> **About store updates.** New versions reach the Chrome Web Store only after Google reviews them, which can take anywhere from a few hours to several days. So the store can be a little behind the newest [GitHub Release](https://github.com/kccarlos/DiscourseCopilot/releases/latest). If you want the newest version right away, install the zip from GitHub (below). Chrome updates the store version for you once it is approved.
+> **About store updates.** New versions reach the Chrome Web Store and Edge Add-ons only after Google and Microsoft review them, which can take anywhere from a few hours to several days. So the store can be a little behind the newest [GitHub Release](https://github.com/kccarlos/DiscourseCopilot/releases/latest). If you want the newest version right away, install the zip from GitHub (below). The browser updates the store version for you once it is approved.
 
 <details>
 <summary>Want the newest version right away? Install from GitHub</summary>
 
 1. Go to the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases) and download the latest `discourse-copilot-<version>.zip`.
 2. Unzip it.
-3. Open `chrome://extensions` in Chrome and turn on **Developer mode** (top right).
+3. Open `chrome://extensions` in Chrome (`edge://extensions` in Edge) and turn on **Developer mode** (top right).
 4. Click **Load unpacked** and choose the unzipped folder.
 5. Click the puzzle-piece icon in the toolbar and pin **DiscourseCopilot**.
 
@@ -237,7 +239,7 @@ DiscourseCopilot removes the `Origin` header from its own requests to `localhost
 Only the forum content needed for your request and your question, sent to the AI provider you set up (or to your local model server). Nothing is sent to us. The forum sees requests for its topic and search data, made from your browser with your login, the same kind your browser makes when you read it, so forum admins may see them in their logs. See [Privacy first](#privacy-first).
 
 **Why is the Chrome Web Store version older than the latest GitHub Release?**
-Every new version goes through Google's review before the store offers it. That can take from a few hours to several days, so the store may lag behind GitHub. Once approved, Chrome updates the extension for you. To get a release right away, install its zip from the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases/latest) (see [Get started](#get-started-in-3-steps)), and switch back to the store version later if you like.
+Every new version goes through the store's review (Google's, or Microsoft's for Edge Add-ons) before the store offers it. That can take from a few hours to several days, so the store may lag behind GitHub. Once approved, Chrome updates the extension for you. To get a release right away, install its zip from the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases/latest) (see [Get started](#get-started-in-3-steps)), and switch back to the store version later if you like.
 
 **Does it cost anything?**
 The extension is free. Your AI provider may charge for usage, usually a small amount per summary. Local models (Ollama, LM Studio) cost nothing to use.
