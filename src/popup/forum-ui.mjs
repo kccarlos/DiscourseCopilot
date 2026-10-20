@@ -2,6 +2,7 @@
 // the colored forum accents, and the forum bar at the top.
 import { cleanTopicTitle, collectForumNames, forumAccentHue, forumHostname, forumInitial, resolveForumName } from './forum-names.mjs';
 import { announce } from './status-line.mjs';
+import { t } from '../shared/i18n.mjs';
 
 // Forum names learned from the page, tasks, Agent runs and saved sessions.
 export class ForumDirectory {
@@ -27,7 +28,7 @@ export class ForumDirectory {
   label(siteUrl, ...candidates) {
     const context = this.getPageContext();
     const pageName = context?.siteUrl && context.siteUrl === siteUrl ? context.forumName : '';
-    return resolveForumName(siteUrl, ...candidates, pageName, this.names.get(siteUrl)) || 'Unknown forum';
+    return resolveForumName(siteUrl, ...candidates, pageName, this.names.get(siteUrl)) || t('forumBar.unknown');
   }
 
   // The label of the forum in the current tab ('' off-forum).
@@ -139,14 +140,10 @@ export class ForumBar {
     const hidden = !siteUrl && context.pageHidden === true;
     bar.dataset.state = siteUrl ? 'forum' : hidden ? 'unchecked' : 'none';
     applyForumHue(bar, siteUrl);
-    name.textContent = siteUrl ? forumName : hidden ? 'Page not checked yet' : 'Not a Discourse forum';
+    name.textContent = siteUrl ? forumName : hidden ? t('forumBar.notChecked') : t('forumBar.notForum');
     host.textContent = siteUrl ? (hostname !== forumName ? hostname : '') : pageHostname(context.url);
     host.classList.toggle('hidden', !host.textContent);
-    bar.title = siteUrl
-      ? `${forumName} · ${hostname}`
-      : hidden
-        ? 'Click the DiscourseCopilot icon in the toolbar to check this page'
-        : 'This page is not a Discourse forum';
+    bar.title = siteUrl ? `${forumName} · ${hostname}` : hidden ? t('forumBar.clickIcon') : t('forumBar.pageNotForum');
     initial.textContent = siteUrl ? forumInitial(forumName) : hidden ? '?' : '–';
 
     const iconUrl = siteUrl ? `${siteUrl}/favicon.ico` : '';
@@ -163,11 +160,13 @@ export class ForumBar {
 
     // The hero shows on forum pages only; off-topic pages get their copy
     // from the page guidance (popup.js renderGuidance).
-    document.getElementById('heroEyebrow').textContent = context.isForumTopic ? `Topic on ${forumName}` : 'Current page';
+    document.getElementById('heroEyebrow').textContent = context.isForumTopic
+      ? t('forumBar.topicOn', { forum: forumName })
+      : t('guide.currentPage');
     // Tab titles repeat the category and forum, which the bar already shows.
     document.getElementById('currentPageTitle').textContent = context.isForumTopic
       ? cleanTopicTitle(context.title, forumName)
-      : forumName || 'This page';
+      : forumName || t('forumBar.thisPage');
 
     if (previousSiteUrl !== undefined && siteUrl && siteUrl !== previousSiteUrl) {
       bar.classList.remove('is-switched');
@@ -181,7 +180,7 @@ export class ForumBar {
         },
         { once: true }
       );
-      announce(document.getElementById('forumSwitchAnnouncer'), `Switched to ${forumName}`);
+      announce(document.getElementById('forumSwitchAnnouncer'), t('forumBar.switched', { forum: forumName }));
     }
     return forumName;
   }

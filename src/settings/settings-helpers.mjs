@@ -1,3 +1,5 @@
+import { t } from '../shared/i18n.mjs';
+
 // Validation lives in the shared provider-setup module so the side panel's
 // setup card and the settings page agree on what a usable configuration is.
 export {
@@ -15,7 +17,7 @@ export function buildModelChoices(models = [], selectedModel = '') {
   // its place and label ("Recommended").
   const listed = (Array.isArray(models) ? models : []).some(model => typeof model?.id === 'string' && model.id.trim() === selected);
   if (selected && !listed) {
-    choices.push({ id: selected, name: `${selected} (saved/custom)` });
+    choices.push({ id: selected, name: t('settings.model.savedCustom', { model: selected }) });
     seen.add(selected);
   }
 
@@ -37,5 +39,3 @@ export function buildModelChoices(models = [], selectedModel = '') {
 export function isLatestRequest(requestIds, provider, requestId) {
   return requestIds[provider] === requestId;
 }
-
-export const plural = (count, one, many = `${one}s`) => `${count.toLocaleString('en-US')} ${count === 1 ? one : many}`;

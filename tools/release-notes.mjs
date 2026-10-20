@@ -67,6 +67,8 @@ export function buildReleaseNotes(changelog, version) {
 - **From this release:** download the zip below, unzip it, open \`chrome://extensions\`, turn on **Developer mode** and click **Load unpacked**. Disable the store copy first if you have it, so the two don't conflict.
 
 **Full changelog:** ${links.join(' · ')}
+
+If DiscourseCopilot saves you time, a [rating on the Chrome Web Store](${STORE_URL}/reviews) or a [star on GitHub](${REPO_URL}) helps other forum readers find it.
 `;
 }
 

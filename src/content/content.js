@@ -4,10 +4,13 @@
 // the floating launcher button unless the user turned it off in Settings.
 import { extractForumTopicId } from '../shared/topic-route.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
-import { normalizePreferences } from '../shared/preferences.mjs';
+import { readShowForumButton } from '../shared/forum-button-preference.mjs';
 import { buildTopicKey, forumDisplayName, normalizeBasePath, siteUrlFromPageUrl } from '../shared/forum-site.mjs';
 
 const { MESSAGES, STORAGE_KEYS } = DiscourseCopilotConstants;
+// The launcher's few labels come from _locales through chrome.i18n, so this
+// script, injected into every allowed forum page, doesn't bundle every UI string.
+const message = (name, fallback) => globalThis.chrome?.i18n?.getMessage?.(name) || fallback;
 const LAUNCHER_ID = 'discourse-copilot-page-launcher';
 // DiscourseCopilot logo (white bubble, "on-dark" variant) pixel-hinted for
 // small sizes; source: assets/brand/icon/sizes/discoursecopilot-icon-32-on-dark.svg
@@ -112,7 +115,7 @@ class DiscourseCopilotContent {
   // element is added or removed.
   watchLauncherPreference() {
     const apply = stored => {
-      this.showLauncher = normalizePreferences(stored).showForumButton;
+      this.showLauncher = readShowForumButton(stored);
       this.syncLauncher();
     };
     this.onStorageChanged = (changes, area) => {
@@ -284,8 +287,8 @@ class DiscourseCopilotContent {
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.setAttribute('aria-label', 'Open DiscourseCopilot panel');
-    button.title = 'Open DiscourseCopilot';
+    button.setAttribute('aria-label', message('launcherAriaLabel', 'Open DiscourseCopilot panel'));
+    button.title = message('launcherTitle', 'Open DiscourseCopilot');
     button.innerHTML = `${LAUNCHER_LOGO_SVG}<span class="label">DiscourseCopilot</span>`;
     button.addEventListener('click', () => {
       void this.openPanel(button);
@@ -299,19 +302,19 @@ class DiscourseCopilotContent {
     const label = button.querySelector('.label');
     const originalLabel = label.textContent;
     button.disabled = true;
-    label.textContent = 'Opening…';
+    label.textContent = message('launcherOpening', 'Opening…');
     try {
       const response = await chrome.runtime.sendMessage({
         action: MESSAGES.OPEN_SIDE_PANEL,
         postId: this.postId
       });
       if (!response?.success) {
-        throw new Error(response?.error || 'Unable to open DiscourseCopilot');
+        throw new Error(response?.error || message('launcherOpenFailed', 'Unable to open DiscourseCopilot'));
       }
-      label.textContent = 'Opened';
+      label.textContent = message('launcherOpened', 'Opened');
     } catch (error) {
-      label.textContent = 'Try again';
-      button.title = error?.message || 'Unable to open DiscourseCopilot';
+      label.textContent = message('launcherTryAgain', 'Try again');
+      button.title = error?.message || message('launcherOpenFailed', 'Unable to open DiscourseCopilot');
     } finally {
       window.setTimeout(() => {
         if (!button.isConnected) return;

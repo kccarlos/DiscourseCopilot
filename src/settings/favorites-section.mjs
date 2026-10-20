@@ -1,6 +1,7 @@
 // Settings → "Favorite models": the models offered in the side panel's quick
 // switcher. Adding and removing write at once (no Save needed).
 import { DiscourseCopilotConstants } from '../shared/constants.js';
+import { t } from '../shared/i18n.mjs';
 import {
   MAX_FAVORITE_MODELS,
   addFavoriteModel,
@@ -47,7 +48,11 @@ export class FavoritesSection {
     const current = this.currentFavorite();
     const alreadyFavorite = hasFavoriteModel(favorites, current, PROVIDER_CONFIGS);
     const atFavoriteLimit = favorites.length >= MAX_FAVORITE_MODELS;
-    addButton.textContent = alreadyFavorite ? 'Already a favorite' : atFavoriteLimit ? 'Favorite limit reached' : 'Add current model';
+    addButton.textContent = alreadyFavorite
+      ? t('settings.favorites.already')
+      : atFavoriteLimit
+        ? t('settings.favorites.limit')
+        : t('settings.favorites.add');
     addButton.disabled = this.isBusy() || !current.model.trim() || alreadyFavorite || atFavoriteLimit;
 
     list.replaceChildren();
@@ -67,9 +72,9 @@ export class FavoritesSection {
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'favorite-remove';
-      remove.textContent = 'Remove';
+      remove.textContent = t('settings.favorites.remove');
       remove.disabled = this.isBusy();
-      remove.setAttribute('aria-label', `Remove ${favorite.model} from favorite models`);
+      remove.setAttribute('aria-label', t('settings.favorites.removeAria', { model: favorite.model }));
       remove.addEventListener('click', () => {
         void this.remove(favorite, remove);
       });
@@ -85,42 +90,42 @@ export class FavoritesSection {
     const alreadyFavorite = hasFavoriteModel(favorites, favorite, PROVIDER_CONFIGS);
     if (!favorite.model.trim() || alreadyFavorite) {
       this.notify(
-        alreadyFavorite ? 'This model is already in your favorites.' : 'Choose or enter a model before adding a favorite.',
+        alreadyFavorite ? t('settings.favorites.alreadyNotice') : t('settings.favorites.chooseFirst'),
         alreadyFavorite ? 'info' : 'error',
         false
       );
       return;
     }
     if (favorites.length >= MAX_FAVORITE_MODELS) {
-      this.notify(`You can save up to ${MAX_FAVORITE_MODELS} favorite models. Remove one before adding another.`, 'error', false);
+      this.notify(t('settings.favorites.limitNotice', { max: MAX_FAVORITE_MODELS }), 'error', false);
       return;
     }
 
     const button = $('addFavoriteBtn');
     button.disabled = true;
-    button.textContent = 'Adding…';
+    button.textContent = t('settings.favorites.adding');
     try {
       await this.store.setFavorites(addFavoriteModel(favorites, favorite, PROVIDER_CONFIGS));
       this.render();
-      this.notify('Favorite model added. It is now available in the quick switcher.', 'success');
+      this.notify(t('settings.favorites.added'), 'success');
     } catch (error) {
       console.error('DiscourseCopilot Settings: Unable to add favorite model:', error);
       this.render();
-      this.notify(`Could not save favorite: ${error.message}`, 'error', false);
+      this.notify(t('settings.favorites.addFailed', { error: error.message }), 'error', false);
     }
   }
 
   async remove(favorite, button) {
     button.disabled = true;
-    button.textContent = 'Removing…';
+    button.textContent = t('settings.favorites.removing');
     try {
       await this.store.setFavorites(removeFavoriteModel(this.store.config.favorites, favorite, PROVIDER_CONFIGS));
       this.render();
-      this.notify('Favorite model removed.', 'success');
+      this.notify(t('settings.favorites.removed'), 'success');
     } catch (error) {
       console.error('DiscourseCopilot Settings: Unable to remove favorite model:', error);
       this.render();
-      this.notify(`Could not remove favorite: ${error.message}`, 'error', false);
+      this.notify(t('settings.favorites.removeFailed', { error: error.message }), 'error', false);
     }
   }
 }

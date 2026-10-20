@@ -26,6 +26,7 @@ import {
   transactionComplete,
   upgradeHistoryDatabase
 } from './history-schema.mjs';
+import { t } from './i18n.mjs';
 
 export class TopicSessionDatabase {
   constructor({
@@ -184,7 +185,7 @@ export class TopicSessionDatabase {
   async restore(stored) {
     const session = normalizeTopicSession(stored, this.now());
     if (!session || stored.topicKey !== session.topicKey) {
-      throw new Error('This saved summary can no longer be restored');
+      throw new Error(t('session.cannotRestoreSummary'));
     }
     const database = await this.open();
     const transaction = database.transaction([SESSION_STORE, INDEX_STORE], 'readwrite');
@@ -200,7 +201,7 @@ export class TopicSessionDatabase {
     const stored = await requestResult(readTransaction.objectStore(SESSION_STORE).get(String(topicKey)));
     await transactionComplete(readTransaction);
     if (!stored) {
-      throw new Error('Saved session not found');
+      throw new Error(t('session.notFound'));
     }
 
     const { session } = expireChatHistory(
@@ -415,7 +416,7 @@ export class TopicSessionDatabase {
   async setAgentActivityKept(activityId, kept) {
     const activity = await this.getAgentActivity(activityId);
     if (!activity) {
-      throw new Error('Agent activity not found');
+      throw new Error(t('session.agentNotFound'));
     }
     const now = this.now();
     // Unkeeping starts a fresh retention period from now.
@@ -450,7 +451,7 @@ export class TopicSessionDatabase {
   // stored; resolves to the normalized activity.
   async restoreAgentActivity(stored) {
     if (!stored?.activityId) {
-      throw new Error('This Agent answer can no longer be restored');
+      throw new Error(t('session.cannotRestoreAnswer'));
     }
     const database = await this.open();
     const transaction = database.transaction(AGENT_ACTIVITY_STORE, 'readwrite');

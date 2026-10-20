@@ -2,6 +2,7 @@
 // their accent hue and initial, topic titles without the forum suffix, and
 // Activity items grouped by forum. forum-ui.mjs renders these.
 import { normalizeSiteUrl, parseSiteUrl } from '../shared/forum-site.mjs';
+import { t } from '../shared/i18n.mjs';
 
 export function forumHostname(siteUrl) {
   const site = parseSiteUrl(siteUrl);
@@ -102,7 +103,7 @@ export function groupByForum(items = [], currentSiteUrl = '', { names = null } =
         hostname,
         forumName: group.siteUrl
           ? resolveForumName(group.siteUrl, ...group.items.map(item => item.forumName), names?.get(group.siteUrl))
-          : 'Unknown forum',
+          : t('forumBar.unknown'),
         hue: forumAccentHue(group.siteUrl),
         isCurrent: Boolean(current) && group.siteUrl === current
       };

@@ -24,6 +24,7 @@ import {
   subscribeForumAccess,
   syncForumContentScripts
 } from '../shared/forum-access.mjs';
+import { t } from '../shared/i18n.mjs';
 
 const { MESSAGES, SESSION_KEYS } = DiscourseCopilotConstants;
 const MAX_ACTION_CLICKED_TABS = 50;
@@ -229,7 +230,7 @@ chrome.runtime.onMessage.addListener(
     // Content script: the in-page launcher button.
     [MESSAGES.OPEN_SIDE_PANEL]: (request, sender, sendResponse) => {
       if (!sender.tab?.id) {
-        sendResponse({ success: false, error: 'No forum tab is available' });
+        sendResponse({ success: false, error: t('background.noForumTab') });
         return false;
       }
       return respondAsync(() => chrome.sidePanel.open({ tabId: sender.tab.id }))(request, sender, sendResponse);

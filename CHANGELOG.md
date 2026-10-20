@@ -4,13 +4,16 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-10-19
+
 ### Added
 - After your fifth summary, the side panel shows a small "Enjoying DiscourseCopilot?" card once, with links to rate the extension or star it on GitHub. Close it and it never comes back.
 - Settings ends with a quiet "Star on GitHub · Rate it" line.
+- The interface is available in Simplified Chinese, chosen automatically from the browser language (summaries and answers still follow Settings → Response language).
 - A Chinese README (README.zh-CN.md) and an animated demo at the top of the README.
 
 ### Changed
-- GitHub release notes are built from this changelog (the version's section, plus install steps and links) instead of GitHub's auto-generated list.
+- GitHub release notes are built from this changelog (the version's section, plus install steps, links and a line asking for a rating or a star) instead of GitHub's auto-generated list.
 - README and store listing: follow-up questions use the whole thread as context, so answers can point to the posts that said it.
 
 ## [2.2.1] - 2026-10-03
@@ -87,7 +90,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.1...HEAD
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.1.0...v2.1.1

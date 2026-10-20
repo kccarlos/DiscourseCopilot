@@ -26,6 +26,7 @@ import { clampAgentBudget } from '../shared/preferences.mjs';
 import { agentStepText, compactAgentTranscript, MAX_AGENT_STEPS } from '../shared/agent-activity.mjs';
 import { forumDisplayName, normalizeSiteUrl } from '../shared/forum-site.mjs';
 import { isAbortError } from '../shared/rate-limit-retry.mjs';
+import { t } from '../shared/i18n.mjs';
 
 const DETAIL_CHARS = 1500;
 
@@ -170,7 +171,7 @@ export async function runAgentLoop({
       await persist(
         {
           phase: 'planning',
-          statusText: `Planning step ${stepsUsed() + 1} of ${budget.maxSteps}…`,
+          statusText: t('agent.planning', { step: stepsUsed() + 1, max: budget.maxSteps }),
           progress: progressOf(stepsUsed(), budget, sources.length)
         },
         { durable: false }
@@ -193,7 +194,7 @@ export async function runAgentLoop({
             startedAt: now(),
             completedAt: now()
           });
-          await persist({ phase: 'failed', statusText: 'The model did not reply with a valid action' });
+          await persist({ phase: 'failed', statusText: t('agent.step.invalidAction') });
         }
         throw error;
       }
@@ -260,8 +261,8 @@ export async function runAgentLoop({
 
   // ---- The answer: one streamed call over the same conversation ----
   throwIfAborted(signal);
-  await persist({ phase: 'answering', statusText: 'Writing the answer…', progress: progressOf(stepsUsed(), budget, sources.length) });
-  await report({ phase: 'answering', statusText: 'Writing the answer…', progress: progressOf(stepsUsed(), budget, sources.length) });
+  await persist({ phase: 'answering', statusText: t('agent.writing'), progress: progressOf(stepsUsed(), budget, sources.length) });
+  await report({ phase: 'answering', statusText: t('agent.writing'), progress: progressOf(stepsUsed(), budget, sources.length) });
   const messages = [...transcript];
   if (gist) {
     messages.push(actionMessage({ tool: FINAL_ANSWER_TOOL, arguments: { answer: gist }, reason: '' }));
@@ -273,7 +274,7 @@ export async function runAgentLoop({
     answer = gist;
   }
   if (!answer) {
-    throw new Error('No Agent answer was generated');
+    throw new Error(t('agent.noAnswer'));
   }
 
   transcript.push(actionMessage({ tool: FINAL_ANSWER_TOOL, arguments: { answer }, reason: '' }));

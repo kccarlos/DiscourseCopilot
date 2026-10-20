@@ -13,9 +13,24 @@ export const SETTINGS = 'src/settings/settings.html';
 export async function openExtensionPage(
   browser,
   base,
-  { pagePath = POPUP, theme = 'light', width = 460, height = 1000, deviceScaleFactor = 1, stub = {}, settle = 700, routes = [] } = {}
+  {
+    pagePath = POPUP,
+    theme = 'light',
+    width = 460,
+    height = 1000,
+    deviceScaleFactor = 1,
+    stub = {},
+    settle = 700,
+    routes = [],
+    locale
+  } = {}
 ) {
-  const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor, colorScheme: theme });
+  const ctx = await browser.newContext({
+    viewport: { width, height },
+    deviceScaleFactor,
+    colorScheme: theme,
+    ...(locale ? { locale } : {})
+  });
   const page = await ctx.newPage();
   const errors = [];
   const requests = [];

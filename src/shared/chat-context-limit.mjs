@@ -1,3 +1,5 @@
+import { t } from './i18n.mjs';
+
 export const FORUM_CONTEXT_LIMIT = Object.freeze({
   min: 5000,
   max: 1000000,
@@ -16,5 +18,5 @@ export function normalizeForumContextLimit(value, fallback = FORUM_CONTEXT_LIMIT
 }
 
 export function formatForumContextLimit(value) {
-  return `${normalizeForumContextLimit(value).toLocaleString()} characters`;
+  return t('chatContext.characters', { count: normalizeForumContextLimit(value).toLocaleString() });
 }

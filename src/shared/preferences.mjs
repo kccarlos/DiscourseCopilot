@@ -28,6 +28,9 @@
 // every save, so a stored number says nothing about whether the user chose a
 // limit. The number is kept as the value offered when they pick a limit.
 
+import { DEFAULT_SHOW_FORUM_BUTTON, readShowForumButton } from './forum-button-preference.mjs';
+import { t } from './i18n.mjs';
+
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
@@ -84,7 +87,7 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   historyRetention: '1d',
   maxSavedTopics: 40,
   // The floating launcher the content script adds to forum pages.
-  showForumButton: true
+  showForumButton: DEFAULT_SHOW_FORUM_BUTTON
 });
 
 // The user-tunable defaults, derived once here so no other module repeats
@@ -145,7 +148,7 @@ export function normalizePreferences(value) {
     topicPageLimit: clampInteger(raw.topicPageLimit, PREFERENCE_RANGES.topicPageLimit, DEFAULT_PREFERENCES.topicPageLimit),
     historyRetention: RETENTION_BY_VALUE.has(raw.historyRetention) ? raw.historyRetention : DEFAULT_PREFERENCES.historyRetention,
     maxSavedTopics: clampInteger(raw.maxSavedTopics, PREFERENCE_RANGES.maxSavedTopics, DEFAULT_PREFERENCES.maxSavedTopics),
-    showForumButton: typeof raw.showForumButton === 'boolean' ? raw.showForumButton : DEFAULT_PREFERENCES.showForumButton
+    showForumButton: readShowForumButton(raw)
   };
 }
 
@@ -158,11 +161,11 @@ export function preferencesEqual(left, right) {
 }
 
 const FIELD_LABELS = Object.freeze({
-  maxSteps: 'Steps per question',
-  maxTopicReads: 'Topics read',
-  maxCharsPerRead: 'Characters per read',
-  topicPageLimit: 'Pages read per topic',
-  maxSavedTopics: 'Saved topics'
+  maxSteps: 'steps',
+  maxTopicReads: 'topicReads',
+  maxCharsPerRead: 'charsPerRead',
+  topicPageLimit: 'pageLimit',
+  maxSavedTopics: 'savedTopics'
 });
 
 function checkInteger(value, range) {
@@ -188,7 +191,11 @@ export function validatePreferences(value) {
   const check = (field, fieldValue) => {
     const range = PREFERENCE_RANGES[field];
     if (!checkInteger(fieldValue, range)) {
-      fieldErrors[field] = `${FIELD_LABELS[field]} must be a whole number from ${range.min} to ${range.max}.`;
+      fieldErrors[field] = t('preferences.wholeNumber', {
+        field: t(`preferences.field.${FIELD_LABELS[field]}`),
+        min: range.min,
+        max: range.max
+      });
     }
   };
   if (raw.researchDepth === 'custom') {
@@ -247,7 +254,7 @@ export function resolveRetention(value) {
   const option = RETENTION_BY_VALUE.get(preferences.historyRetention);
   return {
     historyRetention: option.value,
-    label: option.label,
+    label: t(`settings.history.option.${option.value}`),
     forever: !Number.isFinite(option.ms),
     chatMs: option.ms,
     agentMs: option.ms,
@@ -309,7 +316,7 @@ export function normalizeTaskLimits(type, value) {
 // ---------- Labels ----------
 
 export function describeRetention(retention) {
-  return retention?.forever ? 'no time limit' : retention?.label || '1 day';
+  return retention?.forever ? t('preferences.noTimeLimit') : retention?.label || t('settings.history.option.1d');
 }
 
 // "expires in 5h" / "expires in 3d"; '' when there is nothing to show.
@@ -323,9 +330,9 @@ export function formatExpiresIn(expiresAt, now = Date.now()) {
   }
   const hours = Math.ceil(remaining / HOUR_MS);
   if (hours <= 48) {
-    return `expires in ${hours}h`;
+    return t('preferences.expiresHours', { count: hours });
   }
-  return `expires in ${Math.ceil(remaining / DAY_MS)}d`;
+  return t('preferences.expiresDays', { count: Math.ceil(remaining / DAY_MS) });
 }
 
 export function formatPostCount(pages) {

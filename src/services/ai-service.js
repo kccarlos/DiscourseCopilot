@@ -13,6 +13,7 @@ import { estimateTokens, isTokenLimitError, throwIfAborted } from './ai-errors.m
 import { streamAnswer } from './text-stream.mjs';
 import { DEFAULT_MAX_RETRIES, hierarchicalSummary, singlePassSummary, summarizeWithRetry } from './summary-strategies.mjs';
 import { DiscourseCopilotLogger } from '../shared/logger.js';
+import { t } from '../shared/i18n.mjs';
 
 export { toInstructionsAndMessages } from './text-stream.mjs';
 
@@ -87,7 +88,7 @@ export class AIService {
 
     // Try single-pass first, fall back to hierarchical if token limit exceeded
     try {
-      onProgress?.({ step: 'single-pass', message: '🚀 Generating summary...' });
+      onProgress?.({ step: 'single-pass', message: t('progress.generating') });
       DiscourseCopilotLogger.log('AI Service: Attempting single-pass summarization...');
       const result = await singlePassSummary(model, content, {
         onStream,
@@ -108,7 +109,7 @@ export class AIService {
       console.error('AI Service: Single-pass failed:', error.message);
       if (isTokenLimitError(error)) {
         DiscourseCopilotLogger.log('AI Service: Token limit hit, switching to hierarchical summarization...');
-        onProgress?.({ step: 'hierarchical', message: '📊 Content too long, using hierarchical mode...' });
+        onProgress?.({ step: 'hierarchical', message: t('progress.tooLong') });
         return hierarchical();
       }
       throw error;
@@ -134,14 +135,14 @@ export class AIService {
 
     const messages = buildFollowUpMessages(context || {});
     const model = this.getModel(provider, settings);
-    onProgress?.({ step: 'follow-up', message: 'Generating answer…' });
+    onProgress?.({ step: 'follow-up', message: t('progress.answer') });
     return streamAnswer(model, {
       messages,
       temperature: 0.5,
       abortSignal,
       onStream,
       onError,
-      emptyMessage: 'No follow-up answer was generated',
+      emptyMessage: t('progress.noFollowUp'),
       logLabel: 'Follow-up'
     });
   }
@@ -162,7 +163,7 @@ export class AIService {
       messages: [{ role: 'system', content: system }, ...messages],
       temperature: 0.2,
       abortSignal,
-      emptyMessage: 'The model returned an empty reply',
+      emptyMessage: t('progress.emptyReply'),
       logLabel: 'Agent step'
     });
   }
@@ -178,14 +179,14 @@ export class AIService {
     if (!provider || !settings) {
       throw new Error('Provider and settings are required');
     }
-    onProgress?.({ step: 'agent-answer', message: 'Writing answer with sources…' });
+    onProgress?.({ step: 'agent-answer', message: t('progress.answerSources') });
     return streamAnswer(this.getModel(provider, settings), {
       messages: [{ role: 'system', content: system }, ...messages],
       temperature: 0.3,
       abortSignal,
       onStream,
       onError,
-      emptyMessage: 'No Agent answer was generated',
+      emptyMessage: t('agent.noAnswer'),
       logLabel: 'Agent answer'
     });
   }

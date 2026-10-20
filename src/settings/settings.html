@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>DiscourseCopilot Settings</title>
+  <title data-i18n="settings.title">DiscourseCopilot Settings</title>
   <link rel="icon" type="image/svg+xml" href="/brand/tab-icon-light.svg" media="(prefers-color-scheme: light)">
   <link rel="icon" type="image/svg+xml" href="/brand/tab-icon-dark.svg" media="(prefers-color-scheme: dark)">
   <style>
@@ -1287,11 +1287,11 @@
     <div class="header">
       <h1>
         <img class="header-wordmark" src="/brand/wordmark-on-dark.svg" alt="DiscourseCopilot" width="197" height="36">
-        <span class="header-title-page">Settings</span>
+        <span class="header-title-page" data-i18n="settings.heading">Settings</span>
       </h1>
       <div class="saved-config">
-        <strong id="savedConfigurationLabel">Currently saved</strong>
-        <span id="savedConfiguration">Loading…</span>
+        <strong id="savedConfigurationLabel" data-i18n="settings.header.currentlySaved">Currently saved</strong>
+        <span id="savedConfiguration" data-i18n="settings.loading">Loading…</span>
       </div>
       <span id="dirtyIndicator" class="hidden"></span>
     </div>
@@ -1303,39 +1303,39 @@
             <source srcset="/brand/icon-on-dark.svg" media="(prefers-color-scheme: dark)">
             <img src="/brand/icon-on-light.svg" alt="" width="32" height="32">
           </picture>
-          <span>Welcome to DiscourseCopilot — 3 steps to get started</span>
+          <span data-i18n="settings.welcome.title">Welcome to DiscourseCopilot — 3 steps to get started</span>
         </h2>
-        <p>
+        <p data-i18n-html="settings.welcome.intro">
           DiscourseCopilot summarizes long topics and answers questions with sources on
           <strong>any Discourse forum</strong>. Connect your own AI provider below — or finish
           setup in the side panel, which walks you through the same steps.
         </p>
         <ol class="welcome-steps">
-          <li><span class="welcome-step-number" aria-hidden="true">1</span><span><strong>Choose a provider.</strong> OpenRouter gives you many models with one key; Ollama runs on your computer.</span></li>
-          <li><span class="welcome-step-number" aria-hidden="true">2</span><span><strong>Paste your API key</strong> (or your local server URL). It stays in this browser.</span></li>
-          <li><span class="welcome-step-number" aria-hidden="true">3</span><span><strong>Pick a model</strong>, then <em>Test Connection</em> and <em>Save Settings</em>.</span></li>
+          <li><span class="welcome-step-number" aria-hidden="true">1</span><span data-i18n-html="settings.welcome.step1"><strong>Choose a provider.</strong> OpenRouter gives you many models with one key; Ollama runs on your computer.</span></li>
+          <li><span class="welcome-step-number" aria-hidden="true">2</span><span data-i18n-html="settings.welcome.step2"><strong>Paste your API key</strong> (or your local server URL). It stays in this browser.</span></li>
+          <li><span class="welcome-step-number" aria-hidden="true">3</span><span data-i18n-html="settings.welcome.step3"><strong>Pick a model</strong>, then <em>Test Connection</em> and <em>Save Settings</em>.</span></li>
         </ol>
       </section>
 
-      <nav class="section-nav" aria-label="Settings sections">
-        <a href="#providerHeading">AI provider</a>
-        <a href="#promptHeading">Prompt &amp; language</a>
-        <a href="#researchHeading">Ask the forum</a>
-        <a href="#readingHeading">Reading topics</a>
-        <a href="#historyHeading">History &amp; privacy</a>
-        <a href="#forumAccessHeading">Forum access</a>
+      <nav class="section-nav" aria-label="Settings sections" data-i18n-attr="aria-label:settings.nav.label">
+        <a href="#providerHeading" data-i18n="settings.section.provider">AI provider</a>
+        <a href="#promptHeading" data-i18n="settings.section.prompt">Prompt &amp; language</a>
+        <a href="#researchHeading" data-i18n="settings.section.research">Ask the forum</a>
+        <a href="#readingHeading" data-i18n="settings.section.reading">Reading topics</a>
+        <a href="#historyHeading" data-i18n="settings.section.history">History &amp; privacy</a>
+        <a href="#forumAccessHeading" data-i18n="settings.section.forumAccess">Forum access</a>
       </nav>
 
       <section class="section" aria-labelledby="providerHeading">
         <div class="section-head">
           <div>
-            <h2 id="providerHeading" class="section-title">AI provider</h2>
-            <p class="section-lede">The AI service that writes summaries and answers. Your key stays in this browser.</p>
+            <h2 id="providerHeading" class="section-title" data-i18n="settings.section.provider">AI provider</h2>
+            <p class="section-lede" data-i18n="settings.provider.lede">The AI service that writes summaries and answers. Your key stays in this browser.</p>
           </div>
         </div>
         
         <div class="form-group">
-          <label for="providerSelect" class="step-label" data-step="1">Choose AI Provider:</label>
+          <label for="providerSelect" class="step-label" data-step="1" data-i18n="settings.provider.choose">Choose AI Provider:</label>
           <select id="providerSelect">
             <option value="openrouter">OpenRouter</option>
             <option value="openai">OpenAI</option>
@@ -1352,15 +1352,15 @@
         <!-- OpenRouter Config -->
         <div id="config-openrouter" class="provider-config">
           <div class="form-group">
-            <label for="openrouterApiKey" class="step-label" data-step="2">OpenRouter API Key:</label>
+            <label for="openrouterApiKey" class="step-label" data-step="2">OpenRouter <span data-i18n="settings.provider.apiKeySuffix">API Key:</span></label>
             <input type="password" id="openrouterApiKey" placeholder="sk-or-v1-..." autocomplete="off" spellcheck="false">
-            <div class="help-text">Get your API key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" data-provider-link="openrouter">openrouter.ai/keys</a></div>
+            <div class="help-text"><span data-i18n="settings.provider.getKeyFrom">Get your API key from</span> <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" data-provider-link="openrouter">openrouter.ai/keys</a></div>
           </div>
           <div class="form-group">
-            <label for="openrouterModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="openrouterModel" list="openrouterModelList" aria-describedby="openrouterModelStatus openrouterModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <label for="openrouterModel" class="step-label" data-step="3" data-i18n="settings.model.label">Model:</label>
+            <input type="text" id="openrouterModel" list="openrouterModelList" aria-describedby="openrouterModelStatus openrouterModelWarning" placeholder="Enter or choose a model" data-i18n-attr="placeholder:settings.model.placeholder" autocomplete="off" spellcheck="false">
             <datalist id="openrouterModelList"></datalist>
-            <button type="button" class="btn-refresh" data-provider="openrouter">Refresh models</button>
+            <button type="button" class="btn-refresh" data-i18n="settings.model.refresh" data-provider="openrouter">Refresh models</button>
             <div id="openrouterModelStatus" class="model-load-status" aria-live="polite"></div>
             <p id="openrouterModelWarning" class="model-warning" role="status" hidden></p>
           </div>
@@ -1369,15 +1369,15 @@
         <!-- OpenAI Config -->
         <div id="config-openai" class="provider-config hidden">
           <div class="form-group">
-            <label for="openaiApiKey" class="step-label" data-step="2">OpenAI API Key:</label>
+            <label for="openaiApiKey" class="step-label" data-step="2">OpenAI <span data-i18n="settings.provider.apiKeySuffix">API Key:</span></label>
             <input type="password" id="openaiApiKey" placeholder="sk-..." autocomplete="off" spellcheck="false">
-            <div class="help-text">Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" data-provider-link="openai">platform.openai.com</a></div>
+            <div class="help-text"><span data-i18n="settings.provider.getKeyFrom">Get your API key from</span> <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" data-provider-link="openai">platform.openai.com</a></div>
           </div>
           <div class="form-group">
-            <label for="openaiModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="openaiModel" list="openaiModelList" aria-describedby="openaiModelStatus openaiModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <label for="openaiModel" class="step-label" data-step="3" data-i18n="settings.model.label">Model:</label>
+            <input type="text" id="openaiModel" list="openaiModelList" aria-describedby="openaiModelStatus openaiModelWarning" placeholder="Enter or choose a model" data-i18n-attr="placeholder:settings.model.placeholder" autocomplete="off" spellcheck="false">
             <datalist id="openaiModelList"></datalist>
-            <button type="button" class="btn-refresh" data-provider="openai">Refresh models</button>
+            <button type="button" class="btn-refresh" data-i18n="settings.model.refresh" data-provider="openai">Refresh models</button>
             <div id="openaiModelStatus" class="model-load-status" aria-live="polite"></div>
             <p id="openaiModelWarning" class="model-warning" role="status" hidden></p>
           </div>
@@ -1386,15 +1386,15 @@
         <!-- Anthropic Config -->
         <div id="config-anthropic" class="provider-config hidden">
           <div class="form-group">
-            <label for="anthropicApiKey" class="step-label" data-step="2">Anthropic API Key:</label>
+            <label for="anthropicApiKey" class="step-label" data-step="2">Anthropic <span data-i18n="settings.provider.apiKeySuffix">API Key:</span></label>
             <input type="password" id="anthropicApiKey" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
-            <div class="help-text">Get your API key from <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" data-provider-link="anthropic">console.anthropic.com</a></div>
+            <div class="help-text"><span data-i18n="settings.provider.getKeyFrom">Get your API key from</span> <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" data-provider-link="anthropic">console.anthropic.com</a></div>
           </div>
           <div class="form-group">
-            <label for="anthropicModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="anthropicModel" list="anthropicModelList" aria-describedby="anthropicModelStatus anthropicModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <label for="anthropicModel" class="step-label" data-step="3" data-i18n="settings.model.label">Model:</label>
+            <input type="text" id="anthropicModel" list="anthropicModelList" aria-describedby="anthropicModelStatus anthropicModelWarning" placeholder="Enter or choose a model" data-i18n-attr="placeholder:settings.model.placeholder" autocomplete="off" spellcheck="false">
             <datalist id="anthropicModelList"></datalist>
-            <button type="button" class="btn-refresh" data-provider="anthropic">Refresh models</button>
+            <button type="button" class="btn-refresh" data-i18n="settings.model.refresh" data-provider="anthropic">Refresh models</button>
             <div id="anthropicModelStatus" class="model-load-status" aria-live="polite"></div>
             <p id="anthropicModelWarning" class="model-warning" role="status" hidden></p>
           </div>
@@ -1403,15 +1403,15 @@
         <!-- Groq Config -->
         <div id="config-groq" class="provider-config hidden">
           <div class="form-group">
-            <label for="groqApiKey" class="step-label" data-step="2">Groq API Key:</label>
+            <label for="groqApiKey" class="step-label" data-step="2">Groq <span data-i18n="settings.provider.apiKeySuffix">API Key:</span></label>
             <input type="password" id="groqApiKey" placeholder="gsk_..." autocomplete="off" spellcheck="false">
-            <div class="help-text">Get your API key from <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" data-provider-link="groq">console.groq.com</a></div>
+            <div class="help-text"><span data-i18n="settings.provider.getKeyFrom">Get your API key from</span> <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" data-provider-link="groq">console.groq.com</a></div>
           </div>
           <div class="form-group">
-            <label for="groqModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="groqModel" list="groqModelList" aria-describedby="groqModelStatus groqModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <label for="groqModel" class="step-label" data-step="3" data-i18n="settings.model.label">Model:</label>
+            <input type="text" id="groqModel" list="groqModelList" aria-describedby="groqModelStatus groqModelWarning" placeholder="Enter or choose a model" data-i18n-attr="placeholder:settings.model.placeholder" autocomplete="off" spellcheck="false">
             <datalist id="groqModelList"></datalist>
-            <button type="button" class="btn-refresh" data-provider="groq">Refresh models</button>
+            <button type="button" class="btn-refresh" data-i18n="settings.model.refresh" data-provider="groq">Refresh models</button>
             <div id="groqModelStatus" class="model-load-status" aria-live="polite"></div>
             <p id="groqModelWarning" class="model-warning" role="status" hidden></p>
           </div>
@@ -1420,15 +1420,15 @@
         <!-- Gemini Config -->
         <div id="config-gemini" class="provider-config hidden">
           <div class="form-group">
-            <label for="geminiApiKey" class="step-label" data-step="2">Google Gemini API Key:</label>
+            <label for="geminiApiKey" class="step-label" data-step="2">Google Gemini <span data-i18n="settings.provider.apiKeySuffix">API Key:</span></label>
             <input type="password" id="geminiApiKey" placeholder="AIza..." autocomplete="off" spellcheck="false">
-            <div class="help-text">Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" data-provider-link="gemini">Google AI Studio</a></div>
+            <div class="help-text"><span data-i18n="settings.provider.getKeyFrom">Get your API key from</span> <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" data-provider-link="gemini">Google AI Studio</a></div>
           </div>
           <div class="form-group">
-            <label for="geminiModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="geminiModel" list="geminiModelList" aria-describedby="geminiModelStatus geminiModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <label for="geminiModel" class="step-label" data-step="3" data-i18n="settings.model.label">Model:</label>
+            <input type="text" id="geminiModel" list="geminiModelList" aria-describedby="geminiModelStatus geminiModelWarning" placeholder="Enter or choose a model" data-i18n-attr="placeholder:settings.model.placeholder" autocomplete="off" spellcheck="false">
             <datalist id="geminiModelList"></datalist>
-            <button type="button" class="btn-refresh" data-provider="gemini">Refresh models</button>
+            <button type="button" class="btn-refresh" data-i18n="settings.model.refresh" data-provider="gemini">Refresh models</button>
             <div id="geminiModelStatus" class="model-load-status" aria-live="polite"></div>
             <p id="geminiModelWarning" class="model-warning" role="status" hidden></p>
           </div>
@@ -1437,33 +1437,33 @@
         <!-- Ollama Config -->
         <div id="config-ollama" class="provider-config hidden">
           <div class="form-group">
-            <label for="ollamaUrl" class="step-label" data-step="2">Ollama Server URL:</label>
+            <label for="ollamaUrl" class="step-label" data-step="2">Ollama <span data-i18n="settings.provider.serverUrlSuffix">Server URL:</span></label>
             <input type="url" id="ollamaUrl" placeholder="http://localhost:11434" value="http://localhost:11434">
-            <div class="help-text">Make sure Ollama is running locally. <a href="https://ollama.ai" target="_blank" rel="noopener noreferrer" data-provider-link="ollama">Download Ollama</a></div>
+            <div class="help-text"><span data-i18n="settings.provider.ollamaRunning">Make sure Ollama is running locally.</span> <a href="https://ollama.ai" target="_blank" rel="noopener noreferrer" data-provider-link="ollama" data-i18n="settings.provider.downloadOllama">Download Ollama</a></div>
           </div>
           <div class="form-group">
-            <label for="ollamaModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="ollamaModel" list="ollamaModelList" aria-describedby="ollamaModelStatus ollamaModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <label for="ollamaModel" class="step-label" data-step="3" data-i18n="settings.model.label">Model:</label>
+            <input type="text" id="ollamaModel" list="ollamaModelList" aria-describedby="ollamaModelStatus ollamaModelWarning" placeholder="Enter or choose a model" data-i18n-attr="placeholder:settings.model.placeholder" autocomplete="off" spellcheck="false">
             <datalist id="ollamaModelList"></datalist>
-            <button type="button" class="btn-refresh" data-provider="ollama">Refresh models</button>
+            <button type="button" class="btn-refresh" data-i18n="settings.model.refresh" data-provider="ollama">Refresh models</button>
             <div id="ollamaModelStatus" class="model-load-status" aria-live="polite"></div>
             <p id="ollamaModelWarning" class="model-warning" role="status" hidden></p>
-            <div class="help-text">Make sure the model is downloaded: <code>ollama pull &lt;model-name&gt;</code></div>
+            <div class="help-text"><span data-i18n="settings.provider.ollamaPull">Make sure the model is downloaded:</span> <code>ollama pull &lt;model-name&gt;</code></div>
           </div>
         </div>
         
         <!-- xAI Config -->
         <div id="config-xai" class="provider-config hidden">
           <div class="form-group">
-            <label for="xaiApiKey" class="step-label" data-step="2">xAI API Key:</label>
+            <label for="xaiApiKey" class="step-label" data-step="2">xAI <span data-i18n="settings.provider.apiKeySuffix">API Key:</span></label>
             <input type="password" id="xaiApiKey" placeholder="xai-..." autocomplete="off" spellcheck="false">
-            <div class="help-text">Get your API key from <a href="https://console.x.ai" target="_blank" rel="noopener noreferrer" data-provider-link="xai">console.x.ai</a></div>
+            <div class="help-text"><span data-i18n="settings.provider.getKeyFrom">Get your API key from</span> <a href="https://console.x.ai" target="_blank" rel="noopener noreferrer" data-provider-link="xai">console.x.ai</a></div>
           </div>
           <div class="form-group">
-            <label for="xaiModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="xaiModel" list="xaiModelList" aria-describedby="xaiModelStatus xaiModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <label for="xaiModel" class="step-label" data-step="3" data-i18n="settings.model.label">Model:</label>
+            <input type="text" id="xaiModel" list="xaiModelList" aria-describedby="xaiModelStatus xaiModelWarning" placeholder="Enter or choose a model" data-i18n-attr="placeholder:settings.model.placeholder" autocomplete="off" spellcheck="false">
             <datalist id="xaiModelList"></datalist>
-            <button type="button" class="btn-refresh" data-provider="xai">Refresh models</button>
+            <button type="button" class="btn-refresh" data-i18n="settings.model.refresh" data-provider="xai">Refresh models</button>
             <div id="xaiModelStatus" class="model-load-status" aria-live="polite"></div>
             <p id="xaiModelWarning" class="model-warning" role="status" hidden></p>
           </div>
@@ -1472,15 +1472,15 @@
         <!-- Deepseek Config -->
         <div id="config-deepseek" class="provider-config hidden">
           <div class="form-group">
-            <label for="deepseekApiKey" class="step-label" data-step="2">DeepSeek API Key:</label>
+            <label for="deepseekApiKey" class="step-label" data-step="2">DeepSeek <span data-i18n="settings.provider.apiKeySuffix">API Key:</span></label>
             <input type="password" id="deepseekApiKey" placeholder="ds-..." autocomplete="off" spellcheck="false">
-            <div class="help-text">Get your API key from <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer" data-provider-link="deepseek">platform.deepseek.com</a></div>
+            <div class="help-text"><span data-i18n="settings.provider.getKeyFrom">Get your API key from</span> <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer" data-provider-link="deepseek">platform.deepseek.com</a></div>
           </div>
           <div class="form-group">
-            <label for="deepseekModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="deepseekModel" list="deepseekModelList" aria-describedby="deepseekModelStatus deepseekModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <label for="deepseekModel" class="step-label" data-step="3" data-i18n="settings.model.label">Model:</label>
+            <input type="text" id="deepseekModel" list="deepseekModelList" aria-describedby="deepseekModelStatus deepseekModelWarning" placeholder="Enter or choose a model" data-i18n-attr="placeholder:settings.model.placeholder" autocomplete="off" spellcheck="false">
             <datalist id="deepseekModelList"></datalist>
-            <button type="button" class="btn-refresh" data-provider="deepseek">Refresh models</button>
+            <button type="button" class="btn-refresh" data-i18n="settings.model.refresh" data-provider="deepseek">Refresh models</button>
             <div id="deepseekModelStatus" class="model-load-status" aria-live="polite"></div>
             <p id="deepseekModelWarning" class="model-warning" role="status" hidden></p>
           </div>
@@ -1489,30 +1489,30 @@
         <!-- LM Studio Config -->
         <div id="config-lmstudio" class="provider-config hidden">
           <div class="form-group">
-            <label for="lmstudioUrl" class="step-label" data-step="2">LM Studio Server URL:</label>
+            <label for="lmstudioUrl" class="step-label" data-step="2">LM Studio <span data-i18n="settings.provider.serverUrlSuffix">Server URL:</span></label>
             <input type="url" id="lmstudioUrl" placeholder="http://localhost:1234" value="http://localhost:1234">
-            <div class="help-text">Make sure LM Studio is running with the local server enabled. <a href="https://lmstudio.ai" target="_blank" rel="noopener noreferrer" data-provider-link="lmstudio">Download LM Studio</a></div>
+            <div class="help-text"><span data-i18n="settings.provider.lmstudioRunning">Make sure LM Studio is running with the local server enabled.</span> <a href="https://lmstudio.ai" target="_blank" rel="noopener noreferrer" data-provider-link="lmstudio" data-i18n="settings.provider.downloadLmstudio">Download LM Studio</a></div>
           </div>
           <div class="form-group">
-            <label for="lmstudioModel" class="step-label" data-step="3">Model:</label>
-            <input type="text" id="lmstudioModel" list="lmstudioModelList" aria-describedby="lmstudioModelStatus lmstudioModelWarning" placeholder="Enter or choose a model" autocomplete="off" spellcheck="false">
+            <label for="lmstudioModel" class="step-label" data-step="3" data-i18n="settings.model.label">Model:</label>
+            <input type="text" id="lmstudioModel" list="lmstudioModelList" aria-describedby="lmstudioModelStatus lmstudioModelWarning" placeholder="Enter or choose a model" data-i18n-attr="placeholder:settings.model.placeholder" autocomplete="off" spellcheck="false">
             <datalist id="lmstudioModelList"></datalist>
-            <button type="button" class="btn-refresh" data-provider="lmstudio">Refresh models</button>
+            <button type="button" class="btn-refresh" data-i18n="settings.model.refresh" data-provider="lmstudio">Refresh models</button>
             <div id="lmstudioModelStatus" class="model-load-status" aria-live="polite"></div>
             <p id="lmstudioModelWarning" class="model-warning" role="status" hidden></p>
-            <div class="help-text">Load a model in LM Studio and start the local server (Developer tab → Start Server)</div>
+            <div class="help-text" data-i18n="settings.provider.lmstudioLoad">Load a model in LM Studio and start the local server (Developer tab → Start Server)</div>
           </div>
         </div>
 
         <section class="favorite-models" aria-labelledby="favoriteModelsHeading">
           <div class="favorite-models-header">
             <div>
-              <h3 id="favoriteModelsHeading">Favorite models</h3>
-              <div class="help-text">Save up to 30 models to switch between them from the DiscourseCopilot header.</div>
+              <h3 id="favoriteModelsHeading" data-i18n="settings.favorites.heading">Favorite models</h3>
+              <div class="help-text" data-i18n="settings.favorites.help">Save up to 30 models to switch between them from the DiscourseCopilot header.</div>
             </div>
-            <button id="addFavoriteBtn" type="button">Add current model</button>
+            <button id="addFavoriteBtn" type="button" data-i18n="settings.favorites.add">Add current model</button>
           </div>
-          <p id="favoriteModelEmpty" class="favorite-model-empty">No favorites yet. Choose or enter a model above, then add it.</p>
+          <p id="favoriteModelEmpty" class="favorite-model-empty" data-i18n="settings.favorites.empty">No favorites yet. Choose or enter a model above, then add it.</p>
           <div id="favoriteModelList" class="favorite-model-list" aria-live="polite"></div>
         </section>
       </section>
@@ -1520,29 +1520,30 @@
       <section class="section" aria-labelledby="promptHeading">
         <div class="section-head">
           <div>
-            <h2 id="promptHeading" class="section-title">Prompt &amp; language</h2>
-            <p class="section-lede">How answers are written.</p>
+            <h2 id="promptHeading" class="section-title" data-i18n="settings.section.prompt">Prompt &amp; language</h2>
+            <p class="section-lede" data-i18n="settings.prompt.lede">How answers are written.</p>
           </div>
         </div>
         <div class="form-group">
-          <label for="responseLanguage">Response language:</label>
+          <label for="responseLanguage" data-i18n="settings.prompt.languageLabel">Response language:</label>
           <select id="responseLanguage">
             <option value="auto">Auto (match the discussion)</option>
           </select>
-          <div class="help-text">
+          <div class="help-text" data-i18n="settings.prompt.languageHelp">
             Language for summaries, follow-up answers, and Agent answers. Auto answers
             summaries in the discussion's language and questions in the language you ask in.
           </div>
         </div>
         <div class="form-group">
-          <label for="systemPrompt">Custom instructions:</label>
+          <label for="systemPrompt" data-i18n="settings.prompt.customLabel">Custom instructions:</label>
           <textarea
             id="systemPrompt"
             placeholder="Leave empty to use DiscourseCopilot's built-in summarization instructions."
+            data-i18n-attr="placeholder:settings.prompt.customPlaceholder"
             spellcheck="true"
             maxlength="12000"
           ></textarea>
-          <div class="help-text">
+          <div class="help-text" data-i18n="settings.prompt.customHelp">
             This prompt applies to new summaries, chats, and Agent answers. Leave it empty to use the
             built-in prompt. The response language setting above is still applied.
           </div>
@@ -1552,37 +1553,37 @@
       <section class="section" aria-labelledby="researchHeading">
         <div class="section-head">
           <div>
-            <h2 id="researchHeading" class="section-title">Ask the forum</h2>
-            <p class="section-lede">How much the agent may do for each question you ask a forum.</p>
+            <h2 id="researchHeading" class="section-title" data-i18n="settings.section.research">Ask the forum</h2>
+            <p class="section-lede" data-i18n="settings.research.lede">How much the agent may do for each question you ask a forum.</p>
           </div>
-          <button type="button" class="btn-restore" data-restore="research" aria-label="Restore Ask the forum defaults">Restore defaults</button>
+          <button type="button" class="btn-restore" data-restore="research" aria-label="Restore Ask the forum defaults" data-i18n="settings.restoreDefaults" data-i18n-attr="aria-label:settings.research.restoreAria">Restore defaults</button>
         </div>
 
         <fieldset class="choice-group" aria-describedby="researchHelp">
-          <legend>Research depth</legend>
+          <legend data-i18n="settings.research.depth">Research depth</legend>
           <div class="choice-cards">
             <label class="choice-card">
               <input type="radio" name="researchDepth" value="quick">
-              <span class="choice-title">Quick</span>
-              <span class="choice-detail">Up to 6 steps · reads 3 topics</span>
+              <span class="choice-title" data-i18n="settings.research.quick">Quick</span>
+              <span class="choice-detail" data-i18n="settings.research.quickDetail">Up to 6 steps · reads 3 topics</span>
             </label>
             <label class="choice-card">
               <input type="radio" name="researchDepth" value="balanced">
-              <span class="choice-title">Balanced <span class="choice-badge">Default</span></span>
-              <span class="choice-detail">Up to 15 steps · reads 8 topics</span>
+              <span class="choice-title"><span data-i18n="settings.research.balanced">Balanced</span> <span class="choice-badge" data-i18n="settings.default">Default</span></span>
+              <span class="choice-detail" data-i18n="settings.research.balancedDetail">Up to 15 steps · reads 8 topics</span>
             </label>
             <label class="choice-card">
               <input type="radio" name="researchDepth" value="thorough">
-              <span class="choice-title">Thorough</span>
-              <span class="choice-detail">Up to 25 steps · reads 14 topics</span>
+              <span class="choice-title" data-i18n="settings.research.thorough">Thorough</span>
+              <span class="choice-detail" data-i18n="settings.research.thoroughDetail">Up to 25 steps · reads 14 topics</span>
             </label>
             <label class="choice-card">
               <input type="radio" name="researchDepth" value="custom">
-              <span class="choice-title">Custom</span>
-              <span class="choice-detail">Set each limit yourself</span>
+              <span class="choice-title" data-i18n="settings.research.custom">Custom</span>
+              <span class="choice-detail" data-i18n="settings.research.customDetail">Set each limit yourself</span>
             </label>
           </div>
-          <p id="researchHelp" class="help-text">
+          <p id="researchHelp" class="help-text" data-i18n="settings.research.help">
             The agent decides what to search and read, one step at a time, until it can answer or runs out of
             steps. Deeper research finds more, but takes longer, uses more AI tokens, and sends more requests
             to the forum (always paced, one at a time). Each follow-up question gets the same budget again.
@@ -1591,21 +1592,21 @@
 
         <div id="customResearch" class="custom-fields" hidden>
           <div class="form-group">
-            <label for="maxSteps">Steps per question</label>
+            <label for="maxSteps" data-i18n="settings.research.stepsLabel">Steps per question</label>
             <input type="number" id="maxSteps" min="3" max="40" step="1" inputmode="numeric" aria-describedby="maxStepsHelp maxStepsError">
-            <small id="maxStepsHelp" class="help-text">3–40. A step is one search, one topic read or one list of latest topics.</small>
+            <small id="maxStepsHelp" class="help-text" data-i18n="settings.research.stepsHelp">3–40. A step is one search, one topic read or one list of latest topics.</small>
             <small id="maxStepsError" class="field-error" hidden></small>
           </div>
           <div class="form-group">
-            <label for="maxTopicReads">Topics read</label>
+            <label for="maxTopicReads" data-i18n="settings.research.readsLabel">Topics read</label>
             <input type="number" id="maxTopicReads" min="1" max="20" step="1" inputmode="numeric" aria-describedby="maxTopicReadsHelp maxTopicReadsError">
-            <small id="maxTopicReadsHelp" class="help-text">1–20 different topics opened per question.</small>
+            <small id="maxTopicReadsHelp" class="help-text" data-i18n="settings.research.readsHelp">1–20 different topics opened per question.</small>
             <small id="maxTopicReadsError" class="field-error" hidden></small>
           </div>
           <div class="form-group">
-            <label for="maxCharsPerRead">Characters per read</label>
+            <label for="maxCharsPerRead" data-i18n="settings.research.charsLabel">Characters per read</label>
             <input type="number" id="maxCharsPerRead" min="5000" max="60000" step="1" inputmode="numeric" aria-describedby="maxCharsPerReadHelp maxCharsPerReadError">
-            <small id="maxCharsPerReadHelp" class="help-text">5,000–60,000. Longer topics are trimmed to the opening post and the latest replies.</small>
+            <small id="maxCharsPerReadHelp" class="help-text" data-i18n="settings.research.charsHelp">5,000–60,000. Longer topics are trimmed to the opening post and the latest replies.</small>
             <small id="maxCharsPerReadError" class="field-error" hidden></small>
           </div>
         </div>
@@ -1616,29 +1617,29 @@
       <section class="section" aria-labelledby="readingHeading">
         <div class="section-head">
           <div>
-            <h2 id="readingHeading" class="section-title">Reading topics</h2>
-            <p class="section-lede">How much of a topic summaries and follow-up chat read.</p>
+            <h2 id="readingHeading" class="section-title" data-i18n="settings.section.reading">Reading topics</h2>
+            <p class="section-lede" data-i18n="settings.reading.lede">How much of a topic summaries and follow-up chat read.</p>
           </div>
-          <button type="button" class="btn-restore" data-restore="reading" aria-label="Restore Reading topics defaults">Restore defaults</button>
+          <button type="button" class="btn-restore" data-restore="reading" aria-label="Restore Reading topics defaults" data-i18n="settings.restoreDefaults" data-i18n-attr="aria-label:settings.reading.restoreAria">Restore defaults</button>
         </div>
 
         <fieldset class="choice-group" aria-describedby="topicPageHelp topicPageLimitEffective">
-          <legend>Pages read per topic</legend>
+          <legend data-i18n="settings.reading.pagesLegend">Pages read per topic</legend>
           <div class="page-mode-options">
             <label class="page-mode-option">
               <input type="radio" name="topicPageMode" value="all" id="topicPageModeAll">
-              <span class="choice-title">Read every page <span class="choice-badge">Default</span></span>
+              <span class="choice-title"><span data-i18n="settings.reading.all">Read every page</span> <span class="choice-badge" data-i18n="settings.default">Default</span></span>
             </label>
             <div class="page-mode-option page-mode-limit">
               <input type="radio" name="topicPageMode" value="limit" id="topicPageModeLimit">
-              <label for="topicPageModeLimit" id="topicPageModeLimitLabel" class="choice-title">Read only the first</label>
+              <label for="topicPageModeLimit" id="topicPageModeLimitLabel" class="choice-title" data-i18n="settings.reading.onlyFirst">Read only the first</label>
               <input type="number" id="topicPageLimit" min="1" max="100" step="1" inputmode="numeric"
                 aria-labelledby="topicPageModeLimitLabel topicPageLimitUnit"
                 aria-describedby="topicPageHelp topicPageLimitError">
-              <span id="topicPageLimitUnit" class="unit">pages</span>
+              <span id="topicPageLimitUnit" class="unit" data-i18n="settings.reading.pagesUnit">pages</span>
             </div>
           </div>
-          <small id="topicPageHelp" class="help-text">
+          <small id="topicPageHelp" class="help-text" data-i18n="settings.reading.pagesHelp">
             Each page holds 100 posts, read from the start of the topic. A limit (1–100 pages) makes very long
             topics faster, cheaper, and lighter on the forum; a topic past it is summarized from its first pages,
             and the summary says so.
@@ -1648,12 +1649,12 @@
         </fieldset>
 
         <div class="form-group">
-          <label for="forumContextLimit">Chat context</label>
+          <label for="forumContextLimit" data-i18n="settings.reading.contextLabel">Chat context</label>
           <div class="input-unit">
             <input type="number" id="forumContextLimit" min="5000" max="1000000" step="5000" inputmode="numeric" aria-describedby="forumContextLimitHelp forumContextLimitError">
-            <span class="unit" aria-hidden="true">characters</span>
+            <span class="unit" aria-hidden="true" data-i18n="settings.reading.charactersUnit">characters</span>
           </div>
-          <small id="forumContextLimitHelp" class="help-text">
+          <small id="forumContextLimitHelp" class="help-text" data-i18n="settings.reading.contextHelp">
             5,000–1,000,000, rounded to the nearest 5,000. How much of the topic is sent with each follow-up question (also adjustable
             in the side panel). More context helps on long topics but uses more tokens.
           </small>
@@ -1664,27 +1665,27 @@
       <section class="section" aria-labelledby="historyHeading">
         <div class="section-head">
           <div>
-            <h2 id="historyHeading" class="section-title">History &amp; privacy</h2>
-            <p class="section-lede">How long the side panel remembers what you haven’t kept. Everything stays in this browser.</p>
+            <h2 id="historyHeading" class="section-title" data-i18n="settings.section.history">History &amp; privacy</h2>
+            <p class="section-lede" data-i18n="settings.history.lede">How long the side panel remembers what you haven’t kept. Everything stays in this browser.</p>
           </div>
-          <button type="button" class="btn-restore" data-restore="history" aria-label="Restore History and privacy defaults">Restore defaults</button>
+          <button type="button" class="btn-restore" data-restore="history" aria-label="Restore History and privacy defaults" data-i18n="settings.restoreDefaults" data-i18n-attr="aria-label:settings.history.restoreAria">Restore defaults</button>
         </div>
 
         <fieldset class="choice-group" aria-describedby="historyRetentionHelp">
-          <legend>Keep conversations and Agent answers for</legend>
+          <legend data-i18n="settings.history.legend">Keep conversations and Agent answers for</legend>
           <div class="segmented" id="historyRetentionOptions"></div>
-          <p id="historyRetentionHelp" class="help-text">
+          <p id="historyRetentionHelp" class="help-text" data-i18n="settings.history.help">
             Kept items never expire. Shortening this removes older unkept items as soon as you save.
           </p>
         </fieldset>
 
         <div class="form-group">
-          <label for="maxSavedTopics">Saved topics</label>
+          <label for="maxSavedTopics" data-i18n="settings.history.savedTopics">Saved topics</label>
           <div class="input-unit">
             <input type="number" id="maxSavedTopics" min="10" max="200" step="1" inputmode="numeric" aria-describedby="maxSavedTopicsHelp maxSavedTopicsError">
-            <span class="unit" aria-hidden="true">topics</span>
+            <span class="unit" aria-hidden="true" data-i18n="settings.history.topicsUnit">topics</span>
           </div>
-          <small id="maxSavedTopicsHelp" class="help-text">
+          <small id="maxSavedTopicsHelp" class="help-text" data-i18n="settings.history.savedTopicsHelp">
             10–200. Past this many saved summaries, the oldest unkept ones are removed.
           </small>
           <small id="maxSavedTopicsError" class="field-error" hidden></small>
@@ -1696,19 +1697,19 @@
       <section class="section" aria-labelledby="forumAccessHeading">
         <div class="section-head">
           <div>
-            <h2 id="forumAccessHeading" class="section-title">Forum access</h2>
-            <p class="section-lede">Forums you enabled. DiscourseCopilot reads only these, using your login there. Removing access keeps your saved summaries and answers; you can enable a forum again from the side panel.</p>
+            <h2 id="forumAccessHeading" class="section-title" data-i18n="settings.section.forumAccess">Forum access</h2>
+            <p class="section-lede" data-i18n="settings.forumAccess.lede">Forums you enabled. DiscourseCopilot reads only these, using your login there. Removing access keeps your saved summaries and answers; you can enable a forum again from the side panel.</p>
           </div>
         </div>
         <ul id="forumAccessList" class="forum-access-list" aria-labelledby="forumAccessHeading" hidden></ul>
-        <p id="forumAccessEmpty" class="forum-access-empty">Loading…</p>
+        <p id="forumAccessEmpty" class="forum-access-empty" data-i18n="settings.loading">Loading…</p>
 
         <div class="form-group forum-button-setting">
           <label class="page-mode-option" for="showForumButton">
             <input type="checkbox" id="showForumButton" aria-describedby="showForumButtonHelp">
-            <span class="choice-title">Show the DiscourseCopilot button on forum pages</span>
+            <span class="choice-title" data-i18n="settings.forumAccess.showButton">Show the DiscourseCopilot button on forum pages</span>
           </label>
-          <small id="showForumButtonHelp" class="help-text">
+          <small id="showForumButtonHelp" class="help-text" data-i18n="settings.forumAccess.showButtonHelp">
             The floating button on enabled forums that opens the side panel. You can always open the side panel from the toolbar icon.
             Applies to open forum tabs as soon as you save.
           </small>
@@ -1716,35 +1717,35 @@
       </section>
 
       <section class="section danger-zone" aria-labelledby="resetHeading">
-        <h2 id="resetHeading" class="section-title">Reset</h2>
+        <h2 id="resetHeading" class="section-title" data-i18n="settings.reset.heading">Reset</h2>
         <div class="danger-row">
-          <p class="help-text">Remove every provider, API key, model, favorite, prompt, and preference on this page. Saved summaries and answers are not deleted.</p>
-          <button id="resetBtn" type="button" class="btn-secondary" aria-expanded="false" aria-controls="resetConfirm">Reset all settings</button>
+          <p class="help-text" data-i18n="settings.reset.help">Remove every provider, API key, model, favorite, prompt, and preference on this page. Saved summaries and answers are not deleted.</p>
+          <button id="resetBtn" type="button" class="btn-secondary" aria-expanded="false" aria-controls="resetConfirm" data-i18n="settings.reset.button">Reset all settings</button>
         </div>
         <div id="resetConfirm" class="reset-confirm" role="group" aria-labelledby="resetConfirmText" hidden>
-          <p id="resetConfirmText" class="reset-confirm-text">This removes every provider, API key, model, favorite, prompt and preference on this page. Saved summaries and answers are not deleted.</p>
+          <p id="resetConfirmText" class="reset-confirm-text" data-i18n="settings.reset.confirmText">This removes every provider, API key, model, favorite, prompt and preference on this page. Saved summaries and answers are not deleted.</p>
           <div class="reset-confirm-actions">
-            <button id="resetConfirmBtn" type="button" class="btn-danger">Reset everything</button>
-            <button id="resetCancelBtn" type="button" class="btn-secondary">Cancel</button>
+            <button id="resetConfirmBtn" type="button" class="btn-danger" data-i18n="settings.reset.confirmButton">Reset everything</button>
+            <button id="resetCancelBtn" type="button" class="btn-secondary" data-i18n="settings.cancel">Cancel</button>
           </div>
         </div>
       </section>
 
       <p class="project-footer">
-        DiscourseCopilot is free and open source.
-        <a href="https://github.com/kccarlos/DiscourseCopilot" target="_blank" rel="noopener noreferrer">★ Star on GitHub</a>
+        <span data-i18n="settings.footer.text">DiscourseCopilot is free and open source.</span>
+        <a href="https://github.com/kccarlos/DiscourseCopilot" target="_blank" rel="noopener noreferrer" data-i18n="settings.footer.star">★ Star on GitHub</a>
         ·
-        <a href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac/reviews" target="_blank" rel="noopener noreferrer">Rate it</a>
+        <a href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac/reviews" target="_blank" rel="noopener noreferrer" data-i18n="settings.footer.rate">Rate it</a>
       </p>
     </div>
 
-    <div class="action-bar" role="region" aria-label="Save settings">
+    <div class="action-bar" role="region" aria-label="Save settings" data-i18n-attr="aria-label:settings.actionBar.label">
       <div id="status" class="status hidden" role="status" aria-live="polite"></div>
       <div class="action-bar-row">
-        <span id="formState" class="form-state" data-tone="busy"><span class="form-state-dot" aria-hidden="true"></span><span id="formStateText">Loading…</span></span>
+        <span id="formState" class="form-state" data-tone="busy"><span class="form-state-dot" aria-hidden="true"></span><span id="formStateText" data-i18n="settings.loading">Loading…</span></span>
         <div class="action-buttons">
-          <button id="testBtn" type="button" class="btn-test">Test Connection</button>
-          <button id="saveBtn" type="button" class="btn-primary">Save Settings</button>
+          <button id="testBtn" type="button" class="btn-test" data-i18n="settings.actionBar.test">Test Connection</button>
+          <button id="saveBtn" type="button" class="btn-primary" data-i18n="settings.actionBar.save">Save Settings</button>
         </div>
       </div>
     </div>

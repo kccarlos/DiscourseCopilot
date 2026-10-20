@@ -71,6 +71,12 @@ export function installChromeStub(options) {
     };
   }
   window.chrome = {
+    // The browser's UI language, which the pages follow (see shared/i18n.mjs).
+    i18n: {
+      getUILanguage: () => navigator.language,
+      // _locales messages, as Chrome resolves them for the content script.
+      getMessage: name => window.__localeMessages?.[name]?.message || ''
+    },
     permissions: {
       async contains({ origins }) {
         return origins.every(o => granted.has(o));

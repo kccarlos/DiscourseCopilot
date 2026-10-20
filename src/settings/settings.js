@@ -14,6 +14,7 @@ import { LOCAL_PROVIDER_IDS, describeSavedConfiguration } from '../shared/provid
 import { RESPONSE_LANGUAGES } from '../shared/response-language.mjs';
 import { requestServerAccess, serverAccessDeniedText, serverNeedsAccessPrompt } from '../shared/forum-access.mjs';
 import { ConfigStore } from '../shared/config-state.mjs';
+import { localizeDocument, t } from '../shared/i18n.mjs';
 import { topicSessionDatabase } from '../shared/topic-session-db.mjs';
 import { ForumAccessSection, customServerPatterns } from './forum-access-section.mjs';
 import { INPUT_FIELDS, PROVIDER_FIELDS, ProviderSection } from './provider-section.mjs';
@@ -66,6 +67,7 @@ class DiscourseCopilotSettings {
   }
 
   async init() {
+    localizeDocument();
     this.renderWelcome();
     this.provider.renderLinks();
     this.preferences.renderRetentionOptions();
@@ -343,11 +345,11 @@ class DiscourseCopilotSettings {
       }
       this.dispatch({ type: 'save-succeeded', welcomeMode: this.welcomeMode });
       if (!serverAllowed) {
-        this.notify(`Saved. ${serverAccessDeniedText(server.serverUrl)}`, 'warning', false);
+        this.notify(t('settings.status.savedServerDenied', { detail: serverAccessDeniedText(server.serverUrl) }), 'warning', false);
       }
     } else {
       console.error('DiscourseCopilot Settings: Error saving settings:', result.error);
-      this.dispatch({ type: 'save-failed', message: result.error?.message || 'unknown error' });
+      this.dispatch({ type: 'save-failed', message: result.error?.message || t('settings.unknownError') });
     }
   }
 
@@ -366,7 +368,7 @@ class DiscourseCopilotSettings {
       console.error(`DiscourseCopilot Settings: ${provider} connection test failed:`, result.error);
       this.dispatch({
         type: 'test-failed',
-        message: serverAllowed ? result.error?.message || 'unknown error' : serverAccessDeniedText(server.serverUrl)
+        message: serverAllowed ? result.error?.message || t('settings.unknownError') : serverAccessDeniedText(server.serverUrl)
       });
     }
   }
@@ -379,7 +381,7 @@ class DiscourseCopilotSettings {
     const result = await this.store.reset();
     if (!result.ok) {
       console.error('DiscourseCopilot Settings: Error resetting settings:', result.error);
-      this.dispatch({ type: 'reset-failed', message: result.error?.message || 'unknown error' });
+      this.dispatch({ type: 'reset-failed', message: result.error?.message || t('settings.unknownError') });
       $('resetBtn').focus();
       return;
     }

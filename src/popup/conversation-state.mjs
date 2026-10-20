@@ -8,6 +8,7 @@ import {
   parseSiteUrl,
   siteUrlFromPageUrl
 } from '../shared/forum-site.mjs';
+import { t } from '../shared/i18n.mjs';
 
 function pageOrigin(value) {
   try {
@@ -105,7 +106,7 @@ export function getTopicContext(tab = {}, pageState = null, { siteUrlHint = '', 
   return {
     tabId,
     url,
-    title: tab.title || (url ? 'Unknown page' : ''),
+    title: tab.title || (url ? t('page.unknown') : ''),
     isDiscourse: detected.isDiscourse,
     detectedBy: detected.detectedBy,
     siteUrl: detected.siteUrl,

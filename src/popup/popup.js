@@ -52,6 +52,7 @@ import { UndoToast } from './undo-toast.mjs';
 import { StarPromptCard } from './star-prompt-card.mjs';
 import { GUIDANCE_STATE, derivePageGuidance } from './page-guidance.mjs';
 import { applyTopicControls, deriveTopicControls, deriveTopicHelper } from './topic-controls.mjs';
+import { localizeDocument, t } from '../shared/i18n.mjs';
 
 const { MESSAGES } = DiscourseCopilotConstants;
 // Storage changes arrive in bursts (one per key); reload settings once.
@@ -102,7 +103,7 @@ class DiscourseCopilotPopup {
       element: $('undoToast'),
       onError: error => {
         DiscourseCopilotLogger.error('Popup: Unable to undo:', error);
-        const message = `Unable to undo: ${error.message}`;
+        const message = t('activity.undoFailed', { error: error.message });
         if (state.savedViewOpen) {
           this.activity.showSavedStatus(message, 'error');
         } else {
@@ -131,7 +132,7 @@ class DiscourseCopilotPopup {
       isPersistent: () => state.persistenceAvailable,
       onSaveError: session => {
         if (state.session?.topicKey === session.topicKey) {
-          this.status.show('Changes are available now but could not be saved', 'warning');
+          this.status.show(t('popup.changesNotSaved'), 'warning');
         }
       }
     });
@@ -382,7 +383,7 @@ class DiscourseCopilotPopup {
   // is checked again and the normal view replaces the Allow access card.
   async handleForumAccessGranted(siteUrl) {
     const hadFocus = $('pageGuide').contains(document.activeElement);
-    this.status.show(`DiscourseCopilot can now read ${this.forums.label(siteUrl)}`, 'success', { kind: 'access' });
+    this.status.show(t('popup.canRead', { forum: this.forums.label(siteUrl) }), 'success', { kind: 'access' });
     try {
       await chrome.runtime.sendMessage({ action: MESSAGES.SYNC_FORUM_ACCESS, siteUrl });
     } catch (error) {
@@ -444,7 +445,7 @@ class DiscourseCopilotPopup {
       }
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Unable to cancel task:', error);
-      this.agent.report(`Unable to terminate task: ${error.message}`, 'error', root);
+      this.agent.report(t('popup.terminateFailed', { error: error.message }), 'error', root);
     }
   }
 
@@ -464,7 +465,7 @@ class DiscourseCopilotPopup {
 
   // Shown when a task is attempted before setup is finished.
   promptSetup() {
-    this.status.show('Finish setting up an AI provider first', 'warning', { kind: 'setup' });
+    this.status.show(t('agent.finishSetup'), 'warning', { kind: 'setup' });
     this.setupCard.focus();
   }
 
@@ -547,7 +548,7 @@ class DiscourseCopilotPopup {
       $('heroEyebrow').textContent = guidance.hero.eyebrow;
       $('currentPageTitle').textContent = guidance.hero.title;
     }
-    $('setupEyebrow').textContent = guidance.checklist ? 'Step 1 of 2' : 'First-time setup';
+    $('setupEyebrow').textContent = guidance.checklist ? t('setup.step1') : t('setup.firstTime');
     return guidance;
   }
 
@@ -591,5 +592,6 @@ class DiscourseCopilotPopup {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  localizeDocument();
   new DiscourseCopilotPopup().init();
 });

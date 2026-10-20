@@ -1,6 +1,7 @@
 import { normalizeForumContextLimit } from './chat-context-limit.mjs';
 import { DEFAULT_RETENTION_MS, normalizeTaskLimits } from './preferences.mjs';
 import { buildTopicKey, forumDisplayName, normalizeSiteUrl, siteUrlFromPageUrl } from './forum-site.mjs';
+import { t } from './i18n.mjs';
 
 // Default lifetime of a finished task entry: the default history retention
 // (preferences.mjs, which owns every user-tunable default).
@@ -80,7 +81,7 @@ export function createTaskRecord(value, now = Date.now()) {
     forumName: type === TASK_TYPE.AGENT ? (siteUrl ? forumDisplayName(siteUrl, value.forumName) : '') : stringValue(value.forumName, 120),
     title:
       stringValue(value.title, 500)
-      || (type === TASK_TYPE.AGENT ? stringValue(value.question, 160) || 'Ask the forum' : `Topic ${topicId}`),
+      || (type === TASK_TYPE.AGENT ? stringValue(value.question, 160) || t('common.askForum') : t('common.topicFallback', { id: topicId })),
     url: stringValue(value.url, 2000),
     question:
       type === TASK_TYPE.CHAT || type === TASK_TYPE.AGENT ? stringValue(value.question, type === TASK_TYPE.AGENT ? 4000 : 2000) : '',
@@ -92,7 +93,7 @@ export function createTaskRecord(value, now = Date.now()) {
     model: stringValue(value.model, 300),
     status: TASK_STATUS.QUEUED,
     phase: 'queued',
-    statusText: 'Waiting for an available worker…',
+    statusText: t('task.waitingWorker'),
     progress: null,
     error: '',
     createdAt: now,

@@ -1,6 +1,8 @@
 // Enabled/disabled state and labels of the topic view's controls, derived
 // from one snapshot of the panel state (pure), then applied to the DOM.
 
+import { t } from '../shared/i18n.mjs';
+
 export function getSummaryActionLabel({
   taskStatus = '',
   taskPhase = '',
@@ -8,13 +10,13 @@ export function getSummaryActionLabel({
   hasSummary = false,
   isHydrating = false
 } = {}) {
-  if (taskStatus === 'queued') return 'Summary queued';
-  if (taskStatus && taskPhase === 'fetching') return 'Reading replies';
-  if (taskStatus) return 'Creating summary';
-  if (isSubmitting) return 'Starting summary';
-  if (hasSummary) return 'Check for new replies';
-  if (isHydrating) return 'Loading saved summary';
-  return 'Create summary';
+  if (taskStatus === 'queued') return t('controls.summary.queued');
+  if (taskStatus && taskPhase === 'fetching') return t('controls.summary.reading');
+  if (taskStatus) return t('controls.summary.creating');
+  if (isSubmitting) return t('controls.summary.starting');
+  if (hasSummary) return t('controls.summary.check');
+  if (isHydrating) return t('controls.summary.loading');
+  return t('controls.summary.create');
 }
 
 /**
@@ -69,7 +71,7 @@ export function deriveTopicControls(input) {
     sendAgent: {
       disabled: agentInputDisabled || !input.hasAgentQuestion || !input.configReady,
       busy: submitting('agent'),
-      label: submitting('agent') ? 'Starting…' : input.agentSearchLabel
+      label: submitting('agent') ? t('controls.starting') : input.agentSearchLabel
     },
     copyPost: { disabled: !input.hasSource },
     copySummary: { disabled: !input.hasSummary },
@@ -77,17 +79,14 @@ export function deriveTopicControls(input) {
     chatInput: { disabled: !background || submitting('chat') || !input.hasSummary },
     contextLimit: {
       disabled: contextLimitDisabled,
-      title:
-        contextLimitDisabled && input.hasSummary
-          ? 'The context limit is locked while a chat response is running'
-          : 'Choose how much forum discussion text accompanies each question'
+      title: contextLimitDisabled && input.hasSummary ? t('controls.contextLocked') : t('controls.contextChoose')
     },
     clearChat: {
       disabled: busy || input.chatEditSaving || topicTasksRunning || !input.historyLength
     },
     chatEdit: {
       disabled: chatEditLocked,
-      title: chatEditLocked ? 'Wait for the current chat task to finish before editing' : 'Edit this message and remove later replies'
+      title: chatEditLocked ? t('controls.editLocked') : t('controls.edit')
     },
     sendChat: {
       disabled:
@@ -97,7 +96,7 @@ export function deriveTopicControls(input) {
         || submitting('chat')
         || !input.hasSummary
         || !input.hasChatQuestion,
-      label: submitting('chat') ? 'Starting' : 'Send',
+      label: submitting('chat') ? t('controls.chatStarting') : t('controls.send'),
       busy: submitting('chat')
     }
   };
@@ -115,23 +114,21 @@ export function deriveTopicControls(input) {
 // loads); every other page state has its own guidance card.
 export function deriveTopicHelper({ pageContext, configReady, summaryRunning, hasSummary }) {
   if (!pageContext?.isForumTopic && pageContext?.isDiscourse) {
-    return configReady
-      ? 'Open any topic to summarize it, or ask the forum a question.'
-      : 'Connect an AI provider below, then open a topic or ask the forum a question.';
+    return configReady ? t('helper.forumOpenTopic') : t('helper.forumConnect');
   }
   if (!pageContext?.isForumTopic) {
-    return 'Open a Discourse forum topic to get started.';
+    return t('helper.openTopic');
   }
   if (!configReady) {
-    return 'Finish setup below to create a summary.';
+    return t('helper.finishSetup');
   }
   if (summaryRunning) {
-    return 'Your summary is running safely in the background.';
+    return t('helper.running');
   }
   if (hasSummary) {
-    return 'Your saved summary and conversation are ready.';
+    return t('helper.saved');
   }
-  return 'Read every reply and create a focused overview.';
+  return t('helper.default');
 }
 
 const $ = id => document.getElementById(id);

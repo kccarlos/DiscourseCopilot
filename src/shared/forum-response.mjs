@@ -6,6 +6,7 @@
 // /session/sso, /auth/<provider>), which then serves a 200 HTML page.
 // Private topics produce 403 (invalid_access) or 404.
 
+import { t } from './i18n.mjs';
 import { parseSiteUrl } from './forum-site.mjs';
 
 // Discourse's raw endpoint serves 100 posts per page, so this bounds an
@@ -39,7 +40,7 @@ export function looksLikeHtml(body, contentType = '') {
 
 function forumHost(siteUrl) {
   const site = parseSiteUrl(siteUrl);
-  return site ? new URL(site.origin).host : 'the forum';
+  return site ? new URL(site.origin).host : t('forumResponse.theForum');
 }
 
 export function isLoginRedirect({ redirected = false, url = '' } = {}, siteUrl = '') {
@@ -105,12 +106,12 @@ export function classifyForumResponse(
 export function forumAccessMessage(kind, siteUrl = '') {
   const host = forumHost(siteUrl);
   if (kind === FORUM_RESPONSE_KIND.CHALLENGE) {
-    return `The forum requires verification. Open ${host} in this browser, complete any check, and try again.`;
+    return t('forumResponse.challenge', { host });
   }
   if (kind === FORUM_RESPONSE_KIND.NOT_FOUND) {
-    return `The topic was not found. It may be private or deleted; if it is private, log in to ${host} in this browser and try again.`;
+    return t('forumResponse.notFound', { host });
   }
-  return `This forum requires you to be logged in (or the topic is private). Log in to ${host} in this browser and try again.`;
+  return t('forumResponse.loginRequired', { host });
 }
 
 export function forumAccessError(kind, siteUrl = '', { status = 0 } = {}) {
@@ -133,7 +134,7 @@ export function rawPageContent(snapshot, siteUrl = '') {
     return '';
   }
   if (kind === FORUM_RESPONSE_KIND.HTTP_ERROR) {
-    throw Object.assign(new Error(`Forum request failed with HTTP ${snapshot.status}`), {
+    throw Object.assign(new Error(t('forumResponse.httpError', { status: snapshot.status })), {
       status: snapshot.status
     });
   }

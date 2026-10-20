@@ -66,6 +66,7 @@ import {
   readConfig,
   deriveConfigStatus
 } from './config-model.mjs';
+import { t } from './i18n.mjs';
 
 // The pure model is part of this module's API.
 export * from './config-model.mjs';
@@ -358,7 +359,10 @@ export class ConfigStore {
     if (/^\d+$/.test(text) && number >= FORUM_CONTEXT_LIMIT.min && number <= FORUM_CONTEXT_LIMIT.max) {
       return validation;
     }
-    const message = `Chat context must be a whole number from ${FORUM_CONTEXT_LIMIT.min.toLocaleString('en-US')} to ${FORUM_CONTEXT_LIMIT.max.toLocaleString('en-US')} characters.`;
+    const message = t('config.contextRange', {
+      min: FORUM_CONTEXT_LIMIT.min.toLocaleString('en-US'),
+      max: FORUM_CONTEXT_LIMIT.max.toLocaleString('en-US')
+    });
     return {
       ...validation,
       valid: false,

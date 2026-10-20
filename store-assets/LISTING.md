@@ -1,6 +1,6 @@
 # Chrome Web Store listing
 
-The text submitted to the Chrome Web Store for DiscourseCopilot, kept here so it changes together with the extension. Update it whenever `manifest.json` permissions or user-facing features change. Current as of version 2.2.1. The release workflow uploads only the package, never this text: the listing text, screenshots and permission justifications are pasted by hand into the [developer dashboard](https://chrome.google.com/webstore/devconsole), so copy any change made here there too (and the other way round). The short description comes from `description` in `manifest.json`.
+The text submitted to the Chrome Web Store for DiscourseCopilot, kept here so it changes together with the extension. Update it whenever `manifest.json` permissions or user-facing features change. Current as of version 2.3.0. The release workflow uploads only the package, never this text: the listing text, screenshots and permission justifications are pasted by hand into the [developer dashboard](https://chrome.google.com/webstore/devconsole), so copy any change made here there too (and the other way round). The short description comes from `extDescription` in `public/_locales/en/messages.json` (the manifest's `description` is a `__MSG_extDescription__` placeholder); the Chinese one is in `public/_locales/zh_CN/messages.json`.
 
 ## Summary (short description, max 132 characters)
 
@@ -24,6 +24,33 @@ DiscourseCopilot helps you catch up on any Discourse forum in seconds, right fro
 Privacy first: your API key and history stay in your browser. Forum content is sent only to the AI provider you choose (or stays on your computer with a local model). DiscourseCopilot reads only the forums you allow, and you can remove access anytime in Settings. No accounts, no analytics, no tracking.
 
 Free and open source (Apache-2.0): https://github.com/kccarlos/DiscourseCopilot
+
+## Simplified Chinese listing (简体中文)
+
+Paste into the dashboard's Chinese (Simplified) listing. The name and short description are also in `public/_locales/zh_CN/messages.json`; keep them in sync.
+
+Name: DiscourseCopilot
+
+### Summary (short description, max 132 characters)
+
+为任意 Discourse 论坛提供 AI 助手：一键总结贴文，全站搜索并获得带来源的回答。
+
+### Description
+
+DiscourseCopilot 让你在 Chrome 侧边栏里几秒钟看懂任何 Discourse 论坛的长帖。
+
+• 总结贴文：原帖内容、大家的回应和关键要点，即使话题有上千条回复也没问题。
+• 针对正在阅读的话题继续追问。整个讨论串、每一条回复都会作为上下文，因此回答能指向说出这些内容的帖子。
+• 全站搜索：由智能体搜索论坛，一步步阅读最相关的讨论（每一步你都能看到），并给出带编号来源的回答，来源可以直接点开。你还可以针对同一个回答继续追问。
+• 专为基于 Discourse 搭建的论坛设计，包括你自己的社区。点一下即可允许访问你用到的每个论坛，扩展不会读取其他网站。
+• 自带 AI：连接你已经在用的 AI 服务商并填入自己的 API 密钥，也可以在自己的电脑上运行模型。
+• 你的语言：界面提供英文和简体中文，跟随浏览器语言；回答默认跟随讨论的语言，也可以自行指定。
+• 条理清晰的历史记录：已保存的总结、对话和回答按论坛分组，需要的可以保留。
+• 支持浅色和深色模式。
+
+隐私优先：你的 API 密钥和历史记录都保存在浏览器里。论坛内容只会发送给你选择的 AI 服务商（使用本地模型时则完全留在你的电脑上）。DiscourseCopilot 只读取你允许的论坛，你可以随时在设置中移除访问权限。无需账号，没有统计分析，不做任何追踪。
+
+免费开源（Apache-2.0）：https://github.com/kccarlos/DiscourseCopilot
 
 ## Single purpose
 

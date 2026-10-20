@@ -24,6 +24,7 @@ import {
   rawPageContent,
   readForumResponse
 } from '../shared/forum-response.mjs';
+import { t } from '../shared/i18n.mjs';
 
 // Forum page-fetch settings (distinct from DiscourseCopilotConstants.API_CONFIG,
 // which holds the AI request headers).
@@ -40,14 +41,18 @@ export const FORUM_FETCH_CONFIG = Object.freeze({
 // The task status line for a fetch progress update.
 export function formatFetchTaskStatus(progress) {
   if (progress.rateLimited) {
-    const page = progress.retryPage ? ` page ${progress.retryPage}` : '';
-    return `Forum rate limit reached. Retrying${page} in ${formatRetryDelay(progress.retryAfterMs)} (retry ${progress.retryAttempt} of ${progress.maxRetries})`;
+    return t(progress.retryPage ? 'fetch.rateLimitedPage' : 'fetch.rateLimited', {
+      page: progress.retryPage,
+      delay: formatRetryDelay(progress.retryAfterMs),
+      attempt: progress.retryAttempt,
+      max: progress.maxRetries
+    });
   }
   if (progress.totalPosts && progress.processedPosts) {
-    const read = `Read ${Math.max(0, progress.processedPosts - 1)} of ${Math.max(0, progress.totalPosts - 1)} replies`;
-    return progress.truncatedFromPosts ? `${read} (page limit; the topic has ${Math.max(0, progress.truncatedFromPosts - 1)})` : read;
+    const read = t('fetch.readReplies', { read: Math.max(0, progress.processedPosts - 1), total: Math.max(0, progress.totalPosts - 1) });
+    return progress.truncatedFromPosts ? t('fetch.pageLimit', { read, total: Math.max(0, progress.truncatedFromPosts - 1) }) : read;
   }
-  return `Read response page ${progress.currentPage}`;
+  return t('fetch.readPage', { page: progress.currentPage });
 }
 
 export function createRateLimitProgress(progress, retry, page = null) {

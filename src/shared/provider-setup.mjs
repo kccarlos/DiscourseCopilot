@@ -1,5 +1,6 @@
 // Provider setup shared by the settings page and the side panel's first-run
 // setup card: validation, "get a key" links, and the connection test.
+import { t } from './i18n.mjs';
 
 export const LOCAL_PROVIDER_IDS = new Set(['ollama', 'lmstudio']);
 
@@ -8,8 +9,7 @@ export const LOCAL_PROVIDER_IDS = new Set(['ollama', 'lmstudio']);
 // Ollama rejects requests from browser extensions unless they are allowed.
 // The extension removes its Origin header from requests to local servers, so a 403 means
 // the rule is not in effect (an old Ollama that checks more, or a proxy in between).
-export const OLLAMA_ORIGINS_HINT =
-  'Ollama refused the connection (403). Update Ollama, or start it with OLLAMA_ORIGINS=chrome-extension://*.';
+const ollamaOriginsHint = () => t('providerSetup.ollamaOrigins');
 
 export const RECOMMENDED_PROVIDERS = Object.freeze(['openrouter', 'openai', 'anthropic', 'ollama']);
 
@@ -20,18 +20,38 @@ export const PROVIDER_LINKS = Object.freeze({
   anthropic: { url: 'https://console.anthropic.com/', label: 'console.anthropic.com', kind: 'key' },
   groq: { url: 'https://console.groq.com/keys', label: 'console.groq.com', kind: 'key' },
   gemini: { url: 'https://aistudio.google.com/app/apikey', label: 'Google AI Studio', kind: 'key' },
-  ollama: { url: 'https://ollama.ai', label: 'Download Ollama', kind: 'download' },
+  ollama: {
+    url: 'https://ollama.ai',
+    get label() {
+      return t('providerSetup.downloadOllama');
+    },
+    kind: 'download'
+  },
   xai: { url: 'https://console.x.ai', label: 'console.x.ai', kind: 'key' },
   deepseek: { url: 'https://platform.deepseek.com/api_keys', label: 'platform.deepseek.com', kind: 'key' },
-  lmstudio: { url: 'https://lmstudio.ai', label: 'Download LM Studio', kind: 'download' }
+  lmstudio: {
+    url: 'https://lmstudio.ai',
+    get label() {
+      return t('providerSetup.downloadLmStudio');
+    },
+    kind: 'download'
+  }
 });
 
 // Short descriptions for the side panel's provider choices.
 export const PROVIDER_BLURBS = Object.freeze({
-  openrouter: 'Many models, one key',
-  openai: 'GPT models',
-  anthropic: 'Claude models',
-  ollama: 'Runs on your computer'
+  get openrouter() {
+    return t('providerSetup.blurb.openrouter');
+  },
+  get openai() {
+    return t('providerSetup.blurb.openai');
+  },
+  get anthropic() {
+    return t('providerSetup.blurb.anthropic');
+  },
+  get ollama() {
+    return t('providerSetup.blurb.ollama');
+  }
 });
 
 export function defaultLocalUrl(provider, providerConfigs) {
@@ -76,31 +96,31 @@ export function validateProviderSettings(provider, settings, providerConfigs) {
   };
 
   if (!config) {
-    fail('provider', 'Choose a supported AI provider.');
+    fail('provider', t('providerSetup.chooseProvider'));
     return { valid: false, errors, fieldErrors, settings: normalized };
   }
 
   if (config.requiresApiKey && !normalized.apiKey) {
-    fail('apiKey', `${config.name} API key is required.`);
+    fail('apiKey', t('providerSetup.apiKeyRequired', { name: config.name }));
   }
 
   if (LOCAL_PROVIDER_IDS.has(provider)) {
     if (!normalized.url) {
-      fail('url', `${config.name} server URL is required.`);
+      fail('url', t('providerSetup.urlRequired', { name: config.name }));
     } else {
       try {
         const parsedUrl = new URL(normalized.url);
         if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-          fail('url', `${config.name} server URL must use http or https.`);
+          fail('url', t('providerSetup.urlProtocol', { name: config.name }));
         }
       } catch {
-        fail('url', `${config.name} server URL is not valid.`);
+        fail('url', t('providerSetup.urlInvalid', { name: config.name }));
       }
     }
   }
 
   if (!normalized.model) {
-    fail('model', `${config.name} model is required.`);
+    fail('model', t('providerSetup.modelRequired', { name: config.name }));
   }
 
   return {
@@ -216,7 +236,7 @@ function providerErrorDetail(body) {
 
 // Maps a failed connection test to the field the user should fix.
 export function classifyConnectionFailure(provider, error, providerConfigs = {}) {
-  const name = providerConfigs[provider]?.name || provider || 'The provider';
+  const name = providerConfigs[provider]?.name || provider || t('providerSetup.theProvider');
   const status = Number(error?.status) || 0;
   const detail = providerErrorDetail(error?.body);
   const withDetail = message => (detail ? `${message} (${detail})` : message);
@@ -225,12 +245,12 @@ export function classifyConnectionFailure(provider, error, providerConfigs = {})
     if (LOCAL_PROVIDER_IDS.has(provider)) {
       return {
         field: 'url',
-        message: `Can't reach ${name} at this address. Make sure it is running and the URL is correct.`
+        message: t('providerSetup.cantReachLocal', { name })
       };
     }
     return {
       field: null,
-      message: `Couldn't reach ${name}. Check your internet connection and try again.`
+      message: t('providerSetup.cantReach', { name })
     };
   }
   if (status === 401 || status === 403) {
@@ -239,25 +259,25 @@ export function classifyConnectionFailure(provider, error, providerConfigs = {})
       message: withDetail(
         LOCAL_PROVIDER_IDS.has(provider)
           ? provider === 'ollama'
-            ? OLLAMA_ORIGINS_HINT
-            : `${name} refused the request.`
-          : `${name} didn't accept this API key. Check it and try again.`
+            ? ollamaOriginsHint()
+            : t('providerSetup.refused', { name })
+          : t('providerSetup.keyRejected', { name })
       )
     };
   }
   if (status === 404 || ((status === 400 || status === 422) && /model/i.test(detail))) {
     return {
       field: 'model',
-      message: withDetail(`${name} doesn't recognize this model. Check the model name.`)
+      message: withDetail(t('providerSetup.modelUnknown', { name }))
     };
   }
   if (status === 402) {
-    return { field: 'apiKey', message: withDetail(`${name} says this account needs credits.`) };
+    return { field: 'apiKey', message: withDetail(t('providerSetup.needsCredits', { name })) };
   }
   if (status === 429) {
-    return { field: null, message: withDetail(`${name} is rate limiting requests. Try again in a minute, or save without testing.`) };
+    return { field: null, message: withDetail(t('providerSetup.rateLimited', { name })) };
   }
-  return { field: null, message: withDetail(`${name} returned an error (HTTP ${status}).`) };
+  return { field: null, message: withDetail(t('providerSetup.httpError', { name, status })) };
 }
 
 // What the settings page header says about the saved configuration.
@@ -267,35 +287,35 @@ export function describeSavedConfiguration(provider, settings, providerConfigs) 
   if (validation.valid) {
     return {
       valid: true,
-      label: 'Currently saved',
+      label: t('providerSetup.currentlySaved'),
       text: `${config.name} · ${validation.settings.model}`
     };
   }
   const missing = validation.fieldErrors.apiKey
-    ? 'add an API key'
+    ? t('providerSetup.missing.apiKey')
     : validation.fieldErrors.url
-      ? 'add a server URL'
+      ? t('providerSetup.missing.url')
       : validation.fieldErrors.model
-        ? 'choose a model'
-        : 'choose a provider';
-  return { valid: false, label: 'Status', text: `Not set up yet — ${missing}` };
+        ? t('providerSetup.missing.model')
+        : t('providerSetup.missing.provider');
+  return { valid: false, label: t('providerSetup.status'), text: t('providerSetup.notSetUp', { missing }) };
 }
 
 // Success copy for the side panel's setup card, adapted to the page.
 export function setupSuccessMessage(pageContext = {}) {
   if (pageContext?.forumAccess === 'missing') {
-    return 'You’re set. Next, allow access to this forum below.';
+    return t('providerSetup.success.missingAccess');
   }
   if (pageContext?.isForumTopic) {
-    return 'You’re set — press Create summary above.';
+    return t('providerSetup.success.topic');
   }
   if (pageContext?.isDiscourse) {
-    return 'You’re set — press Ask the forum above, or open any topic and press Create summary.';
+    return t('providerSetup.success.forum');
   }
   if (pageContext?.pageHidden) {
-    return 'You’re set. Next, click the DiscourseCopilot icon in your toolbar on a Discourse forum.';
+    return t('providerSetup.success.hidden');
   }
-  return 'You’re set. Open a topic on any Discourse forum to get started.';
+  return t('providerSetup.success.default');
 }
 
 const ANTHROPIC_MAX_OUTPUT_TOKENS = 16000;

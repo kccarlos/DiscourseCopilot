@@ -6,6 +6,7 @@ import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { TASK_TYPE, isActiveTaskStatus, isTerminalTaskStatus } from '../shared/task-record.mjs';
 import { FORUM_ACCESS_ERROR_CODE } from '../shared/forum-access.mjs';
 import { isMissingRuntimeResponse } from './runtime-state.mjs';
+import { t } from '../shared/i18n.mjs';
 
 const { MESSAGES } = DiscourseCopilotConstants;
 const HEARTBEAT_INTERVAL_MS = 15000;
@@ -125,11 +126,11 @@ export class TaskRegistry {
   }
 
   cancel(taskId) {
-    return this.requestTaskChange(MESSAGES.CANCEL_TASK, taskId, 'Unable to cancel task');
+    return this.requestTaskChange(MESSAGES.CANCEL_TASK, taskId, t('task.cancelFailed'));
   }
 
   resume(taskId) {
-    return this.requestTaskChange(MESSAGES.RESUME_TASK, taskId, 'Unable to resume Agent task');
+    return this.requestTaskChange(MESSAGES.RESUME_TASK, taskId, t('task.resumeFailed'));
   }
 
   async requestTaskChange(action, taskId, fallbackError) {

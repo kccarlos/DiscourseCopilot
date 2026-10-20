@@ -7,6 +7,7 @@ import { agentTurnsOf, currentAgentTurnIndex } from '../shared/agent-activity.mj
 import { normalizeAgentQuestion } from '../services/agent-context.mjs';
 import { forumAccessHost, requestForumAccess } from '../shared/forum-access.mjs';
 import { forumAccessDeniedText } from './forum-access-card.mjs';
+import { t } from '../shared/i18n.mjs';
 
 export class AgentRequests {
   /**
@@ -59,7 +60,7 @@ export class AgentRequests {
         this.hooks.onTaskChanged(task);
       }
     } catch (error) {
-      this.report(`Unable to resume Agent task: ${error.message}`, 'error', root);
+      this.report(t('agent.resumeFailedWith', { error: error.message }), 'error', root);
     }
   }
 
@@ -75,7 +76,7 @@ export class AgentRequests {
       return false;
     }
     if (!this.config.isReady()) {
-      this.report('Finish setting up an AI provider first', 'warning', root);
+      this.report(t('agent.finishSetup'), 'warning', root);
       return false;
     }
     const { config } = this.config;
@@ -95,16 +96,16 @@ export class AgentRequests {
           systemPrompt: config.systemPrompt,
           responseLanguage: config.responseLanguage
         },
-        'Unable to ask the follow-up'
+        t('agent.followUpFailed')
       );
       if (!task) {
-        throw new Error('Unable to ask the follow-up');
+        throw new Error(t('agent.followUpFailed'));
       }
       this.runs.currentRuns.set(activity.siteUrl, activity.activityId);
       this.hooks.onTaskChanged(task);
       return true;
     } catch (error) {
-      this.report(`Unable to ask the follow-up: ${error.message}`, 'error', root);
+      this.report(t('agent.followUpFailedWith', { error: error.message }), 'error', root);
       return false;
     }
   }
@@ -120,18 +121,18 @@ export class AgentRequests {
     }
     const question = activity?.question || value?.question;
     if (!question) {
-      this.report('The Agent question is unavailable', 'error', root);
+      this.report(t('agent.questionUnavailable'), 'error', root);
       return;
     }
     if (!this.config.isReady()) {
-      this.report('Finish setting up an AI provider first', 'warning', root);
+      this.report(t('agent.finishSetup'), 'warning', root);
       return;
     }
     // A retry researches the forum the original question was asked on, not
     // the forum in the current tab.
     const siteUrl = activity?.siteUrl || value?.siteUrl || '';
     if (!siteUrl) {
-      this.report('The forum for this Agent question is unknown. Ask again from the forum page.', 'error', root);
+      this.report(t('agent.forumUnknown'), 'error', root);
       return;
     }
     const retryId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -151,15 +152,15 @@ export class AgentRequests {
           systemPrompt: config.systemPrompt,
           responseLanguage: config.responseLanguage
         },
-        'Unable to retry Agent task'
+        t('agent.retryFailed')
       );
       if (!task) {
-        throw new Error('Unable to retry Agent task');
+        throw new Error(t('agent.retryFailed'));
       }
       this.runs.trackQueuedTask(task);
       this.onRetryQueued(task);
     } catch (error) {
-      this.report(`Unable to retry Agent task: ${error.message}`, 'error', root);
+      this.report(t('agent.retryFailedWith', { error: error.message }), 'error', root);
     }
   }
 }

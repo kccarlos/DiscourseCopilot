@@ -1,4 +1,7 @@
 // Discourse's raw topic endpoint returns up to 100 posts per page.
+
+import { t } from './i18n.mjs';
+
 const RAW_POSTS_PER_PAGE = 100;
 
 function toPositiveInteger(value) {
@@ -52,19 +55,19 @@ export function calculateFetchProgress({
 
 export function formatEta(etaMs) {
   if (!Number.isFinite(etaMs) || etaMs < 0) {
-    return 'Calculating ETA…';
+    return t('fetchProgress.calculating');
   }
 
   if (etaMs === 0) {
-    return 'Finishing…';
+    return t('fetchProgress.finishing');
   }
 
   const totalSeconds = Math.max(1, Math.ceil(etaMs / 1000));
   if (totalSeconds < 60) {
-    return `ETA ~${totalSeconds}s`;
+    return t('fetchProgress.etaSeconds', { seconds: totalSeconds });
   }
 
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  return `ETA ~${minutes}m ${String(seconds).padStart(2, '0')}s`;
+  return t('fetchProgress.etaMinutes', { minutes, seconds: String(seconds).padStart(2, '0') });
 }

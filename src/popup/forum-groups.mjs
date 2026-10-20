@@ -2,6 +2,7 @@
 // forum first) and the forum filter chips above the lists.
 import { groupByForum } from './forum-names.mjs';
 import { applyForumHue, createForumAvatar } from './forum-ui.mjs';
+import { t, tn } from '../shared/i18n.mjs';
 
 const $ = id => document.getElementById(id);
 
@@ -52,7 +53,7 @@ export class ForumGroups {
       names: this.forums.names
     });
     if (filter && items.length && !visible.length) {
-      container.appendChild(emptyMessage('saved-empty', `Nothing from ${this.forums.label(filter)} here.`));
+      container.appendChild(emptyMessage('saved-empty', t('activity.nothingFrom', { forum: this.forums.label(filter) })));
       return;
     }
 
@@ -72,7 +73,10 @@ export class ForumGroups {
       toggle.setAttribute('aria-controls', bodyId);
       toggle.setAttribute(
         'aria-label',
-        `${forumName}${group.isCurrent ? ', this forum' : ''}, ${group.items.length} item${group.items.length === 1 ? '' : 's'}`
+        t(group.isCurrent ? 'activity.groupAriaCurrent' : 'activity.groupAria', {
+          forum: forumName,
+          items: tn('activity.items', group.items.length)
+        })
       );
 
       const copy = document.createElement('span');
@@ -90,7 +94,7 @@ export class ForumGroups {
       if (group.isCurrent) {
         const badge = document.createElement('span');
         badge.className = 'forum-current-badge';
-        badge.textContent = 'This forum';
+        badge.textContent = t('forumBar.thisForum');
         toggle.appendChild(badge);
       }
       const count = document.createElement('span');
@@ -131,7 +135,7 @@ export class ForumGroups {
     const options =
       groups.length >= 2
         ? [
-            { siteUrl: '', label: 'All' },
+            { siteUrl: '', label: t('activity.all') },
             ...groups.map(group => ({
               siteUrl: group.siteUrl,
               label: this.forums.label(group.siteUrl, group.forumName)

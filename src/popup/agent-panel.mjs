@@ -4,6 +4,7 @@
 import { isAgentActivityTerminal } from '../shared/agent-activity.mjs';
 import { agentRecentWindowMs, isAgentAnswerUnopened, selectAgentRunView } from './agent-runs.mjs';
 import { applyForumHue, createForumChip } from './forum-ui.mjs';
+import { t } from '../shared/i18n.mjs';
 
 const $ = id => document.getElementById(id);
 
@@ -71,14 +72,14 @@ export class AgentPanel {
     if (view.mode === 'pill') {
       const forumName = this.forums.label(view.activity.siteUrl, view.activity.forumName);
       const text = {
-        running: `Researching on ${forumName}…`,
-        waiting: `${forumName} needs you to log in`,
-        ready: `Answer ready from ${forumName}`,
-        failed: `Research on ${forumName} failed`
+        running: t('agent.pill.running', { forum: forumName }),
+        waiting: t('agent.pill.waiting', { forum: forumName }),
+        ready: t('agent.pill.ready', { forum: forumName }),
+        failed: t('agent.pill.failed', { forum: forumName })
       }[view.kind];
       $('agentPillText').textContent = text;
       pill.dataset.kind = view.kind;
-      pill.setAttribute('aria-label', `${text}. View answer`);
+      pill.setAttribute('aria-label', t('agent.pill.aria', { text }));
       applyForumHue(pill, view.activity.siteUrl);
     }
     return view;

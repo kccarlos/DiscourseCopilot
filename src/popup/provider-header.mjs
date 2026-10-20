@@ -4,10 +4,11 @@
 // welcome panel).
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { favoriteModelKey } from '../shared/favorite-models.mjs';
+import { t } from '../shared/i18n.mjs';
 
 const $ = id => document.getElementById(id);
 
-export const MODEL_SWITCHER_HINT = 'Add favorite models in Settings to switch quickly';
+export const MODEL_SWITCHER_HINT = t('header.switcherHint');
 
 /**
  * What the header's model switcher shows. Pure: derived from the config.
@@ -27,7 +28,7 @@ export const MODEL_SWITCHER_HINT = 'Add favorite models in Settings to switch qu
  * @param {(provider: string) => string} input.providerName
  */
 export function deriveModelSwitcher({ ready, provider, model, favorites, providerName }) {
-  const labelOf = (id, name) => `${providerName(id)} · ${name || 'No model selected'}`;
+  const labelOf = (id, name) => `${providerName(id)} · ${name || t('header.noModel')}`;
   const label = labelOf(provider, model);
   const currentKey = favoriteModelKey(provider, model || '');
   const hasFavorites = favorites.length > 0;
@@ -44,7 +45,7 @@ export function deriveModelSwitcher({ ready, provider, model, favorites, provide
       options = [{ value: currentKey, label, selected: true }, ...options];
       selectedValue = currentKey;
     } else {
-      options = [{ value: '', label: 'Choose a favorite model…', selected: true, disabled: true }, ...options];
+      options = [{ value: '', label: t('header.chooseFavorite'), selected: true, disabled: true }, ...options];
     }
   }
 
@@ -56,10 +57,10 @@ export function deriveModelSwitcher({ ready, provider, model, favorites, provide
     label,
     options,
     selectedValue,
-    selectTitle: mode === 'select' ? `${label}\nSwitch to another favorite model` : 'Switch to a favorite model',
-    selectAriaLabel: mode === 'select' ? `AI model: ${label}. Switch favorite model` : 'Switch to a favorite model',
+    selectTitle: mode === 'select' ? t('header.selectTitle', { label }) : t('header.switchFavorite'),
+    selectAriaLabel: mode === 'select' ? t('header.selectAria', { label }) : t('header.switchFavorite'),
     chipTitle: `${label}\n${MODEL_SWITCHER_HINT}`,
-    chipAriaLabel: `AI model: ${label}. Open AI provider settings`
+    chipAriaLabel: t('header.chipAria', { label })
   };
 }
 
@@ -167,11 +168,11 @@ export class ProviderHeader {
     try {
       // The store notifies the panel, which re-renders the header.
       await this.config.setActiveModel(favorite.provider, favorite.model);
-      this.status.show(`Using ${this.config.providerName(favorite.provider)} · ${favorite.model}`, 'success');
+      this.status.show(t('header.using', { name: this.config.providerName(favorite.provider), model: favorite.model }), 'success');
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Unable to switch favorite model:', error);
       this.renderSwitcher();
-      this.status.show(`Unable to switch model: ${error.message}`, 'error');
+      this.status.show(t('header.switchFailed', { error: error.message }), 'error');
     }
   }
 }

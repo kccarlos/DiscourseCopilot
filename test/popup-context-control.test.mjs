@@ -9,7 +9,7 @@ test('forum context slider is collapsed by default but remains discoverable', as
   assert.ok(control, 'expected a collapsible forum context control');
   assert.doesNotMatch(control[0], /<details[^>]*\sopen(?:\s|>)/);
   assert.match(control[1], /<summary class="chat-context-summary">/);
-  assert.match(control[1], /<span>Forum context<\/span>/);
+  assert.match(control[1], /<span[^>]*>Forum context<\/span>/);
   assert.match(control[1], /id="forumContextLimit"/);
 });
 

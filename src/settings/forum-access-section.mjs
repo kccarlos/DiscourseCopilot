@@ -4,9 +4,9 @@
 // (chrome.permissions.onAdded/onRemoved).
 import { hostPatternForUrl, listGrantedForums, revokeForumAccess, subscribeForumAccess } from '../shared/forum-access.mjs';
 import { parseSiteUrl } from '../shared/forum-site.mjs';
+import { t, tn } from '../shared/i18n.mjs';
 
-export const FORUM_ACCESS_EMPTY_TEXT =
-  'You haven’t enabled any forums yet. Open a Discourse forum and click Allow access in the side panel.';
+export const FORUM_ACCESS_EMPTY_TEXT = t('settings.forumAccess.empty');
 
 function originOf(siteUrl) {
   return parseSiteUrl(siteUrl)?.origin || '';
@@ -44,7 +44,7 @@ export function buildForumAccessRows(origins = [], records = []) {
 
 export function describeSavedCount(count) {
   if (!count) return '';
-  return `${count} saved ${count === 1 ? 'item' : 'items'}`;
+  return tn('settings.forumAccess.saved', count);
 }
 
 const $ = id => document.getElementById(id);
@@ -130,12 +130,16 @@ export class ForumAccessSection {
     const actions = element('div', 'forum-access-row-actions');
     if (this.confirming === row.origin) {
       item.classList.add('is-confirming');
-      const question = element('span', 'forum-access-confirm-text', `Remove access to ${row.host}? Saved summaries and answers stay.`);
-      const remove = element('button', 'btn-danger btn-small', this.removing === row.origin ? 'Removing…' : 'Remove');
+      const question = element('span', 'forum-access-confirm-text', t('settings.forumAccess.confirm', { host: row.host }));
+      const remove = element(
+        'button',
+        'btn-danger btn-small',
+        this.removing === row.origin ? t('settings.forumAccess.removing') : t('settings.forumAccess.remove')
+      );
       remove.type = 'button';
       remove.disabled = this.removing === row.origin;
       remove.addEventListener('click', () => void this.remove(row));
-      const cancel = element('button', 'btn-secondary btn-small', 'Cancel');
+      const cancel = element('button', 'btn-secondary btn-small', t('settings.cancel'));
       cancel.type = 'button';
       cancel.addEventListener('click', () => {
         this.confirming = '';
@@ -146,9 +150,9 @@ export class ForumAccessSection {
       });
       actions.append(question, remove, cancel);
     } else {
-      const button = element('button', 'btn-secondary btn-small', 'Remove access');
+      const button = element('button', 'btn-secondary btn-small', t('settings.forumAccess.removeAccess'));
       button.type = 'button';
-      button.setAttribute('aria-label', `Remove access to ${row.host}`);
+      button.setAttribute('aria-label', t('settings.forumAccess.removeAria', { host: row.host }));
       button.addEventListener('click', () => {
         this.confirming = row.origin;
         this.render();
@@ -168,11 +172,11 @@ export class ForumAccessSection {
     try {
       const removed = await revokeForumAccess(row.origin);
       if (!removed) {
-        throw new Error('Chrome kept the access');
+        throw new Error(t('settings.forumAccess.kept'));
       }
-      this.notify(`Access to ${row.host} removed. Your saved summaries and answers are still here.`, 'success');
+      this.notify(t('settings.forumAccess.removed', { host: row.host }), 'success');
     } catch (error) {
-      this.notify(`Could not remove access to ${row.host}: ${error.message}`, 'error');
+      this.notify(t('settings.forumAccess.removeFailed', { host: row.host, error: error.message }), 'error');
     } finally {
       this.removing = '';
       this.confirming = '';

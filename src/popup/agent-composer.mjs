@@ -4,6 +4,7 @@
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { TASK_TYPE } from '../shared/task-record.mjs';
 import { normalizeAgentQuestion } from '../services/agent-context.mjs';
+import { t } from '../shared/i18n.mjs';
 
 const $ = id => document.getElementById(id);
 
@@ -59,20 +60,20 @@ export class AgentComposer {
   }
 
   searchLabel(forumName = this.forums.currentLabel()) {
-    return forumName ? `Search ${forumName}` : 'Search this forum';
+    return forumName ? t('agent.searchForum', { forum: forumName }) : t('agent.searchThisForum');
   }
 
   // Composer copy names the forum being searched; the topic suggestion only
   // makes sense while a topic is open.
   renderCopy(forumName, isForumTopic) {
     $('agentComposerHeading').textContent = this.searchLabel(forumName);
-    $('agentInput').placeholder = forumName ? `Ask a question about ${forumName}…` : 'Ask a question about this forum…';
+    $('agentInput').placeholder = forumName ? t('agent.askAbout', { forum: forumName }) : t('agent.askAboutThis');
     $('agentTopicSuggestion').classList.toggle('hidden', !isForumTopic);
   }
 
   show({ question = '' } = {}) {
     if (!this.state.pageContext?.isDiscourse) {
-      this.status.show('Open a Discourse forum page to ask the forum', 'warning');
+      this.status.show(t('agent.openForumPage'), 'warning');
       return;
     }
     this.open = true;
@@ -110,7 +111,7 @@ export class AgentComposer {
     }
 
     try {
-      this.status.show('Submitting Agent research task…', 'loading');
+      this.status.show(t('agent.submitting'), 'loading');
       const task = await this.tasks.enqueue(
         {
           taskType: TASK_TYPE.AGENT,
@@ -125,7 +126,7 @@ export class AgentComposer {
           systemPrompt: operation.systemPrompt,
           responseLanguage: operation.responseLanguage
         },
-        'Unable to queue Agent research'
+        t('agent.queueFailed')
       );
       if (!task) {
         this.hooks.markBackgroundUnavailable();
@@ -139,7 +140,7 @@ export class AgentComposer {
         return;
       }
       DiscourseCopilotLogger.error('Popup: Error queueing Agent task:', error);
-      this.status.show(`Error: ${error.message}`, 'error');
+      this.status.show(t('common.errorWith', { error: error.message }), 'error');
     } finally {
       this.operations.finish(operation);
     }

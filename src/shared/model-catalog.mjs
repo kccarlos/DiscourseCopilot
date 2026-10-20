@@ -18,6 +18,7 @@
 // appear in cache keys, errors or logs (Gemini's key goes in a header rather
 // than the URL for that reason).
 import { DiscourseCopilotConstants } from './constants.js';
+import { t } from './i18n.mjs';
 
 const { PROVIDER_CONFIGS } = DiscourseCopilotConstants;
 
@@ -210,8 +211,8 @@ export function recommendedModelsFor(provider, providerConfigs = PROVIDER_CONFIG
 export function modelMissingText(provider, providerConfigs = PROVIDER_CONFIGS) {
   const name = providerName(provider, providerConfigs);
   return LOCAL_PROVIDERS.has(provider)
-    ? `This model isn't available on your ${name.replace(/\s*\(Local\)$/, '')} server. Choose another.`
-    : `This model is no longer offered by ${name}. Choose another.`;
+    ? t('modelCatalog.missingLocal', { name: name.replace(/\s*\(Local\)$/, '') })
+    : t('modelCatalog.missingHosted', { name });
 }
 
 /**
@@ -392,7 +393,7 @@ export class ModelCatalog {
     const name = providerName(provider, this.providerConfigs);
     const config = this.providerConfigs[provider];
     if (config.requiresApiKey && provider !== 'openrouter' && !trimmed(settings?.apiKey)) {
-      throw new ModelListError(`Enter a ${name} API key to load its models.`);
+      throw new ModelListError(t('modelCatalog.needKey', { name }));
     }
     const { url, headers } = buildModelListRequest(provider, settings, this.providerConfigs);
     const doFetch = this.fetchImpl || globalThis.fetch;
@@ -410,20 +411,20 @@ export class ModelCatalog {
       try {
         response = await doFetch(url, { method: 'GET', headers, signal: controller.signal });
       } catch (error) {
-        if (timedOut) throw new ModelListError(`${name} didn't answer in time.`);
+        if (timedOut) throw new ModelListError(t('modelCatalog.timeout', { name }));
         if (signal?.aborted) throw signal.reason ?? error;
         // The browser's message only; the request (and any key) stays out of it.
-        throw new ModelListError(`Couldn't reach ${name}.`, { cause: error });
+        throw new ModelListError(t('modelCatalog.unreachable', { name }), { cause: error });
       }
       if (!response.ok) {
-        throw new ModelListError(`${name} returned HTTP ${response.status}.`, { status: response.status });
+        throw new ModelListError(t('modelCatalog.httpError', { name, status: response.status }), { status: response.status });
       }
       let data;
       try {
         data = await response.json();
       } catch (error) {
-        if (timedOut) throw new ModelListError(`${name} didn't answer in time.`);
-        throw new ModelListError(`${name} sent a model list that couldn't be read.`, { cause: error });
+        if (timedOut) throw new ModelListError(t('modelCatalog.timeout', { name }));
+        throw new ModelListError(t('modelCatalog.unreadable', { name }), { cause: error });
       }
       return normalizeModelList(provider, data);
     } finally {
