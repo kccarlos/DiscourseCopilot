@@ -101,13 +101,29 @@ scenario('popup-configured', 'src/popup/popup.html', { store: configuredStore },
   await shot();
 });
 
+// Clicks a "free Gemini key" link without leaving the page (it opens a new tab in Chrome).
+const clickFreeKeyLink = async (page, selector) => {
+  await page.$eval(selector, link => link.addEventListener('click', event => event.preventDefault()));
+  await page.click(selector);
+  await page.waitForTimeout(150);
+};
 scenario('popup-setup', 'src/popup/popup.html', { store: {} }, async ({ page, check, shot }) => {
   check('setup card visible', await visible(page, '#setupCard'));
   check('header says not set up', await visible(page, '#setupJumpBtn'));
   check('summarize disabled', await page.$eval('#summarizeBtn', b => b.disabled));
   await shot('fresh');
+  check('free key hint shown', await visible(page, '#setupFreeKey'));
+  check(
+    'free key link goes to AI Studio',
+    (await page.$eval('#setupFreeKeyLink', a => a.href)) === 'https://aistudio.google.com/apikey'
+      && (await page.$eval('#setupFreeKeyLink', a => a.target)) === '_blank'
+  );
+  await clickFreeKeyLink(page, '#setupFreeKeyLink');
+  check('free key link picks Gemini', (await page.$eval('#setupMoreProviders', s => s.value)) === 'gemini');
+  check('free key hint hidden for Gemini', !(await visible(page, '#setupFreeKey')));
   // Invalid submit shows a field error.
   await page.click('label.setup-provider-option[data-provider="openai"]');
+  check('free key hint back for OpenAI', await visible(page, '#setupFreeKey'));
   await page.fill('#setupApiKey', '');
   await page.click('#setupSaveOnlyBtn');
   await page.waitForTimeout(100);
@@ -1868,9 +1884,17 @@ scenario('settings-fresh', 'src/settings/settings.html', { store: { extensionSet
   await page.waitForTimeout(100);
   check('invalid status', (await text(page, '#status')) === 'OpenRouter API key is required.', await text(page, '#status'));
   check('field marked invalid', await page.$eval('#openrouterApiKey', i => i.getAttribute('aria-invalid') === 'true'));
+  check('free key hint shown', await visible(page, '#freeKeyHint'));
   await shot('invalid');
+  await clickFreeKeyLink(page, '#freeKeyLink');
+  check(
+    'free key link picks Gemini',
+    (await page.$eval('#providerSelect', s => s.value)) === 'gemini' && (await visible(page, '#config-gemini'))
+  );
+  check('free key hint hidden for Gemini', !(await visible(page, '#freeKeyHint')));
   await page.selectOption('#providerSelect', 'ollama');
   check('ollama section', await visible(page, '#config-ollama'));
+  check('free key hint hidden for local models', !(await visible(page, '#freeKeyHint')));
   check('dirty after provider change', (await text(page, '#dirtyIndicator')) === 'Unsaved changes');
   await page.click('#saveBtn');
   await page.waitForTimeout(300);

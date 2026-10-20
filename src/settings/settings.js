@@ -260,6 +260,15 @@ class DiscourseCopilotSettings {
       void this.provider.loadModels(this.currentProvider);
     });
 
+    // Opens AI Studio in a new tab and switches the form to Gemini, ready
+    // for the key.
+    $('freeKeyLink').addEventListener('click', () => {
+      const select = $('providerSelect');
+      if (select.value === 'gemini') return;
+      select.value = 'gemini';
+      select.dispatchEvent(new Event('change'));
+    });
+
     $('responseLanguage').addEventListener('change', event => {
       this.store.updateDraft({ responseLanguage: event.target.value });
       this.dispatch({ type: 'edited', clearStatus: true });

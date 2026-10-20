@@ -2219,6 +2219,30 @@ details[open] > summary .chevron {
     font-size: 0.74rem;
 }
 
+/* "No API key?" pointer to a free Gemini key, under the provider choices. */
+.free-key-hint {
+    margin-top: 0.55rem;
+    font-size: 0.74rem;
+    line-height: 1.4;
+}
+
+.free-key-hint p {
+    margin: 0;
+    color: var(--uc-text);
+}
+
+.free-key-hint a {
+    color: var(--uc-accent-strong);
+    font-weight: 700;
+}
+
+.free-key-hint small {
+    display: block;
+    margin-top: 0.15rem;
+    color: var(--uc-muted);
+    font-size: 0.68rem;
+}
+
 .setup-card select.setup-more-select.has-value {
     border-color: var(--uc-accent);
     color: var(--uc-accent-strong);

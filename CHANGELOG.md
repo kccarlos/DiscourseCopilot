@@ -14,6 +14,7 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 - Settings ends with a quiet "Star on GitHub · Rate it" line.
 - The interface is available in Simplified Chinese, chosen automatically from the browser language (summaries and answers still follow Settings → Response language).
 - A Chinese README (README.zh-CN.md) and an animated demo at the top of the README.
+- No API key? The setup card and Settings → AI provider link to Google AI Studio for a free Gemini key, and switch the form to Gemini so the key can be pasted straight in. The note says the free tier has usage limits and Google may use free-tier prompts to improve its products.
 
 ### Changed
 - The side panel keeps your attention on what matters: starting a chat question, an Ask the forum question or a follow-up opens that card and folds the others to a one-line header (for example "11 replies · saved 2m ago"), and a finished answer opens itself unless you moved on to something else. You can still open or close any card.

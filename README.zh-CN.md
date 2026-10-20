@@ -87,7 +87,7 @@ DiscourseCopilot 的设计原则是：你看了什么，只有你自己知道。
 </details>
 
 **2. 连接一个 AI 服务商。**
-点 DiscourseCopilot 图标打开侧边栏。设置卡片会让你选服务商、粘贴 API key、选模型（会根据服务商当前提供的模型自动推荐一个，通常是又快又便宜的那种）。不知道选哪个，可以看[选择 AI 服务商](#选择-ai-服务商)。
+点 DiscourseCopilot 图标打开侧边栏。设置卡片会让你选服务商、粘贴 API key、选模型（会根据服务商当前提供的模型自动推荐一个，通常是又快又便宜的那种）。不知道选哪个，可以看[选择 AI 服务商](#选择-ai-服务商)。**没有 API key？** 去 [Google AI Studio](https://aistudio.google.com/apikey) 一分钟就能免费拿到一个 Gemini key，设置卡片里也有链接。免费额度有用量限制，Google 可能会用免费版的请求内容改进其产品。
 
 **3. 打开一个论坛帖子，授权访问，然后点“总结贴文”。**
 打开任意 Discourse 论坛的帖子（如果需要登录，先登录），点 DiscourseCopilot 图标。第一次在某个论坛使用时，侧边栏会显示 **在 *论坛名* 上启用 DiscourseCopilot**：点 **允许访问**，然后在 Chrome 弹窗里选 **允许**。之后点 **总结贴文** 就行。每个论坛只需要授权一次，之后论坛页面右下角也会出现 DiscourseCopilot 按钮。
@@ -159,7 +159,7 @@ DiscourseCopilot 不自带 AI。你可以连接一个已经在用的服务商，
 | OpenRouter | API key | 一个 key 就能用很多模型 |
 | OpenAI | API key | GPT 系列模型 |
 | Anthropic | API key | Claude 系列模型 |
-| Google Gemini | API key | Gemini 系列模型（Google AI Studio 有免费额度） |
+| Google Gemini | API key | Gemini 系列模型（[Google AI Studio](https://aistudio.google.com/apikey) 可免费获取 key，有用量限制） |
 | Groq | API key | 速度很快的开源模型 |
 | xAI | API key | Grok 系列模型 |
 | DeepSeek | API key | DeepSeek 系列模型 |
