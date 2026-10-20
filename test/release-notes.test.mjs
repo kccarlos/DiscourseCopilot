@@ -47,6 +47,8 @@ test('notes include the section, install steps and links', () => {
   assert.match(notes, /Chrome Web Store \(recommended\)/);
   assert.match(notes, /CHANGELOG\.md#120---2026-10-03/);
   assert.match(notes, /compare\/v1\.1\.0\.\.\.v1\.2\.0/);
+  assert.match(notes, /dpngnaiiofobfjleabbhnfmdflddnhac\/reviews/);
+  assert.match(notes, /star on GitHub\]\(https:\/\/github\.com\/kccarlos\/DiscourseCopilot\)/);
 });
 
 test('fails clearly when the version has no entries', () => {
