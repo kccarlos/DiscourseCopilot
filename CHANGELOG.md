@@ -1,15 +1,15 @@
 # Changelog
 
-Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each release is published on the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases) (with the installable zip) and submitted to the [Chrome Web Store](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac) and Microsoft Edge Add-ons. Each store offers a version only after its review, which can take from a few hours to several days, so it may lag behind the newest release.
+Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each release is published on the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases) (with the installable zip) and submitted to the [Chrome Web Store](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac) and [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp). Each store offers a version only after its review, which can take from a few hours to several days, so it may lag behind the newest release.
 
 ## [Unreleased]
 
 ## [2.3.2] - 2026-10-20
 
-Same extension as 2.3.1, now also published on Microsoft Edge Add-ons.
+Same extension as 2.3.1, now also on [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp).
 
 ### Changed
-- Releases are uploaded to Microsoft Edge Add-ons as well as the Chrome Web Store. Nothing in the extension itself changed.
+- Releases are uploaded to Microsoft Edge Add-ons as well as the Chrome Web Store, and the README and release notes link to both stores. Nothing in the extension itself changed.
 
 ## [2.3.1] - 2026-10-20
 

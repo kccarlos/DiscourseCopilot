@@ -15,6 +15,7 @@
 
 <p align="center">
   <a href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac"><img src="https://img.shields.io/chrome-web-store/v/dpngnaiiofobfjleabbhnfmdflddnhac?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4" alt="Chrome Web Store 版本"></a>
+  <a href="https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp"><img src="https://img.shields.io/badge/Edge%20Add--ons-available-0078D7?logo=microsoftedge&logoColor=white" alt="Microsoft Edge 加载项"></a>
   <a href="https://github.com/kccarlos/DiscourseCopilot/releases/latest"><img src="https://img.shields.io/github/v/release/kccarlos/DiscourseCopilot?label=release&logo=github" alt="最新 GitHub Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="许可证：Apache-2.0"></a>
   <img src="https://img.shields.io/badge/Manifest-V3-4285F4?logo=googlechrome&logoColor=white" alt="Chrome 扩展，Manifest V3">
@@ -22,7 +23,7 @@
 </p>
 
 <p align="center">
-  <a href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac"><strong>➜ 免费添加到 Chrome</strong></a>
+  <a href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac"><strong>➜ 免费添加到 Chrome</strong></a> · <a href="https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp"><strong>添加到 Microsoft Edge</strong></a>
 </p>
 
 <p align="center">
@@ -69,16 +70,16 @@ DiscourseCopilot 的设计原则是：你看了什么，只有你自己知道。
 ## 三步上手
 
 **1. 安装扩展。**
-打开 [Chrome 应用商店里的 DiscourseCopilot](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac)，点 **添加至 Chrome**。然后点工具栏上的拼图图标，把 **DiscourseCopilot** 固定在工具栏上，方便随时打开。
+打开 [Chrome 应用商店里的 DiscourseCopilot](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac)，点 **添加至 Chrome**。用 Microsoft Edge 的话，打开 [Edge 加载项商店里的 DiscourseCopilot](https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp)，点 **获取**。然后点工具栏上的拼图图标，把 **DiscourseCopilot** 固定在工具栏上，方便随时打开。
 
-> **关于商店更新。** 每个新版本都要经过 Google 审核才能在 Chrome 应用商店上架，耗时从几小时到几天不等，所以商店里的版本可能比最新的 [GitHub Release](https://github.com/kccarlos/DiscourseCopilot/releases/latest) 稍旧。想马上用最新版，可以从 GitHub 安装 zip（见下方）。商店版审核通过后 Chrome 会自动更新。
+> **关于商店更新。** 每个新版本都要经过 Google 或微软审核，才能在 Chrome 应用商店或 Edge 加载项商店上架，耗时从几小时到几天不等，所以商店里的版本可能比最新的 [GitHub Release](https://github.com/kccarlos/DiscourseCopilot/releases/latest) 稍旧。想马上用最新版，可以从 GitHub 安装 zip（见下方）。商店版审核通过后浏览器会自动更新。
 
 <details>
 <summary>想马上用最新版？从 GitHub 安装</summary>
 
 1. 打开 [Releases 页面](https://github.com/kccarlos/DiscourseCopilot/releases)，下载最新的 `discourse-copilot-<version>.zip`。
 2. 解压。
-3. 在 Chrome 中打开 `chrome://extensions`，打开右上角的 **开发者模式**。
+3. 在 Chrome 中打开 `chrome://extensions`（Edge 中是 `edge://extensions`），打开右上角的 **开发者模式**。
 4. 点 **加载已解压的扩展程序**，选择解压后的文件夹。
 5. 点工具栏上的拼图图标，固定 **DiscourseCopilot**。
 

@@ -45,6 +45,7 @@ test('notes include the section, install steps and links', () => {
   assert.match(notes, /^### Fixed/);
   assert.match(notes, /## Install/);
   assert.match(notes, /Chrome Web Store \(recommended\)/);
+  assert.match(notes, /Microsoft Edge Add-ons:.*addons\/detail\/cjbpgigbkfdcgdmlpifklpoklpnbkhmp/);
   assert.match(notes, /CHANGELOG\.md#120---2026-10-03/);
   assert.match(notes, /compare\/v1\.1\.0\.\.\.v1\.2\.0/);
   assert.match(notes, /dpngnaiiofobfjleabbhnfmdflddnhac\/reviews/);

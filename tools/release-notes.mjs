@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const REPO_URL = 'https://github.com/kccarlos/DiscourseCopilot';
 const STORE_URL = 'https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac';
+const EDGE_URL = 'https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp';
 
 const HEADING = /^## \[([^\]]+)\](?:\s+-\s+(\S+))?\s*$/;
 
@@ -64,7 +65,8 @@ export function buildReleaseNotes(changelog, version) {
 ## Install
 
 - **Chrome Web Store (recommended):** [Add DiscourseCopilot to Chrome](${STORE_URL}). Store updates appear only after Google's review, which can take from a few hours to several days.
-- **From this release:** download the zip below, unzip it, open \`chrome://extensions\`, turn on **Developer mode** and click **Load unpacked**. Disable the store copy first if you have it, so the two don't conflict.
+- **Microsoft Edge Add-ons:** [Add DiscourseCopilot to Edge](${EDGE_URL}). Updates appear after Microsoft's review.
+- **From this release:** download the zip below, unzip it, open \`chrome://extensions\` (\`edge://extensions\` in Edge), turn on **Developer mode** and click **Load unpacked**. Disable the store copy first if you have it, so the two don't conflict.
 
 **Full changelog:** ${links.join(' · ')}
 
