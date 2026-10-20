@@ -446,7 +446,7 @@ Before pushing, `pnpm test && pnpm check && pnpm build` covers everything except
    - `EDGE_AUTO_PUBLISH` = `true`: submits the draft for certification, with the release link as the notes for certification. It goes live automatically once approved.
    - anything else: leaves the upload as a draft. Open [Partner Center](https://partner.microsoft.com/dashboard/microsoftedge/overview), check it and click **Publish**.
 
-Google reviews every update before it reaches users, which can take from a few hours to several days, so the store can lag behind the GitHub Release (the README tells users so and points them to the release zip); the dashboard shows the review status. The README's store-version badge shows what the store currently serves. To switch automatic submission on or off: `gh variable set CWS_AUTO_PUBLISH --body true` (or `false`).
+Google reviews every update before it reaches users, which can take from a few hours to several days, so the store can lag behind the GitHub Release (the README tells users so and points them to the release zip); the dashboard shows the review status. To switch automatic submission on or off: `gh variable set CWS_AUTO_PUBLISH --body true` (or `false`).
 
 The workflow can also be started by hand (**Actions → Release → Run workflow**, with an existing tag). That only rebuilds and creates the GitHub Release; the store jobs run for tag pushes only (the Google identity provider trusts nothing else, and only admins can push `v*` tags).
 
