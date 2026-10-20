@@ -16,6 +16,7 @@ import { FULL_PROMPTS, getHierarchicalPrompt, getMinimalPromptFor, getPrompt } f
 import { samplingOptions } from '../shared/provider-setup.mjs';
 import { estimateTokens, isPromptTooLargeError, isTokenLimitError, parseForumContent, throwIfAborted } from './ai-errors.mjs';
 import { DiscourseCopilotLogger } from '../shared/logger.js';
+import { t } from '../shared/i18n.mjs';
 
 export const DEFAULT_MAX_RETRIES = 3;
 
@@ -143,17 +144,17 @@ export async function hierarchicalSummary(
   // If parsing produced no content, fall back to treating entire content as OP
   if (!op && comments.length === 0) {
     DiscourseCopilotLogger.log('AI Service: Parsing produced no results, summarizing with retry...');
-    onProgress?.({ step: 'fallback', message: '📝 Summarizing content...' });
+    onProgress?.({ step: 'fallback', message: t('progress.summarizing') });
     return summarizeWithRetry(model, opPrompt, content, { ...retry, note: operationState.coverageNote });
   }
 
   const tasks = [];
   if (op && op.trim().length > 0) {
-    onProgress?.({ step: 'op', message: '📝 Summarizing original post...' });
+    onProgress?.({ step: 'op', message: t('progress.summarizingOp') });
     tasks.push(summarizeWithRetry(model, opPrompt, op, retry).then(result => ({ type: 'op', result })));
   }
   if (comments.length > 0) {
-    onProgress?.({ step: 'comments', message: `💬 Processing ${comments.length} comments...` });
+    onProgress?.({ step: 'comments', message: t('progress.comments', { count: comments.length }) });
     tasks.push(
       summarizeCommentsWithFallback(model, comments, {
         ...retry,
@@ -183,13 +184,13 @@ export async function hierarchicalSummary(
   }
 
   if (!opSummary && !commentsSummary) {
-    throw new Error(`All summarization tasks failed: ${errors.join(', ')}`);
+    throw new Error(t('progress.allFailed', { errors: errors.join(', ') }));
   }
   if (errors.length > 0) {
     console.warn(`AI Service: Partial success - ${errors.length} task(s) failed, continuing with available content`);
   }
 
-  onProgress?.({ step: 'final', message: '✨ Assembling final summary...' });
+  onProgress?.({ step: 'final', message: t('progress.assembling') });
   DiscourseCopilotLogger.log('AI Service: Assembling final summary...');
   return assembleFinalSummary(model, opSummary, commentsSummary, {
     onStream,
@@ -224,7 +225,7 @@ export async function summarizeCommentsWithFallback(
     throwIfAborted(abortSignal);
     if (isTokenLimitError(error) && comments.length > 1) {
       DiscourseCopilotLogger.log('AI Service: Comments too long, using parallel map-reduce...');
-      onProgress?.({ step: 'map-reduce', message: '📊 Splitting comments for parallel processing...' });
+      onProgress?.({ step: 'map-reduce', message: t('progress.splitting') });
       return mapReduceCommentsParallel(model, comments, {
         onProgress,
         prompts: { commentsPrompt, combinePrompt },
@@ -262,7 +263,7 @@ export async function mapReduceCommentsParallel(
   const secondHalf = comments.slice(mid);
 
   DiscourseCopilotLogger.log(`AI Service: Parallel split ${comments.length} comments into ${firstHalf.length} + ${secondHalf.length}`);
-  onProgress?.({ step: 'map-reduce', message: `📊 Processing ${firstHalf.length} + ${secondHalf.length} comments in parallel...` });
+  onProgress?.({ step: 'map-reduce', message: t('progress.parallel', { first: firstHalf.length, second: secondHalf.length }) });
 
   const processHalf = async half => {
     try {

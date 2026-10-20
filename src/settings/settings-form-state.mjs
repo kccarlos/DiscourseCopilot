@@ -50,6 +50,8 @@
 //                        │                                       (nothing written)
 //                        └──Save──▶ saving ──▶ saved | dirty | error
 
+import { t } from '../shared/i18n.mjs';
+
 export const FORM_PHASE = Object.freeze({
   LOADING: 'loading',
   PRISTINE: 'pristine',
@@ -64,8 +66,7 @@ export const FORM_PHASE = Object.freeze({
 
 const BUSY_PHASES = new Set([FORM_PHASE.LOADING, FORM_PHASE.TESTING, FORM_PHASE.SAVING, FORM_PHASE.RESETTING]);
 
-export const WELCOME_SAVED_MESSAGE =
-  'Settings saved. You’re set — open any Discourse topic, click the DiscourseCopilot icon, allow access to the forum, and press Create summary.';
+export const WELCOME_SAVED_MESSAGE = t('settings.status.welcomeSaved');
 
 // status: null (hidden) or { message, type: info|success|error, autoHide }.
 function status(message, type = 'info', autoHide = type === 'success') {
@@ -80,7 +81,7 @@ export function initialFormState() {
     savingRevision: null,
     fieldErrors: {},
     confirmingReset: false,
-    status: status('Loading saved settings…', 'info', false)
+    status: status(t('settings.status.loadingSaved'), 'info', false)
   };
 }
 
@@ -125,13 +126,13 @@ export function transitionForm(state, event) {
         edited: false,
         fieldErrors: {},
         // First install (?welcome=1) starts with a quiet form.
-        status: event.welcomeMode ? null : status('Settings loaded.', 'success')
+        status: event.welcomeMode ? null : status(t('settings.status.loaded'), 'success')
       };
     case 'load-failed':
       return {
         ...state,
         phase: FORM_PHASE.ERROR,
-        status: status(`Could not load saved settings: ${event.message}`, 'error', false)
+        status: status(t('settings.status.loadFailed', { error: event.message }), 'error', false)
       };
     case 'edited': {
       const fieldErrors = withFieldError(state.fieldErrors, event.field, event.fieldError);
@@ -156,7 +157,7 @@ export function transitionForm(state, event) {
         confirmingReset: false,
         revision: state.revision + 1,
         fieldErrors: Object.fromEntries(Object.entries(state.fieldErrors || {}).filter(([field]) => !(event.fields || []).includes(field))),
-        status: status(`${event.section || 'Section'} restored to defaults. Save to apply.`, 'info', false)
+        status: status(t('settings.restore.done', { section: event.section || t('settings.restore.fallbackSection') }), 'info', false)
       };
     case 'field-errors': {
       const fieldErrors = { ...(state.fieldErrors || {}) };
@@ -187,19 +188,19 @@ export function transitionForm(state, event) {
         ...state,
         phase: FORM_PHASE.TESTING,
         confirmingReset: false,
-        status: status(`Testing ${event.providerName}…`, 'info', false)
+        status: status(t('settings.status.testing', { name: event.providerName }), 'info', false)
       };
     case 'test-passed':
       return {
         ...state,
         phase: restingPhase(state),
-        status: status(`${event.providerName} connection successful.`, 'success')
+        status: status(t('settings.status.testPassed', { name: event.providerName }), 'success')
       };
     case 'test-failed':
       return {
         ...state,
         phase: FORM_PHASE.ERROR,
-        status: status(`Connection failed: ${event.message}`, 'error', false)
+        status: status(t('settings.status.testFailed', { error: event.message }), 'error', false)
       };
     case 'save-started':
       return {
@@ -207,7 +208,7 @@ export function transitionForm(state, event) {
         phase: FORM_PHASE.SAVING,
         confirmingReset: false,
         savingRevision: state.revision,
-        status: status('Saving settings…', 'info', false)
+        status: status(t('settings.status.saving'), 'info', false)
       };
     case 'save-succeeded': {
       const edited = state.revision !== state.savingRevision;
@@ -217,7 +218,7 @@ export function transitionForm(state, event) {
         edited,
         savingRevision: null,
         fieldErrors: {},
-        status: event.welcomeMode ? status(WELCOME_SAVED_MESSAGE, 'success', false) : status('Settings saved successfully.', 'success')
+        status: event.welcomeMode ? status(WELCOME_SAVED_MESSAGE, 'success', false) : status(t('settings.status.saved'), 'success')
       };
     }
     case 'save-failed':
@@ -225,7 +226,7 @@ export function transitionForm(state, event) {
         ...state,
         phase: FORM_PHASE.ERROR,
         savingRevision: null,
-        status: status(`Could not save settings: ${event.message}`, 'error', false)
+        status: status(t('settings.status.saveFailed', { error: event.message }), 'error', false)
       };
     case 'reset-requested':
       return isFormBusy(state) || state.confirmingReset ? state : { ...state, confirmingReset: true, status: null };
@@ -240,7 +241,7 @@ export function transitionForm(state, event) {
         ...state,
         phase: FORM_PHASE.RESETTING,
         confirmingReset: false,
-        status: status('Resetting settings…', 'info', false)
+        status: status(t('settings.status.resetting'), 'info', false)
       };
     case 'reset-succeeded':
       return {
@@ -249,13 +250,13 @@ export function transitionForm(state, event) {
         edited: false,
         revision: state.revision + 1,
         fieldErrors: {},
-        status: status('Settings reset to defaults.', 'success')
+        status: status(t('settings.status.resetDone'), 'success')
       };
     case 'reset-failed':
       return {
         ...state,
         phase: FORM_PHASE.ERROR,
-        status: status(`Could not reset settings: ${event.message}`, 'error', false)
+        status: status(t('settings.status.resetFailed', { error: event.message }), 'error', false)
       };
     // Messages that don't change the form (favorites, model suggestions).
     case 'notice':
@@ -277,33 +278,37 @@ export function transitionForm(state, event) {
 export function formStateLabel(state, hasSavedConfiguration) {
   switch (state.phase) {
     case FORM_PHASE.LOADING:
-      return { text: 'Loading…', tone: 'busy' };
+      return { text: t('settings.formState.loading'), tone: 'busy' };
     case FORM_PHASE.SAVING:
-      return { text: 'Saving…', tone: 'busy' };
+      return { text: t('settings.formState.saving'), tone: 'busy' };
     case FORM_PHASE.TESTING:
-      return { text: 'Testing connection…', tone: 'busy' };
+      return { text: t('settings.formState.testing'), tone: 'busy' };
     case FORM_PHASE.RESETTING:
-      return { text: 'Resetting…', tone: 'busy' };
+      return { text: t('settings.formState.resetting'), tone: 'busy' };
     case FORM_PHASE.INVALID:
-      return { text: 'Fix the highlighted fields', tone: 'error' };
+      return { text: t('settings.formState.fixFields'), tone: 'error' };
     case FORM_PHASE.ERROR:
-      return state.edited ? { text: 'Unsaved changes · last action failed', tone: 'error' } : { text: 'Last action failed', tone: 'error' };
+      return state.edited
+        ? { text: t('settings.formState.unsavedFailed'), tone: 'error' }
+        : { text: t('settings.formState.failed'), tone: 'error' };
     default:
   }
   if (hasFieldErrors(state)) {
-    return { text: 'Fix the highlighted fields', tone: 'error' };
+    return { text: t('settings.formState.fixFields'), tone: 'error' };
   }
   if (state.edited) {
-    return { text: 'Unsaved changes', tone: 'dirty' };
+    return { text: t('settings.formState.unsaved'), tone: 'dirty' };
   }
   if (state.phase === FORM_PHASE.SAVED) {
-    return { text: 'Saved', tone: 'success' };
+    return { text: t('settings.formState.saved'), tone: 'success' };
   }
-  return hasSavedConfiguration ? { text: 'All changes saved', tone: 'neutral' } : { text: 'Not set up yet', tone: 'neutral' };
+  return hasSavedConfiguration
+    ? { text: t('settings.formState.allSaved'), tone: 'neutral' }
+    : { text: t('settings.formState.notSetUp'), tone: 'neutral' };
 }
 
 // "All changes saved" would be misleading before anything usable is saved.
 export function dirtyIndicatorText(state, hasSavedConfiguration) {
-  if (state.edited) return 'Unsaved changes';
-  return hasSavedConfiguration ? 'All changes saved' : '';
+  if (state.edited) return t('settings.formState.unsaved');
+  return hasSavedConfiguration ? t('settings.formState.allSaved') : '';
 }

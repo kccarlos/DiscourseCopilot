@@ -12,6 +12,7 @@ import {
 import { TASK_TYPE, isTerminalTaskStatus } from '../shared/task-record.mjs';
 import { normalizeSiteUrl } from '../shared/forum-site.mjs';
 import { topicSessionDatabase } from '../shared/topic-session-db.mjs';
+import { t } from '../shared/i18n.mjs';
 
 export const AGENT_RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -63,7 +64,7 @@ export function mergeAgentRunState(activity, task = null) {
     progress: activity.progress || task.progress || null
   };
   if (task.status === 'failed' && !activity.error) {
-    merged.error = { message: task.error || 'Agent research failed.' };
+    merged.error = { message: task.error || t('agent.researchFailed') };
   }
   if (isTerminalTaskStatus(task.status) && !merged.completedAt) {
     merged.completedAt = Number(task.completedAt || task.updatedAt || 0);

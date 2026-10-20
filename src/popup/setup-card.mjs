@@ -25,13 +25,12 @@ import {
 import { requestServerAccess, serverAccessDeniedText, serverNeedsAccessPrompt } from '../shared/forum-access.mjs';
 import { announce } from './status-line.mjs';
 import { MODEL_LIST_DEBOUNCE_MS, modelCatalog, orderModelChoices, pickDefaultModel } from '../shared/model-catalog.mjs';
+import { t } from '../shared/i18n.mjs';
 
 // Wait for a pause in typing before reading the provider's model list.
-const MODEL_HINT = 'Prefilled with a recommended model. You can change it any time.';
+const modelHint = () => t('setup.modelHint');
 
-const CHOICE_LABELS = {
-  ollama: 'Local (Ollama)'
-};
+const choiceLabel = provider => (provider === 'ollama' ? t('setup.localOllama') : '');
 
 const FIELD_INPUTS = {
   apiKey: 'setupApiKey',
@@ -96,7 +95,7 @@ export class SetupCard {
         input.name = 'setupProvider';
         input.value = provider;
         const name = document.createElement('strong');
-        name.textContent = CHOICE_LABELS[provider] || this.providerConfigs[provider]?.name || provider;
+        name.textContent = choiceLabel(provider) || this.providerConfigs[provider]?.name || provider;
         const blurb = document.createElement('small');
         blurb.textContent = PROVIDER_BLURBS[provider] || '';
         label.append(input, name, blurb);
@@ -155,8 +154,8 @@ export class SetupCard {
       const input = $('setupApiKey');
       const reveal = input.type === 'password';
       input.type = reveal ? 'text' : 'password';
-      $('setupKeyToggle').textContent = reveal ? 'Hide' : 'Show';
-      $('setupKeyToggle').setAttribute('aria-label', reveal ? 'Hide API key' : 'Show API key');
+      $('setupKeyToggle').textContent = reveal ? t('setup.hide') : t('setup.show');
+      $('setupKeyToggle').setAttribute('aria-label', reveal ? t('setup.hideKey') : t('setup.showKey'));
     });
 
     for (const [field, id] of Object.entries(FIELD_INPUTS)) {
@@ -286,7 +285,7 @@ export class SetupCard {
       ? orderModelChoices(provider, this.models, this.providerConfigs)
       : suggestSetupModels(provider, this.config.config.favorites, this.providerConfigs).map((id, index) => ({
           id,
-          name: index === 0 ? 'Recommended' : ''
+          name: index === 0 ? t('setup.recommended') : ''
         }));
     $('setupModelList').replaceChildren(
       ...choices.map(choice => {
@@ -298,10 +297,10 @@ export class SetupCard {
     );
     const hint = $('setupModelHint');
     hint.textContent = !this.models
-      ? MODEL_HINT
+      ? modelHint()
       : this.mayPreselect(provider)
-        ? `A fast, low-cost model from ${config.name}’s current list. You can change it any time.`
-        : `Choose from ${config.name}’s current models; recommended ones are listed first.`;
+        ? t('setup.modelHintFast', { name: config.name })
+        : t('setup.modelHintChoose', { name: config.name });
     hint.dataset.source = this.models ? 'live' : 'curated';
   }
 
@@ -349,20 +348,17 @@ export class SetupCard {
     $('setupKeyStep').classList.toggle('hidden', isLocal);
     $('setupUrlStep').classList.toggle('hidden', !isLocal);
     if (isLocal) {
-      $('setupServerUrlLabel').textContent = `${config.name.replace(/\s*\(Local\)$/, '')} server URL`;
+      $('setupServerUrlLabel').textContent = t('setup.serverUrlLabel', { name: config.name.replace(/\s*\(Local\)$/, '') });
       $('setupServerUrl').value = draft.url || '';
       $('setupServerUrl').placeholder = defaultLocalUrl(provider, this.providerConfigs);
-      $('setupServerUrlHelp').textContent =
-        provider === 'ollama'
-          ? 'Start Ollama on this computer, then keep the default address.'
-          : 'Start the local server in LM Studio (Developer tab), then keep the default address.';
-      this.setLink($('setupDownloadLink'), link?.url, link?.label || 'Download');
+      $('setupServerUrlHelp').textContent = provider === 'ollama' ? t('setup.helpOllama') : t('setup.helpLmStudio');
+      this.setLink($('setupDownloadLink'), link?.url, link?.label || t('setup.download'));
       $('setupServerUrl').setAttribute('aria-describedby', 'setupServerUrlHint setupServerUrlError');
     } else {
-      $('setupApiKeyLabel').textContent = `${config.name} API key`;
+      $('setupApiKeyLabel').textContent = t('setup.apiKeyLabel', { name: config.name });
       $('setupApiKey').value = draft.apiKey || '';
-      this.setLink($('setupKeyLink'), link?.url, 'Get a key');
-      $('setupKeyLink').title = link ? `Get a ${config.name} API key at ${link.label}` : '';
+      this.setLink($('setupKeyLink'), link?.url, t('setup.getKey'));
+      $('setupKeyLink').title = link ? t('setup.getKeyTitle', { name: config.name, site: link.label }) : '';
     }
     $('setupModel').value = draft.model || '';
     this.renderModelChoices();
@@ -458,10 +454,10 @@ export class SetupCard {
     this.setBusy(true);
     const serverAllowed = await serverAccess;
     if (test) {
-      this.setProgress(`Testing ${config.name}…`);
+      this.setProgress(t('setup.testing', { name: config.name }));
       const result = await this.config.test(provider);
       if (!result.ok) {
-        const failure = result.failure || { field: null, message: result.error?.message || 'The test did not run.' };
+        const failure = result.failure || { field: null, message: result.error?.message || t('setup.testDidNotRun') };
         if (!serverAllowed) {
           failure.field = 'url';
           failure.message = serverAccessDeniedText(serverUrl);
@@ -472,14 +468,14 @@ export class SetupCard {
         if (failure.field && this.showFieldError(failure.field, failure.message)) {
           $(FIELD_INPUTS[failure.field]).focus();
         } else {
-          this.showFormError(`${failure.message} You can also save without testing.`);
+          this.showFormError(t('setup.failureHint', { message: failure.message }));
           $('setupTestSaveBtn').focus();
         }
         return;
       }
     }
 
-    this.setProgress(test ? 'Connection works. Saving…' : 'Saving…');
+    this.setProgress(test ? t('setup.connectionWorks') : t('setup.saving'));
     // Set before the write: the saved configuration re-renders the panel,
     // which must keep the card open to show the success message.
     this.state = 'success';
@@ -489,7 +485,7 @@ export class SetupCard {
       this.state = 'editing';
       this.setBusy(false);
       this.setProgress('');
-      this.showFormError(`Could not save: ${saved.error?.message || 'unknown error'}`);
+      this.showFormError(t('setup.saveFailed', { error: saved.error?.message || t('common.unknownError') }));
       return;
     }
     this.setProgress('');
@@ -531,8 +527,8 @@ export class SetupCard {
       this.prepared = false;
       $('setupAnnouncer').textContent = '';
       $('setupApiKey').type = 'password';
-      $('setupKeyToggle').textContent = 'Show';
-      $('setupKeyToggle').setAttribute('aria-label', 'Show API key');
+      $('setupKeyToggle').textContent = t('setup.show');
+      $('setupKeyToggle').setAttribute('aria-label', t('setup.showKey'));
     }
   }
 }

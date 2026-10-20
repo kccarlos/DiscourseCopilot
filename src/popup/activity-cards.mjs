@@ -5,14 +5,13 @@ import { agentActivityExpiry, agentStepsOf } from '../shared/agent-activity.mjs'
 import { formatExpiresIn } from '../shared/preferences.mjs';
 import { describeSummarizedReplies, formatRelativeTime, retentionCopy } from './ui-state.mjs';
 import { cleanTopicTitle } from './forum-names.mjs';
+import { t, tn } from '../shared/i18n.mjs';
 
 // data-saved-key of a saved card (focus after a delete, tests).
 export const savedTopicKey = entry => `topic:${entry.topicKey}`;
 export const savedAgentKey = activity => `agent:${activity.activityId}`;
 
-function plural(count, word) {
-  return `${count} ${word}${count === 1 ? '' : 's'}`;
-}
+const statusLabel = status => t(`task.status.${status}`);
 
 function createButton(label, className, onClick) {
   const button = document.createElement('button');
@@ -30,7 +29,9 @@ function createMetadataSpan(text) {
 }
 
 function createCancelButton(task, onCancel) {
-  const cancel = createButton(task.phase === 'cancelling' ? 'Stopping…' : 'Stop task', 'outline secondary', () => onCancel(task.id));
+  const cancel = createButton(task.phase === 'cancelling' ? t('answer.stopping') : t('activity.stopTask'), 'outline secondary', () =>
+    onCancel(task.id)
+  );
   cancel.disabled = task.phase === 'cancelling';
   return cancel;
 }
@@ -55,7 +56,7 @@ function createTaskCardBase(task, { className, title, titleTooltip, badge, queue
   status.className = 'task-card-status';
   status.textContent =
     task.status === TASK_STATUS.QUEUED && queuePosition
-      ? `Queue position ${queuePosition} · ${task.statusText}`
+      ? t('activity.queuePosition', { position: queuePosition, status: task.statusText })
       : task.error || task.statusText || task.phase;
   card.appendChild(status);
 
@@ -92,14 +93,17 @@ export function createTopicTaskCard(task, { queuePosition, forumName, isCurrentT
   const topicTitle = cleanTopicTitle(task.title, forumName);
   const card = createTaskCardBase(task, {
     className: `task-card ${task.status}`,
-    title: `${task.type === TASK_TYPE.CHAT ? 'Chat' : 'Summary'} · ${topicTitle}`,
+    title: t('activity.taskTitle', {
+      type: task.type === TASK_TYPE.CHAT ? t('activity.type.chat') : t('activity.type.summary'),
+      title: topicTitle
+    }),
     titleTooltip: topicTitle,
-    badge: task.status,
+    badge: statusLabel(task.status),
     queuePosition
   });
   card.appendChild(
     createActions('task-card-actions', [
-      createButton(isCurrentTopic ? 'View session' : 'Open post', 'outline secondary', () => onOpen(task)),
+      createButton(isCurrentTopic ? t('activity.viewSession') : t('activity.openPost'), 'outline secondary', () => onOpen(task)),
       !isTerminalTaskStatus(task.status) && createCancelButton(task, onCancel)
     ])
   );
@@ -121,9 +125,9 @@ export function createAgentTaskCard(task, { queuePosition = 0, activity, onOpen,
   const waiting = task.status === TASK_STATUS.WAITING_USER_ACTION;
   const card = createTaskCardBase(task, {
     className: `task-card agent ${task.status}`,
-    title: `Agent · ${task.title || task.question || 'Ask the forum'}`,
-    titleTooltip: task.question || task.title || 'Ask the forum',
-    badge: waiting ? 'needs action' : task.status,
+    title: t('activity.agentTitle', { title: task.title || task.question || t('common.askForum') }),
+    titleTooltip: task.question || task.title || t('common.askForum'),
+    badge: waiting ? t('task.status.waiting_user_action') : statusLabel(task.status),
     queuePosition
   });
 
@@ -131,13 +135,20 @@ export function createAgentTaskCard(task, { queuePosition = 0, activity, onOpen,
   if (stepCount || activity?.sourceRefs?.length) {
     const meta = document.createElement('small');
     meta.className = 'task-card-status';
-    meta.textContent = [stepCount && plural(stepCount, 'step'), activity.sourceRefs.length && plural(activity.sourceRefs.length, 'source')]
+    meta.textContent = [
+      stepCount && tn('answer.count.step', stepCount),
+      activity.sourceRefs.length && tn('answer.count.source', activity.sourceRefs.length)
+    ]
       .filter(Boolean)
       .join(' · ');
     card.appendChild(meta);
   }
 
-  const openLabel = waiting ? 'Continue' : isTerminalTaskStatus(task.status) ? 'View answer' : 'View progress';
+  const openLabel = waiting
+    ? t('common.continue')
+    : isTerminalTaskStatus(task.status)
+      ? t('activity.viewAnswer')
+      : t('activity.viewProgress');
   card.appendChild(
     createActions('task-card-actions', [
       createButton(openLabel, 'outline secondary', () => {
@@ -148,7 +159,7 @@ export function createAgentTaskCard(task, { queuePosition = 0, activity, onOpen,
         }
       }),
       (task.status === TASK_STATUS.FAILED || task.status === TASK_STATUS.CANCELLED)
-        && createButton('Retry', 'outline secondary', () => onRetry(task)),
+        && createButton(t('common.retry'), 'outline secondary', () => onRetry(task)),
       !isTerminalTaskStatus(task.status) && createCancelButton(task, onCancel)
     ])
   );
@@ -156,9 +167,9 @@ export function createAgentTaskCard(task, { queuePosition = 0, activity, onOpen,
 }
 
 function createKeepButton({ kept, label, title, disabledTitle, onToggle }) {
-  const keepButton = createButton(kept ? 'Unkeep' : 'Keep', 'outline secondary keep-saved', () => onToggle(keepButton));
+  const keepButton = createButton(kept ? t('common.unkeep') : t('common.keep'), 'outline secondary keep-saved', () => onToggle(keepButton));
   keepButton.setAttribute('aria-pressed', String(kept === true));
-  keepButton.setAttribute('aria-label', `${kept ? 'Unkeep' : 'Keep'} ${label}`);
+  keepButton.setAttribute('aria-label', t(kept ? 'activity.unkeepAria' : 'activity.keepAria', { label }));
   keepButton.title = title;
   if (disabledTitle) {
     keepButton.disabled = true;
@@ -197,32 +208,32 @@ export function createSavedTopicCard(
   card.appendChild(title);
 
   const excerpt = document.createElement('p');
-  excerpt.textContent = entry.summaryExcerpt || 'Saved summary';
+  excerpt.textContent = entry.summaryExcerpt || t('activity.savedSummary');
   card.appendChild(excerpt);
 
   const metadata = document.createElement('div');
   metadata.className = 'saved-card-meta';
   metadata.append(
     createMetadataSpan(describeSummarizedReplies(entry)),
-    createMetadataSpan(`${entry.historyCount} chat messages`),
+    createMetadataSpan(tn('activity.chatMessages', entry.historyCount)),
     createMetadataSpan(formatRelativeTime(entry.updatedAt))
   );
   card.appendChild(metadata);
 
-  const openButton = createButton(isCurrent ? 'View current session' : 'Open saved session', 'open-saved', () => onOpen(entry));
+  const openButton = createButton(isCurrent ? t('activity.viewCurrent') : t('activity.openSaved'), 'open-saved', () => onOpen(entry));
 
-  const deleteButton = createButton('Delete', 'outline secondary delete-saved', () => onDelete(entry));
-  deleteButton.setAttribute('aria-label', `Delete saved summary for ${topicTitle}`);
+  const deleteButton = createButton(t('common.delete'), 'outline secondary delete-saved', () => onDelete(entry));
+  deleteButton.setAttribute('aria-label', t('activity.deleteSummaryAria', { title: topicTitle }));
   if (hasActiveTasks) {
     deleteButton.disabled = true;
-    deleteButton.title = 'Terminate this topic’s tasks before deleting its saved session';
+    deleteButton.title = t('activity.deleteBlocked');
   }
 
   const keepButton = createKeepButton({
     kept: entry.kept,
-    label: `saved session for ${topicTitle}`,
+    label: t('activity.sessionLabel', { title: topicTitle }),
     title: entry.kept ? copy.unkeepTopic : copy.keepTopic,
-    disabledTitle: hasActiveTasks ? 'Wait for this topic’s tasks to finish before changing retention' : '',
+    disabledTitle: hasActiveTasks ? t('activity.keepBlocked') : '',
     onToggle: button => onKeep(entry, button)
   });
 
@@ -258,20 +269,20 @@ export function createSavedAgentCard(
   card.classList.toggle('kept', activity.kept === true);
 
   const title = document.createElement('h3');
-  title.textContent = `Agent · ${activity.title}`;
+  title.textContent = t('activity.agentTitle', { title: activity.title });
   title.title = activity.question || activity.title;
   card.appendChild(title);
 
   const excerpt = document.createElement('p');
-  excerpt.textContent = answerExcerpt(activity.answer) || 'Saved Agent answer';
+  excerpt.textContent = answerExcerpt(activity.answer) || t('activity.savedAnswer');
   card.appendChild(excerpt);
 
   const metadata = document.createElement('div');
   metadata.className = 'saved-card-meta';
   const stepCount = agentStepsOf(activity).length;
   metadata.append(
-    ...(stepCount ? [createMetadataSpan(plural(stepCount, 'step'))] : []),
-    createMetadataSpan(plural(activity.sourceRefs.length, 'source')),
+    ...(stepCount ? [createMetadataSpan(tn('answer.count.step', stepCount))] : []),
+    createMetadataSpan(tn('answer.count.source', activity.sourceRefs.length)),
     createMetadataSpan(formatRelativeTime(activity.completedAt || activity.updatedAt))
   );
   // Recomputed with the current history setting (never the stored copy).
@@ -283,15 +294,19 @@ export function createSavedAgentCard(
 
   const keepButton = createKeepButton({
     kept: activity.kept,
-    label: `Agent answer for ${activity.title}`,
+    label: t('activity.answerLabel', { title: activity.title }),
     title: activity.kept ? copy.unkeepSavedAnswer : copy.keepSavedAnswer,
     onToggle: button => onKeep(activity, button)
   });
 
-  const deleteButton = createButton('Delete', 'outline secondary delete-saved', () => onDelete(activity));
-  deleteButton.setAttribute('aria-label', `Delete Agent answer for ${activity.title}`);
+  const deleteButton = createButton(t('common.delete'), 'outline secondary delete-saved', () => onDelete(activity));
+  deleteButton.setAttribute('aria-label', t('activity.deleteAnswerAria', { title: activity.title }));
   card.appendChild(
-    createActions('saved-card-actions', [createButton('View answer', 'open-saved', () => onOpen(activity)), keepButton, deleteButton])
+    createActions('saved-card-actions', [
+      createButton(t('activity.viewAnswer'), 'open-saved', () => onOpen(activity)),
+      keepButton,
+      deleteButton
+    ])
   );
   return card;
 }

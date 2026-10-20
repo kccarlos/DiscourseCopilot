@@ -1171,7 +1171,9 @@ details[open] > summary .chevron {
 
 #sendChatBtn {
     display: inline-flex;
+    flex: none;
     width: auto;
+    white-space: nowrap;
     min-height: 40px;
     align-items: center;
     gap: 0.35rem;

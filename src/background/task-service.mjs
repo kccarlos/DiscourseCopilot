@@ -16,6 +16,7 @@ import { normalizeTaskLimits, resolveRetention, retentionEqual, snapshotTaskLimi
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { createForumAccessError } from '../shared/forum-access.mjs';
 import { JobQueue } from './job-queue.mjs';
+import { t } from '../shared/i18n.mjs';
 
 const { MESSAGES } = DiscourseCopilotConstants;
 
@@ -296,7 +297,7 @@ export class TaskService {
         .list()
         .some(task => task.type === TASK_TYPE.AGENT && task.agentRunId === request.agentRunId && !isTerminalTaskStatus(task.status))
     ) {
-      throw new Error('This run is still working. Wait for it to finish before asking a follow-up.');
+      throw new Error(t('agent.stillWorking'));
     }
     const agentRunId = type === TASK_TYPE.AGENT ? request.agentRunId || id : '';
     const record = createTaskRecord({

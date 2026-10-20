@@ -7,11 +7,12 @@ import { createForumAccessError } from '../shared/forum-access.mjs';
 import { isAbortError } from '../shared/rate-limit-retry.mjs';
 import { formatFetchTaskStatus } from './topic-fetcher.mjs';
 import { describeTopicCoverage } from '../services/prompts.js';
+import { t, tn } from '../shared/i18n.mjs';
 
 const { MESSAGES } = DiscourseCopilotConstants;
 
 function pluralPosts(count) {
-  return `${count} new ${count === 1 ? 'post' : 'posts'}`;
+  return tn('executor.newPosts', count);
 }
 
 /**
@@ -121,7 +122,7 @@ export function createTopicExecutors({
     await report(
       {
         phase: 'fetching',
-        statusText: session.summary ? 'Checking for new replies…' : 'Reading forum responses…',
+        statusText: session.summary ? t('executor.checkingReplies') : t('executor.readingResponses'),
         progress: null
       },
       { durable: true }
@@ -149,8 +150,8 @@ export function createTopicExecutors({
         {
           phase: 'saving',
           statusText: response.truncated
-            ? `Saved summary already covers the first ${Math.max(0, (response.coveredPosts || 0) - 1)} replies (page limit).`
-            : 'Saved summary already includes every reply.',
+            ? t('executor.alreadyCoversFirst', { count: Math.max(0, (response.coveredPosts || 0) - 1) })
+            : t('executor.alreadyCurrent'),
           progress: { ...response.progress, percent: 100, etaMs: 0 }
         },
         { durable: true }
@@ -163,7 +164,9 @@ export function createTopicExecutors({
       {
         phase: 'generating',
         statusText:
-          response.newPosts > 0 && session.summary ? `Updating summary with ${pluralPosts(response.newPosts)}…` : 'Generating summary…',
+          response.newPosts > 0 && session.summary
+            ? t('executor.updatingSummary', { posts: pluralPosts(response.newPosts) })
+            : t('executor.generatingSummary'),
         progress: null
       },
       { durable: true }
@@ -178,7 +181,7 @@ export function createTopicExecutors({
         onProgress: progress => {
           void report({
             phase: 'generating',
-            statusText: progress.message || 'Generating summary…',
+            statusText: progress.message || t('executor.generatingSummary'),
             progress: null
           }).catch(() => {});
         },
@@ -213,7 +216,7 @@ export function createTopicExecutors({
     const configuration = await getTaskConfiguration(task);
     let session = await db.get(task.topicKey);
     if (!session?.summary || !session.source) {
-      throw new Error('The saved post and summary are required before chatting');
+      throw new Error(t('executor.needSummary'));
     }
 
     const hasMessage = role => session.history.some(message => message.taskId === task.id && message.role === role);
@@ -226,7 +229,7 @@ export function createTopicExecutors({
     await report(
       {
         phase: 'fetching',
-        statusText: 'Checking for new replies before answering…',
+        statusText: t('executor.checkingRepliesBeforeAnswer'),
         progress: null
       },
       { durable: true }
@@ -257,7 +260,8 @@ export function createTopicExecutors({
     await report(
       {
         phase: 'generating',
-        statusText: response.newPosts > 0 ? `Answering with ${pluralPosts(response.newPosts)} included…` : 'Answering follow-up question…',
+        statusText:
+          response.newPosts > 0 ? t('executor.answeringWithPosts', { posts: pluralPosts(response.newPosts) }) : t('executor.answering'),
         progress: null
       },
       { durable: true }
@@ -282,7 +286,7 @@ export function createTopicExecutors({
         onProgress: progress => {
           void report({
             phase: 'generating',
-            statusText: progress.message || 'Answering follow-up question…'
+            statusText: progress.message || t('executor.answering')
           }).catch(() => {});
         },
         onStream: streamChunks(task)

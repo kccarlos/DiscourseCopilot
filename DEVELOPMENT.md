@@ -388,6 +388,19 @@ Ask the forum is a read-only agent. The model is asked for **one JSON action per
 
 Deleting a saved summary or an Agent answer removes it at once, from IndexedDB too (`TopicSessionDatabase.take()` / `takeAgentActivity()` return the stored record), and shows an **Undo** toast for 8 seconds. Undo (the button, or Ctrl/⌘+Z outside a text field) writes that record back unchanged (`restore()` / `restoreAgentActivity()`). Because the database is always the truth, re-renders and background broadcasts during the window can't bring an item back, and closing the panel keeps the delete. A new delete ends the previous offer. The window pauses while the pointer or focus is on the toast; the message is announced through the panel's `announce()` helper. Focus moves to the next saved card (or the list's tab), to **Ask the forum** after a delete from the topic view, and to the restored card after Undo. A finished Agent task whose activity is gone (deleted, expired, pruned) never becomes a run again, though the task stays in the task list for days; runs deleted in this panel also ignore late broadcasts (`AgentRuns.deletedRunIds`). `undo-slot.mjs` is the pure model (injected timers, unit-tested); `undo-toast.mjs` renders it.
 
+## Interface language (i18n)
+
+The interface follows the browser language: any `zh*` language gets Simplified Chinese, everything else English. There is no in-app switch. `src/shared/i18n.mjs` picks the locale (`chrome.i18n.getUILanguage()`, else `navigator.language`) and exports `t(key, params)`, `tn(key, count, params)` (plurals: `key.one` / `key.other`; Chinese needs only `.other`), `intlLocale()` for `Intl` calls and `localizeDocument()`.
+
+To add or change a UI string:
+
+1. Add the key to **both** `src/shared/locales/en.mjs` and `zh-CN.mjs` (settings page keys live in `en-settings.mjs` / `zh-CN-settings.mjs`). Keep the same `{placeholders}`. English text is the source; Chinese uses full-width punctuation and the glossary already in the file (总结, 问论坛, 记录, 设置, 论坛访问, ...).
+2. In JavaScript call `t('area.key', { name })` with a literal key. In HTML add `data-i18n="key"` (text), `data-i18n-attr="placeholder:key;aria-label:key"` (attributes) or, only when markup is needed, `data-i18n-html="key"`, and keep the English text in the element as the fallback.
+3. Run `npm test`: `test/i18n.test.mjs` checks both locales have the same keys and placeholders, every literal `t()` key and every `data-i18n` key exists, and no visible English text is left untagged in `popup.html` / `settings.html`.
+4. `pnpm test:ui` also runs the pages with a Chinese browser language (`zh-*` scenarios) and fails if an English interface string is still on screen.
+
+Do not translate anything sent to the AI model (system prompts, agent tool observations), the product name, provider names or model ids. The extension name and description are in `public/_locales/*/messages.json` (referenced from `manifest.json` as `__MSG_...__`). So are the in-page button's labels: `src/content/content.js` reads them with `chrome.i18n.getMessage`, so the script injected into forum pages doesn't bundle every UI string. Chrome picks those by its own rules, so a `zh-TW` browser shows that button in English.
+
 ## CI/CD & releases
 
 ### CI

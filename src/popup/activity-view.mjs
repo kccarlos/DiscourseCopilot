@@ -20,6 +20,7 @@ import {
   savedAgentKey,
   savedTopicKey
 } from './activity-cards.mjs';
+import { t } from '../shared/i18n.mjs';
 
 const $ = id => document.getElementById(id);
 
@@ -177,13 +178,16 @@ export class ActivityView {
     try {
       const stored = await this.agent.getRecord(value);
       if (!stored) {
-        this.agent.report('Agent answer is no longer available', 'warning');
+        this.agent.report(t('activity.answerGone'), 'warning');
         return;
       }
       const activity = this.agent.runRecord(stored.activityId) || stored;
       // Opened from the topic view (pill, panel): Back returns there.
       this.detailReturnsToTopic = !this.state.savedViewOpen;
-      $('closeAgentDetailBtn').setAttribute('aria-label', this.detailReturnsToTopic ? 'Back to current page' : 'Back to Activity');
+      $('closeAgentDetailBtn').setAttribute(
+        'aria-label',
+        this.detailReturnsToTopic ? t('activity.backToPage') : t('activity.backToActivity')
+      );
       this.state.savedViewOpen = true;
       this.state.agentDetailOpen = true;
       $('topicView').classList.add('hidden');
@@ -203,7 +207,7 @@ export class ActivityView {
       this.agent.markOpened(activity, { force: true });
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Unable to open Agent activity:', error);
-      this.agent.report(`Unable to open Agent answer: ${error.message}`, 'error');
+      this.agent.report(t('activity.openAnswerFailed', { error: error.message }), 'error');
     }
   }
 
@@ -235,11 +239,11 @@ export class ActivityView {
     $('savedStatus').classList.add('hidden');
 
     if (!this.state.persistenceAvailable) {
-      this.showSavedStatus('Saved summaries are unavailable in this browser context', 'warning');
+      this.showSavedStatus(t('activity.savedUnavailable'), 'warning');
       return;
     }
 
-    list.appendChild(emptyMessage('saved-empty', 'Loading saved summaries…'));
+    list.appendChild(emptyMessage('saved-empty', t('activity.loadingSaved')));
 
     try {
       const [entries, agentActivities] = await Promise.all([topicSessionDatabase.list(), topicSessionDatabase.listAgentActivities()]);
@@ -272,7 +276,7 @@ export class ActivityView {
       $('savedCount').textContent = String(savedItems.length);
       list.replaceChildren();
       if (!savedItems.length) {
-        list.appendChild(emptyMessage('saved-empty', 'No saved items yet. Keep a summary or Agent answer to find it here.'));
+        list.appendChild(emptyMessage('saved-empty', t('activity.noSaved')));
         return;
       }
 
@@ -282,7 +286,7 @@ export class ActivityView {
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Unable to list saved summaries:', error);
       list.replaceChildren();
-      this.showSavedStatus('Unable to load saved summaries', 'error');
+      this.showSavedStatus(t('activity.loadSavedFailed'), 'error');
     }
   }
 
@@ -300,7 +304,7 @@ export class ActivityView {
     this.groups.renderFilter();
 
     if (!active.length) {
-      activeList.appendChild(emptyMessage('task-empty', 'Nothing is running right now. New summaries and questions will appear here.'));
+      activeList.appendChild(emptyMessage('task-empty', t('activity.nothingRunning')));
     }
 
     const queuedIds = active
@@ -364,7 +368,7 @@ export class ActivityView {
   async setSavedSessionKept(entry, kept, button) {
     const previousLabel = button.textContent;
     button.disabled = true;
-    button.textContent = kept ? 'Keeping…' : 'Updating…';
+    button.textContent = kept ? t('activity.keeping') : t('activity.updating');
     try {
       const session = await topicSessionDatabase.setKept(entry.topicKey, kept);
       this.sessions.cache(session);
@@ -376,13 +380,13 @@ export class ActivityView {
       button.disabled = false;
       button.textContent = previousLabel;
       DiscourseCopilotLogger.error('Popup: Unable to update saved session retention:', error);
-      this.showSavedStatus(`Unable to update retention: ${error.message}`, 'error');
+      this.showSavedStatus(t('activity.retentionFailed', { error: error.message }), 'error');
     }
   }
 
   async openSavedTopic(entry) {
     if (!entry?.topicKey || !entry.url) {
-      this.showSavedStatus('This saved item has no forum link', 'error');
+      this.showSavedStatus(t('activity.noLink'), 'error');
       return;
     }
     if (this.hooks.isCurrentTopic(entry.topicKey)) {
@@ -391,7 +395,7 @@ export class ActivityView {
       return;
     }
 
-    this.showSavedStatus('Opening the forum topic…', 'loading');
+    this.showSavedStatus(t('activity.openingTopic'), 'loading');
     this.hooks.expectTopicMetadata(entry);
     try {
       const siteUrl = entry.siteUrl || siteUrlFromPageUrl(entry.url);
@@ -411,7 +415,7 @@ export class ActivityView {
     } catch (error) {
       this.hooks.forgetTopicMetadata(entry.topicKey);
       DiscourseCopilotLogger.error('Popup: Unable to open saved topic:', error);
-      this.showSavedStatus(`Unable to open post: ${error.message}`, 'error');
+      this.showSavedStatus(t('activity.openPostFailed', { error: error.message }), 'error');
     }
   }
 
@@ -454,7 +458,7 @@ export class ActivityView {
       copy = await topicSessionDatabase.take(entry.topicKey);
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Unable to delete saved summary:', error);
-      this.showSavedStatus(`Unable to delete: ${error.message}`, 'error');
+      this.showSavedStatus(t('activity.deleteFailed', { error: error.message }), 'error');
       return;
     }
     this.sessions.forget(entry.topicKey);
@@ -465,7 +469,7 @@ export class ActivityView {
     this.focusSavedItem('', index);
     if (copy) {
       this.undo.offer({
-        message: `Deleted the saved summary and chat for “${title}”`,
+        message: t('activity.deletedSummary', { title }),
         undo: () => this.restoreSavedTopic(copy, title)
       });
     }
@@ -481,6 +485,6 @@ export class ActivityView {
       await this.loadSavedList();
       this.focusSavedItem(savedTopicKey(session));
     }
-    announce($('agentAnnouncer'), `Restored the saved summary and chat for “${title}”`);
+    announce($('agentAnnouncer'), t('activity.restoredSummary', { title }));
   }
 }

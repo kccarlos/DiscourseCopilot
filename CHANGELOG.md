@@ -9,6 +9,7 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 ### Added
 - After your fifth summary, the side panel shows a small "Enjoying DiscourseCopilot?" card once, with links to rate the extension or star it on GitHub. Close it and it never comes back.
 - Settings ends with a quiet "Star on GitHub · Rate it" line.
+- The interface is available in Simplified Chinese, chosen automatically from the browser language (summaries and answers still follow Settings → Response language).
 - A Chinese README (README.zh-CN.md) and an animated demo at the top of the README.
 
 ### Changed

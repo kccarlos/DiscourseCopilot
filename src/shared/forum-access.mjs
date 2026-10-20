@@ -16,6 +16,7 @@
 //   listGrantedForums() leaves those out.
 import { DiscourseCopilotConstants } from './constants.js';
 import { parseSiteUrl } from './forum-site.mjs';
+import { t } from './i18n.mjs';
 
 export const FORUM_ACCESS_ERROR_CODE = 'FORUM_ACCESS_NOT_GRANTED';
 export const FORUM_CONTENT_SCRIPT_ID = 'forum-content';
@@ -76,7 +77,7 @@ export function forumAccessHost(siteUrl) {
     return new URL(site.origin).hostname;
   }
   const url = parseUrl(siteUrl);
-  return url?.hostname || 'this forum';
+  return url?.hostname || t('forumAccess.thisForum');
 }
 
 /**
@@ -100,7 +101,7 @@ export function forumOriginsFromPatterns(patterns = [], { exclude = [] } = {}) {
 }
 
 export function forumAccessMessage(siteUrl) {
-  return `Allow DiscourseCopilot on ${forumAccessHost(siteUrl)} in the side panel, then try again.`;
+  return t('forumAccess.allowThenRetry', { host: forumAccessHost(siteUrl) });
 }
 
 export function createForumAccessError(siteUrl) {
@@ -177,7 +178,7 @@ export function serverNeedsAccessPrompt(serverUrl) {
 }
 
 export function serverAccessDeniedText(serverUrl) {
-  return `DiscourseCopilot wasn’t allowed to connect to ${forumAccessHost(serverUrl)}. Try again and choose Allow.`;
+  return t('forumAccess.serverDenied', { host: forumAccessHost(serverUrl) });
 }
 
 export async function revokeForumAccess(siteUrl, { permissions = chromePermissions() } = {}) {

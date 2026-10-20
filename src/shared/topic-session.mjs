@@ -1,5 +1,6 @@
 import { DEFAULT_MAX_SAVED_TOPICS, DEFAULT_RETENTION_MS } from './preferences.mjs';
 import { buildTopicKey, buildTopicUrl, normalizeSiteUrl, siteUrlFromPageUrl } from './forum-site.mjs';
+import { t } from './i18n.mjs';
 
 // Defaults come from preferences.mjs, the single source for tunable values.
 export const CHAT_RETENTION_MS = DEFAULT_RETENTION_MS;
@@ -79,7 +80,7 @@ export function createTopicSession({ topicId, siteUrl, url, title, forumName }, 
     siteUrl: normalizedSiteUrl,
     topicKey: buildTopicKey(normalizedSiteUrl, normalizedTopicId),
     url: canonicalizeTopicUrl(url, normalizedTopicId, normalizedSiteUrl),
-    title: trimmedString(title) || `Topic ${normalizedTopicId}`,
+    title: trimmedString(title) || t('common.topicFallback', { id: normalizedTopicId }),
     forumName: trimmedString(forumName).slice(0, 120),
     source: '',
     rawPages: [],
@@ -120,7 +121,7 @@ export function normalizeTopicSession(value, now = Date.now()) {
     siteUrl,
     topicKey,
     url: canonicalizeTopicUrl(value.url, topicId, siteUrl),
-    title: trimmedString(value.title) || `Topic ${topicId}`,
+    title: trimmedString(value.title) || t('common.topicFallback', { id: topicId }),
     forumName: trimmedString(value.forumName).slice(0, 120),
     source: typeof value.source === 'string' ? value.source : '',
     rawPages: normalizeRawPages(value.rawPages),

@@ -1,6 +1,7 @@
 // Pure view logic shared by several side panel views: task lists, summary
 // coverage, history-retention copy, the idle status line and relative times.
 import { isTerminalTaskStatus } from '../shared/task-record.mjs';
+import { t, tn } from '../shared/i18n.mjs';
 
 export function partitionTasks(tasks = []) {
   const sorted = [...tasks].sort((left, right) => {
@@ -17,7 +18,7 @@ export function partitionTasks(tasks = []) {
 
 function replies(posts) {
   const count = Math.max(0, posts - 1);
-  return `${count.toLocaleString('en-US')} ${count === 1 ? 'reply' : 'replies'}`;
+  return tn('coverage.reply', count, { n: count.toLocaleString('en-US') });
 }
 
 /**
@@ -35,15 +36,15 @@ export function describeSummaryCoverage(session = {}) {
       const coveredReplies = Math.max(0, covered - 1).toLocaleString('en-US');
       return {
         truncated: true,
-        text: `first ${coveredReplies} of ${replies(total)}`,
-        note: `Page limit reached: summarized from the first ${coveredReplies} of ${replies(total)}. To include more, choose “Read every page” (or a higher limit) under “Pages read per topic” in Settings.`
+        text: t('coverage.firstOf', { covered: coveredReplies, total: replies(total) }),
+        note: t('coverage.noteReplies', { covered: coveredReplies, total: replies(total) })
       };
     }
     const pages = session.summaryPagesRead || 0;
     return {
       truncated: true,
-      text: `first ${pages} ${pages === 1 ? 'page' : 'pages'} of replies`,
-      note: `Page limit reached: summarized from the first ${pages} ${pages === 1 ? 'page' : 'pages'} of replies; the topic may be longer.`
+      text: tn('coverage.firstPages', pages),
+      note: tn('coverage.notePages', pages)
     };
   }
   return { truncated: false, text: total ? replies(total) : '', note: '' };
@@ -51,7 +52,7 @@ export function describeSummaryCoverage(session = {}) {
 
 export function describeSummarizedReplies(entry = {}) {
   const coverage = describeSummaryCoverage(entry);
-  return coverage.text ? `${coverage.text} summarized` : 'Reply count unavailable';
+  return coverage.text ? t('coverage.summarized', { text: coverage.text }) : t('coverage.unavailable');
 }
 
 /**
@@ -59,18 +60,18 @@ export function describeSummarizedReplies(entry = {}) {
  */
 export function retentionCopy(retention) {
   const forever = retention?.forever === true;
-  const period = retention?.label || '1 day';
+  const period = retention?.label || t('settings.history.option.1d');
   const limit = retention?.maxSavedTopics;
   return {
     savedIntro: forever
-      ? `Conversations and Agent answers are kept until you delete them${limit ? `; past ${limit} saved topics the oldest unkept ones are removed` : ''}. Keep one to protect it.`
-      : `Conversations and Agent answers expire after ${period}. Keep one to preserve it.`,
-    keepAnswer: forever ? 'Keep this answer in Saved' : `Keep this answer in Saved beyond ${period}`,
-    unkeepAnswer: forever ? 'Kept in Saved. Select to unkeep it.' : `Kept in Saved. Select to let it expire after ${period}.`,
-    keepSavedAnswer: forever ? 'Keep this answer' : `Keep this answer beyond ${period}`,
-    unkeepSavedAnswer: forever ? 'Unkeep this answer' : `Let this answer expire ${period} from now`,
-    keepTopic: forever ? 'Keep this summary and conversation' : `Keep this summary and conversation beyond ${period}`,
-    unkeepTopic: forever ? 'Unkeep this summary and conversation' : `Resume the ${period} conversation expiry`
+      ? t('retention.intro.forever', { limit: limit ? t('retention.introLimit', { limit }) : '' })
+      : t('retention.intro.timed', { period }),
+    keepAnswer: forever ? t('retention.keepAnswer.forever') : t('retention.keepAnswer.timed', { period }),
+    unkeepAnswer: forever ? t('retention.unkeepAnswer.forever') : t('retention.unkeepAnswer.timed', { period }),
+    keepSavedAnswer: forever ? t('retention.keepSaved.forever') : t('retention.keepSaved.timed', { period }),
+    unkeepSavedAnswer: forever ? t('retention.unkeepSaved.forever') : t('retention.unkeepSaved.timed', { period }),
+    keepTopic: forever ? t('retention.keepTopic.forever') : t('retention.keepTopic.timed', { period }),
+    unkeepTopic: forever ? t('retention.unkeepTopic.forever') : t('retention.unkeepTopic.timed', { period })
   };
 }
 
@@ -89,10 +90,10 @@ export function resolveIdleStatus({
     return null;
   }
   if (!isForumTopic && isDiscourse) {
-    return agentPanelShown ? null : { message: 'Ask the forum to search across discussions', type: 'info' };
+    return agentPanelShown ? null : { message: t('idle.askForum'), type: 'info' };
   }
   if (!isForumTopic) {
-    return { message: 'Open a Discourse forum topic to get started', type: 'info' };
+    return { message: t('idle.openTopic'), type: 'info' };
   }
   return null;
 }
@@ -114,9 +115,9 @@ export function shouldRederiveStatus({ announce = false, settingsValid = false, 
 export function formatRelativeTime(timestamp, now = Date.now()) {
   const elapsed = Math.max(0, now - Number(timestamp || 0));
   const minutes = Math.floor(elapsed / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return t('time.justNow');
+  if (minutes < 60) return t('time.minutesAgo', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  if (hours < 24) return t('time.hoursAgo', { count: hours });
+  return t('time.daysAgo', { count: Math.floor(hours / 24) });
 }

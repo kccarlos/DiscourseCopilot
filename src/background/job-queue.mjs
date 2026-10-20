@@ -1,4 +1,5 @@
 import { TASK_STATUS, isTerminalTaskStatus, normalizeTaskRecord } from '../shared/task-record.mjs';
+import { t } from '../shared/i18n.mjs';
 
 function abortError() {
   const error = new Error('Task cancelled');
@@ -37,7 +38,7 @@ export class JobQueue {
       }
       if (task.status === TASK_STATUS.WAITING_USER_ACTION) {
         task.phase = task.phase || 'waiting_user_action';
-        task.statusText = task.statusText || 'Waiting for your action…';
+        task.statusText = task.statusText || t('task.waitingAction');
         task.updatedAt = this.now();
         this.tasks.set(task.id, task);
         await this.onTransition({ ...task }, { durable: true });
@@ -45,7 +46,7 @@ export class JobQueue {
       }
       task.status = TASK_STATUS.QUEUED;
       task.phase = 'queued';
-      task.statusText = record.status === TASK_STATUS.RUNNING ? 'Resuming after extension restart…' : 'Waiting for an available worker…';
+      task.statusText = record.status === TASK_STATUS.RUNNING ? t('task.resuming') : t('task.waitingWorker');
       task.updatedAt = this.now();
       this.tasks.set(task.id, task);
       this.pending.push(task.id);
@@ -56,12 +57,12 @@ export class JobQueue {
 
   async enqueue(record) {
     if (this.pending.length + this.running.size >= this.maxQueued) {
-      throw new Error('The task queue is full. Cancel or wait for an existing task.');
+      throw new Error(t('task.queueFull'));
     }
     const task = normalizeTaskRecord(record, this.now());
     task.status = TASK_STATUS.QUEUED;
     task.phase = 'queued';
-    task.statusText = 'Waiting for an available worker…';
+    task.statusText = t('task.waitingWorker');
     task.updatedAt = this.now();
     this.tasks.set(task.id, task);
     this.pending.push(task.id);
@@ -127,7 +128,7 @@ export class JobQueue {
     }
     task.status = TASK_STATUS.QUEUED;
     task.phase = 'queued';
-    task.statusText = 'Waiting for an available worker…';
+    task.statusText = t('task.waitingWorker');
     task.error = '';
     task.updatedAt = this.now();
     this.pending.push(id);
@@ -188,14 +189,14 @@ export class JobQueue {
       if (result?.status === TASK_STATUS.WAITING_USER_ACTION) {
         await this.finishTask(task, TASK_STATUS.WAITING_USER_ACTION, {
           phase: result.phase || 'waiting_user_action',
-          statusText: result.statusText || 'Waiting for your action…',
+          statusText: result.statusText || t('task.waitingAction'),
           error: result.error || ''
         });
         return;
       }
       await this.finishTask(task, TASK_STATUS.COMPLETED, {
         phase: 'completed',
-        statusText: 'Completed',
+        statusText: t('task.completed'),
         error: ''
       });
     } catch (error) {
@@ -204,7 +205,7 @@ export class JobQueue {
       const status = cancelled ? TASK_STATUS.CANCELLED : waitingForUser ? TASK_STATUS.WAITING_USER_ACTION : TASK_STATUS.FAILED;
       const patch = {
         phase: cancelled ? 'cancelled' : waitingForUser ? 'waiting_user_action' : 'failed',
-        statusText: cancelled ? 'Cancelled' : waitingForUser ? error.statusText || 'Waiting for your action…' : 'Failed',
+        statusText: cancelled ? t('task.cancelled') : waitingForUser ? error.statusText || t('task.waitingAction') : t('task.failed'),
         error: cancelled || waitingForUser ? (waitingForUser ? String(error?.message || error) : '') : String(error?.message || error)
       };
       try {

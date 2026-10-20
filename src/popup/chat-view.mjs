@@ -5,11 +5,12 @@ import { TASK_STATUS, TASK_TYPE, isTerminalTaskStatus } from '../shared/task-rec
 import { FORUM_CONTEXT_LIMIT, formatForumContextLimit, normalizeForumContextLimit } from '../shared/chat-context-limit.mjs';
 import { normalizeChatQuestion, prepareChatEdit } from './conversation-state.mjs';
 import { renderMarkdown } from './markdown.mjs';
+import { t, tn } from '../shared/i18n.mjs';
 
 export function getChatCountLabel(history = []) {
   const questionCount = history.filter(message => message.role === 'user').length;
-  if (!questionCount) return 'Start a conversation';
-  return `${questionCount} ${questionCount === 1 ? 'question' : 'questions'} asked`;
+  if (!questionCount) return t('chat.start');
+  return tn('chat.asked', questionCount);
 }
 
 const $ = id => document.getElementById(id);
@@ -23,7 +24,7 @@ const EDIT_ICON = `
             <path d="m4 20 4.4-1 10.8-10.8a2.1 2.1 0 0 0-3-3L5.4 16 4 20Z"/>
             <path d="m14.8 6.6 3 3"/>
           </svg>
-          <span>Edit</span>
+          <span>${t('chat.edit')}</span>
         `;
 
 export class ChatView {
@@ -134,7 +135,7 @@ export class ChatView {
 
     if (!this.state.session?.summary) {
       chatContainer.classList.add('hidden');
-      $('chatCount').textContent = 'Start a conversation';
+      $('chatCount').textContent = t('chat.start');
       this.hooks.updateControls();
       return;
     }
@@ -174,8 +175,8 @@ export class ChatView {
         const editButton = document.createElement('button');
         editButton.type = 'button';
         editButton.className = 'chat-edit-btn';
-        editButton.setAttribute('aria-label', 'Edit this message');
-        editButton.title = 'Edit this message and remove later replies';
+        editButton.setAttribute('aria-label', t('chat.editAria'));
+        editButton.title = t('controls.edit');
         editButton.innerHTML = EDIT_ICON;
         editButton.addEventListener('click', onEdit);
         bubble.appendChild(editButton);
@@ -230,10 +231,7 @@ export class ChatView {
     input.setSelectionRange(input.value.length, input.value.length);
 
     const saved = await this.savePendingEdit();
-    this.status.show(
-      saved ? 'Message ready to edit. Later replies were removed.' : 'Message restored, but the conversation change could not be saved.',
-      saved ? 'ready' : 'warning'
-    );
+    this.status.show(saved ? t('chat.editReady') : t('chat.editNotSaved'), saved ? 'ready' : 'warning');
   }
 
   // Resolves to whether the edited conversation is saved (true when there
@@ -265,7 +263,7 @@ export class ChatView {
 
   async send() {
     if (!(await this.savePendingEdit())) {
-      this.status.show('The edited conversation could not be saved. Try sending again.', 'warning');
+      this.status.show(t('chat.editSaveFailed'), 'warning');
       return;
     }
     const question = normalizeChatQuestion(this.input.value);
@@ -282,7 +280,7 @@ export class ChatView {
     this.clearInput();
 
     try {
-      this.status.show('Submitting follow-up task…', 'loading');
+      this.status.show(t('chat.submitting'), 'loading');
       const session = this.state.session;
       const task = await this.tasks.enqueue(
         {
@@ -300,7 +298,7 @@ export class ChatView {
           systemPrompt: operation.systemPrompt,
           responseLanguage: operation.responseLanguage
         },
-        'Unable to queue follow-up'
+        t('chat.queueFailed')
       );
       if (!task) {
         this.hooks.markBackgroundUnavailable();
@@ -310,12 +308,7 @@ export class ChatView {
       if (isStillOnPage()) {
         if (!isTerminalTaskStatus(task.status)) {
           this.bubbleFor('user', task.id, question);
-          this.bubbleFor(
-            'assistant',
-            task.id,
-            task.status === TASK_STATUS.QUEUED ? 'Queued. You can safely browse elsewhere.' : 'Thinking…',
-            ['pending']
-          );
+          this.bubbleFor('assistant', task.id, task.status === TASK_STATUS.QUEUED ? t('chat.queued') : t('chat.thinking'), ['pending']);
         } else {
           await this.hooks.reloadCurrentSession();
         }
@@ -328,7 +321,7 @@ export class ChatView {
       DiscourseCopilotLogger.error('Popup: Error queueing follow-up:', error);
       if (isStillOnPage()) {
         this.input.value = question;
-        this.status.show(`Error: ${error.message}`, 'error');
+        this.status.show(t('common.errorWith', { error: error.message }), 'error');
       }
     } finally {
       this.operations.finish(operation);
@@ -347,7 +340,7 @@ export class ChatView {
     session.updatedAt = Date.now();
     this.renderHistory([]);
     const saved = await this.hooks.persistSession();
-    this.status.show(saved ? 'Chat cleared and saved' : 'Chat cleared', 'ready');
+    this.status.show(saved ? t('chat.clearedSaved') : t('chat.cleared'), 'ready');
   }
 
   // ---------- Forum context limit ----------
@@ -379,12 +372,12 @@ export class ChatView {
     const source = this.state.session?.source;
     const sourceLength = typeof source === 'string' ? source.trim().length : 0;
     if (!sourceLength) {
-      help.textContent = `Up to ${formattedLimit} from the discussion will be sent with each question.`;
+      help.textContent = t('chat.limitUpTo', { limit: formattedLimit });
     } else if (sourceLength <= limit) {
-      help.textContent = `The full discussion fits (${sourceLength.toLocaleString()} characters).`;
+      help.textContent = t('chat.limitFits', { count: sourceLength.toLocaleString() });
     } else {
       const excess = sourceLength - limit;
-      help.textContent = `The discussion exceeds this limit by ${excess.toLocaleString()} characters. The opening and latest replies will be kept.`;
+      help.textContent = t('chat.limitExceeds', { count: excess.toLocaleString() });
     }
     const includedCharacters = sourceLength ? Math.min(sourceLength, limit) : limit;
     warning.classList.toggle('hidden', includedCharacters <= LARGE_CONTEXT_CHARS);
@@ -403,7 +396,7 @@ export class ChatView {
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Unable to save forum context limit:', error);
       if (revision === this.forumContextLimitSaveRevision) {
-        this.status.show('Context limit changed for now but could not be saved', 'warning');
+        this.status.show(t('chat.limitNotSaved'), 'warning');
       }
     }
   }

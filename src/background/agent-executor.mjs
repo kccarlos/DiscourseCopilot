@@ -18,11 +18,12 @@ import { FORUM_ACCESS_ERROR_CODE, forumAccessMessage, isForumAccessError } from 
 import { clampAgentBudget } from '../shared/preferences.mjs';
 import { ForumToolClient, ForumToolError } from './forum-tools.mjs';
 import { runAgentLoop } from './agent-loop.mjs';
+import { t } from '../shared/i18n.mjs';
 
 const { MESSAGES } = DiscourseCopilotConstants;
 
-const LOGIN_REQUIRED_TEXT = 'Forum login or verification is required';
-export const FORUM_ACCESS_REQUIRED_TEXT = 'Waiting for forum access';
+const LOGIN_REQUIRED_TEXT = t('agent.loginRequired');
+export const FORUM_ACCESS_REQUIRED_TEXT = t('agent.waitingAccess');
 
 // The run waits (WAITING_USER_ACTION) until the user enables the forum and
 // chooses Continue.
@@ -44,7 +45,7 @@ function waitingStatusText(error) {
 export function agentActivityError(error, fallbackCode = 'AGENT_ERROR') {
   return {
     code: error?.code || fallbackCode,
-    message: String(error?.message || error || 'Agent task failed').slice(0, 1000),
+    message: String(error?.message || error || t('agent.taskFailed')).slice(0, 1000),
     retryable: error?.retryable !== false,
     needsUserAction: error?.needsUserAction === true,
     retryAfterAt: error?.retryAfterMs ? Date.now() + Math.max(0, error.retryAfterMs) : 0
@@ -113,7 +114,7 @@ export function createAgentExecutor({
       {
         status: AGENT_ACTIVITY_STATUS.RUNNING,
         phase: activity.steps.length ? 'resuming' : 'starting',
-        statusText: activity.steps.length ? 'Continuing…' : 'Starting forum research…',
+        statusText: activity.steps.length ? t('agent.continuing') : t('agent.starting'),
         error: null,
         startedAt: activity.startedAt || Date.now()
       },
@@ -128,7 +129,7 @@ export function createAgentExecutor({
     try {
       const siteUrl = normalizeSiteUrl(task.siteUrl);
       if (!siteUrl) {
-        throw Object.assign(new Error('This Agent task has no forum site. Ask again from the forum page.'), { retryable: false });
+        throw Object.assign(new Error(t('agent.noSite')), { retryable: false });
       }
       if (!(await hasForumAccess(siteUrl))) {
         throw forumAccessToolError(siteUrl);
@@ -175,7 +176,7 @@ export function createAgentExecutor({
           ...result.patch,
           status: AGENT_ACTIVITY_STATUS.COMPLETED,
           phase: 'completed',
-          statusText: result.outOfBudget ? 'Completed at the step limit' : 'Completed',
+          statusText: result.outOfBudget ? t('agent.completedAtLimit') : t('task.completed'),
           completedAt,
           retainedFrom: completedAt,
           progress: {

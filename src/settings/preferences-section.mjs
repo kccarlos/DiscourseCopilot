@@ -12,7 +12,7 @@ import {
   resolveRetention,
   validatePreferences
 } from '../shared/preferences.mjs';
-import { plural } from './settings-helpers.mjs';
+import { t, tn } from '../shared/i18n.mjs';
 
 // Preference inputs (ids match the validation field names).
 const CUSTOM_RESEARCH_FIELDS = ['maxSteps', 'maxTopicReads', 'maxCharsPerRead'];
@@ -22,22 +22,40 @@ export const PREFERENCE_INPUT_IDS = new Set(PREFERENCE_NUMBER_FIELDS);
 // "Restore defaults" per section: which preferences it resets.
 const RESTORE_SECTIONS = {
   research: {
-    label: 'Ask the forum',
+    label: () => t('settings.section.research'),
     keys: ['researchDepth', 'customBudget'],
     fields: CUSTOM_RESEARCH_FIELDS
   },
   reading: {
-    label: 'Reading topics',
+    label: () => t('settings.section.reading'),
     keys: ['topicPageMode', 'topicPageLimit'],
     fields: ['topicPageLimit', 'forumContextLimit'],
     forumContextLimit: true
   },
   history: {
-    label: 'History & privacy',
+    label: () => t('settings.section.history'),
     keys: ['historyRetention', 'maxSavedTopics'],
     fields: ['maxSavedTopics']
   }
 };
+
+// The retention choices' labels are English in the shared preferences module.
+function retentionLabel(value, fallback) {
+  switch (value) {
+    case '1d':
+      return t('settings.history.option.1d');
+    case '3d':
+      return t('settings.history.option.3d');
+    case '7d':
+      return t('settings.history.option.7d');
+    case '30d':
+      return t('settings.history.option.30d');
+    case 'forever':
+      return t('settings.history.option.forever');
+    default:
+      return fallback;
+  }
+}
 
 // Renders text with **bold** segments as DOM nodes (no HTML parsing).
 function setRichText(element, text) {
@@ -81,7 +99,9 @@ export class PreferencesSection {
         input.name = 'historyRetention';
         input.value = option.value;
         const text = document.createElement('span');
-        text.textContent = option.value === DEFAULT_PREFERENCES.historyRetention ? `${option.label} (default)` : option.label;
+        const optionLabel = retentionLabel(option.value, option.label);
+        text.textContent =
+          option.value === DEFAULT_PREFERENCES.historyRetention ? t('settings.history.defaultSuffix', { label: optionLabel }) : optionLabel;
         label.append(input, text);
         return label;
       })
@@ -193,7 +213,7 @@ export class PreferencesSection {
       this.store.updateDraft({ forumContextLimit: FORUM_CONTEXT_LIMIT.default });
     }
     this.populate();
-    this.dispatch({ type: 'defaults-restored', section: restore.label, fields: restore.fields });
+    this.dispatch({ type: 'defaults-restored', section: restore.label(), fields: restore.fields });
   }
 
   // Inline errors for the preference fields, from the form state.
@@ -223,12 +243,16 @@ export class PreferencesSection {
     const research = $('researchEffective');
     const researchInvalid = CUSTOM_RESEARCH_FIELDS.some(field => validation.fieldErrors[field]);
     if (researchInvalid) {
-      research.textContent = 'Fix the highlighted field to see what each question will do.';
+      research.textContent = t('settings.research.fixField');
     } else {
       const budget = resolveAgentBudget(validation.preferences || draft);
       setRichText(
         research,
-        `Each question: **up to ${plural(budget.maxSteps, 'step')}**, reading **up to ${plural(budget.maxTopicReads, 'topic')}** (about ${budget.maxCharsPerRead.toLocaleString('en-US')} characters from each).`
+        t('settings.research.effective', {
+          steps: tn('settings.unit.step', budget.maxSteps),
+          topics: tn('settings.unit.topic', budget.maxTopicReads),
+          chars: budget.maxCharsPerRead.toLocaleString('en-US')
+        })
       );
     }
 
@@ -236,15 +260,12 @@ export class PreferencesSection {
     $('topicPageLimit').disabled = !limitMode;
     const reading = $('topicPageLimitEffective');
     if (!limitMode) {
-      setRichText(reading, '**Every page** of a topic is read.');
+      setRichText(reading, t('settings.reading.everyPage'));
     } else if (validation.fieldErrors.topicPageLimit) {
       reading.textContent = '';
     } else {
       const posts = (Number(draft.topicPageLimit) * POSTS_PER_RAW_PAGE).toLocaleString('en-US');
-      setRichText(
-        reading,
-        `Topics up to **${posts} posts** are read in full; longer ones are summarized from their first ${posts} posts, and the summary says so.`
-      );
+      setRichText(reading, t('settings.reading.limited', { posts }));
     }
 
     const history = $('historyEffective');
@@ -253,12 +274,16 @@ export class PreferencesSection {
     } else {
       const retention = resolveRetention(validation.preferences || draft);
       const taskDays = Math.round(retention.taskMs / 86400000);
-      const tasks = `finished tasks leave the Tasks list after ${plural(taskDays, 'day')}`;
+      const tasks = t('settings.history.tasks', { days: tn('settings.unit.day', taskDays) });
       setRichText(
         history,
         retention.forever
-          ? `Unkept conversations and Agent answers stay **until you delete them**; ${tasks}. Past **${retention.maxSavedTopics} saved topics**, the oldest unkept summaries are removed.`
-          : `Unkept conversations and Agent answers are removed **${retention.label} after their last activity**; ${tasks}. Up to **${retention.maxSavedTopics} saved topics** are kept.`
+          ? t('settings.history.effectiveForever', { tasks, max: retention.maxSavedTopics })
+          : t('settings.history.effectiveTimed', {
+              label: retentionLabel(retention.historyRetention, retention.label),
+              tasks,
+              max: retention.maxSavedTopics
+            })
       );
     }
   }

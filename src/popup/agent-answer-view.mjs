@@ -18,33 +18,30 @@ import { topicKeyFromUrl } from './conversation-state.mjs';
 import { formatRelativeTime, retentionCopy } from './ui-state.mjs';
 import { renderMarkdown } from './markdown.mjs';
 import { openForumTarget } from './forum-tabs.mjs';
-
-function plural(count, word, suffix = 's') {
-  return `${count} ${word}${count === 1 ? '' : suffix}`;
-}
+import { t, tn } from '../shared/i18n.mjs';
 
 // "Step 3 of 15 · Searching “rate limit”…": where the agent is in this
 // turn's budget, and what it is doing.
 export function describeAgentProgress(activity = {}) {
   if (activity.status === 'queued') {
-    return { label: 'Queued · waiting for an available worker…', percent: null };
+    return { label: t('answer.queuedWaiting'), percent: null };
   }
   if (activity.phase === 'answering') {
-    return { label: 'Writing the answer…', percent: null };
+    return { label: t('agent.writing'), percent: null };
   }
   const turnIndex = currentAgentTurnIndex(activity);
   const steps = agentStepsOf(activity).filter(step => step.turn === turnIndex);
   const max = activity.budget?.maxSteps || activity.progress?.totalSteps || 0;
   const used = steps.filter(step => step.status !== 'running').length;
   const running = steps.find(step => step.status === 'running');
-  const position = max ? `Step ${Math.min(used + 1, max)} of ${max}` : `Step ${used + 1}`;
+  const position = max ? t('answer.stepOf', { step: Math.min(used + 1, max), max }) : t('answer.step', { step: used + 1 });
   let label;
   if (running) {
     label = `${position} · ${describeAgentStep(running).label}`;
   } else if (!steps.length && activity.phase !== 'planning') {
-    label = 'Starting…';
+    label = t('controls.starting');
   } else {
-    label = `${position} · Planning…`;
+    label = t('answer.planning', { position });
   }
   const percent = Number.isFinite(activity.progress?.percent) ? activity.progress.percent : null;
   return { label, percent };
@@ -100,19 +97,19 @@ export class AgentAnswerView {
   statusSummary(activity) {
     switch (activity.status) {
       case AGENT_ACTIVITY_STATUS.QUEUED:
-        return 'Queued';
+        return t('answer.status.queued');
       case AGENT_ACTIVITY_STATUS.RUNNING:
-        return 'Working…';
+        return t('answer.status.working');
       case AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION:
-        return isForumAccessError(activity.error) ? 'Needs forum access' : 'Needs forum login';
+        return isForumAccessError(activity.error) ? t('answer.status.needsAccess') : t('answer.status.needsLogin');
       case AGENT_ACTIVITY_STATUS.FAILED:
-        return 'Failed';
+        return t('task.failed');
       case AGENT_ACTIVITY_STATUS.CANCELLED:
-        return 'Stopped';
+        return t('answer.status.stopped');
       case AGENT_ACTIVITY_STATUS.COMPLETED:
         return [
-          plural(agentStepsOf(activity).length, 'step'),
-          plural(activity.sourceRefs?.length || 0, 'source'),
+          tn('answer.count.step', agentStepsOf(activity).length),
+          tn('answer.count.source', activity.sourceRefs?.length || 0),
           formatRelativeTime(activity.completedAt || activity.updatedAt)
         ].join(' · ');
       default:
@@ -164,7 +161,7 @@ export class AgentAnswerView {
     const task = this.findTask(activity);
     const stop = progress.querySelector('[data-agent-action="stop"]');
     const stopping = task?.phase === 'cancelling';
-    stop.textContent = stopping ? 'Stopping…' : 'Stop';
+    stop.textContent = stopping ? t('answer.stopping') : t('answer.stop');
     stop.disabled = stopping || !task || isTerminalTaskStatus(task.status);
   }
 
@@ -198,9 +195,7 @@ export class AgentAnswerView {
       const placeholder = document.createElement('p');
       placeholder.className = 'streaming-placeholder';
       placeholder.textContent =
-        activity.status === AGENT_ACTIVITY_STATUS.QUEUED
-          ? 'The agent starts as soon as a worker is free. You can keep browsing.'
-          : 'The answer appears here once the agent has what it needs.';
+        activity.status === AGENT_ACTIVITY_STATUS.QUEUED ? t('answer.placeholderQueued') : t('answer.placeholderRunning');
       answer.replaceChildren(placeholder);
     } else {
       answer.dataset.renderKey = '';
@@ -278,7 +273,7 @@ export class AgentAnswerView {
         shownTurn = step.turn;
         const marker = document.createElement('li');
         marker.className = 'agent-step-turn';
-        marker.textContent = `Follow-up · ${turns[step.turn]?.question || ''}`;
+        marker.textContent = t('answer.followUpMarker', { question: turns[step.turn]?.question || '' });
         nodes.push(marker);
       }
       nodes.push(this.createStepItem(step, open));
@@ -356,7 +351,7 @@ export class AgentAnswerView {
       return;
     }
     const forumName = this.forums.label(activity.siteUrl, activity.forumName);
-    this.part(root, 'followup-label').textContent = forumName ? `Ask a follow-up on ${forumName}` : 'Ask a follow-up';
+    this.part(root, 'followup-label').textContent = forumName ? t('answer.followUpOn', { forum: forumName }) : t('answer.followUp');
     const busy = form.dataset.busy === 'true';
     this.part(root, 'followup-send').disabled = busy;
     this.part(root, 'followup-input').disabled = busy;
@@ -384,24 +379,27 @@ export class AgentAnswerView {
       // Continue asks for access first (agent-controller withForumAccess).
       const host = forumAccessHost(activity.siteUrl);
       type = 'warning';
-      message = `DiscourseCopilot needs your OK to read ${host} before this research can continue. It searches the forum using your current login.`;
-      actions.push({ action: 'continue', label: `Allow access to ${host} & continue`, primary: true });
+      message = t('answer.notice.needAccess', { host });
+      actions.push({ action: 'continue', label: t('answer.notice.allowContinue', { host }), primary: true });
     } else if (activity.status === AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION) {
       type = 'warning';
-      message = `${forumName} asked for a login or verification before the research can continue. Log in in a browser tab, then choose Continue.`;
-      actions.push({ action: 'login', label: `Log in to ${forumName} ↗`, primary: true }, { action: 'continue', label: 'Continue' });
+      message = t('answer.notice.needLogin', { forum: forumName });
+      actions.push(
+        { action: 'login', label: t('answer.notice.login', { forum: forumName }), primary: true },
+        { action: 'continue', label: t('common.continue') }
+      );
     } else if (activity.status === AGENT_ACTIVITY_STATUS.FAILED) {
       type = 'error';
-      message = activity.error?.message || 'Agent research failed.';
-      actions.push({ action: 'retry', label: 'Retry', primary: true });
+      message = activity.error?.message || t('agent.researchFailed');
+      actions.push({ action: 'retry', label: t('common.retry'), primary: true });
     } else if (activity.status === AGENT_ACTIVITY_STATUS.CANCELLED) {
       type = 'info';
       const followUp = currentAgentTurnIndex(activity) > 0;
-      message = followUp ? 'The follow-up was stopped before an answer was written.' : 'Research stopped before an answer was written.';
+      message = followUp ? t('answer.notice.followUpStopped') : t('answer.notice.stopped');
       actions.push(
         mode === 'inline' && !followUp
-          ? { action: 'ask-again', label: 'Ask again', primary: true }
-          : { action: 'retry', label: 'Ask again', primary: true }
+          ? { action: 'ask-again', label: t('answer.askAgain'), primary: true }
+          : { action: 'retry', label: t('answer.askAgain'), primary: true }
       );
     }
     notice.className = `agent-notice status ${type}${type ? '' : ' hidden'}`;
@@ -443,20 +441,20 @@ export class AgentAnswerView {
     const actions = [];
     if (activity.status === AGENT_ACTIVITY_STATUS.COMPLETED) {
       if (activity.answer) {
-        actions.push({ action: 'copy', label: 'Copy answer', primary: true });
+        actions.push({ action: 'copy', label: t('answer.copy'), primary: true });
       }
       actions.push({
         action: 'keep',
-        label: activity.kept ? 'Kept' : 'Keep',
+        label: activity.kept ? t('common.kept') : t('common.keep'),
         pressed: activity.kept === true,
         title: activity.kept ? this.getRetentionCopy().unkeepAnswer : this.getRetentionCopy().keepAnswer
       });
     }
     if (mode === 'inline' && activity.status === AGENT_ACTIVITY_STATUS.COMPLETED) {
       // Failed and stopped runs offer Retry / Ask again in their notice instead.
-      actions.push({ action: 'ask-another', label: 'Ask another' }, { action: 'open-activity', label: 'Open in Activity' });
+      actions.push({ action: 'ask-another', label: t('answer.askAnother') }, { action: 'open-activity', label: t('answer.openActivity') });
     } else if (isAgentActivityTerminal(activity.status)) {
-      actions.push({ action: 'delete', label: 'Delete' });
+      actions.push({ action: 'delete', label: t('common.delete') });
     }
     const container = this.part(root, 'actions');
     this.renderButtons(container, actions);
@@ -493,7 +491,7 @@ export class AgentAnswerView {
     header.append(id, title);
     card.appendChild(header);
     const excerpt = document.createElement('p');
-    excerpt.textContent = source.excerpt || 'Source content was not excerpted.';
+    excerpt.textContent = source.excerpt || t('answer.noExcerpt');
     card.appendChild(excerpt);
     // Only link sources that belong to the forum this activity ran on.
     if (isSameForumUrl(source.url, activity.siteUrl || source.siteUrl)) {
@@ -501,7 +499,7 @@ export class AgentAnswerView {
       link.href = source.url;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      link.textContent = source.postNumber ? `Open post ${source.postNumber} ↗` : 'Open topic ↗';
+      link.textContent = source.postNumber ? t('answer.openPost', { number: source.postNumber }) : t('answer.openTopic');
       link.addEventListener('click', event => {
         // Reuse a tab already on this topic (jumping to the cited post)
         // instead of piling up new tabs; fall back to the plain link.

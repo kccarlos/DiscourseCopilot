@@ -1,3 +1,5 @@
+import { t } from './i18n.mjs';
+
 export const DEFAULT_RATE_LIMIT_RETRIES = 6;
 export const DEFAULT_RATE_LIMIT_BASE_DELAY_MS = 2000;
 export const DEFAULT_RATE_LIMIT_MAX_DELAY_MS = 60000;
@@ -32,11 +34,11 @@ export function calculateRateLimitDelay({
 export function formatRetryDelay(milliseconds) {
   const totalSeconds = Math.max(1, Math.ceil((Number(milliseconds) || 0) / 1000));
   if (totalSeconds < 60) {
-    return `${totalSeconds}s`;
+    return t('time.seconds', { seconds: totalSeconds });
   }
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  return `${minutes}m ${String(seconds).padStart(2, '0')}s`;
+  return t('time.minutesSeconds', { minutes, seconds: String(seconds).padStart(2, '0') });
 }
 
 export async function fetchWithRateLimitRetry(

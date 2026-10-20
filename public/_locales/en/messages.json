@@ -1,0 +1,38 @@
+{
+  "extName": {
+    "message": "DiscourseCopilot",
+    "description": "Extension name shown in the Chrome Web Store and chrome://extensions."
+  },
+  "extDescription": {
+    "message": "AI summaries and research copilot for any Discourse forum",
+    "description": "Short description (max 132 characters)."
+  },
+  "actionTitle": {
+    "message": "DiscourseCopilot",
+    "description": "Tooltip of the toolbar button."
+  },
+  "launcherAriaLabel": {
+    "message": "Open DiscourseCopilot panel",
+    "description": "Accessible name of the in-page button."
+  },
+  "launcherTitle": {
+    "message": "Open DiscourseCopilot",
+    "description": "Tooltip of the in-page button."
+  },
+  "launcherOpening": {
+    "message": "Opening…",
+    "description": "In-page button label while the side panel opens."
+  },
+  "launcherOpened": {
+    "message": "Opened",
+    "description": "In-page button label after the side panel opened."
+  },
+  "launcherTryAgain": {
+    "message": "Try again",
+    "description": "In-page button label after opening failed."
+  },
+  "launcherOpenFailed": {
+    "message": "Unable to open DiscourseCopilot",
+    "description": "Tooltip when the side panel could not be opened."
+  }
+}

@@ -23,6 +23,7 @@ import { AgentRuns } from './agent-runs.mjs';
 import { AgentPanel } from './agent-panel.mjs';
 import { AgentComposer } from './agent-composer.mjs';
 import { AgentRequests } from './agent-requests.mjs';
+import { t } from '../shared/i18n.mjs';
 
 const $ = id => document.getElementById(id);
 
@@ -92,7 +93,7 @@ export class AgentController {
       report: (message, type, root) => this.report(message, type, root),
       onRetryQueued: () => {
         if (this.state.savedViewOpen) {
-          this.nav.showSavedStatus('Agent retry queued.', 'info');
+          this.nav.showSavedStatus(t('agent.retryQueued'), 'info');
           if (this.state.agentDetailOpen) {
             this.nav.hideAgentDetail();
           }
@@ -252,11 +253,11 @@ export class AgentController {
     const onThisForum = activity.siteUrl && activity.siteUrl === this.state.pageContext?.siteUrl;
     const forumName = this.forums.label(activity.siteUrl, activity.forumName);
     const message = {
-      [AGENT_ACTIVITY_STATUS.COMPLETED]: onThisForum ? 'Answer ready' : `Answer ready from ${forumName}`,
-      [AGENT_ACTIVITY_STATUS.FAILED]: `Research on ${forumName} failed`,
+      [AGENT_ACTIVITY_STATUS.COMPLETED]: onThisForum ? t('task.answerReady') : t('agent.pill.ready', { forum: forumName }),
+      [AGENT_ACTIVITY_STATUS.FAILED]: t('agent.pill.failed', { forum: forumName }),
       [AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION]: isForumAccessError(activity.error)
-        ? `Research on ${forumName} is waiting for you to allow access to the forum`
-        : `${forumName} needs you to log in before research can continue`
+        ? t('agent.announce.needsAccess', { forum: forumName })
+        : t('agent.announce.needsLogin', { forum: forumName })
     }[activity.status];
     if (!message) {
       return;
@@ -321,7 +322,7 @@ export class AgentController {
       case 'stop':
         if (task) {
           button.disabled = true;
-          button.textContent = 'Stopping…';
+          button.textContent = t('answer.stopping');
           await this.hooks.cancelTask(task.id, { root });
         }
         return;
@@ -329,7 +330,7 @@ export class AgentController {
         if (task) {
           await this.resumeTask(task.id, { root });
         } else {
-          this.view.setActionStatus(root, 'This run is no longer waiting. Ask again to start a new one.', 'warning');
+          this.view.setActionStatus(root, t('agent.noLongerWaiting'), 'warning');
         }
         return;
       case 'login':
@@ -401,17 +402,17 @@ export class AgentController {
   async copyAnswer(activity, button) {
     try {
       await writeClipboardText(activity.answer);
-      button.textContent = 'Copied';
+      button.textContent = t('answer.copied');
       setTimeout(() => {
         if (button.isConnected) {
-          button.textContent = 'Copy answer';
+          button.textContent = t('answer.copy');
         }
       }, 1600);
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Clipboard error:', error);
       const root = button.closest('#agentPanel, #agentDetailView');
       if (root) {
-        this.view.setActionStatus(root, `Unable to copy: ${error.message}`, 'error');
+        this.view.setActionStatus(root, t('summary.copyFailed', { error: error.message }), 'error');
       }
     }
   }
@@ -425,7 +426,7 @@ export class AgentController {
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Unable to open forum tab:', error);
       if (root) {
-        this.view.setActionStatus(root, `Unable to open the forum: ${error.message}`, 'error');
+        this.view.setActionStatus(root, t('agent.openForumFailed', { error: error.message }), 'error');
       }
     }
   }
@@ -465,7 +466,7 @@ export class AgentController {
         await this.nav.loadSavedList();
       }
     } catch (error) {
-      this.report(`Unable to update Agent retention: ${error.message}`, 'error', button?.closest('#agentPanel, #agentDetailView') || null);
+      this.report(t('agent.retentionFailed', { error: error.message }), 'error', button?.closest('#agentPanel, #agentDetailView') || null);
     } finally {
       if (button?.isConnected) {
         button.disabled = false;
@@ -482,14 +483,14 @@ export class AgentController {
       return;
     }
     if (this.tasks.findUnfinishedAgentTask(activity.agentRunId)) {
-      this.report('Stop the running Agent task before deleting its activity.', 'warning');
+      this.report(t('agent.stopBeforeDelete'), 'warning');
       return;
     }
     let copy;
     try {
       copy = await this.runs.remove(activity);
     } catch (error) {
-      this.report(`Unable to delete Agent activity: ${error.message}`, 'error');
+      this.report(t('agent.deleteFailed', { error: error.message }), 'error');
       return;
     }
     if (this.state.agentDetailOpen) {
@@ -507,7 +508,7 @@ export class AgentController {
       $('agentLaunchBtn').focus({ preventScroll: true });
     }
     this.undo.offer({
-      message: `Deleted the Agent answer for “${activity.title}”`,
+      message: t('agent.deleted', { title: activity.title }),
       undo: () => this.restoreActivity(copy)
     });
   }
@@ -521,6 +522,6 @@ export class AgentController {
     } else if (!this.state.savedViewOpen) {
       this.panel.focus();
     }
-    announce($('agentAnnouncer'), `Restored the Agent answer for “${restored.title}”`);
+    announce($('agentAnnouncer'), t('agent.restored', { title: restored.title }));
   }
 }

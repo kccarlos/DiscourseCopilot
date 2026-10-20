@@ -2,6 +2,7 @@
 // broadcast to open extension views after each save.
 import { AGENT_ACTIVITY_STATUS, agentTurnsOf, appendAgentTurn, settleRunningAgentSteps } from '../shared/agent-activity.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
+import { t } from '../shared/i18n.mjs';
 
 const { MESSAGES } = DiscourseCopilotConstants;
 
@@ -64,7 +65,7 @@ export class AgentActivityStore {
   async startFollowUp(task) {
     const activity = await this.get(task.agentRunId);
     if (!activity || activity.siteUrl !== task.siteUrl) {
-      throw new Error('This answer is no longer available to continue. Ask a new question instead.');
+      throw new Error(t('agent.cannotContinue'));
     }
     const finished =
       activity.status === AGENT_ACTIVITY_STATUS.COMPLETED
@@ -73,7 +74,7 @@ export class AgentActivityStore {
     // A follow-up that failed or was stopped can be asked again; a first
     // question that never got an answer can't be continued.
     if (!finished || !agentTurnsOf(activity).some(turn => turn.answer)) {
-      throw new Error('This run has no answer to follow up on yet.');
+      throw new Error(t('agent.noAnswerYet'));
     }
     return this.update(activity, appendAgentTurn(activity, { taskId: task.id, question: task.question }), { prune: false });
   }

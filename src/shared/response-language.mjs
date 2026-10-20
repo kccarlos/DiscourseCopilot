@@ -1,26 +1,35 @@
 // Response language preference for summaries, follow-up answers, and Agent
 // answers. "auto" follows the discussion (or the user's question) instead of
 // forcing one language.
+import { t } from './i18n.mjs';
 
 export const RESPONSE_LANGUAGE_AUTO = 'auto';
 export const DEFAULT_RESPONSE_LANGUAGE = RESPONSE_LANGUAGE_AUTO;
 
 export const RESPONSE_LANGUAGES = Object.freeze(
   [
-    { value: RESPONSE_LANGUAGE_AUTO, label: 'Auto (match the discussion)', promptName: '' },
-    { value: 'en', label: 'English', promptName: 'English' },
-    { value: 'zh-Hans', label: '简体中文 (Simplified Chinese)', promptName: 'Simplified Chinese (简体中文)' },
-    { value: 'zh-Hant', label: '繁體中文 (Traditional Chinese)', promptName: 'Traditional Chinese (繁體中文)' },
-    { value: 'ja', label: '日本語 (Japanese)', promptName: 'Japanese (日本語)' },
-    { value: 'ko', label: '한국어 (Korean)', promptName: 'Korean (한국어)' },
-    { value: 'es', label: 'Español (Spanish)', promptName: 'Spanish (Español)' },
-    { value: 'fr', label: 'Français (French)', promptName: 'French (Français)' },
-    { value: 'de', label: 'Deutsch (German)', promptName: 'German (Deutsch)' },
-    { value: 'it', label: 'Italiano (Italian)', promptName: 'Italian (Italiano)' },
-    { value: 'pt', label: 'Português (Portuguese)', promptName: 'Portuguese (Português)' },
-    { value: 'ru', label: 'Русский (Russian)', promptName: 'Russian (Русский)' },
-    { value: 'vi', label: 'Tiếng Việt (Vietnamese)', promptName: 'Vietnamese (Tiếng Việt)' }
-  ].map(language => Object.freeze(language))
+    { value: RESPONSE_LANGUAGE_AUTO, promptName: '' },
+    { value: 'en', promptName: 'English' },
+    { value: 'zh-Hans', promptName: 'Simplified Chinese (简体中文)' },
+    { value: 'zh-Hant', promptName: 'Traditional Chinese (繁體中文)' },
+    { value: 'ja', promptName: 'Japanese (日本語)' },
+    { value: 'ko', promptName: 'Korean (한국어)' },
+    { value: 'es', promptName: 'Spanish (Español)' },
+    { value: 'fr', promptName: 'French (Français)' },
+    { value: 'de', promptName: 'German (Deutsch)' },
+    { value: 'it', promptName: 'Italian (Italiano)' },
+    { value: 'pt', promptName: 'Portuguese (Português)' },
+    { value: 'ru', promptName: 'Russian (Русский)' },
+    { value: 'vi', promptName: 'Vietnamese (Tiếng Việt)' }
+  ].map(language =>
+    // The label follows the interface language; the prompt name never does.
+    Object.freeze({
+      ...language,
+      get label() {
+        return t(`responseLanguage.${language.value}`);
+      }
+    })
+  )
 );
 
 const LANGUAGES_BY_VALUE = new Map(RESPONSE_LANGUAGES.map(language => [language.value, language]));

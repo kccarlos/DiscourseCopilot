@@ -2,6 +2,7 @@
 // citations ([S1]) turned into links to their source cards. Streaming
 // updates are batched to one render per animation frame.
 import { marked } from 'marked';
+import { t } from '../shared/i18n.mjs';
 
 const CITATION_PATTERN = /\[(S\d+(?:\s*[,;]\s*S\d+)*)\]/g;
 
@@ -36,7 +37,9 @@ export function linkifyCitations(html, sourceIds = []) {
         // Known sources become chips; an unknown ID keeps its brackets as text.
         return list
           .map(id =>
-            known.has(id) ? `<a href="#" class="agent-citation" data-citation="${id}" aria-label="Source ${id}">${id}</a>` : `[${id}]`
+            known.has(id)
+              ? `<a href="#" class="agent-citation" data-citation="${id}" aria-label="${t('answer.sourceAria', { id })}">${id}</a>`
+              : `[${id}]`
           )
           .join(' ');
       });

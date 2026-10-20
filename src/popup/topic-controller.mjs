@@ -5,9 +5,10 @@
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { TASK_TYPE } from '../shared/task-record.mjs';
 import { canonicalizeTopicUrl } from '../shared/topic-session.mjs';
+import { t } from '../shared/i18n.mjs';
 
 function usableTitle(title) {
-  return title && title !== 'Unknown page';
+  return title && title !== t('page.unknown');
 }
 
 export class TopicController {
@@ -115,7 +116,7 @@ export class TopicController {
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Unable to restore saved summary:', error);
       if (loadRevision === this.loadRevision) {
-        this.status.show('Saved history could not be loaded', 'warning');
+        this.status.show(t('popup.historyNotLoaded'), 'warning');
       }
     } finally {
       if (loadRevision === this.loadRevision) {

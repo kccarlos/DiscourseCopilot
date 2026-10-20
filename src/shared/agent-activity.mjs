@@ -1,5 +1,6 @@
 import { TASK_STATUS, isTerminalTaskStatus } from './task-record.mjs';
 import { buildTopicKey, forumDisplayName, isSameForumUrl, normalizeSiteUrl, siteUrlFromPageUrl } from './forum-site.mjs';
+import { t, tn } from './i18n.mjs';
 
 // Default retention (the "1 day" history setting); the effective value comes
 // from resolveRetention(preferences).agentMs.
@@ -251,7 +252,7 @@ function normalizeSource(value, index, activitySiteUrl = '') {
     topicId,
     siteUrl,
     topicKey: buildTopicKey(siteUrl, topicId),
-    title: text(value.title, 500) || `Topic ${topicId}`,
+    title: text(value.title, 500) || t('common.topicFallback', { id: topicId }),
     // Links are only kept when they point at the source's own forum.
     url: siteUrl && isSameForumUrl(url, siteUrl) ? url : '',
     postNumber: Number.isInteger(value.postNumber) && value.postNumber > 0 ? value.postNumber : null,
@@ -320,7 +321,7 @@ export function createAgentActivity(value, now = Date.now()) {
     answerStatus: 'pending',
     status: AGENT_ACTIVITY_STATUS.QUEUED,
     phase: 'queued',
-    statusText: 'Waiting for an available worker…',
+    statusText: t('task.waitingWorker'),
     progress: null,
     error: null,
     provider: text(value?.provider, 80),
@@ -481,8 +482,8 @@ export function buildAgentActivityIndexEntry(value) {
 
 // ---------- Steps, turns and the transcript ----------
 
-function countText(count, singular, pluralForm = `${singular}s`) {
-  return `${count} ${count === 1 ? singular : pluralForm}`;
+function countText(count, unit) {
+  return tn(`agent.step.${unit}`, count);
 }
 
 function quoted(value, maxLength = 70) {
@@ -506,37 +507,41 @@ export function describeAgentStep(step = {}) {
   switch (step.tool) {
     case 'search_forum': {
       const query = quoted(args.query || '');
-      const page = Number(args.page) > 1 ? ` (page ${Number(args.page)})` : '';
-      if (running) return { label: `Searching ${query}${page}…`, meta: '' };
-      if (stopped) return { label: `Search for ${query}${page}`, meta: 'stopped' };
-      if (failed) return { label: `Search failed for ${query}${page}`, meta: '' };
-      return outcome(`Searched ${query}${page}`, countText(count ?? 0, 'result'));
+      const page = Number(args.page) > 1 ? t('agent.step.pageSuffix', { page: Number(args.page) }) : '';
+      if (running) return { label: t('agent.step.search.running', { query, page }), meta: '' };
+      if (stopped) return { label: t('agent.step.search.stopped', { query, page }), meta: t('agent.step.stopped') };
+      if (failed) return { label: t('agent.step.search.failed', { query, page }), meta: '' };
+      return outcome(t('agent.step.search.done', { query, page }), countText(count ?? 0, 'result'));
     }
     case 'list_latest':
-      if (running) return { label: 'Listing latest topics…', meta: '' };
-      if (stopped) return { label: 'Listing latest topics', meta: 'stopped' };
-      if (failed) return { label: 'Could not list latest topics', meta: '' };
-      return outcome('Listed latest topics', countText(count ?? 0, 'topic'));
+      if (running) return { label: t('agent.step.latest.running'), meta: '' };
+      if (stopped) return { label: t('agent.step.latest.stopped'), meta: t('agent.step.stopped') };
+      if (failed) return { label: t('agent.step.latest.failed'), meta: '' };
+      return outcome(t('agent.step.latest.done'), countText(count ?? 0, 'topic'));
     case 'read_topic': {
-      const title = step.title ? quoted(step.title) : `topic ${text(args.topic_id, 20)}`.trim();
-      if (running) return { label: `Reading ${title}…`, meta: '' };
-      if (stopped) return { label: `Reading ${title}`, meta: 'stopped' };
-      if (failed) return { label: `Could not read ${title}`, meta: '' };
-      return outcome(`Read ${title}`, `(${countText(count ?? 0, 'post')})`);
+      const title = step.title ? quoted(step.title) : t('agent.step.topicFallback', { id: text(args.topic_id, 20) }).trim();
+      if (running) return { label: t('agent.step.read.running', { title }), meta: '' };
+      if (stopped) return { label: t('agent.step.read.stopped', { title }), meta: t('agent.step.stopped') };
+      if (failed) return { label: t('agent.step.read.failed', { title }), meta: '' };
+      return outcome(t('agent.step.read.done', { title }), `(${countText(count ?? 0, 'post')})`);
     }
     case 'plan':
-      return { label: 'The model did not reply with a valid action', meta: '' };
+      return { label: t('agent.step.invalidAction'), meta: '' };
     case 'saved_summaries': {
-      const query = args.query ? ` for ${quoted(args.query, 40)}` : '';
-      if (running) return { label: `Checking your saved summaries${query}…`, meta: '' };
-      if (stopped) return { label: `Checking your saved summaries${query}`, meta: 'stopped' };
-      if (failed) return { label: 'Could not check your saved summaries', meta: '' };
-      return outcome(`Checked your saved summaries${query}`, `${count ?? 0} found`);
+      const query = args.query ? t('agent.step.saved.forQuery', { query: quoted(args.query, 40) }) : '';
+      if (running) return { label: t('agent.step.saved.running', { query }), meta: '' };
+      if (stopped) return { label: t('agent.step.saved.stopped', { query }), meta: t('agent.step.stopped') };
+      if (failed) return { label: t('agent.step.saved.failed'), meta: '' };
+      return outcome(t('agent.step.saved.done', { query }), t('agent.step.saved.found', { count: count ?? 0 }));
     }
     default:
       return {
-        label: running ? `Running ${step.tool}…` : failed ? `${step.tool} failed` : `Ran ${step.tool}`,
-        meta: stopped ? 'stopped' : ''
+        label: running
+          ? t('agent.step.tool.running', { tool: step.tool })
+          : failed
+            ? t('agent.step.tool.failed', { tool: step.tool })
+            : t('agent.step.tool.done', { tool: step.tool }),
+        meta: stopped ? t('agent.step.stopped') : ''
       };
   }
 }
@@ -626,7 +631,7 @@ export function appendAgentTurn(activity, { taskId, question, now = Date.now() }
     taskId,
     status: AGENT_ACTIVITY_STATUS.QUEUED,
     phase: 'queued',
-    statusText: 'Waiting for an available worker…',
+    statusText: t('task.waitingWorker'),
     error: null,
     progress: null,
     completedAt: 0,

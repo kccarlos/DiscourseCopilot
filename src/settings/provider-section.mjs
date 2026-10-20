@@ -3,6 +3,7 @@
 // list (debounced while typing, "Refresh models", the default pick and the
 // "no longer offered" warning).
 import { DiscourseCopilotConstants } from '../shared/constants.js';
+import { t, tn } from '../shared/i18n.mjs';
 import {
   MODEL_LIST_DEBOUNCE_MS,
   isModelOffered,
@@ -13,7 +14,7 @@ import {
 } from '../shared/model-catalog.mjs';
 import { LOCAL_PROVIDER_IDS, PROVIDER_LINKS } from '../shared/provider-setup.mjs';
 import { PROVIDER_IDS } from '../shared/config-state.mjs';
-import { buildModelChoices, isLatestRequest, normalizeProviderSettings, plural } from './settings-helpers.mjs';
+import { buildModelChoices, isLatestRequest, normalizeProviderSettings } from './settings-helpers.mjs';
 
 const { PROVIDER_CONFIGS } = DiscourseCopilotConstants;
 // Wait for a pause in typing before reading a provider's model list.
@@ -76,7 +77,8 @@ export class ProviderSection {
       const link = PROVIDER_LINKS[anchor.dataset.providerLink];
       if (!link) return;
       anchor.href = link.url;
-      anchor.textContent = link.label;
+      // Download links carry their own translated text.
+      if (!anchor.hasAttribute('data-i18n')) anchor.textContent = link.label;
       anchor.rel = 'noopener noreferrer';
     });
   }
@@ -160,19 +162,22 @@ export class ProviderSection {
     const settings = normalizeProviderSettings(provider, { ...this.store.draftSettings(provider) });
     const providerConfig = PROVIDER_CONFIGS[provider];
     // Curated models stay offered even before (or without) a live model list.
-    const curated = (providerConfig.recommendedModels || providerConfig.suggestedModels || []).map(id => ({ id, name: 'Recommended' }));
+    const curated = (providerConfig.recommendedModels || providerConfig.suggestedModels || []).map(id => ({
+      id,
+      name: t('settings.model.recommended')
+    }));
     delete this.modelLists[provider];
     this.renderModelWarning(provider);
 
     if (providerConfig.requiresApiKey && !settings.apiKey) {
       this.populateModelChoices(list, curated, input.value);
-      modelStatus.textContent = 'Enter an API key to load the models it can use.';
+      modelStatus.textContent = t('settings.model.needKey');
       this.setModelLoading(provider, false);
       return;
     }
 
     this.setModelLoading(provider, true);
-    modelStatus.textContent = `Loading ${providerConfig.name} models…`;
+    modelStatus.textContent = t('settings.model.loading', { name: providerConfig.name });
 
     try {
       const { models } = await modelCatalog.list(provider, settings, { force });
@@ -194,14 +199,16 @@ export class ProviderSection {
       this.populateModelChoices(list, choices, input.value);
       const listsRecommended = choices.some(choice => choice.recommended);
       modelStatus.textContent = models.length
-        ? `${plural(models.length, 'model')} available from ${providerConfig.name}${listsRecommended ? '; recommended (fast, low-cost) ones are listed first' : ''}. You can also enter any model ID.`
-        : `${providerConfig.name} returned no models. You can enter a model ID yourself.`;
+        ? tn('settings.model.available', models.length, { name: providerConfig.name })
+          + (listsRecommended ? t('settings.model.recommendedFirst') : '')
+          + t('settings.model.enterAny')
+        : t('settings.model.none', { name: providerConfig.name });
       this.renderModelWarning(provider);
     } catch (error) {
       if (!isLatestRequest(this.modelRequestIds, provider, requestId)) return;
 
       this.populateModelChoices(list, curated, input.value);
-      modelStatus.textContent = `Couldn’t load the model list: ${error.message} You can keep or enter a model ID; Test Connection checks it.`;
+      modelStatus.textContent = t('settings.model.loadFailed', { error: error.message });
     } finally {
       if (isLatestRequest(this.modelRequestIds, provider, requestId)) {
         this.setModelLoading(provider, false);
@@ -261,6 +268,6 @@ export class ProviderSection {
     const button = document.querySelector(`.btn-refresh[data-provider="${provider}"]`);
     if (!button) return;
     button.disabled = this.loadingModelProviders.has(provider) || this.isBusy();
-    button.textContent = loading ? 'Loading…' : 'Refresh models';
+    button.textContent = loading ? t('settings.loading') : t('settings.model.refresh');
   }
 }

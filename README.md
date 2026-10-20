@@ -56,6 +56,7 @@ The details, including what is stored and for how long, are in the [privacy poli
 - **Made for Discourse forums.** Allow access once per forum you use; nothing else to set up.
 - **Use the AI you like.** OpenAI, Anthropic (Claude), Google Gemini, and more (see [the list](#choosing-an-ai-provider)), or a free model running on your own computer.
 - **Keep browsing.** Work runs in the background, and you can come back to it later.
+- **In your language.** The interface is in English and Simplified Chinese, following your browser's language.
 - **Check the answers.** AI can be wrong. Summaries and answers link back to the posts so you can verify what matters.
 
 ## Get started in 3 steps

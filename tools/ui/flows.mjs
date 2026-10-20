@@ -23,6 +23,8 @@ import {
   modelRoutes,
   savedSessionHistory
 } from './fixtures/flows.mjs';
+import en from '../../src/shared/locales/en.mjs';
+import zhCN from '../../src/shared/locales/zh-CN.mjs';
 import { RATE_LIMIT_QUESTION, RATE_LIMIT_SOURCES, RATE_LIMIT_STEPS, agentActivity, agentAnswer } from './fixtures/forums.mjs';
 
 const args = parseArgs();
@@ -2503,8 +2505,19 @@ const LAUNCHER = '#discourse-copilot-page-launcher';
 const launcherPresent = page => page.evaluate(sel => Boolean(document.querySelector(sel)?.shadowRoot?.querySelector('button')), LAUNCHER);
 const pageChangedTo = (page, topicId) =>
   page.evaluate(id => window.__sent.some(m => m.action === 'pageChanged' && m.postId === id && m.isDiscourse === true), topicId);
+// The launcher's labels come from _locales through chrome.i18n.getMessage;
+// hand the stub the messages Chrome would pick for the page's language.
+const LOCALE_MESSAGES = Object.fromEntries(
+  ['en', 'zh_CN'].map(locale => [locale, JSON.parse(fs.readFileSync(path.join(DIST, '_locales', locale, 'messages.json'), 'utf8'))])
+);
 async function loadContentScript(page, path) {
-  await page.evaluate(path => history.pushState({}, '', path), path);
+  await page.evaluate(
+    ({ path, messages }) => {
+      history.pushState({}, '', path);
+      window.__localeMessages = navigator.language.toLowerCase().startsWith('zh') ? messages.zh_CN : messages.en;
+    },
+    { path, messages: LOCALE_MESSAGES }
+  );
   await page.addScriptTag({ url: `${new URL(page.url()).origin}/src/content/content.js` });
   await page.waitForTimeout(250);
 }
@@ -2551,19 +2564,306 @@ scenario(
   }
 );
 
+// ---------- Simplified Chinese ----------
+// The same pages with a Chinese browser language: Chinese text must appear and
+// no English interface string may remain. English messages become patterns
+// ({x} matches anything); short ones must be a whole text node, longer ones
+// may appear anywhere in it. Provider names, forum names and the content of
+// fixtures are not interface strings, so they never match.
+const LEAK_PATTERNS = Object.entries(en)
+  .filter(([key, message]) => {
+    // A pattern that is mostly placeholders ("{count} topic") would match fixture content.
+    const literal = message.replace(/\{\w+\}/g, '').trim().length;
+    return message !== (zhCN[key] ?? message) && (literal >= 8 || (!message.includes('{') && literal > 3));
+  })
+  .map(([key, message]) => {
+    const source = message
+      .split(/\{\w+\}/)
+      .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('.+?');
+    return { key, pattern: new RegExp(message.length < 12 ? `^${source}$` : source) };
+  });
+const visibleStrings = page =>
+  page.evaluate(() => {
+    const strings = new Set();
+    const shown = element => element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden';
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const parent = walker.currentNode.parentElement;
+      const text = walker.currentNode.textContent.replace(/\s+/g, ' ').trim();
+      if (!text || !parent || parent.closest('script, style, template')) continue;
+      const owner = parent.tagName === 'OPTION' ? parent.closest('select, datalist') : parent;
+      if (owner && owner.tagName !== 'DATALIST' && shown(owner)) strings.add(text);
+    }
+    for (const element of document.querySelectorAll('[aria-label], [title], [placeholder]')) {
+      if (!shown(element)) continue;
+      for (const name of ['aria-label', 'title', 'placeholder']) {
+        const value = element.getAttribute(name)?.replace(/\s+/g, ' ').trim();
+        if (value) strings.add(value);
+      }
+    }
+    strings.add(document.title);
+    return [...strings];
+  });
+const englishLeaks = async page => {
+  const leaks = [];
+  for (const value of await visibleStrings(page)) {
+    for (const part of value.split('\n')) {
+      const hit = LEAK_PATTERNS.find(({ pattern }) => pattern.test(part));
+      if (hit) leaks.push(`${hit.key}: ${part.slice(0, 80)}`);
+    }
+  }
+  return leaks;
+};
+const zhScenario = (name, pagePath, options, steps) => scenario(`zh-${name}`, pagePath, { ...options, locale: 'zh-CN' }, steps);
+// Records "Chinese appears here" and "nothing English here" for the current screen.
+const zhScreen = async (page, check, label, expected) => {
+  const body = await page.evaluate(() => document.body.innerText);
+  check(
+    `${label}: Chinese text`,
+    /[一-鿿]/.test(body) && expected.every(part => body.toLowerCase().includes(part.toLowerCase())),
+    expected.filter(part => !body.toLowerCase().includes(part.toLowerCase())).join(', ')
+  );
+  const leaks = await englishLeaks(page);
+  check(`${label}: no English interface strings`, leaks.length === 0, leaks.join(' | '));
+};
+
+zhScenario('popup-setup', 'src/popup/popup.html', { store: {} }, async ({ page, check, shot }) => {
+  check('document language', (await page.evaluate(() => document.documentElement.lang)) === 'zh-CN');
+  check('tab title', (await page.title()) === 'DiscourseCopilot', await page.title());
+  await zhScreen(page, check, 'setup card', ['首次设置', '连接 AI 服务商', '选择服务商', '更多服务商…', '设置', '记录']);
+  await shot('setup');
+  await page.click('label.setup-provider-option[data-provider="openai"]');
+  await page.fill('#setupApiKey', '');
+  await page.click('#setupSaveOnlyBtn');
+  await page.waitForTimeout(100);
+  check('field error', (await text(page, '#setupApiKeyError')) === '需要填写 OpenAI 的 API 密钥。', await text(page, '#setupApiKeyError'));
+  await zhScreen(page, check, 'invalid key', ['API 密钥', '测试并保存', '获取密钥']);
+  await shot('invalid');
+  await page.click('#setupKeyToggle');
+  check('toggle label', (await text(page, '#setupKeyToggle')) === '隐藏', await text(page, '#setupKeyToggle'));
+  await page.fill('#setupApiKey', 'sk-new');
+  await page.fill('#setupModel', 'gpt-4o');
+  await page.click('#setupTestSaveBtn');
+  await page.waitForTimeout(500);
+  check('success copy', (await text(page, '#setupSuccessText')).includes('生成总结'), await text(page, '#setupSuccessText'));
+  await zhScreen(page, check, 'setup success', ['设置完成', '完成']);
+  await shot('success');
+  await page.click('label.setup-provider-option[data-provider="ollama"]').catch(() => {});
+});
+
+zhScenario('popup-setup-local', 'src/popup/popup.html', { store: {} }, async ({ page, check, shot }) => {
+  await page.click('label.setup-provider-option[data-provider="ollama"]');
+  await page.waitForTimeout(100);
+  check('local label', (await text(page, '.setup-provider-option[data-provider="ollama"] strong')) === '本地 (Ollama)');
+  check('server url label', (await text(page, '#setupServerUrlLabel')) === 'Ollama 服务器地址', await text(page, '#setupServerUrlLabel'));
+  await zhScreen(page, check, 'local provider', ['下载 Ollama', '请先在这台电脑上启动 Ollama']);
+  await shot('local');
+});
+
+zhScenario('popup-topic', 'src/popup/popup.html', { store: configuredStore, tasks: [deletableRunTask] }, async ({ page, check, shot }) => {
+  await seedHistory(page, { ...savedSessionHistory(), activities: [deletableRun] });
+  await page.reload();
+  await page.waitForTimeout(700);
+  check('summarize label', (await text(page, '#summarizeBtn')) === '检查新回复', await text(page, '#summarizeBtn'));
+  check('agent button', (await text(page, '#agentLaunchBtn')) === '问论坛', await text(page, '#agentLaunchBtn'));
+  check('chat count', (await text(page, '#chatCount')) === '已提 1 个问题', await text(page, '#chatCount'));
+  check('summary meta', (await text(page, '#summaryMeta')).includes('保存'), await text(page, '#summaryMeta'));
+  await page.click('.chat-context-summary');
+  await zhScreen(page, check, 'topic', ['总结', '针对此帖提问', '清除对话', '论坛上下文', '30,000 个字符']);
+  await shot('topic');
+  await page.click('#savedBtn');
+  await page.waitForTimeout(300);
+  await zhScreen(page, check, 'activity tasks', ['记录', '后台任务', '任务', '已保存']);
+  await shot('activity-tasks');
+  await page.click('#summariesTab');
+  await page.waitForTimeout(300);
+  await zhScreen(page, check, 'activity saved', ['已保存的总结和回答', '保留', '删除', '对话和问答记录将在 1 天后过期']);
+  await shot('activity-saved');
+  await page.click('#savedList [data-saved-key^="agent:"] .delete-saved');
+  await page.waitForTimeout(300);
+  check('undo toast', (await text(page, '#undoToastText')).startsWith('已删除'), await text(page, '#undoToastText'));
+  check('undo button', (await text(page, '#undoToastBtn')) === '撤销');
+  await zhScreen(page, check, 'undo toast', ['撤销']);
+  await shot('undo');
+});
+
+zhScenario('popup-agent', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  await page.click('#agentLaunchBtn');
+  await page.waitForTimeout(150);
+  check(
+    'composer heading',
+    (await text(page, '#agentComposerHeading')) === '搜索 Discourse Meta',
+    await text(page, '#agentComposerHeading')
+  );
+  await zhScreen(page, check, 'composer', ['全论坛研究', '你想查找什么？', '此话题的最新动态', '对比讨论', '搜索论坛。']);
+  await shot('composer');
+  await page.click('[data-agent-question]');
+  check('suggestion fills a Chinese question', /[一-鿿]/.test(await page.inputValue('#agentInput')), await page.inputValue('#agentInput'));
+  await page.click('#agentCloseBtn');
+  const run = overrides => cachingRun({ id: 'zh', ...overrides });
+  await fireActivity(
+    page,
+    run({
+      status: 'running',
+      answer: '',
+      steps: [SEARCH_STEP, { ...READ_STEP, status: 'running', title: '', resultCount: null, sourceId: '', detail: '' }],
+      sources: [],
+      phase: 'running_tool',
+      progress: { percent: 13, completedSteps: 1, totalSteps: 15, sourceCount: 0 }
+    })
+  );
+  await page.waitForTimeout(250);
+  check(
+    'steps in Chinese',
+    (await stepTexts(page)).join('|') === '已搜索 “enable caching” · 3 条结果|正在阅读 话题 1…',
+    (await stepTexts(page)).join('|')
+  );
+  await zhScreen(page, check, 'running', ['步骤', '停止']);
+  await shot('running');
+  await fireActivity(
+    page,
+    run({ status: 'completed', answer: CACHING_ANSWER, steps: [SEARCH_STEP, READ_STEP], sources: CACHING_SOURCES.slice(0, 1) })
+  );
+  await page.waitForTimeout(300);
+  await zhScreen(page, check, 'completed', ['2 个步骤', '1 个来源', '继续追问', '再问一个', '在记录中打开']);
+  await shot('completed');
+  await fireActivity(
+    page,
+    run({ status: 'failed', answer: '', error: { code: 'AGENT_ERROR', message: '模型没有返回有效的操作', retryable: true } })
+  );
+  await page.waitForTimeout(300);
+  await zhScreen(page, check, 'failed', ['重试']);
+  await shot('failed');
+  await fireActivity(
+    page,
+    run({
+      status: 'waiting_user_action',
+      answer: '',
+      error: { code: 'FORUM_ACCESS_NOT_GRANTED', message: 'x', retryable: false, needsUserAction: true }
+    })
+  );
+  await page.waitForTimeout(300);
+  await zhScreen(page, check, 'waiting for access', ['允许访问 meta.discourse.org 并继续']);
+  await shot('waiting');
+});
+
+zhScenario('popup-guidance', 'src/popup/popup.html', accessOptions, async ({ page, check, shot }) => {
+  check(
+    'heading',
+    (await text(page, '#pageGuideHeading')) === '在 OpenAI Developer Community 上启用 DiscourseCopilot',
+    await text(page, '#pageGuideHeading')
+  );
+  check('button', (await text(page, '#forumAccessBtn')) === '允许访问 community.openai.com', await text(page, '#forumAccessBtn'));
+  check('bold markers removed', !(await text(page, '#pageGuideSteps')).includes('**'));
+  await zhScreen(page, check, 'allow card', ['点击下方的“允许访问”', '仅限此论坛，随时可以在设置中移除访问权限。']);
+  await shot('allow');
+});
+
+zhScenario(
+  'popup-guidance-denied',
+  'src/popup/popup.html',
+  { ...accessOptions, permissionAnswer: false },
+  async ({ page, check, shot }) => {
+    await page.click('#forumAccessBtn');
+    await page.waitForTimeout(300);
+    await zhScreen(page, check, 'denied', ['Chrome 未授予访问权限']);
+    await shot('denied');
+  }
+);
+
+zhScenario('popup-guidance-both', 'src/popup/popup.html', { ...accessOptions, store: {} }, async ({ page, check, shot }) => {
+  await zhScreen(page, check, 'checklist', ['开始使用', '第 1 步，共 2 步', '连接 AI 服务商', '允许访问 community.openai.com']);
+  await shot('both');
+});
+
+zhScenario(
+  'popup-not-forum',
+  'src/popup/popup.html',
+  {
+    store: configuredStore,
+    tabUrl: 'https://example.com/',
+    tabTitle: 'Example',
+    pageState: { url: 'https://example.com/', isDiscourse: false },
+    activeTab: true,
+    probe: { url: 'https://example.com/', isDiscourse: false, basePath: '', forumName: '' }
+  },
+  async ({ page, check, shot }) => {
+    await zhScreen(page, check, 'not a forum', ['不是 Discourse 论坛', '此页面不是 Discourse 论坛']);
+    await shot('not-forum');
+  }
+);
+
+zhScenario(
+  'popup-forum-home',
+  'src/popup/popup.html',
+  { store: configuredStore, tabUrl: `${SITE}/latest`, tabTitle: 'Latest - Discourse Meta', pageState: forumHomeState },
+  async ({ page, check, shot }) => {
+    check('title', (await text(page, '#currentPageTitle')) === '你正在浏览 Discourse Meta', await text(page, '#currentPageTitle'));
+    await zhScreen(page, check, 'forum home', ['Discourse 论坛', '打开任意话题即可生成总结']);
+    await shot('forum-home');
+  }
+);
+
+zhScenario('settings', 'src/settings/settings.html', { store: configuredStore }, async ({ page, check, outDir }) => {
+  check('document language', (await page.evaluate(() => document.documentElement.lang)) === 'zh-CN');
+  check('tab title', (await page.title()).includes('设置'), await page.title());
+  await zhScreen(page, check, 'settings', ['设置', 'AI 服务商', '常用模型', '研究深度', '论坛访问', '恢复默认值']);
+  await page.screenshot({ path: path.join(outDir, 'zh-settings-full.png'), fullPage: true });
+});
+
+zhScenario('settings-fresh', 'src/settings/settings.html?welcome=1', { store: {} }, async ({ page, check, shot }) => {
+  await zhScreen(page, check, 'welcome', ['三步即可开始']);
+  await shot('welcome');
+});
+
+zhScenario(
+  'settings-forum-access',
+  'src/settings/settings.html',
+  { store: configuredStore, granted: ['https://meta.discourse.org/*', 'https://community.openai.com/*'] },
+  async ({ page, check, outDir }) => {
+    await seedHistory(page, savedSessionHistory());
+    await page.reload();
+    await page.waitForTimeout(800);
+    const section = page.locator('section:has(#forumAccessHeading)');
+    await section.scrollIntoViewIfNeeded();
+    await zhScreen(page, check, 'forum access', ['论坛访问', '移除访问权限']);
+    await section.screenshot({ path: path.join(outDir, 'zh-settings-forum-access.png') });
+    await page.click('[data-origin="https://community.openai.com"] button');
+    await page.waitForTimeout(150);
+    await zhScreen(page, check, 'forum access confirm', ['取消']);
+    await section.screenshot({ path: path.join(outDir, 'zh-settings-forum-access-confirm.png') });
+  }
+);
+
+zhScenario('content-forum-button', '__fixtures__/discourse-topic.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  await loadContentScript(page, '/t/fixture-topic/123');
+  const label = await page.evaluate(sel => {
+    const button = document.querySelector(sel).shadowRoot.querySelector('button');
+    return [button.title, button.getAttribute('aria-label')];
+  }, LAUNCHER);
+  check(
+    'button title and name are Chinese',
+    label[0] === '打开 DiscourseCopilot' && label[1] === '打开 DiscourseCopilot 面板',
+    label.join(' | ')
+  );
+  await shot('launcher');
+});
+
 // ---------- Runner ----------
 
 async function runScenario(browser, base, { name, pagePath, options, steps }, { theme, outDir }) {
   // Network answers stay in Node (functions can't reach the page's stub).
   // allowErrors: console messages a scenario provokes on purpose (Chrome
   // logs every HTTP error response, e.g. a refused API key).
-  const { routes = [], allowErrors = [], ...stubOptions } = options;
+  const { routes = [], allowErrors = [], locale, ...stubOptions } = options;
   const { ctx, page, errors, requests } = await openExtensionPage(browser, base, {
     pagePath,
     theme,
     width: options.width || WIDTH,
     height: 1000,
     stub: { ...defaultStub, ...stubOptions },
+    locale,
     routes
   });
   const checks = [];

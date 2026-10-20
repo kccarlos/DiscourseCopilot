@@ -13,6 +13,7 @@
 // primary action, and on a forum without access a "Get started" checklist
 // marks the access card as step 2.
 import { forumAccessHost } from '../shared/forum-access.mjs';
+import { t } from '../shared/i18n.mjs';
 
 export const GUIDANCE_STATE = Object.freeze({
   LOADING: 'loading',
@@ -30,8 +31,8 @@ export const EXAMPLE_FORUMS = Object.freeze([
   Object.freeze({ label: 'community.openai.com', href: 'https://community.openai.com/' })
 ]);
 
-export const ACCESS_FOOTNOTE = 'Only this forum. You can remove access anytime in Settings.';
-export const ACCESS_DENIED_TEXT = 'Chrome didn’t grant access. Click **Allow access** and choose **Allow** in Chrome’s prompt.';
+export const ACCESS_FOOTNOTE = t('guide.footnote');
+export const ACCESS_DENIED_TEXT = t('guide.accessDenied');
 
 // Text with **bold** runs → [{ text, strong }] for DOM rendering without HTML.
 export function splitEmphasis(text) {
@@ -52,24 +53,18 @@ function pageState(context) {
 }
 
 function accessCard(state, context, { forumName, host, nextStep }) {
-  const finalStep = context.isForumTopic ? 'Then click **Create summary**.' : 'Then open a topic, or ask the forum a question.';
+  const finalStep = context.isForumTopic ? t('guide.access.finalTopic') : t('guide.access.finalForum');
   const maybe = state === GUIDANCE_STATE.MAYBE;
   return {
-    eyebrow: nextStep ? 'Step 2 of 2 · Next' : maybe ? 'Looks like a Discourse topic' : 'Discourse forum found',
-    title: maybe ? 'Is this a Discourse forum?' : `Allow DiscourseCopilot on ${forumName}`,
-    text: maybe
-      ? `DiscourseCopilot couldn’t check ${host} yet. If it’s a Discourse forum, allow access so it can read topics and search it using your current login.`
-      : 'So it can read topics and search this forum using your current login.',
+    eyebrow: nextStep ? t('guide.step2Next') : maybe ? t('guide.maybeEyebrow') : t('guide.foundEyebrow'),
+    title: maybe ? t('guide.maybeTitle') : t('guide.allowTitle', { forum: forumName }),
+    text: maybe ? t('guide.maybeText', { host }) : t('guide.allowText'),
     steps: [
-      'Click **Allow access** below.',
-      'Chrome asks for permission. Choose **Allow**.',
-      maybe
-        ? context.isForumTopic
-          ? 'If it’s a Discourse forum, click **Create summary**.'
-          : 'If it’s a Discourse forum, open a topic or ask it a question.'
-        : finalStep
+      t('guide.access.step1'),
+      t('guide.access.step2'),
+      maybe ? (context.isForumTopic ? t('guide.access.maybeTopic') : t('guide.access.maybeForum')) : finalStep
     ],
-    button: `Allow access to ${host}`,
+    button: t('guide.allowButton', { host }),
     links: [],
     tip: '',
     footnote: ACCESS_FOOTNOTE
@@ -109,20 +104,20 @@ export function derivePageGuidance(
   let hero = null;
   if (state === GUIDANCE_STATE.UNCHECKED) {
     card = {
-      eyebrow: 'Current page',
-      title: 'Check this page',
-      text: 'Click the **DiscourseCopilot** icon in your toolbar to check whether this page is a Discourse forum.',
+      eyebrow: t('guide.currentPage'),
+      title: t('guide.unchecked.title'),
+      text: t('guide.unchecked.text'),
       steps: [],
       button: '',
       links: [],
-      tip: 'Tip: pin DiscourseCopilot from the puzzle-piece menu so the icon is always in reach.',
+      tip: t('guide.unchecked.tip'),
       footnote: ''
     };
   } else if (state === GUIDANCE_STATE.NOT_FORUM) {
     card = {
-      eyebrow: 'Current page',
-      title: 'This page isn’t a Discourse forum',
-      text: 'DiscourseCopilot works on forums built with Discourse. Open a topic on one to get started, for example:',
+      eyebrow: t('guide.currentPage'),
+      title: t('guide.notForum.title'),
+      text: t('guide.notForum.text'),
       steps: [],
       button: '',
       links: EXAMPLE_FORUMS.map(link => ({ ...link })),
@@ -133,35 +128,35 @@ export function derivePageGuidance(
     card = accessCard(state, context, { forumName: name, host, nextStep: !providerReady });
   } else if (state === GUIDANCE_STATE.FORUM_HOME) {
     // The helper line comes from deriveTopicHelper (topic-controls.mjs).
-    hero = { eyebrow: 'Discourse forum', title: `You’re on ${name}` };
+    hero = { eyebrow: t('guide.hero.eyebrow'), title: t('guide.hero.title', { forum: name }) };
   }
   if (card) {
     card.nextStep = needsAccess && !providerReady;
     if (needsAccess && providerReady && setupShowsSuccess) {
-      card.eyebrow = 'Step 2 of 2';
+      card.eyebrow = t('guide.step2');
     }
     card.notice = needsAccess && accessDenied ? ACCESS_DENIED_TEXT : '';
   }
 
   let checklist = null;
   if (needsAccess && (!providerReady || setupShowsSuccess)) {
-    const accessLabel = `Allow access to ${host}`;
+    const accessLabel = t('guide.allowButton', { host });
     checklist = providerReady
       ? {
           step: 2,
           total: 2,
-          label: 'Step 2 of 2: Allow access to this forum',
+          label: t('guide.checklist.step2'),
           items: [
-            { label: 'Connect an AI provider', status: 'done' },
+            { label: t('guide.connectProvider'), status: 'done' },
             { label: accessLabel, status: 'current' }
           ]
         }
       : {
           step: 1,
           total: 2,
-          label: 'Step 1 of 2: Connect an AI provider',
+          label: t('guide.checklist.step1'),
           items: [
-            { label: 'Connect an AI provider', status: 'current' },
+            { label: t('guide.connectProvider'), status: 'current' },
             { label: accessLabel, status: 'next' }
           ]
         };

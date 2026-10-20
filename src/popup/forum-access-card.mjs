@@ -7,6 +7,7 @@
 import { requestForumAccess } from '../shared/forum-access.mjs';
 import { ACCESS_DENIED_TEXT, splitEmphasis } from './page-guidance.mjs';
 import { announce } from './status-line.mjs';
+import { t } from '../shared/i18n.mjs';
 
 // Shown by the Agent panel when Continue/Retry was refused.
 export function forumAccessDeniedText() {
@@ -102,7 +103,7 @@ export class ForumAccessCard {
     button.classList.toggle('hidden', !label);
     button.disabled = this.pending;
     button.setAttribute('aria-busy', String(this.pending));
-    button.textContent = this.pending ? 'Waiting for Chrome…' : label;
+    button.textContent = this.pending ? t('access.waiting') : label;
     button.classList.toggle('outline', Boolean(this.guidance?.card?.nextStep));
   }
 
@@ -128,7 +129,7 @@ export class ForumAccessCard {
         label.textContent = item.label;
         const status = document.createElement('span');
         status.className = 'sr-only';
-        status.textContent = { done: ' (done)', current: ' (current step)', next: ' (next)' }[item.status];
+        status.textContent = t(`access.status.${item.status}`);
         row.append(number, label, status);
         return row;
       })
@@ -178,7 +179,7 @@ export class ForumAccessCard {
           external.textContent = '↗';
           const hint = document.createElement('span');
           hint.className = 'sr-only';
-          hint.textContent = ' (opens in a new tab)';
+          hint.textContent = t('common.opensNewTab');
           anchor.append(external, hint);
           item.append(anchor);
           return item;

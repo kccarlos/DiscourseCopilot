@@ -3,6 +3,7 @@
 // the "Restart DiscourseCopilot" banner (#backgroundRecovery).
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { isDatabaseCompatibilityError, isMissingRuntimeResponse, isRuntimeDisconnectedError } from './runtime-state.mjs';
+import { t } from '../shared/i18n.mjs';
 
 const $ = id => document.getElementById(id);
 
@@ -36,7 +37,7 @@ export class BackgroundLink {
         return;
       }
       if (!response?.success) {
-        throw new Error(response?.error || 'Unable to load tasks');
+        throw new Error(response?.error || t('popup.loadTasksFailed'));
       }
       this.state.backgroundAvailable = true;
       this.tasks.replaceAll(response.tasks);
@@ -57,7 +58,7 @@ export class BackgroundLink {
   handleError(error) {
     if (isDatabaseCompatibilityError(error)) {
       this.markUnavailable(error);
-      this.status.show('Restart DiscourseCopilot to finish the update.', 'warning');
+      this.status.show(t('popup.restartToUpdate'), 'warning');
       return true;
     }
     if (isRuntimeDisconnectedError(error)) {

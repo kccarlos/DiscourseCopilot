@@ -8,6 +8,7 @@ import { setPostCopyAvailability, writeClipboardText } from './clipboard.mjs';
 import { describeSummaryCoverage, formatRelativeTime } from './ui-state.mjs';
 import { forumHostname } from './forum-names.mjs';
 import { renderMarkdown } from './markdown.mjs';
+import { t } from '../shared/i18n.mjs';
 
 const $ = id => document.getElementById(id);
 
@@ -97,7 +98,7 @@ export class SummaryView {
     const metadata = $('summaryMeta');
     const session = this.state.session;
     if (!session?.summary) {
-      metadata.textContent = 'Your saved overview';
+      metadata.textContent = t('summary.metaEmpty');
       return;
     }
     const details = [];
@@ -106,9 +107,9 @@ export class SummaryView {
       details.push(coverage.text);
     }
     if (session.summaryUpdatedAt) {
-      details.push(`saved ${formatRelativeTime(session.summaryUpdatedAt)}`);
+      details.push(t('summary.savedAgo', { time: formatRelativeTime(session.summaryUpdatedAt) }));
     }
-    metadata.textContent = details.join(' · ') || 'Saved overview';
+    metadata.textContent = details.join(' · ') || t('summary.metaSaved');
     // Say plainly when the page limit cut the topic short.
     metadata.title = coverage.note;
     const note = $('summaryCoverageNote');
@@ -136,8 +137,8 @@ export class SummaryView {
   startFetchProgress() {
     $('fetchProgress').classList.remove('hidden');
     $('fetchProgressBar').removeAttribute('value');
-    $('fetchProgressLabel').textContent = 'Reading responses…';
-    $('fetchProgressEta').textContent = 'Calculating ETA…';
+    $('fetchProgressLabel').textContent = t('summary.readingResponses');
+    $('fetchProgressEta').textContent = t('fetchProgress.calculating');
   }
 
   updateFetchProgress(progress) {
@@ -150,20 +151,19 @@ export class SummaryView {
       } else {
         progressBar.value = progress.percent;
       }
-      const page = progress.retryPage ? ` page ${progress.retryPage}` : '';
-      label.textContent = `Forum asked us to slow down · retrying${page}`;
-      $('fetchProgressEta').textContent = `Retrying in ${formatRetryDelay(progress.retryAfterMs)}`;
+      label.textContent = t(progress.retryPage ? 'summary.slowDownPage' : 'summary.slowDown', { page: progress.retryPage });
+      $('fetchProgressEta').textContent = t('summary.retryingIn', { delay: formatRetryDelay(progress.retryAfterMs) });
       return;
     }
 
     if (progress.percent === null) {
       progressBar.removeAttribute('value');
-      label.textContent = `Reading response page ${progress.currentPage}…`;
+      label.textContent = t('summary.readingPage', { page: progress.currentPage });
     } else {
       progressBar.value = progress.percent;
       const totalResponses = Math.max(0, progress.totalPosts - 1);
       const processedResponses = Math.max(0, progress.processedPosts - 1);
-      label.textContent = `Reading responses: ${processedResponses} of ${totalResponses}`;
+      label.textContent = t('summary.readingProgress', { done: processedResponses, total: totalResponses });
     }
     $('fetchProgressEta').textContent = formatEta(progress.etaMs);
   }
@@ -178,26 +178,26 @@ export class SummaryView {
   renderTaskState(task) {
     if (task.status === TASK_STATUS.QUEUED) {
       this.hideFetchProgress();
-      this.status.show('Task queued. You can safely browse elsewhere.', 'info');
+      this.status.show(t('task.queued'), 'info');
       return;
     }
     if (task.status === TASK_STATUS.FAILED) {
       this.hideFetchProgress();
       this.streams.delete(task.id);
-      this.status.show(`Task failed: ${task.error || 'Unknown error'}`, 'error');
+      this.status.show(t('task.failedWith', { error: task.error || t('task.unknownError') }), 'error');
       return;
     }
     if (task.status === TASK_STATUS.CANCELLED) {
       this.hideFetchProgress();
       this.streams.delete(task.id);
-      this.status.show('Task cancelled', 'warning');
+      this.status.show(t('task.cancelledStatus'), 'warning');
       return;
     }
     if (task.status === TASK_STATUS.COMPLETED) {
       this.streams.delete(task.id);
       void this.hooks.reloadCurrentSession();
       // #status is a polite live region: this is the one completion announcement.
-      this.status.show(task.type === TASK_TYPE.CHAT ? 'Answer ready' : 'Summary ready and saved', 'success');
+      this.status.show(task.type === TASK_TYPE.CHAT ? t('task.answerReady') : t('task.summaryReady'), 'success');
       return;
     }
 
@@ -214,16 +214,16 @@ export class SummaryView {
     if (task.phase === 'generating' && task.type === TASK_TYPE.SUMMARY) {
       this.revealSummaryCard();
       if (!this.state.session?.summary && !this.streams.get(task.id)) {
-        $('summaryDisplay').innerHTML = '<p class="streaming-placeholder">Waiting for AI response…</p>';
+        $('summaryDisplay').innerHTML = `<p class="streaming-placeholder">${t('summary.waitingAi')}</p>`;
       }
-      this.status.show('AI is creating your summary. You can copy the full post while you wait.', 'loading');
+      this.status.show(t('summary.aiCreating'), 'loading');
       return;
     }
     if (task.phase === 'generating' && task.type === TASK_TYPE.CHAT) {
-      this.status.show('AI is preparing a response in the background.', 'loading');
+      this.status.show(t('summary.aiPreparing'), 'loading');
       return;
     }
-    this.status.show(task.statusText || 'Working in background…', 'loading');
+    this.status.show(task.statusText || t('task.working'), 'loading');
   }
 
   // ---------- Actions ----------
@@ -242,7 +242,7 @@ export class SummaryView {
     const isStillOnPage = () => operation.pageKey === this.state.pageContext?.pageKey;
 
     try {
-      this.status.show('Submitting background summary task…', 'loading');
+      this.status.show(t('summary.submitting'), 'loading');
       const session = this.state.session;
       const task = await this.tasks.enqueue(
         {
@@ -258,7 +258,7 @@ export class SummaryView {
           systemPrompt: operation.systemPrompt,
           responseLanguage: operation.responseLanguage
         },
-        'Unable to queue summary'
+        t('summary.queueFailed')
       );
       if (!task) {
         this.hooks.markBackgroundUnavailable();
@@ -274,7 +274,7 @@ export class SummaryView {
       DiscourseCopilotLogger.error('Popup: Error queueing summary:', error);
       if (isStillOnPage()) {
         this.hideFetchProgress();
-        this.status.show(`Error: ${error.message}`, 'error');
+        this.status.show(t('common.errorWith', { error: error.message }), 'error');
       }
     } finally {
       this.operations.finish(operation);
@@ -283,17 +283,17 @@ export class SummaryView {
 
   async copyPost() {
     if (!this.state.session?.source) {
-      this.status.show('Post content is not available yet', 'warning');
+      this.status.show(t('summary.postUnavailable'), 'warning');
       return;
     }
-    await this.copyText(this.state.session.source, 'Full post copied to clipboard');
+    await this.copyText(this.state.session.source, t('summary.postCopied'));
   }
 
   async copySummary() {
     if (!this.state.session?.summary) {
       return;
     }
-    await this.copyText(this.state.session.summary, 'Summary copied to clipboard');
+    await this.copyText(this.state.session.summary, t('summary.summaryCopied'));
   }
 
   async copyText(text, successMessage) {
@@ -302,7 +302,7 @@ export class SummaryView {
       this.status.show(successMessage, 'success');
     } catch (error) {
       DiscourseCopilotLogger.error('Popup: Clipboard error:', error);
-      this.status.show(`Unable to copy: ${error.message}`, 'error');
+      this.status.show(t('summary.copyFailed', { error: error.message }), 'error');
     }
   }
 
