@@ -4,6 +4,11 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-10-20
+
+### Changed
+- First install opens a small welcome tab instead of the settings page. Its **Open DiscourseCopilot** button opens the side panel, where setup happens, and closes the tab (Chrome opens the side panel only after a click, so it can't pop up on its own). The settings page no longer has a welcome mode.
+
 ## [2.3.0] - 2026-10-19
 
 ### Added
@@ -17,7 +22,6 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 - No API key? The setup card and Settings → AI provider link to Google AI Studio for a free Gemini key, and switch the form to Gemini so the key can be pasted straight in. The note says the free tier has usage limits and Google may use free-tier prompts to improve its products.
 
 ### Changed
-- First install opens a small welcome tab instead of the settings page. Its **Open DiscourseCopilot** button opens the side panel, where setup happens, and closes the tab (Chrome opens the side panel only after a click, so it can't pop up on its own). The settings page no longer has a welcome mode.
 - The side panel keeps your attention on what matters: starting a chat question, an Ask the forum question or a follow-up opens that card and folds the others to a one-line header (for example "11 replies · saved 2m ago"), and a finished answer opens itself unless you moved on to something else. You can still open or close any card.
 - Activity is calmer and denser: a compact header, a type icon on every card, forum, status and time on one line, and icon buttons for open, stop, retry, keep and delete.
 - Ask the forum answers read as a conversation: each question has its own block with its research steps (one line, opens on click), its answer and the sources that answer cites. Follow-up questions show as chat bubbles, and the follow-up box sends with Enter like the topic chat.
@@ -99,7 +103,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.1...HEAD
+[2.3.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.1.1...v2.2.0
