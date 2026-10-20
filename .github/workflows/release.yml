@@ -191,3 +191,138 @@ jobs:
       - name: Draft only
         if: steps.check.outputs.enabled == 'true' && env.AUTO_PUBLISH != 'true'
         run: echo "::notice::Uploaded as a draft. Submit it for review in the developer dashboard, or set the repository variable CWS_AUTO_PUBLISH to true."
+
+  edge-addons:
+    # Uploads the release zip to Microsoft Edge Add-ons with the Update REST
+    # API v1.1. The Client ID and API key live in 1Password (vault `github`,
+    # item `edge-addons-api`); the only GitHub secret is the `release`
+    # environment's OP_SERVICE_ACCOUNT_TOKEN. Tag pushes only, like the
+    # Chrome Web Store job.
+    needs: release
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      contents: read
+    env:
+      PRODUCT_ID: ${{ vars.EDGE_PRODUCT_ID }}
+      AUTO_PUBLISH: ${{ vars.EDGE_AUTO_PUBLISH }}
+      VERSION: ${{ needs.release.outputs.version }}
+      ZIP: ${{ needs.release.outputs.zip }}
+      API: https://api.addons.microsoftedge.microsoft.com/v1
+    steps:
+      - name: Check Edge Add-ons configuration
+        id: check
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+        run: |
+          if [ -n "$PRODUCT_ID" ] && [ -n "$OP_SERVICE_ACCOUNT_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Edge Add-ons publishing is not configured (EDGE_PRODUCT_ID or the release environment's OP_SERVICE_ACCOUNT_TOKEN); skipping store upload."
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.check.outputs.enabled == 'true'
+        with:
+          ref: ${{ env.TAG }}
+          sparse-checkout: tools/op-load.sh
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/download-artifact@v8
+        if: steps.check.outputs.enabled == 'true'
+        with:
+          name: extension-zip
+
+      - name: Install the 1Password CLI
+        if: steps.check.outputs.enabled == 'true'
+        uses: 1password/install-cli-action@v4
+
+      # Step outputs, masked, so only the steps that name them see the values.
+      - name: Secrets from 1Password
+        id: op
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+        run: >-
+          tools/op-load.sh
+          CLIENT_ID=op://github/edge-addons-api/client_id
+          API_KEY=op://github/edge-addons-api/api_key
+
+      - name: Upload to Edge Add-ons
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          CLIENT_ID: ${{ steps.op.outputs.CLIENT_ID }}
+          API_KEY: ${{ steps.op.outputs.API_KEY }}
+        run: |
+          set -euo pipefail
+          # The operation ID comes back in the Location header (an ID or a path ending in it).
+          HTTP=$(curl -sS -D headers.txt -o upload.txt -w '%{http_code}' -X POST \
+            -H "Authorization: ApiKey $API_KEY" \
+            -H "X-ClientID: $CLIENT_ID" \
+            -H "Content-Type: application/zip" \
+            --data-binary "@$ZIP" \
+            "$API/products/$PRODUCT_ID/submissions/draft/package")
+          cat upload.txt; echo
+          if [ "$HTTP" != "202" ]; then
+            echo "::error::Edge Add-ons upload failed (HTTP $HTTP)"; exit 1
+          fi
+          OP=$(grep -i '^location:' headers.txt | tr -d '\r' | sed 's/^[^:]*:[[:space:]]*//; s#.*/##')
+          [ -n "$OP" ] || { echo "::error::No operation ID in the upload response"; exit 1; }
+
+          STATUS=InProgress
+          for i in $(seq 1 30); do
+            sleep 10
+            curl -fsS -H "Authorization: ApiKey $API_KEY" -H "X-ClientID: $CLIENT_ID" \
+              "$API/products/$PRODUCT_ID/submissions/draft/package/operations/$OP" > status.json
+            STATUS=$(jq -r '.status // empty' status.json)
+            echo "Upload state: $STATUS"
+            [ "$STATUS" = "InProgress" ] || break
+          done
+          jq . status.json
+          if [ "$STATUS" != "Succeeded" ]; then
+            echo "::error::Edge Add-ons upload did not succeed (status=${STATUS:-none}): $(jq -r '.message // empty' status.json)"; exit 1
+          fi
+          echo "::notice::Uploaded $ZIP to Edge Add-ons."
+
+      - name: Submit for certification
+        if: steps.check.outputs.enabled == 'true' && env.AUTO_PUBLISH == 'true'
+        env:
+          CLIENT_ID: ${{ steps.op.outputs.CLIENT_ID }}
+          API_KEY: ${{ steps.op.outputs.API_KEY }}
+        run: |
+          set -euo pipefail
+          NOTES=$(jq -n --arg n "Release $VERSION. Changes: https://github.com/${{ github.repository }}/releases/tag/v$VERSION" '{notes: $n}')
+          HTTP=$(curl -sS -D headers.txt -o publish.txt -w '%{http_code}' -X POST \
+            -H "Authorization: ApiKey $API_KEY" \
+            -H "X-ClientID: $CLIENT_ID" \
+            -H "Content-Type: application/json" \
+            -d "$NOTES" \
+            "$API/products/$PRODUCT_ID/submissions")
+          cat publish.txt; echo
+          if [ "$HTTP" != "202" ]; then
+            echo "::error::Edge Add-ons submission failed (HTTP $HTTP)"; exit 1
+          fi
+          OP=$(grep -i '^location:' headers.txt | tr -d '\r' | sed 's/^[^:]*:[[:space:]]*//; s#.*/##')
+          [ -n "$OP" ] || { echo "::error::No operation ID in the submission response"; exit 1; }
+
+          STATUS=InProgress
+          for i in $(seq 1 30); do
+            sleep 10
+            curl -fsS -H "Authorization: ApiKey $API_KEY" -H "X-ClientID: $CLIENT_ID" \
+              "$API/products/$PRODUCT_ID/submissions/operations/$OP" > status.json
+            STATUS=$(jq -r '.status // empty' status.json)
+            echo "Submission state: $STATUS"
+            [ "$STATUS" = "InProgress" ] || break
+          done
+          jq . status.json
+          if [ "$STATUS" != "Succeeded" ]; then
+            echo "::error::Edge Add-ons submission did not succeed (status=${STATUS:-none}, $(jq -r '.errorCode // empty' status.json)): $(jq -r '.message // empty' status.json)"; exit 1
+          fi
+          echo "::notice::Submitted to Edge Add-ons for certification; it goes live automatically once approved."
+
+      - name: Draft only
+        if: steps.check.outputs.enabled == 'true' && env.AUTO_PUBLISH != 'true'
+        run: echo "::notice::Uploaded as a draft. Publish it in Partner Center, or set the repository variable EDGE_AUTO_PUBLISH to true."

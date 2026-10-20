@@ -430,7 +430,7 @@ Before pushing, `pnpm test && pnpm check && pnpm build` covers everything except
 ### Cutting a release
 
 1. Make sure `main` is green and holds everything that should ship.
-2. Bump `version` in **both** `manifest.json` and `package.json` (for example `2.2.0`). The Chrome Web Store only accepts a version higher than the last one uploaded, so never reuse or lower a version.
+2. Bump `version` in **both** `manifest.json` and `package.json` (for example `2.2.0`). The Chrome Web Store and Edge Add-ons only accept a version higher than the last one uploaded, so never reuse or lower a version.
 3. In [CHANGELOG.md](CHANGELOG.md), rename **Unreleased** to the new version with today's date, start a new empty **Unreleased** section, and update the compare links at the bottom. This section becomes the GitHub release notes, so write it for users: a one-line summary right under the heading (it opens the notes), then **Added / Changed / Fixed** in plain language. Preview with `node tools/release-notes.mjs X.Y.Z`; the release fails before publishing anything if the section is missing or empty.
 4. Commit to `main` (for example "Release 2.2.0") and push.
 5. Tag and push the tag: `git tag v2.2.0 && git push origin v2.2.0`. Only repository admins can create `v*` tags (see [Repository protections](#repository-protections)).
@@ -442,9 +442,13 @@ Before pushing, `pnpm test && pnpm check && pnpm build` covers everything except
    - `CWS_AUTO_PUBLISH` = `true`: submits the item for review (`publishType: DEFAULT_PUBLISH`, so it goes live automatically once approved).
    - anything else (the current setting is `false`): leaves the upload as a draft. Open the [developer dashboard](https://chrome.google.com/webstore/devconsole), check the draft (listing text, see [store-assets/LISTING.md](store-assets/LISTING.md)) and click **Submit for review**.
 
+3. **edge-addons** job: uploads the same zip to [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons) with the [Update REST API v1.1](https://learn.microsoft.com/microsoft-edge/extensions/update/api/using-addons-api) and waits until Partner Center has processed it. Then:
+   - `EDGE_AUTO_PUBLISH` = `true`: submits the draft for certification, with the release link as the notes for certification. It goes live automatically once approved.
+   - anything else: leaves the upload as a draft. Open [Partner Center](https://partner.microsoft.com/dashboard/microsoftedge/overview), check it and click **Publish**.
+
 Google reviews every update before it reaches users, which can take from a few hours to several days, so the store can lag behind the GitHub Release (the README tells users so and points them to the release zip); the dashboard shows the review status. The README's store-version badge shows what the store currently serves. To switch automatic submission on or off: `gh variable set CWS_AUTO_PUBLISH --body true` (or `false`).
 
-The workflow can also be started by hand (**Actions → Release → Run workflow**, with an existing tag). That only rebuilds and creates the GitHub Release; the store job runs for tag pushes only, because the identity provider trusts nothing else.
+The workflow can also be started by hand (**Actions → Release → Run workflow**, with an existing tag). That only rebuilds and creates the GitHub Release; the store jobs run for tag pushes only (the Google identity provider trusts nothing else, and only admins can push `v*` tags).
 
 ### Chrome Web Store publishing setup
 
@@ -487,6 +491,29 @@ gh secret set CWS_PUBLISHER_ID   # paste the publisher ID when asked
 
 Then add the service account's email under **Account → Service account** in the Chrome Web Store Developer Dashboard. The current settings can be read back with `gcloud iam workload-identity-pools providers describe discoursecopilot --location=global --workload-identity-pool=github --project=PROJECT_ID` and `gh variable list`.
 
+### Edge Add-ons publishing setup
+
+Microsoft offers no keyless sign-in for this API, so the job needs a Client ID and an API key. They live in 1Password, not in GitHub, so rotating the key means editing one 1Password item:
+
+- **Partner Center → Microsoft Edge → Publish API**: enable the new experience (v1.1) and click **Create API credentials**. This shows the **Client ID** and an **API key** with an expiry date. The key is only valid until that date: create a new one in time and paste it into the 1Password item; the next release picks it up and nothing in the repository changes.
+- **1Password**: item `edge-addons-api` in vault `github`, fields `client_id` and `api_key` (single-line values).
+- **GitHub environment `release`** (Settings → Environments), deployment policy "tags matching `v*`". Its one secret is `OP_SERVICE_ACCOUNT_TOKEN`, the token of the 1Password service account that can read only vault `github`. The job declares `environment: release`, installs the 1Password CLI and loads the two fields with `tools/op-load.sh` (copied from herdr-sheepdog), which retries each `op read` up to four times and masks every value. They reach only the steps that name them.
+- **Repository variables**: `EDGE_PRODUCT_ID` (Partner Center → Microsoft Edge → Overview → the extension → **Extension identity**, also the GUID in the page URL; not secret) and `EDGE_AUTO_PUBLISH` (`true`/`false`). If the product ID or the token is missing the job logs a notice and skips the upload.
+
+```bash
+gh api -X PUT repos/OWNER/REPO/environments/release \
+  --input - <<<'{"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}'
+gh api -X POST repos/OWNER/REPO/environments/release/deployment-branch-policies -f name='v*' -f type=tag
+op read -n "op://Private/OP service account github-actions/credential" \
+  | gh secret set OP_SERVICE_ACCOUNT_TOKEN --env release
+gh variable set EDGE_PRODUCT_ID --body "<product ID>"
+gh variable set EDGE_AUTO_PUBLISH --body true
+```
+
+Use `op read -n`: a token stored with a trailing newline makes every load fail with `(400) ... structure of request was invalid`.
+
+The API only updates the package: the listing text, screenshots and new products are managed in Partner Center.
+
 ### Repository protections
 
 - **Rulesets:** *Protect main* blocks force-pushes to and deletion of `main`. *Protect release tags* allows only repository admins to create, move or delete `v*` tags, so only an admin can start a store upload.
@@ -507,6 +534,10 @@ Then add the service account's email under **Account → Service account** in th
 | Authenticate to Google Cloud fails (`unauthorized_client`, `Permission 'iam.serviceAccounts.getAccessToken' denied`) | The run wasn't a `v*` tag push from this repository (the provider's condition), the variables name the wrong provider/service account, or the `workloadIdentityUser` binding is missing. |
 | Upload returns HTTP 400/403 | 400 with a version error: the manifest version isn't higher than the last upload, so bump and tag again. 403: the service account isn't linked in the dashboard, or `CWS_PUBLISHER_ID`/`CWS_ITEM_ID` is wrong. |
 | Upload state isn't `SUCCEEDED` | The store rejected the package (the response is printed in the log); fix and release a new version. |
+| "Edge Add-ons publishing is not configured…" | `EDGE_PRODUCT_ID` is missing (`gh variable list`) or the `release` environment has no `OP_SERVICE_ACCOUNT_TOKEN` (`gh secret list --env release`). |
+| `could not read CLIENT_ID from 1Password` | The item `edge-addons-api` or its field is missing in vault `github`, or the service account token is wrong or stored with a newline. |
+| Edge upload returns HTTP 401 | The API key has expired or was replaced. Create a new one under **Publish API** and update `api_key` in the 1Password item. 404: wrong `EDGE_PRODUCT_ID`. |
+| Edge upload or submission ends in `Failed` | The log prints `errorCode` and `message`. `InProgressSubmission`: an earlier version is still in certification, so publish this draft from Partner Center once that one finishes. `NoModulesUpdated`: the draft already holds this package. |
 | Submit for review fails | Usually an item already in review or a listing problem shown in the dashboard. The upload itself is kept as a draft; submit it from the dashboard. |
 
 ## UI tests and screenshots
