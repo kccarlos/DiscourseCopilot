@@ -125,8 +125,9 @@ export function transitionForm(state, event) {
         phase: FORM_PHASE.PRISTINE,
         edited: false,
         fieldErrors: {},
-        // First install (?welcome=1) starts with a quiet form.
-        status: event.welcomeMode ? null : status(t('settings.status.loaded'), 'success')
+        // First install (?welcome=1) and the side panel's Settings view start
+        // with a quiet form.
+        status: event.welcomeMode || event.quiet ? null : status(t('settings.status.loaded'), 'success')
       };
     case 'load-failed':
       return {

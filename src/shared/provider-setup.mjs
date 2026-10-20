@@ -19,7 +19,7 @@ export const PROVIDER_LINKS = Object.freeze({
   openai: { url: 'https://platform.openai.com/api-keys', label: 'platform.openai.com', kind: 'key' },
   anthropic: { url: 'https://console.anthropic.com/', label: 'console.anthropic.com', kind: 'key' },
   groq: { url: 'https://console.groq.com/keys', label: 'console.groq.com', kind: 'key' },
-  gemini: { url: 'https://aistudio.google.com/app/apikey', label: 'Google AI Studio', kind: 'key' },
+  gemini: { url: 'https://aistudio.google.com/apikey', label: 'Google AI Studio', kind: 'key' },
   ollama: {
     url: 'https://ollama.ai',
     get label() {

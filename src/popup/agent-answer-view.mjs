@@ -16,8 +16,10 @@ import { forumAccessHost, isForumAccessError } from '../shared/forum-access.mjs'
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { topicKeyFromUrl } from './conversation-state.mjs';
 import { formatRelativeTime, retentionCopy } from './ui-state.mjs';
-import { renderMarkdown } from './markdown.mjs';
+import { citedSourceIds, renderMarkdown } from './markdown.mjs';
+import { ANSWER_CLAMP_PX, clearClamp, setClamp } from './clamp.mjs';
 import { openForumTarget } from './forum-tabs.mjs';
+import { createIcon, setButtonLabel, setIconButton } from './icons.mjs';
 import { t, tn } from '../shared/i18n.mjs';
 
 // "Step 3 of 15 · Searching “rate limit”…": where the agent is in this
@@ -70,6 +72,9 @@ function stepIcon(step) {
 }
 
 const SOURCE_HIGHLIGHT_MS = 2400;
+// Sources listed open under an answer up to this many.
+const MAX_OPEN_SOURCES = 3;
+const FOLLOWUP_MAX_HEIGHT_PX = 144;
 
 export class AgentAnswerView {
   /**
@@ -135,10 +140,7 @@ export class AgentAnswerView {
     const isActive = status === AGENT_ACTIVITY_STATUS.QUEUED || status === AGENT_ACTIVITY_STATUS.RUNNING;
     this.renderProgress(root, activity, isActive);
     this.renderNotice(root, activity, mode);
-    this.renderSteps(root, activity, { isNewRun, isActive });
-    this.renderThread(root, activity);
-    this.renderAnswer(root, activity, isActive);
-    this.renderSources(root, activity, { isNewRun, mode });
+    this.renderTurns(root, activity, { isNewRun, isActive });
     this.renderFollowUp(root, activity);
     this.renderActions(root, activity, mode);
   }
@@ -161,25 +163,145 @@ export class AgentAnswerView {
     const task = this.findTask(activity);
     const stop = progress.querySelector('[data-agent-action="stop"]');
     const stopping = task?.phase === 'cancelling';
-    stop.textContent = stopping ? t('answer.stopping') : t('answer.stop');
+    setButtonLabel(stop, stopping ? t('answer.stopping') : t('answer.stop'));
     stop.disabled = stopping || !task || isTerminalTaskStatus(task.status);
   }
 
-  renderAnswer(root, activity, isActive) {
-    const answer = this.part(root, 'answer');
+  // The thread: one block per turn (question, research, answer, sources),
+  // kept in place between renders so open steps, focus and highlights stay.
+  // The progress bar and the notice belong to the turn being worked on, so
+  // they move into the last block.
+  renderTurns(root, activity, { isNewRun, isActive }) {
+    const container = this.part(root, 'turns');
     const turns = agentTurnsOf(activity);
-    const index = turns.length - 1;
-    const turn = turns[index];
-    answer.dataset.citations = (activity.sourceRefs || []).map(source => source.sourceId).join(',');
-    // A follow-up shows its own question above its answer.
-    const question = this.part(root, 'turn-question');
+    const lastIndex = turns.length - 1;
+    const existing = new Map([...container.children].map(block => [block.dataset.turnId, block]));
+    if (isNewRun) {
+      existing.clear();
+    }
+    const stream = this.getStream(activity.taskId);
+    const sources = activity.sourceRefs || [];
+    // Citations in earlier answers point at sources of earlier turns, so each
+    // turn lists the sources its own answer cites; sources no answer cites
+    // stay with the last turn so none is unreachable.
+    const cited = turns.map((turn, index) =>
+      citedSourceIds(index === lastIndex && stream && (isActive || !turn.answer) ? stream : turn.answer)
+    );
+    const citedAnywhere = new Set(cited.flat());
+    const blocks = turns.map((turn, index) => {
+      const block = existing.get(turn.id) || this.createTurnBlock();
+      existing.delete(turn.id);
+      const ids = new Set(cited[index]);
+      const listed = sources.filter(source => ids.has(source.sourceId) || (index === lastIndex && !citedAnywhere.has(source.sourceId)));
+      this.updateTurnBlock(block, { activity, turn, index, isLast: index === lastIndex, isActive, listed, stream });
+      return block;
+    });
+    const slot = blocks.at(-1).querySelector('.agent-turn-status');
+    for (const part of ['progress', 'notice']) {
+      const element = this.part(root, part);
+      if (element.parentElement !== slot) {
+        slot.appendChild(element);
+      }
+    }
+    for (const block of existing.values()) {
+      block.remove();
+    }
+    if (blocks.some((block, index) => container.children[index] !== block) || container.children.length !== blocks.length) {
+      container.replaceChildren(...blocks);
+    }
+  }
+
+  createTurnBlock() {
+    const block = document.createElement('section');
+    block.className = 'agent-turn';
+    const question = document.createElement('div');
+    question.className = 'chat-message user agent-turn-question hidden';
+    question.dataset.part = 'turn-question';
+    const status = document.createElement('div');
+    status.className = 'agent-turn-status';
+
+    const research = document.createElement('details');
+    research.className = 'agent-research';
+    research.dataset.part = 'steps';
+    const summary = document.createElement('summary');
+    const label = document.createElement('span');
+    label.className = 'agent-research-label';
+    label.dataset.part = 'research-label';
+    const chevron = document.createElement('span');
+    chevron.className = 'chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    summary.append(createIcon('search'), label, chevron);
+    const steps = document.createElement('ol');
+    steps.className = 'agent-step-list';
+    steps.dataset.part = 'step-list';
+    research.append(summary, steps);
+
+    const answer = document.createElement('article');
+    answer.className = 'agent-answer-display summary-display hidden';
+    answer.dataset.part = 'answer';
+    const note = document.createElement('p');
+    note.className = 'agent-note hidden';
+    note.dataset.part = 'budget-note';
+    note.textContent = t('popup.budgetNote');
+
+    const sources = document.createElement('details');
+    sources.className = 'agent-turn-sources hidden';
+    sources.dataset.part = 'sources';
+    const sourcesSummary = document.createElement('summary');
+    const sourcesLabel = document.createElement('span');
+    sourcesLabel.textContent = t('popup.sources');
+    const count = document.createElement('span');
+    count.className = 'count-badge';
+    count.dataset.part = 'source-count';
+    const sourcesChevron = document.createElement('span');
+    sourcesChevron.className = 'chevron';
+    sourcesChevron.setAttribute('aria-hidden', 'true');
+    sourcesSummary.append(sourcesLabel, count, sourcesChevron);
+    const list = document.createElement('div');
+    list.className = 'agent-source-list';
+    list.dataset.part = 'source-list';
+    sources.append(sourcesSummary, list);
+
+    block.append(question, status, research, answer, note, sources);
+    return block;
+  }
+
+  updateTurnBlock(block, { activity, turn, index, isLast, isActive, listed, stream }) {
+    const live = isLast && isActive;
+    const isNew = block.dataset.turnId !== turn.id;
+    block.dataset.turnId = turn.id;
+    block.dataset.turnIndex = String(index);
+    const part = name => block.querySelector(`[data-part="${name}"]`);
+
+    // A follow-up shows its own question as a user bubble; the first
+    // question is in the card header.
+    const question = part('turn-question');
     question.textContent = index > 0 ? turn.question : '';
     question.classList.toggle('hidden', index === 0 || !turn.question);
-    const note = this.part(root, 'budget-note');
-    note.classList.toggle('hidden', !(turn.answer && turn.outOfBudget));
-    const stream = this.getStream(activity.taskId);
-    if (stream && (isActive || !turn.answer)) {
+
+    this.renderTurnSteps(block, { activity, index, live, isNew });
+    this.renderTurnAnswer(block, { activity, turn, live, isLast, stream });
+    part('budget-note').classList.toggle('hidden', !(turn.answer && turn.outOfBudget));
+    this.renderTurnSources(block, activity, listed);
+    this.renderResearchLabel(block, listed.length);
+  }
+
+  // "3 steps · 2 sources": what this turn's research came to.
+  renderResearchLabel(block, sourceCount) {
+    const steps = block.querySelectorAll('[data-part="step-list"] > li.agent-step').length;
+    const parts = [tn('answer.count.step', steps)];
+    if (sourceCount) {
+      parts.push(tn('answer.count.source', sourceCount));
+    }
+    block.querySelector('[data-part="research-label"]').textContent = parts.join(' · ');
+  }
+
+  renderTurnAnswer(block, { activity, turn, live, isLast, stream }) {
+    const answer = block.querySelector('[data-part="answer"]');
+    answer.dataset.citations = (activity.sourceRefs || []).map(source => source.sourceId).join(',');
+    if (isLast && stream && (live || !turn.answer)) {
       answer.classList.remove('hidden');
+      clearClamp(answer);
       this.markdown.schedule(answer, stream);
       answer.dataset.renderKey = '';
     } else if (turn.answer) {
@@ -189,8 +311,11 @@ export class AgentAnswerView {
         answer.dataset.renderKey = renderKey;
         renderMarkdown(answer, turn.answer);
       }
-    } else if (isActive) {
+      // Earlier turns are cut off with a Show all button; the newest answer is shown in full.
+      setClamp(answer, { enabled: !isLast, limit: ANSWER_CLAMP_PX });
+    } else if (live) {
       answer.classList.remove('hidden');
+      clearClamp(answer);
       answer.dataset.renderKey = '';
       const placeholder = document.createElement('p');
       placeholder.className = 'streaming-placeholder';
@@ -199,86 +324,57 @@ export class AgentAnswerView {
       answer.replaceChildren(placeholder);
     } else {
       answer.dataset.renderKey = '';
+      clearClamp(answer);
       answer.replaceChildren();
       answer.classList.add('hidden');
     }
   }
 
-  // Earlier questions and answers of a run with follow-ups, above the
-  // newest one.
-  renderThread(root, activity) {
-    const thread = this.part(root, 'thread');
-    const turns = agentTurnsOf(activity).slice(0, -1);
-    const citations = (activity.sourceRefs || []).map(source => source.sourceId).join(',');
-    const key =
-      turns.map((turn, index) => `${index}:${turn.id}:${turn.question}:${turn.answer.length}`).join('|')
-      + `|${citations}|${activity.activityId}`;
-    if (thread.dataset.key === key) {
-      return;
-    }
-    thread.dataset.key = key;
-    thread.replaceChildren(
-      ...turns.flatMap((turn, index) => {
-        if (!turn.answer) {
-          return [];
-        }
-        const nodes = [];
-        if (index > 0) {
-          const question = document.createElement('h3');
-          question.className = 'agent-thread-question';
-          question.textContent = turn.question;
-          nodes.push(question);
-        }
-        const article = document.createElement('article');
-        article.className = 'agent-answer-display summary-display agent-thread-answer';
-        article.dataset.citations = citations;
-        renderMarkdown(article, turn.answer);
-        nodes.push(article);
-        return nodes;
-      })
-    );
-  }
-
-  // The live step list: an icon per tool, what was done and how it went,
-  // and the reason and what came back under each step.
-  renderSteps(root, activity, { isNewRun, isActive }) {
-    const details = this.part(root, 'steps');
-    const list = this.part(root, 'step-list');
-    const steps = agentStepsOf(activity);
-    this.part(root, 'step-count').textContent = String(steps.length);
+  // This turn's steps: an icon per tool, what was done and how it went, and
+  // the reason and what came back under each step. Open while the turn is
+  // being worked on, tucked away once it is done.
+  renderTurnSteps(block, { activity, index, live, isNew }) {
+    const details = block.querySelector('[data-part="steps"]');
+    const list = block.querySelector('[data-part="step-list"]');
+    const steps = agentStepsOf(activity).filter(step => step.turn === index);
     details.classList.toggle('hidden', !steps.length);
-    const wasActive = root.dataset.stepsActive === 'true';
-    root.dataset.stepsActive = String(isActive);
-    if (isNewRun) {
-      details.open = isActive;
-    } else if (wasActive && !isActive) {
-      // Finished: tuck the steps away, the answer is what matters now.
+    const wasLive = block.dataset.live === 'true';
+    block.dataset.live = String(live);
+    if (isNew) {
+      details.open = live;
+    } else if (wasLive && !live) {
       details.open = false;
     }
-    // Steps the viewer expanded stay expanded when the list is rebuilt; a
-    // different run starts from a clean list.
+    // Steps the viewer expanded stay expanded when the list is rebuilt.
     const open = new Set(
-      isNewRun
-        ? []
-        : [...list.querySelectorAll('li[data-step-id]')]
-            .filter(item => item.querySelector('details')?.open)
-            .map(item => item.dataset.stepId)
+      [...list.querySelectorAll('li[data-step-id]')].filter(item => item.querySelector('details')?.open).map(item => item.dataset.stepId)
     );
-    const lastTurn = currentAgentTurnIndex(activity);
-    const turns = agentTurnsOf(activity);
-    const nodes = [];
-    let shownTurn = 0;
-    for (const step of steps) {
-      if (step.turn > shownTurn && step.turn <= lastTurn) {
-        shownTurn = step.turn;
-        const marker = document.createElement('li');
-        marker.className = 'agent-step-turn';
-        marker.textContent = t('answer.followUpMarker', { question: turns[step.turn]?.question || '' });
-        nodes.push(marker);
-      }
-      nodes.push(this.createStepItem(step, open));
+    list.replaceChildren(...steps.map(step => this.createStepItem(step, open)));
+  }
+
+  renderTurnSources(block, activity, sources) {
+    const details = block.querySelector('[data-part="sources"]');
+    const list = block.querySelector('[data-part="source-list"]');
+    details.classList.toggle('hidden', !sources.length);
+    block.querySelector('[data-part="source-count"]').textContent = String(sources.length);
+    if (!sources.length) {
+      list.replaceChildren();
+      list.dataset.key = '';
+      delete details.dataset.init;
+      return;
     }
-    list.replaceChildren(...nodes);
+    if (!details.dataset.init) {
+      // A short list is shown; a longer one waits behind its heading.
+      details.dataset.init = 'true';
+      details.open = sources.length <= MAX_OPEN_SOURCES;
+    }
+    const key = `${activity.activityId}|${activity.siteUrl}|${sources.map(source => source.sourceId).join(',')}`;
+    if (list.dataset.key === key) {
+      return;
+    }
+    list.dataset.key = key;
+    const highlighted = list.querySelector('.agent-source-card.is-highlighted')?.dataset.sourceId;
+    list.replaceChildren(...sources.map(source => this.createSourceCard(source, activity, highlighted)));
   }
 
   createStepItem(step, open) {
@@ -352,16 +448,25 @@ export class AgentAnswerView {
     }
     const forumName = this.forums.label(activity.siteUrl, activity.forumName);
     this.part(root, 'followup-label').textContent = forumName ? t('answer.followUpOn', { forum: forumName }) : t('answer.followUp');
-    const busy = form.dataset.busy === 'true';
-    this.part(root, 'followup-send').disabled = busy;
-    this.part(root, 'followup-input').disabled = busy;
+    this.part(root, 'followup-input').disabled = form.dataset.busy === 'true';
+    this.syncFollowUp(root);
+  }
+
+  // Grows the box with its text, like the topic chat's, and enables Send
+  // once there is a question.
+  syncFollowUp(root) {
+    const form = this.part(root, 'followup');
+    const input = this.part(root, 'followup-input');
+    input.style.height = 'auto';
+    input.style.height = `${Math.min(input.scrollHeight, FOLLOWUP_MAX_HEIGHT_PX)}px`;
+    this.part(root, 'followup-send').disabled = form.dataset.busy === 'true' || !input.value.trim();
   }
 
   // Streams a chunk into every visible root showing this task.
   renderStream(roots, taskId, content) {
     for (const root of roots) {
       if (root.dataset.taskId === taskId && !root.classList.contains('hidden')) {
-        const answer = this.part(root, 'answer');
+        const answer = [...root.querySelectorAll('[data-part="answer"]')].at(-1);
         answer.classList.remove('hidden');
         this.markdown.schedule(answer, content);
       }
@@ -380,26 +485,26 @@ export class AgentAnswerView {
       const host = forumAccessHost(activity.siteUrl);
       type = 'warning';
       message = t('answer.notice.needAccess', { host });
-      actions.push({ action: 'continue', label: t('answer.notice.allowContinue', { host }), primary: true });
+      actions.push({ action: 'continue', icon: 'play', label: t('answer.notice.allowContinue', { host }), primary: true });
     } else if (activity.status === AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION) {
       type = 'warning';
       message = t('answer.notice.needLogin', { forum: forumName });
       actions.push(
-        { action: 'login', label: t('answer.notice.login', { forum: forumName }), primary: true },
-        { action: 'continue', label: t('common.continue') }
+        { action: 'login', icon: 'open', label: t('answer.notice.login', { forum: forumName }), primary: true },
+        { action: 'continue', icon: 'play', label: t('common.continue') }
       );
     } else if (activity.status === AGENT_ACTIVITY_STATUS.FAILED) {
       type = 'error';
       message = activity.error?.message || t('agent.researchFailed');
-      actions.push({ action: 'retry', label: t('common.retry'), primary: true });
+      actions.push({ action: 'retry', icon: 'retry', label: t('common.retry'), primary: true });
     } else if (activity.status === AGENT_ACTIVITY_STATUS.CANCELLED) {
       type = 'info';
       const followUp = currentAgentTurnIndex(activity) > 0;
       message = followUp ? t('answer.notice.followUpStopped') : t('answer.notice.stopped');
       actions.push(
         mode === 'inline' && !followUp
-          ? { action: 'ask-again', label: t('answer.askAgain'), primary: true }
-          : { action: 'retry', label: t('answer.askAgain'), primary: true }
+          ? { action: 'ask-again', icon: 'retry', label: t('answer.askAgain'), primary: true }
+          : { action: 'retry', icon: 'retry', label: t('answer.askAgain'), primary: true }
       );
     }
     notice.className = `agent-notice status ${type}${type ? '' : ' hidden'}`;
@@ -408,6 +513,8 @@ export class AgentAnswerView {
   }
 
   // Rebuilds a button row only when its actions change, keeping focus.
+  // `short` is the label shown beside the icon (the full `label` stays the
+  // accessible name and tooltip); `tool` makes it a compact toolbar button.
   renderButtons(container, actions) {
     const signature = JSON.stringify(actions);
     if (container.dataset.signature === signature) {
@@ -419,14 +526,21 @@ export class AgentAnswerView {
       ...actions.map(item => {
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = item.primary ? 'secondary' : 'outline secondary';
+        button.className = item.tool ? 'tool-btn' : item.primary ? 'secondary' : 'outline secondary';
         button.dataset.agentAction = item.action;
-        button.textContent = item.label;
+        if (item.icon) {
+          setIconButton(button, { icon: item.icon, label: item.short || item.label });
+        } else {
+          button.textContent = item.label;
+        }
+        if (item.tool) {
+          button.setAttribute('aria-label', item.label);
+          button.title = item.title || item.label;
+        } else if (item.title) {
+          button.title = item.title;
+        }
         if (item.pressed !== undefined) {
           button.setAttribute('aria-pressed', String(item.pressed));
-        }
-        if (item.title) {
-          button.title = item.title;
         }
         return button;
       })
@@ -437,41 +551,35 @@ export class AgentAnswerView {
     }
   }
 
+  // The toolbar under a card: icon buttons (copy, keep, open, new question,
+  // delete), each named for assistive tech and as a tooltip.
   renderActions(root, activity, mode) {
     const actions = [];
     if (activity.status === AGENT_ACTIVITY_STATUS.COMPLETED) {
       if (activity.answer) {
-        actions.push({ action: 'copy', label: t('answer.copy'), primary: true });
+        actions.push({ action: 'copy', icon: 'copy', label: t('answer.copy'), short: t('answer.copyShort'), tool: true });
       }
       actions.push({
         action: 'keep',
+        icon: 'bookmark',
         label: activity.kept ? t('common.kept') : t('common.keep'),
         pressed: activity.kept === true,
-        title: activity.kept ? this.getRetentionCopy().unkeepAnswer : this.getRetentionCopy().keepAnswer
+        title: activity.kept ? this.getRetentionCopy().unkeepAnswer : this.getRetentionCopy().keepAnswer,
+        tool: true
       });
     }
     if (mode === 'inline' && activity.status === AGENT_ACTIVITY_STATUS.COMPLETED) {
       // Failed and stopped runs offer Retry / Ask again in their notice instead.
-      actions.push({ action: 'ask-another', label: t('answer.askAnother') }, { action: 'open-activity', label: t('answer.openActivity') });
+      actions.push(
+        { action: 'open-activity', icon: 'activity', label: t('answer.openActivity'), short: t('popup.activity'), tool: true },
+        { action: 'ask-another', icon: 'plus', label: t('answer.askAnother'), tool: true }
+      );
     } else if (isAgentActivityTerminal(activity.status)) {
-      actions.push({ action: 'delete', label: t('common.delete') });
+      actions.push({ action: 'delete', icon: 'trash', label: t('common.delete'), tool: true });
     }
     const container = this.part(root, 'actions');
     this.renderButtons(container, actions);
     container.dataset.count = String(actions.length);
-  }
-
-  renderSources(root, activity, { isNewRun, mode }) {
-    const details = this.part(root, 'sources');
-    const list = this.part(root, 'source-list');
-    const sources = activity.sourceRefs || [];
-    this.part(root, 'source-count').textContent = String(sources.length);
-    details.classList.toggle('hidden', !sources.length);
-    if (isNewRun) {
-      details.open = mode === 'detail';
-    }
-    const highlighted = list.querySelector('.agent-source-card.is-highlighted')?.dataset.sourceId;
-    list.replaceChildren(...sources.map(source => this.createSourceCard(source, activity, highlighted)));
   }
 
   createSourceCard(source, activity, highlighted) {
@@ -480,26 +588,28 @@ export class AgentAnswerView {
     card.classList.toggle('is-highlighted', source.sourceId === highlighted);
     card.dataset.sourceId = source.sourceId;
     card.tabIndex = -1;
-    const header = document.createElement('div');
-    header.className = 'agent-source-card-header';
+    if (source.excerpt) {
+      card.title = source.excerpt;
+    }
     const id = document.createElement('span');
     id.className = 'agent-source-id';
-    id.textContent = `[${source.sourceId}]`;
-    const title = document.createElement('strong');
+    id.textContent = source.sourceId;
+    const title = document.createElement('span');
+    title.className = 'agent-source-title';
     title.textContent = source.title;
     title.title = source.title;
-    header.append(id, title);
-    card.appendChild(header);
-    const excerpt = document.createElement('p');
-    excerpt.textContent = source.excerpt || t('answer.noExcerpt');
-    card.appendChild(excerpt);
+    card.append(id, title);
     // Only link sources that belong to the forum this activity ran on.
     if (isSameForumUrl(source.url, activity.siteUrl || source.siteUrl)) {
       const link = document.createElement('a');
+      link.className = 'agent-source-open';
       link.href = source.url;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      link.textContent = source.postNumber ? t('answer.openPost', { number: source.postNumber }) : t('answer.openTopic');
+      const label = source.postNumber ? t('answer.openPost', { number: source.postNumber }) : t('answer.openTopic');
+      link.setAttribute('aria-label', `${label}: ${source.title}`);
+      link.title = label;
+      link.appendChild(createIcon('open'));
       link.addEventListener('click', event => {
         // Reuse a tab already on this topic (jumping to the cited post)
         // instead of piling up new tabs; fall back to the plain link.
@@ -520,14 +630,19 @@ export class AgentAnswerView {
     return card;
   }
 
-  focusSource(root, sourceId) {
-    const details = this.part(root, 'sources');
-    const card = details.querySelector(`.agent-source-card[data-source-id="${CSS.escape(sourceId)}"]`);
+  // Follows a citation to its source: within the turn that cites it, else
+  // anywhere in the card.
+  focusSource(root, sourceId, scope = root) {
+    const selector = `.agent-source-card[data-source-id="${CSS.escape(sourceId)}"]`;
+    const card = scope.querySelector(selector) || root.querySelector(selector);
     if (!card) {
       return;
     }
-    details.open = true;
-    for (const other of details.querySelectorAll('.agent-source-card.is-highlighted')) {
+    const details = card.closest('details');
+    if (details) {
+      details.open = true;
+    }
+    for (const other of root.querySelectorAll('.agent-source-card.is-highlighted')) {
       other.classList.remove('is-highlighted');
     }
     // Restart the highlight when the same citation is followed twice.

@@ -21,6 +21,7 @@ import {
   defaultStub,
   forumHomeState,
   modelRoutes,
+  savedSession,
   savedSessionHistory
 } from './fixtures/flows.mjs';
 import en from '../../src/shared/locales/en.mjs';
@@ -88,7 +89,11 @@ scenario('popup-configured', 'src/popup/popup.html', { store: configuredStore },
     };
   });
   await page.click('#modelChipBtn');
-  check('chip opens settings', await page.evaluate(() => window.__openedOptions === 1));
+  await page.waitForTimeout(400);
+  check('chip opens settings in the panel', await visible(page, '#settingsView'));
+  check('no options tab opened', await page.evaluate(() => window.__openedOptions === 0));
+  await page.click('#closeSettingsBtn');
+  check('back from settings', (await visible(page, '#topicView')) && !(await visible(page, '#settingsView')));
   check('summarize enabled', await page.$eval('#summarizeBtn', b => !b.disabled));
   check('setup card hidden', !(await visible(page, '#setupCard')));
   check('no idle status on a topic', !(await visible(page, '#status')), await text(page, '#status'));
@@ -96,13 +101,29 @@ scenario('popup-configured', 'src/popup/popup.html', { store: configuredStore },
   await shot();
 });
 
+// Clicks a "free Gemini key" link without leaving the page (it opens a new tab in Chrome).
+const clickFreeKeyLink = async (page, selector) => {
+  await page.$eval(selector, link => link.addEventListener('click', event => event.preventDefault()));
+  await page.click(selector);
+  await page.waitForTimeout(150);
+};
 scenario('popup-setup', 'src/popup/popup.html', { store: {} }, async ({ page, check, shot }) => {
   check('setup card visible', await visible(page, '#setupCard'));
   check('header says not set up', await visible(page, '#setupJumpBtn'));
   check('summarize disabled', await page.$eval('#summarizeBtn', b => b.disabled));
   await shot('fresh');
+  check('free key hint shown', await visible(page, '#setupFreeKey'));
+  check(
+    'free key link goes to AI Studio',
+    (await page.$eval('#setupFreeKeyLink', a => a.href)) === 'https://aistudio.google.com/apikey'
+      && (await page.$eval('#setupFreeKeyLink', a => a.target)) === '_blank'
+  );
+  await clickFreeKeyLink(page, '#setupFreeKeyLink');
+  check('free key link picks Gemini', (await page.$eval('#setupMoreProviders', s => s.value)) === 'gemini');
+  check('free key hint hidden for Gemini', !(await visible(page, '#setupFreeKey')));
   // Invalid submit shows a field error.
   await page.click('label.setup-provider-option[data-provider="openai"]');
+  check('free key hint back for OpenAI', await visible(page, '#setupFreeKey'));
   await page.fill('#setupApiKey', '');
   await page.click('#setupSaveOnlyBtn');
   await page.waitForTimeout(100);
@@ -481,8 +502,23 @@ const fireStream = (page, taskId, chunk) =>
   );
 // What each step says (its label and outcome, not the expandable details).
 const stepTexts = (page, root = '#agentPanel') =>
-  page.$$eval(`${root} .agent-step, ${root} .agent-step-turn`, items =>
+  page.$$eval(`${root} .agent-step`, items =>
     items.map(item => (item.querySelector('.agent-step-text, summary') || item).textContent.trim().replace(/\s+/g, ' '))
+  );
+// The steps of one turn only (0-based), and the thread's blocks.
+const turnStepTexts = (page, index, root = '#agentPanel') =>
+  page.$$eval(`${root} .agent-turn:nth-child(${index + 1}) .agent-step`, items =>
+    items.map(item => (item.querySelector('.agent-step-text, summary') || item).textContent.trim().replace(/\s+/g, ' '))
+  );
+const turnCount = (page, root = '#agentPanel') => page.$$eval(`${root} .agent-turn`, blocks => blocks.length);
+// Every button of a toolbar has an accessible name and a tooltip.
+const toolbarNames = (page, selector) =>
+  page.$$eval(`${selector} button`, buttons =>
+    buttons.map(button => ({
+      name: button.getAttribute('aria-label') || button.textContent.trim(),
+      title: button.title,
+      pressed: button.getAttribute('aria-pressed')
+    }))
   );
 
 scenario(
@@ -538,11 +574,18 @@ scenario(
       })
     );
     await page.waitForTimeout(250);
-    check('steps open while running', await page.$eval('#agentPanel [data-part="steps"]', d => d.open && !d.classList.contains('hidden')));
+    check(
+      'steps open while running',
+      await page.$eval('#agentPanel .agent-turn:last-child [data-part="steps"]', d => d.open && !d.classList.contains('hidden'))
+    );
     check('two steps listed', (await stepTexts(page)).length === 2, JSON.stringify(await stepTexts(page)));
     check('search step', (await stepTexts(page))[0] === 'Searched “enable caching” · 3 results', (await stepTexts(page))[0]);
     check('running step', (await stepTexts(page))[1] === 'Reading topic 1…', (await stepTexts(page))[1]);
-    check('step count', (await text(page, '#agentPanel [data-part="step-count"]')) === '2');
+    check(
+      'research label counts steps',
+      (await text(page, '#agentPanel [data-part="research-label"]')) === '2 steps',
+      await text(page, '#agentPanel [data-part="research-label"]')
+    );
     check('icon per tool', (await page.$$('#agentPanel .agent-step[data-tool="search_forum"] .agent-step-icon svg')).length === 1);
     check('running step flagged', await page.$eval('#agentPanel .agent-step:last-child', li => li.dataset.status === 'running'));
     check(
@@ -587,8 +630,8 @@ scenario(
     check('writing label', (await text(page, '#agentPanel [data-part="progress-label"]')) === 'Writing the answer…');
     check(
       'answer streams',
-      (await text(page, '#agentPanel [data-part="answer"]')).includes('Enable it in the admin panel'),
-      await text(page, '#agentPanel [data-part="answer"]')
+      (await text(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')).includes('Enable it in the admin panel'),
+      await text(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')
     );
     check('still no announcement', (await text(page, '#agentAnnouncer')) === '', await text(page, '#agentAnnouncer'));
     await shot('answering');
@@ -617,12 +660,15 @@ scenario(
     await page.waitForTimeout(400);
     check(
       'answer rendered',
-      (await text(page, '#agentPanel [data-part="answer"]')).includes('admin panel'),
-      await text(page, '#agentPanel [data-part="answer"]')
+      (await text(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')).includes('admin panel'),
+      await text(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')
     );
     check('citation linked', (await page.$$('#agentPanel .agent-citation')).length === 1);
     check('answer announced', (await text(page, '#agentAnnouncer')) === 'Answer ready', await text(page, '#agentAnnouncer'));
-    check('steps tucked away', await page.$eval('#agentPanel [data-part="steps"]', d => !d.open && !d.classList.contains('hidden')));
+    check(
+      'steps tucked away',
+      await page.$eval('#agentPanel .agent-turn:last-child [data-part="steps"]', d => !d.open && !d.classList.contains('hidden'))
+    );
     check(
       'meta counts steps and sources',
       (await text(page, '#agentPanel .agent-panel-meta')).includes('2 steps · 1 source'),
@@ -636,8 +682,8 @@ scenario(
     );
     check(
       'copy action',
-      (await text(page, '#agentPanel [data-part="actions"]')).includes('Copy answer'),
-      await text(page, '#agentPanel [data-part="actions"]')
+      (await page.$eval('#agentPanel [data-part="actions"] [data-agent-action="copy"]', b => b.getAttribute('aria-label')))
+        === 'Copy answer'
     );
     await page.click('#agentPanel .agent-citation');
     await page.waitForTimeout(150);
@@ -667,8 +713,35 @@ scenario(
       });
     await fireActivity(page, followUpRun({ status: 'running', phase: 'planning', updatedAt: Date.now() + 40, completedAt: 0 }));
     await page.waitForTimeout(250);
-    check('follow-up question shown', (await text(page, '#agentPanel [data-part="turn-question"]')) === 'And what about a CDN?');
-    check('first answer kept above', (await text(page, '#agentPanel [data-part="thread"]')).includes('admin panel'));
+    check(
+      'follow-up question shown',
+      (await text(page, '#agentPanel .agent-turn:last-child [data-part="turn-question"]')) === 'And what about a CDN?'
+    );
+    check(
+      'first answer kept above',
+      (await text(page, '#agentPanel .agent-turn:first-child [data-part="answer"]')).includes('admin panel')
+    );
+    check('thread has a block per turn', (await turnCount(page)) === 2);
+    check(
+      'follow-up question is a user bubble',
+      await page.$eval(
+        '#agentPanel .agent-turn:last-child [data-part="turn-question"]',
+        el => el.classList.contains('chat-message') && el.classList.contains('user')
+      )
+    );
+    check(
+      'first question stays in the header only',
+      !(await visible(page, '#agentPanel .agent-turn:first-child [data-part="turn-question"]'))
+    );
+    check(
+      'progress sits in the working turn',
+      await page.$eval('#agentPanel .agent-turn:last-child [data-part="progress"]', el => !el.classList.contains('hidden'))
+    );
+    check('first turn keeps its steps', (await turnStepTexts(page, 0)).length === 2, JSON.stringify(await turnStepTexts(page, 0)));
+    check(
+      'working turn has its research open',
+      await page.$eval('#agentPanel .agent-turn:last-child [data-part="steps"]', d => d.open || d.classList.contains('hidden'))
+    );
     check('no follow-up box while working', !(await visible(page, '#agentPanel [data-part="followup-input"]')));
     check('stop while working', await page.$eval('#agentPanel [data-agent-action="stop"]', b => b.offsetParent !== null));
     await shot('follow-up-running');
@@ -685,17 +758,59 @@ scenario(
     await page.waitForTimeout(300);
     check(
       'follow-up answer appended',
-      (await text(page, '#agentPanel [data-part="answer"]')).includes('CDN in front'),
-      await text(page, '#agentPanel [data-part="answer"]')
+      (await text(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')).includes('CDN in front'),
+      await text(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')
     );
-    check('earlier answer in the thread', (await text(page, '#agentPanel [data-part="thread"]')).includes('admin panel'));
     check(
-      'follow-up step listed after a divider',
-      (await stepTexts(page)).some(t => t.startsWith('Follow-up · And what about a CDN?'))
-        && (await stepTexts(page)).at(-1) === 'Listed latest topics · 30 topics',
-      JSON.stringify(await stepTexts(page))
+      'earlier answer in the thread',
+      (await text(page, '#agentPanel .agent-turn:first-child [data-part="answer"]')).includes('admin panel')
+    );
+    check(
+      'follow-up steps sit in their own turn',
+      (await turnStepTexts(page, 1)).join('|') === 'Listed latest topics · 30 topics' && (await turnStepTexts(page, 0)).length === 2,
+      JSON.stringify([await turnStepTexts(page, 0), await turnStepTexts(page, 1)])
+    );
+    check(
+      'research disclosure per turn',
+      (await text(page, '#agentPanel .agent-turn:nth-child(1) [data-part="research-label"]')) === '2 steps · 1 source'
+        && (await text(page, '#agentPanel .agent-turn:nth-child(2) [data-part="research-label"]')) === '1 step · 1 source',
+      `${await text(page, '#agentPanel .agent-turn:nth-child(1) [data-part="research-label"]')} / ${await text(page, '#agentPanel .agent-turn:nth-child(2) [data-part="research-label"]')}`
+    );
+    check(
+      'research collapsed once answered',
+      await page.$$eval('#agentPanel [data-part="steps"]', all => all.length === 2 && all.every(d => !d.open))
+    );
+    check(
+      'each turn lists the sources its answer cites',
+      await page.$$eval('#agentPanel .agent-turn', blocks =>
+        blocks.every(block => block.querySelectorAll('.agent-source-card[data-source-id="S1"]').length === 1)
+      )
+    );
+    check(
+      'follow-up citation opens its own turn source',
+      await (async () => {
+        await page.click('#agentPanel .agent-turn:last-child .agent-citation');
+        await page.waitForTimeout(100);
+        return page
+          .$eval('#agentPanel .agent-turn:last-child .agent-source-card.is-highlighted', card => card.dataset.sourceId === 'S1')
+          .catch(() => false);
+      })()
+    );
+    check(
+      'toolbar buttons are named',
+      (await toolbarNames(page, '#agentPanel [data-part="actions"]')).every(b => b.name && b.title),
+      JSON.stringify(await toolbarNames(page, '#agentPanel [data-part="actions"]'))
+    );
+    check(
+      'toolbar offers copy, keep, activity, new question',
+      (await toolbarNames(page, '#agentPanel [data-part="actions"]')).map(b => b.name).join('|')
+        === 'Copy answer|Keep|Open in Activity|Ask another',
+      JSON.stringify(await toolbarNames(page, '#agentPanel [data-part="actions"]'))
     );
     check('follow-up announced again', (await text(page, '#agentAnnouncer')) === 'Answer ready', await text(page, '#agentAnnouncer'));
+    // Leave the clicked citation so the shot doesn't catch its hover colors mid-transition.
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(300);
     await shot('follow-up-answered');
 
     // Composer.
@@ -829,8 +944,11 @@ scenario('popup-agent-states', 'src/popup/popup.html', { store: configuredStore 
       completedAt: Date.now()
     })
   );
-  check('first answer stays above a failed follow-up', (await text(page, '#agentPanel [data-part="thread"]')).includes('admin panel'));
-  check('follow-up question shown', (await text(page, '#agentPanel [data-part="turn-question"]')) === 'And a CDN?');
+  check(
+    'first answer stays above a failed follow-up',
+    (await text(page, '#agentPanel .agent-turn:first-child [data-part="answer"]')).includes('admin panel')
+  );
+  check('follow-up question shown', (await text(page, '#agentPanel .agent-turn:last-child [data-part="turn-question"]')) === 'And a CDN?');
   await page.click('#agentPanel [data-agent-action="retry"]');
   await page.waitForTimeout(300);
   check(
@@ -878,7 +996,7 @@ scenario('popup-agent-states', 'src/popup/popup.html', { store: configuredStore 
       completedAt: Date.now()
     })
   );
-  check('legacy answer', (await text(page, '#agentPanel [data-part="answer"]')).includes('admin panel'));
+  check('legacy answer', (await text(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')).includes('admin panel'));
   check(
     'legacy searches as steps',
     JSON.stringify(await stepTexts(page))
@@ -892,7 +1010,7 @@ scenario('popup-agent-states', 'src/popup/popup.html', { store: configuredStore 
   );
   check(
     'legacy has no follow-up divider or thread',
-    !(await visible(page, '#agentPanel [data-part="turn-question"]')) && (await text(page, '#agentPanel [data-part="thread"]')) === ''
+    !(await visible(page, '#agentPanel .agent-turn:last-child [data-part="turn-question"]')) && (await turnCount(page)) === 1
   );
   check('legacy run can be followed up', await visible(page, '#agentPanel [data-part="followup-input"]'));
   await shot('legacy');
@@ -971,7 +1089,7 @@ scenario(
     await page.click('#summariesTab');
     await page.waitForTimeout(200);
     check('saved panel visible', await visible(page, '#summariesPanel'));
-    check('saved empty', (await text(page, '#savedList')).includes('No saved items yet'), await text(page, '#savedList'));
+    check('saved empty', (await text(page, '#savedList')).includes('Nothing saved yet'), await text(page, '#savedList'));
     await shot('saved');
     await page.click('#closeSavedBtn');
     await page.waitForTimeout(100);
@@ -1100,6 +1218,18 @@ scenario('popup-chat', 'src/popup/popup.html', { store: configuredStore }, async
   );
   check('copy post enabled', await page.$eval('#copyPostBtn', b => !b.disabled));
   check(
+    'summary toolbar buttons are named',
+    (await toolbarNames(page, '#summaryContainer .action-toolbar')).map(b => b.name).join('|') === 'Copy summary|Copy full post|Download'
+      && (await toolbarNames(page, '#summaryContainer .action-toolbar')).every(b => b.title),
+    JSON.stringify(await toolbarNames(page, '#summaryContainer .action-toolbar'))
+  );
+  check(
+    'hero buttons keep an icon beside their label',
+    await page.$$eval('#summarizeBtn, #agentLaunchBtn', buttons =>
+      buttons.every(b => b.querySelector('svg.btn-icon') && b.querySelector('.btn-label').textContent.trim())
+    )
+  );
+  check(
     'context help',
     (await text(page, '#forumContextLimitHelp')).startsWith('The full discussion fits'),
     await text(page, '#forumContextLimitHelp')
@@ -1177,7 +1307,7 @@ scenario('popup-chat-edit', 'src/popup/popup.html', { store: configuredStore }, 
   await page.click('#summariesTab');
   await page.click('#savedList .delete-saved');
   await page.waitForTimeout(300);
-  check('deleted', (await text(page, '#savedList')).includes('No saved items yet'), await text(page, '#savedList'));
+  check('deleted', (await text(page, '#savedList')).includes('Nothing saved yet'), await text(page, '#savedList'));
   check('undo offered', await toastShown(page));
   await page.click('#closeSavedBtn');
   await page.waitForTimeout(100);
@@ -1333,7 +1463,7 @@ scenario(
     await page.click(`${topicCard} .delete-saved`);
     await page.clock.runFor(9000);
     check('topic deleted for good', !(await idbKeys(page, 'topicSessions')).includes(TOPIC_KEY));
-    check('list empty', (await text(page, '#savedList')).includes('No saved items yet'), await text(page, '#savedList'));
+    check('list empty', (await text(page, '#savedList')).includes('Nothing saved yet'), await text(page, '#savedList'));
     check('focus on the list tab', (await focusedSelector(page)) === '#summariesTab', await focusedSelector(page));
     await shot('empty');
 
@@ -1411,29 +1541,58 @@ scenario('popup-agent-activity', 'src/popup/popup.html', { store: configuredStor
     await text(page, '#agentDetailMeta')
   );
   const detailSteps = await stepTexts(page, '#agentDetailView');
+  const firstTurnSteps = await turnStepTexts(page, 0, '#agentDetailView');
+  const secondTurnSteps = await turnStepTexts(page, 1, '#agentDetailView');
   check(
-    'detail lists every step with the follow-up divider',
-    detailSteps.length === 8
-      && detailSteps[0] === 'Searched “streaming rate limit 429” · 6 results'
-      && detailSteps[6].startsWith('Follow-up · Does it differ'),
-    JSON.stringify(detailSteps)
+    'detail lists every step, each in its own turn',
+    detailSteps.length === 7
+      && firstTurnSteps.length === 6
+      && firstTurnSteps[0] === 'Searched “streaming rate limit 429” · 6 results'
+      && secondTurnSteps.length === 1,
+    JSON.stringify([firstTurnSteps, secondTurnSteps])
   );
-  check('steps tucked away for a finished run', await page.$eval('#agentDetailView [data-part="steps"]', d => !d.open));
-  await page.click('#agentDetailView [data-part="steps"] > summary');
+  check(
+    'follow-up question is shown in its turn',
+    (await text(page, '#agentDetailView .agent-turn:last-child [data-part="turn-question"]')).startsWith('Does it differ')
+  );
+  check(
+    'steps tucked away for a finished run',
+    await page.$eval('#agentDetailView .agent-turn:first-child [data-part="steps"]', d => !d.open)
+  );
+  await page.click('#agentDetailView .agent-turn:first-child [data-part="steps"] > summary');
   await page.click('#agentDetailView .agent-step:nth-child(3) summary');
   check(
     'expanded step shows the reason',
     (await text(page, '#agentDetailView .agent-step:nth-child(3) .agent-step-reason')).includes('best match')
   );
-  check('thread holds the first answer', (await text(page, '#agentDetailView [data-part="thread"]')).includes('Retry-After'));
-  check('latest answer below', (await text(page, '#agentDetailView [data-part="answer"]')).includes('advice is the same'));
+  check(
+    'thread holds the first answer',
+    (await text(page, '#agentDetailView .agent-turn:first-child [data-part="answer"]')).includes('Retry-After')
+  );
+  check(
+    'detail toolbar is named',
+    (await toolbarNames(page, '#agentDetailView [data-part="actions"]')).map(b => b.name).join('|') === 'Copy answer|Keep|Delete',
+    JSON.stringify(await toolbarNames(page, '#agentDetailView [data-part="actions"]'))
+  );
+  check(
+    'latest answer below',
+    (await text(page, '#agentDetailView .agent-turn:last-child [data-part="answer"]')).includes('advice is the same')
+  );
   check(
     'follow-up names its own forum',
     (await text(page, '#agentDetailView [data-part="followup-label"]')) === 'Ask a follow-up on OpenAI Developer Community'
   );
   await shot('detail');
+  check('send is off until there is a question', await page.$eval('#agentDetailView [data-part="followup-send"]', b => b.disabled));
   await page.fill('#agentDetailView [data-part="followup-input"]', 'What about WebSockets?');
-  await page.click('#agentDetailView [data-part="followup-send"]');
+  await page.press('#agentDetailView [data-part="followup-input"]', 'Shift+Enter');
+  check(
+    'Shift+Enter adds a line instead of sending',
+    (await page.$eval('#agentDetailView [data-part="followup-input"]', i => i.value.includes('\n')))
+      && !(await page.evaluate(() => window.__sent.some(m => m.followUp === true)))
+  );
+  await page.press('#agentDetailView [data-part="followup-input"]', 'Backspace');
+  await page.press('#agentDetailView [data-part="followup-input"]', 'Enter');
   await page.waitForTimeout(300);
   const sent = await page.evaluate(() => window.__sent.filter(m => m.action === 'enqueueTask').at(-1));
   check(
@@ -1725,9 +1884,17 @@ scenario('settings-fresh', 'src/settings/settings.html', { store: { extensionSet
   await page.waitForTimeout(100);
   check('invalid status', (await text(page, '#status')) === 'OpenRouter API key is required.', await text(page, '#status'));
   check('field marked invalid', await page.$eval('#openrouterApiKey', i => i.getAttribute('aria-invalid') === 'true'));
+  check('free key hint shown', await visible(page, '#freeKeyHint'));
   await shot('invalid');
+  await clickFreeKeyLink(page, '#freeKeyLink');
+  check(
+    'free key link picks Gemini',
+    (await page.$eval('#providerSelect', s => s.value)) === 'gemini' && (await visible(page, '#config-gemini'))
+  );
+  check('free key hint hidden for Gemini', !(await visible(page, '#freeKeyHint')));
   await page.selectOption('#providerSelect', 'ollama');
   check('ollama section', await visible(page, '#config-ollama'));
+  check('free key hint hidden for local models', !(await visible(page, '#freeKeyHint')));
   check('dirty after provider change', (await text(page, '#dirtyIndicator')) === 'Unsaved changes');
   await page.click('#saveBtn');
   await page.waitForTimeout(300);
@@ -2674,11 +2841,11 @@ zhScenario('popup-topic', 'src/popup/popup.html', { store: configuredStore, task
   await shot('topic');
   await page.click('#savedBtn');
   await page.waitForTimeout(300);
-  await zhScreen(page, check, 'activity tasks', ['记录', '后台任务', '任务', '已保存']);
+  await zhScreen(page, check, 'activity tasks', ['记录', '任务', '已保存']);
   await shot('activity-tasks');
   await page.click('#summariesTab');
   await page.waitForTimeout(300);
-  await zhScreen(page, check, 'activity saved', ['已保存的总结和回答', '保留', '删除', '对话和问答记录将在 1 天后过期']);
+  await zhScreen(page, check, 'activity saved', ['保留', '删除', '对话和问答记录将在 1 天后过期']);
   await shot('activity-saved');
   await page.click('#savedList [data-saved-key^="agent:"] .delete-saved');
   await page.waitForTimeout(300);
@@ -2726,8 +2893,45 @@ zhScenario('popup-agent', 'src/popup/popup.html', { store: configuredStore }, as
     run({ status: 'completed', answer: CACHING_ANSWER, steps: [SEARCH_STEP, READ_STEP], sources: CACHING_SOURCES.slice(0, 1) })
   );
   await page.waitForTimeout(300);
-  await zhScreen(page, check, 'completed', ['2 个步骤', '1 个来源', '继续追问', '再问一个', '在记录中打开']);
+  await zhScreen(page, check, 'completed', ['2 个步骤', '1 个来源', '再问一个', '记录']);
+  check(
+    'toolbar buttons are named in Chinese',
+    (await toolbarNames(page, '#agentPanel [data-part="actions"]')).map(b => b.name).join('|') === '复制回答|保留|在记录中打开|再问一个'
+      && (await toolbarNames(page, '#agentPanel [data-part="actions"]')).every(b => b.title),
+    JSON.stringify(await toolbarNames(page, '#agentPanel [data-part="actions"]'))
+  );
+  check(
+    'follow-up composer is named in Chinese',
+    (await page.$eval('#agentPanel [data-part="followup-send"]', b => b.getAttribute('aria-label'))) === '发送问题'
+  );
   await shot('completed');
+  // A follow-up: its own turn with the question, research and sources.
+  await fireActivity(
+    page,
+    run({
+      status: 'completed',
+      answer: CACHING_ANSWER,
+      steps: [SEARCH_STEP, READ_STEP],
+      sources: CACHING_SOURCES.slice(0, 1),
+      followUps: [
+        {
+          question: '那 CDN 呢？',
+          answer: '在论坛前面放一个 CDN [S1]。',
+          steps: [{ tool: 'list_latest', resultCount: 30, reason: '看看有什么新内容。' }]
+        }
+      ]
+    })
+  );
+  await page.waitForTimeout(300);
+  await zhScreen(page, check, 'follow-up', ['那 CDN 呢？', '2 个步骤 · 1 个来源', '1 个步骤 · 1 个来源']);
+  check(
+    'follow-up turns in Chinese',
+    (await turnCount(page)) === 2
+      && (await text(page, '#agentPanel .agent-turn:last-child [data-part="turn-question"]')) === '那 CDN 呢？'
+      && (await turnStepTexts(page, 1)).length === 1,
+    JSON.stringify(await turnStepTexts(page, 1))
+  );
+  await shot('follow-up');
   await fireActivity(
     page,
     run({ status: 'failed', answer: '', error: { code: 'AGENT_ERROR', message: '模型没有返回有效的操作', retryable: true } })
@@ -2848,6 +3052,546 @@ zhScenario('content-forum-button', '__fixtures__/discourse-topic.html', { store:
     label.join(' | ')
   );
   await shot('launcher');
+});
+
+// ---------- Settings inside the side panel ----------
+const settingsFrame = async page => {
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const frame = page.frames().find(f => f.url().includes('settings.html'));
+    if (
+      frame
+      && (await frame.$('#providerSelect').catch(() => null))
+      && (await frame.evaluate(() => Boolean(window.settingsInstance?.form)).catch(() => false))
+    ) {
+      await page.waitForTimeout(200);
+      return frame;
+    }
+    await page.waitForTimeout(100);
+  }
+  return null;
+};
+
+scenario('popup-settings-panel', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  await page.evaluate(() => {
+    window.__openedOptions = 0;
+    chrome.runtime.openOptionsPage = () => {
+      window.__openedOptions++;
+    };
+  });
+  await page.click('#settingsBtn');
+  const frame = await settingsFrame(page);
+  check('settings view opens in the panel', (await visible(page, '#settingsView')) && !(await visible(page, '#topicView')));
+  check(
+    'settings page loaded in the frame',
+    Boolean(frame),
+    page
+      .frames()
+      .map(f => f.url())
+      .join(', ')
+  );
+  check('openOptionsPage not called', await page.evaluate(() => window.__openedOptions === 0));
+  check('view heading has focus', (await page.evaluate(() => document.activeElement?.id)) === 'settingsHeading');
+  check('forum bar hidden in settings', !(await visible(page, '#forumBar')));
+  check('settings button pressed', (await page.getAttribute('#settingsBtn', 'aria-pressed')) === 'true');
+  if (!frame) return;
+  check('page is in embedded mode', await frame.evaluate(() => document.documentElement.classList.contains('embedded')));
+  check('own page header hidden', await frame.$eval('.header', el => getComputedStyle(el).display === 'none'));
+  check('save bar in the frame', await frame.$eval('#saveBtn', el => el.offsetParent !== null));
+  const box = await page.$eval('#settingsFrame', el => {
+    const r = el.getBoundingClientRect();
+    return { bottom: r.bottom, height: r.height, inner: window.innerHeight };
+  });
+  check('frame fills the panel', box.bottom <= box.inner && box.inner - box.bottom < 24 && box.height > 400, JSON.stringify(box));
+  await shot('open');
+
+  // Unsaved edits ask before leaving, inline.
+  await frame.fill('#openaiModel', 'gpt-4o');
+  await page.click('#closeSettingsBtn');
+  check('leave confirmation shown', await visible(page, '#settingsLeave'));
+  check('settings stays open while asking', await visible(page, '#settingsView'));
+  check('confirmation names the choice', (await text(page, '#settingsLeave')).includes('Discard your unsaved changes?'));
+  check('keep editing focused', (await page.evaluate(() => document.activeElement?.id)) === 'settingsLeaveKeep');
+  await shot('leave-confirm');
+  await page.click('#settingsLeaveKeep');
+  check('keep editing closes the question', !(await visible(page, '#settingsLeave')) && (await visible(page, '#settingsView')));
+  check('edit still there', (await frame.$eval('#openaiModel', el => el.value)) === 'gpt-4o');
+  await page.click('#settingsBtn');
+  check('header button asks too', await visible(page, '#settingsLeave'));
+  await page.press('#settingsLeave', 'Escape');
+  check('Escape keeps editing', !(await visible(page, '#settingsLeave')) && (await visible(page, '#settingsView')));
+  await page.click('#savedBtn');
+  check('Activity asks too', await visible(page, '#settingsLeave'));
+  await page.click('#settingsLeaveDiscard');
+  await page.waitForTimeout(300);
+  check('discard goes to Activity', (await visible(page, '#savedView')) && !(await visible(page, '#settingsView')));
+  check(
+    'model not changed by a discarded edit',
+    (await text(page, '#modelChipBtn')) === 'OpenAI · gpt-4o-mini',
+    await text(page, '#modelChipBtn')
+  );
+  check('frame dropped', (await page.getAttribute('#settingsFrame', 'src')) === null);
+
+  // Back returns to where the user was (Activity here), with no question when clean.
+  await page.click('#settingsBtn');
+  await settingsFrame(page);
+  await page.click('#closeSettingsBtn');
+  check('clean leave needs no question', !(await visible(page, '#settingsLeave')) && (await visible(page, '#savedView')));
+  check('focus returns to the opener', (await page.evaluate(() => document.activeElement?.id)) === 'settingsBtn');
+  await page.click('#closeSavedBtn');
+
+  // Saving updates the panel without a reload; the chip opens at the provider section.
+  await page.click('#modelChipBtn');
+  const second = await settingsFrame(page);
+  await second.fill('#openaiModel', 'gpt-4o');
+  await second.click('#saveBtn');
+  await page.waitForTimeout(700);
+  check('saved in storage', await page.evaluate(() => window.__store.openaiModel === 'gpt-4o'));
+  check('header model follows the save', (await text(page, '#modelChipBtn')) === 'OpenAI · gpt-4o', await text(page, '#modelChipBtn'));
+  check('no leave question after saving', (await second.evaluate(() => window.settingsInstance.form.edited)) === false);
+  await shot('saved');
+  await page.click('#closeSettingsBtn');
+  check('closes straight after saving', (await visible(page, '#topicView')) && !(await visible(page, '#settingsView')));
+  check('still no options tab', await page.evaluate(() => window.__openedOptions === 0));
+});
+
+scenario(
+  'settings-embedded',
+  'src/settings/settings.html?embedded=1&welcome=1&section=forumAccess',
+  { store: configuredStore },
+  async ({ page, check, shot }) => {
+    await page.waitForTimeout(500);
+    check('embedded mode', await page.evaluate(() => document.documentElement.classList.contains('embedded')));
+    check('welcome banner ignored', !(await visible(page, '#welcomeHeader')));
+    check('page header hidden', !(await visible(page, '.header')));
+    check('narrow layout without chrome', await page.$eval('.container', el => getComputedStyle(el).borderRadius === '0px'));
+    const top = await page.$eval('#forumAccessHeading', el => el.getBoundingClientRect().top);
+    check('requested section is in view', top >= 0 && top < 600, String(top));
+    await shot();
+  }
+);
+
+zhScenario('popup-settings-panel', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  await page.click('#settingsBtn');
+  const frame = await settingsFrame(page);
+  await zhScreen(page, check, 'settings view', ['设置']);
+  check('back button named', (await page.getAttribute('#closeSettingsBtn', 'aria-label')) === '关闭设置');
+  if (!frame) return;
+  await frame.fill('#openaiModel', 'gpt-4o');
+  await page.click('#closeSettingsBtn');
+  await zhScreen(page, check, 'leave question', ['放弃未保存的更改？', '放弃更改', '继续编辑']);
+  await shot('leave');
+});
+
+// ---------- Reading focus and long content ----------
+const longParagraphs = (count, label = 'Paragraph') =>
+  Array.from(
+    { length: count },
+    (_, i) => `${label} ${i + 1}: ${'People weigh caching trade-offs and share what worked for them. '.repeat(3)}`
+  ).join('\n\n');
+const FOCUS_SUMMARY = `## Overview\n\n${longParagraphs(14)}`;
+const focusSession = {
+  ...savedSession,
+  summary: FOCUS_SUMMARY,
+  history: [
+    { role: 'user', content: 'What is the consensus?', taskId: 'c1', createdAt: Date.now() - 90000 },
+    { role: 'assistant', content: `Mostly **yes**.\n\n${longParagraphs(6, 'Detail')}`, taskId: 'c1', createdAt: Date.now() - 80000 },
+    { role: 'user', content: 'Any caveats?', taskId: 'c2', createdAt: Date.now() - 70000 },
+    { role: 'assistant', content: 'Only one: **warm the cache**.', taskId: 'c2', createdAt: Date.now() - 60000 }
+  ]
+};
+const focusRun = cachingRun({
+  steps: [SEARCH_STEP, READ_STEP],
+  answer: `Enable it in the admin panel [S1].\n\n${longParagraphs(6, 'Note')}`,
+  followUps: [{ question: 'And what about a CDN?', answer: 'Put a CDN in front of the forum [S1].', steps: [] }]
+});
+const isOpen = (page, selector) => page.$eval(selector, el => el.open);
+const isClamped = (page, selector) => page.$eval(selector, el => el.classList.contains('is-clamped'));
+const fireChatStream = (page, taskId, chunk) =>
+  page.evaluate(
+    ([id, text, key]) => window.__fire('onMessage', { action: 'taskStream', taskId: id, type: 'chat', topicKey: key, chunk: text }, {}),
+    [taskId, chunk, TOPIC_KEY]
+  );
+const chatTaskDone = (taskId, status = 'completed') => ({
+  id: taskId,
+  type: 'chat',
+  topicId: '12345',
+  siteUrl: SITE,
+  topicKey: TOPIC_KEY,
+  agentRunId: '',
+  title: 'Some topic',
+  status,
+  phase: status,
+  statusText: 'Completed',
+  progress: null,
+  error: '',
+  createdAt: Date.now() - 5000,
+  updatedAt: Date.now()
+});
+const seedFocus = async page => {
+  await seedHistory(page, { ...savedSessionHistory(focusSession), activities: [focusRun] });
+  await page.reload();
+  await page.waitForTimeout(900);
+};
+
+scenario('popup-clamp', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  await seedFocus(page);
+  // Long summary: cut off at about 60% of the panel height, with a real toggle.
+  check('summary is clamped', await isClamped(page, '#summaryDisplay'));
+  const limit = await page.$eval('#summaryDisplay', el => ({ height: el.getBoundingClientRect().height, inner: window.innerHeight }));
+  check('clamp height is ~60% of the viewport', Math.abs(limit.height - limit.inner * 0.6) < 4, JSON.stringify(limit));
+  const toggle = '#summaryDisplay + .clamp-toggle';
+  check(
+    'toggle is a button with aria-expanded',
+    await page.$eval(toggle, b => b.tagName === 'BUTTON' && b.getAttribute('aria-expanded') === 'false')
+  );
+  check('toggle says Show all', (await text(page, toggle)) === 'Show all', await text(page, toggle));
+  check(
+    'toggle controls the summary',
+    await page.$eval(toggle, b => b.getAttribute('aria-controls') === document.getElementById('summaryDisplay').id)
+  );
+  await shot('summary-clamped');
+  await page.click(toggle);
+  check(
+    'Show all expands',
+    await page.$eval('#summaryDisplay', el => el.classList.contains('is-clamp-expanded') && !el.classList.contains('is-clamped'))
+  );
+  check(
+    'toggle now says Show less',
+    (await text(page, toggle)) === 'Show less' && (await page.getAttribute(toggle, 'aria-expanded')) === 'true'
+  );
+  await shot('summary-expanded');
+  await page.click(toggle);
+  check('Show less clamps again', await isClamped(page, '#summaryDisplay'));
+  // A short summary is never clamped.
+  check('no toggle on short content', (await page.$$('#chatMessages .chat-message.assistant:last-of-type + .clamp-toggle')).length === 0);
+
+  // Older chat answers clamp; the latest is always whole.
+  const answers = '#chatMessages .chat-message.assistant';
+  const answerClamps = () => page.$$eval(answers, els => els.map(el => el.classList.contains('is-clamped')));
+  check(
+    'older chat answer is clamped, the latest is whole',
+    JSON.stringify(await answerClamps()) === '[true,false]',
+    JSON.stringify(await answerClamps())
+  );
+  const chatToggle = '#chatMessages .clamp-toggle';
+  check(
+    'chat toggle named and collapsed',
+    (await text(page, chatToggle)) === 'Show all' && (await page.getAttribute(chatToggle, 'aria-expanded')) === 'false'
+  );
+  await shot('chat-clamped');
+  await page.click(chatToggle);
+  check('chat Show all expands', (await text(page, chatToggle)) === 'Show less');
+
+  // The thread: earlier turns' answers clamp, the newest does not.
+  check('first agent answer is clamped', await isClamped(page, '#agentPanel .agent-turn:first-child [data-part="answer"]'));
+  check('latest agent answer is whole', !(await isClamped(page, '#agentPanel .agent-turn:last-child [data-part="answer"]')));
+  const agentToggle = '#agentPanel .agent-turn:first-child .clamp-toggle';
+  check('agent toggle has aria-expanded', (await page.getAttribute(agentToggle, 'aria-expanded')) === 'false');
+  // A citation inside clamped content still works: it opens the content and follows the source.
+  await page.click('#agentPanel .agent-turn:first-child .agent-citation');
+  await page.waitForTimeout(200);
+  check('citation expands the clamp', (await page.getAttribute(agentToggle, 'aria-expanded')) === 'true');
+  check(
+    'citation reaches its source',
+    await page
+      .$eval('#agentPanel .agent-turn:first-child .agent-source-card.is-highlighted', c => c.dataset.sourceId === 'S1')
+      .catch(() => false)
+  );
+  await shot('agent-thread');
+
+  // While an answer streams in it is never clamped.
+  await page.fill('#chatInput', 'One more thing?');
+  await page.click('#sendChatBtn');
+  await page.waitForTimeout(300);
+  const taskId = await page.$$eval(answers, els => els.at(-1).dataset.taskId);
+  await fireChatStream(page, taskId, longParagraphs(8, 'Streaming'));
+  await page.waitForTimeout(300);
+  const heights = await page.$$eval(answers, els => els.map(el => Math.round(el.getBoundingClientRect().height)));
+  check(
+    'streaming answer is not clamped',
+    !(await answerClamps()).at(-1) && heights.at(-1) > 300,
+    JSON.stringify([await answerClamps(), heights])
+  );
+});
+
+scenario('popup-reading-focus', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  await seedFocus(page);
+  check(
+    'everything starts open',
+    (await isOpen(page, '#summaryContainer')) && (await isOpen(page, '#chatContainer')) && (await isOpen(page, '#agentPanel details'))
+  );
+
+  // Sending a chat question opens chat and folds the others to their header line.
+  await page.fill('#chatInput', 'What about mobile?');
+  await page.click('#sendChatBtn');
+  await page.waitForTimeout(400);
+  check('chat opens', await isOpen(page, '#chatContainer'));
+  check('summary folds', !(await isOpen(page, '#summaryContainer')));
+  check('answer folds', !(await isOpen(page, '#agentPanel details')));
+  check(
+    'folded summary keeps a recognisable line',
+    (await text(page, '#summaryMeta')).startsWith('11 replies · saved'),
+    await text(page, '#summaryMeta')
+  );
+  check(
+    'folded answer keeps a recognisable line',
+    (await text(page, '#agentPanel .agent-panel-meta')).includes('2 steps · 1 source'),
+    await text(page, '#agentPanel .agent-panel-meta')
+  );
+  check('chat keeps a recognisable line', (await text(page, '#chatMeta')).startsWith('2 questions asked'), await text(page, '#chatMeta'));
+  await shot('chat-started');
+
+  // The user moves on to the summary while the answer is being written: nothing is yanked away.
+  const taskId = await page.$$eval('#chatMessages .chat-message.assistant', els => els.at(-1).dataset.taskId);
+  await page.click('#summaryContainer > summary');
+  check('summary opened by hand', await isOpen(page, '#summaryContainer'));
+  await fireTask(page, chatTaskDone(taskId));
+  await page.waitForTimeout(400);
+  check('finished chat does not yank the view', await isOpen(page, '#summaryContainer'));
+  await shot('no-yank');
+
+  // Untouched elsewhere, a finished result takes the focus (even if its own card was folded).
+  await page.fill('#chatInput', 'And on tablets?');
+  await page.click('#sendChatBtn');
+  await page.waitForTimeout(400);
+  check('second question folds the summary again', !(await isOpen(page, '#summaryContainer')));
+  const second = await page.$$eval('#chatMessages .chat-message.assistant', els => els.at(-1).dataset.taskId);
+  await page.click('#chatContainer > summary');
+  check('chat folded by hand', !(await isOpen(page, '#chatContainer')));
+  await fireTask(page, chatTaskDone(second));
+  await page.waitForTimeout(400);
+  check('finished chat opens itself', await isOpen(page, '#chatContainer'));
+  check('and others stay folded', !(await isOpen(page, '#summaryContainer')) && !(await isOpen(page, '#agentPanel details')));
+
+  // Anything can still be opened by hand.
+  await page.click('#agentPanel .agent-panel-summary');
+  check('answer opened by hand', await isOpen(page, '#agentPanel details'));
+  check('manual open leaves chat alone', await isOpen(page, '#chatContainer'));
+
+  // A follow-up in the answer opens it and folds the rest.
+  await page.fill('#agentPanel [data-part="followup-input"]', 'Does it work with a proxy?');
+  await page.click('#agentPanel [data-part="followup-send"]');
+  await page.waitForTimeout(400);
+  check('follow-up keeps the answer open', await isOpen(page, '#agentPanel details'));
+  check('follow-up folds chat and summary', !(await isOpen(page, '#chatContainer')) && !(await isOpen(page, '#summaryContainer')));
+  await shot('follow-up-started');
+  // The user opens the summary, so the finished answer must not take over.
+  await page.click('#summaryContainer > summary');
+  await fireActivity(page, {
+    ...focusRun,
+    status: 'running',
+    phase: 'planning',
+    updatedAt: Date.now() + 10,
+    completedAt: 0,
+    turns: [
+      ...focusRun.turns,
+      { id: 'agent-1-f2', question: 'Does it work with a proxy?', answer: '', startedAt: Date.now(), completedAt: 0 }
+    ]
+  });
+  await page.waitForTimeout(200);
+  await fireActivity(page, {
+    ...focusRun,
+    updatedAt: Date.now() + 20,
+    turns: [
+      ...focusRun.turns,
+      {
+        id: 'agent-1-f2',
+        question: 'Does it work with a proxy?',
+        answer: 'Yes, behind a proxy it works.',
+        startedAt: Date.now(),
+        completedAt: Date.now()
+      }
+    ],
+    answer: 'Yes, behind a proxy it works.'
+  });
+  await page.waitForTimeout(400);
+  check('finished answer does not yank the view', (await isOpen(page, '#summaryContainer')) && !(await isOpen(page, '#chatContainer')));
+});
+
+// ---------- Activity cards and saved search ----------
+const savedSearchHistory = () => {
+  const make = (key, id, title, summary) => {
+    const session = {
+      ...savedSession,
+      topicId: String(id),
+      topicKey: `meta.discourse.org/t/${id}`,
+      url: `${SITE}/t/${key}/${id}`,
+      title,
+      summary
+    };
+    return savedSessionHistory(session);
+  };
+  const a = make('tomatoes', 101, 'Growing tomatoes on a balcony', 'Pots should be deep.');
+  const b = make('caching', 102, 'Caching in production', 'Use a CDN.');
+  return {
+    sessions: [...a.sessions, ...b.sessions],
+    entries: [...a.entries, ...b.entries],
+    activities: [cachingRun({ steps: [SEARCH_STEP, READ_STEP], answer: CACHING_ANSWER, kept: true })]
+  };
+};
+const actionNames = (page, selector) =>
+  page.$$eval(selector, buttons =>
+    buttons.map(b => ({
+      name: b.getAttribute('aria-label') || '',
+      title: b.title,
+      icon: Boolean(b.querySelector('svg')),
+      text: b.textContent.trim()
+    }))
+  );
+
+scenario(
+  'popup-activity-cards',
+  'src/popup/popup.html',
+  { store: configuredStore, tasks: [{ ...deletableRunTask }] },
+  async ({ page, check, shot }) => {
+    await seedHistory(page, savedSearchHistory());
+    await page.reload();
+    await page.waitForTimeout(700);
+    await page.click('#savedBtn');
+    await page.waitForTimeout(400);
+    const taskActions = await actionNames(page, '#savedView .task-card-actions button');
+    check(
+      'task actions are icon buttons with names',
+      taskActions.length > 0 && taskActions.every(b => b.icon && b.name && b.title === b.name),
+      JSON.stringify(taskActions)
+    );
+    check('task cards show a type icon', (await page.$$('#savedView .task-card .activity-icon svg')).length >= 1);
+    check(
+      'no full-width text buttons',
+      await page.$$eval('#savedView .task-card-actions button', buttons => buttons.every(b => b.getBoundingClientRect().width <= 44))
+    );
+    check('header is compact', !(await visible(page, '#savedViewHeader .eyebrow')) && (await page.$$('#savedViewHeader p')).length === 0);
+    await shot('tasks');
+    await page.click('#summariesTab');
+    await page.waitForTimeout(300);
+    const savedActions = await actionNames(page, '#savedList .saved-card-actions button');
+    check(
+      'saved actions are icon buttons with names',
+      savedActions.length === 9 && savedActions.every(b => b.icon && b.name && b.title),
+      JSON.stringify(savedActions)
+    );
+    check('count is the total', (await text(page, '#savedCount')) === '3', await text(page, '#savedCount'));
+    check('three saved cards', (await page.$$('#savedList .saved-card')).length === 3);
+    check('saved cards have a type icon', (await page.$$('#savedList .saved-card .activity-icon svg')).length === 3);
+    check(
+      'search has a label',
+      (await page.$eval('#savedSearch', el => document.querySelector(`label[for="${el.id}"]`)?.textContent.trim())) === 'Search saved items'
+    );
+    await shot('saved');
+    await page.fill('#savedSearch', 'tomato');
+    await page.waitForTimeout(150);
+    check(
+      'search filters by title',
+      (await page.$$('#savedList .saved-card')).length === 1 && (await text(page, '#savedList')).includes('tomatoes'),
+      await text(page, '#savedList')
+    );
+    check('count stays the total', (await text(page, '#savedCount')) === '3');
+    await page.waitForTimeout(250);
+    await shot('saved-search');
+    await page.fill('#savedSearch', 'caching');
+    await page.waitForTimeout(150);
+    check(
+      'search matches a question too',
+      (await page.$$('#savedList .saved-card')).length === 2,
+      String((await page.$$('#savedList .saved-card')).length)
+    );
+    await page.fill('#savedSearch', 'zzz');
+    await page.waitForTimeout(150);
+    check('no matches says so', (await text(page, '#savedList')).includes('No saved items match “zzz”'), await text(page, '#savedList'));
+    await page.waitForTimeout(250);
+    await shot('saved-no-match');
+    await page.click('#savedSearchClear');
+    check('clear brings everything back', (await page.$$('#savedList .saved-card')).length === 3);
+    check('clear returns focus to the search', (await page.evaluate(() => document.activeElement?.id)) === 'savedSearch');
+    // Keep still works from a card's icon.
+    await page.click('#savedList [data-saved-key^="topic:"] .keep-saved');
+    await page.waitForTimeout(300);
+    check('keep toggles', (await page.$$('#savedList .keep-saved[aria-pressed="true"]')).length >= 1);
+  }
+);
+
+scenario('popup-activity-empty', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  await page.click('#savedBtn');
+  await page.waitForTimeout(300);
+  await page.click('#tasksTab');
+  await page.waitForTimeout(300);
+  check(
+    'tasks empty state has an icon and a line',
+    (await page.$$('#activeTaskList .empty-state svg')).length === 1
+      && (await text(page, '#activeTaskList')).startsWith('Nothing is running')
+  );
+  await shot('tasks-empty');
+  await page.click('#summariesTab');
+  await page.waitForTimeout(200);
+  check(
+    'saved empty state says what to do',
+    (await text(page, '#savedList')).includes('Keep a summary or an answer'),
+    await text(page, '#savedList')
+  );
+  await shot('saved-empty');
+});
+
+zhScenario(
+  'popup-activity-cards',
+  'src/popup/popup.html',
+  { store: configuredStore, tasks: [{ ...deletableRunTask }] },
+  async ({ page, check, shot }) => {
+    await seedHistory(page, savedSearchHistory());
+    await page.reload();
+    await page.waitForTimeout(700);
+    await page.click('#savedBtn');
+    await page.waitForTimeout(400);
+    const cjk = /[一-鿿]/;
+    const taskActions = await actionNames(page, '#savedView .task-card-actions button');
+    check(
+      'task action names are Chinese',
+      taskActions.length > 0 && taskActions.every(b => cjk.test(b.name) && b.title === b.name),
+      JSON.stringify(taskActions)
+    );
+    await zhScreen(page, check, 'activity tasks', ['记录']);
+    await page.click('#summariesTab');
+    await page.waitForTimeout(300);
+    const savedActions = await actionNames(page, '#savedList .saved-card-actions button');
+    check(
+      'saved action names are Chinese',
+      savedActions.length === 9 && savedActions.every(b => cjk.test(b.name) && b.title),
+      JSON.stringify(savedActions)
+    );
+    check('search is Chinese', (await page.getAttribute('#savedSearch', 'placeholder')) === '搜索已保存的内容…');
+    await page.fill('#savedSearch', 'zzz');
+    await page.waitForTimeout(150);
+    await zhScreen(page, check, 'no match', ['没有与“zzz”匹配']);
+    await page.fill('#savedSearch', '');
+    await page.waitForTimeout(350);
+    await zhScreen(page, check, 'saved', ['保留', '删除']);
+    await shot('saved');
+  }
+);
+
+zhScenario('popup-activity-empty', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  await page.click('#savedBtn');
+  await page.waitForTimeout(300);
+  await page.click('#tasksTab');
+  await page.waitForTimeout(300);
+  await shot('tasks-empty');
+  await zhScreen(page, check, 'tasks empty', ['没有进行中的任务', '新的总结和提问']);
+  await page.click('#summariesTab');
+  await page.waitForTimeout(200);
+  await zhScreen(page, check, 'saved empty', ['还没有已保存的内容', '保留一个总结']);
+  await shot('saved-empty');
+});
+
+zhScenario('popup-clamp', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  await seedFocus(page);
+  check(
+    'toggle says 显示全部',
+    (await text(page, '#summaryDisplay + .clamp-toggle')) === '显示全部',
+    await text(page, '#summaryDisplay + .clamp-toggle')
+  );
+  await page.click('#summaryDisplay + .clamp-toggle');
+  check('toggle says 收起', (await text(page, '#summaryDisplay + .clamp-toggle')) === '收起');
+  await zhScreen(page, check, 'topic with clamps', ['总结', '针对此帖提问']);
+  await shot('clamped');
 });
 
 // ---------- Runner ----------

@@ -96,6 +96,7 @@ export class ProviderSection {
 
   render() {
     $('providerSelect').value = this.current;
+    $('freeKeyHint').classList.toggle('hidden', this.current === 'gemini' || LOCAL_PROVIDER_IDS.has(this.current));
     document.querySelectorAll('.provider-config').forEach(section => {
       section.classList.toggle('hidden', section.id !== `config-${this.current}`);
     });

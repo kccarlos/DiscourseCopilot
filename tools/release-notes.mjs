@@ -52,7 +52,7 @@ export function changelogAnchor(version, date) {
 
 export function buildReleaseNotes(changelog, version) {
   const section = findSection(changelog, version);
-  if (!section || !section.body) {
+  if (!section?.body) {
     throw new Error(`CHANGELOG.md has no entries for ${version}. Add a "## [${version}] - YYYY-MM-DD" section before tagging.`);
   }
   const links = [`[CHANGELOG.md](${REPO_URL}/blob/main/CHANGELOG.md#${changelogAnchor(version, section.date)})`];

@@ -114,6 +114,12 @@ export class SetupCard {
       })
     );
 
+    // The link opens AI Studio in a new tab and picks Gemini here, so the key
+    // can be pasted straight in when the user comes back.
+    $('setupFreeKeyLink').addEventListener('click', () => {
+      void this.chooseProvider('gemini', { syncInputs: true });
+    });
+
     // Pointer choices move on to the key field; keyboard users keep arrowing
     // through the group and continue with Tab or Enter.
     options.addEventListener('pointerdown', () => {
@@ -339,6 +345,7 @@ export class SetupCard {
     $('setupSuccess').classList.toggle('hidden', this.state !== 'success');
     $('setupDetails').classList.toggle('hidden', !config);
     $('setupMoreProviders').classList.toggle('has-value', Boolean(config) && !RECOMMENDED_PROVIDERS.includes(provider));
+    $('setupFreeKey').classList.toggle('hidden', provider === 'gemini' || LOCAL_PROVIDER_IDS.has(provider));
     if (!config) return;
 
     const isLocal = LOCAL_PROVIDER_IDS.has(provider);

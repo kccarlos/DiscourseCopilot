@@ -8,6 +8,8 @@ import { setPostCopyAvailability, writeClipboardText } from './clipboard.mjs';
 import { describeSummaryCoverage, formatRelativeTime } from './ui-state.mjs';
 import { forumHostname } from './forum-names.mjs';
 import { renderMarkdown } from './markdown.mjs';
+import { SUMMARY_CLAMP_VIEWPORT_SHARE, clearClamp, setClamp } from './clamp.mjs';
+import { FOCUS_CARD } from './reading-focus.mjs';
 import { t } from '../shared/i18n.mjs';
 
 const $ = id => document.getElementById(id);
@@ -78,6 +80,7 @@ export class SummaryView {
     if (!normalized) {
       container.classList.add('hidden');
       welcomePanel.classList.remove('hidden');
+      clearClamp($('summaryDisplay'));
       $('summaryDisplay').innerHTML = '<p>Your summary will appear here…</p>';
       $('chatContainer').classList.add('hidden');
     } else {
@@ -88,10 +91,17 @@ export class SummaryView {
         container.open = true;
       }
       renderMarkdown($('summaryDisplay'), normalized);
+      this.clampSummary(true);
       $('chatContainer').classList.remove('hidden');
     }
     this.updateMeta();
     this.hooks.updateControls();
+  }
+
+  // A summary taller than about 60% of the panel is cut off with a Show all
+  // button; never while it is being written.
+  clampSummary(enabled) {
+    setClamp($('summaryDisplay'), { enabled, limit: () => window.innerHeight * SUMMARY_CLAMP_VIEWPORT_SHARE });
   }
 
   updateMeta() {
@@ -120,15 +130,20 @@ export class SummaryView {
   }
 
   // Opens the summary card for a summary being written.
+  // A card the user folded, or moved away from, stays as they left it.
   revealSummaryCard() {
     const summaryContainer = $('summaryContainer');
+    const wasHidden = summaryContainer.classList.contains('hidden');
     summaryContainer.classList.remove('hidden');
-    summaryContainer.open = true;
+    if (wasHidden || this.hooks.readingMayExpand?.(FOCUS_CARD.SUMMARY)) {
+      summaryContainer.open = true;
+    }
     $('welcomePanel').classList.add('hidden');
   }
 
   renderStream(content) {
     this.revealSummaryCard();
+    this.clampSummary(false);
     this.markdown.schedule($('summaryDisplay'), content);
   }
 
@@ -196,6 +211,7 @@ export class SummaryView {
     if (task.status === TASK_STATUS.COMPLETED) {
       this.streams.delete(task.id);
       void this.hooks.reloadCurrentSession();
+      this.hooks.readingFinish?.(task.type === TASK_TYPE.CHAT ? FOCUS_CARD.CHAT : FOCUS_CARD.SUMMARY);
       // #status is a polite live region: this is the one completion announcement.
       this.status.show(task.type === TASK_TYPE.CHAT ? t('task.answerReady') : t('task.summaryReady'), 'success');
       return;
@@ -265,6 +281,7 @@ export class SummaryView {
         return;
       }
       if (isStillOnPage()) {
+        this.hooks.readingStart?.(FOCUS_CARD.SUMMARY);
         this.renderTaskState(task);
       }
     } catch (error) {

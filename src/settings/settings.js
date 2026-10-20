@@ -28,6 +28,13 @@ const STATUS_AUTO_HIDE_MS = 5000;
 
 const $ = id => document.getElementById(id);
 
+// Inside the side panel the page is shown in an iframe (?embedded=1): the
+// panel supplies the title and back button, so the page drops its own header
+// and welcome banner. Set before the first paint.
+const pageParams = new URLSearchParams(location.search);
+const EMBEDDED = pageParams.get('embedded') === '1';
+document.documentElement.classList.toggle('embedded', EMBEDDED);
+
 class DiscourseCopilotSettings {
   constructor() {
     this.store = new ConfigStore();
@@ -37,7 +44,7 @@ class DiscourseCopilotSettings {
     this.renderedConfirmingReset = undefined;
     this.hasSavedConfiguration = false;
     this.statusTimer = null;
-    this.welcomeMode = new URLSearchParams(location.search).get('welcome') === '1';
+    this.welcomeMode = !EMBEDDED && pageParams.get('welcome') === '1';
     const isBusy = () => this.isBusy;
     this.provider = new ProviderSection({
       store: this.store,
@@ -87,7 +94,9 @@ class DiscourseCopilotSettings {
     this.provider.render();
     this.favorites.render();
     this.renderSavedConfiguration();
-    this.dispatch(loadError ? { type: 'load-failed', message: loadError.message } : { type: 'loaded', welcomeMode: this.welcomeMode });
+    this.dispatch(
+      loadError ? { type: 'load-failed', message: loadError.message } : { type: 'loaded', welcomeMode: this.welcomeMode, quiet: EMBEDDED }
+    );
 
     this.forumAccess = new ForumAccessSection({
       loadRecords: async () => {
@@ -99,7 +108,7 @@ class DiscourseCopilotSettings {
       excludedPatterns: () => customServerPatterns(LOCAL_PROVIDER_IDS_LIST.map(provider => this.store.draftSettings(provider).url)),
       notify: (message, type) => this.notify(message, type, type === 'success')
     });
-    void this.forumAccess.mount();
+    const forumAccessMounted = this.forumAccess.mount();
 
     // Follow changes made elsewhere (e.g. the side panel's model switcher).
     this.store.subscribe(event => {
@@ -118,6 +127,25 @@ class DiscourseCopilotSettings {
 
     // Model discovery should never block editing the settings form.
     void this.provider.loadModels(this.currentProvider);
+
+    // The panel asks for a section (?section=forumAccess) once the lists
+    // above have their final height.
+    const section = pageParams.get('section');
+    if (EMBEDDED && section) {
+      await forumAccessMounted;
+      this.goToSection(section);
+    }
+  }
+
+  // Scrolls a section's heading into view: 'provider', 'prompt', 'research',
+  // 'reading', 'history' or 'forumAccess'.
+  goToSection(name) {
+    const heading = $(`${name}Heading`);
+    if (!heading) {
+      return;
+    }
+    heading.scrollIntoView({ block: 'start' });
+    heading.closest('.section')?.querySelector('input, select, textarea, button')?.focus({ preventScroll: true });
   }
 
   // ---------- Form state ----------
@@ -230,6 +258,15 @@ class DiscourseCopilotSettings {
       this.favorites.render();
       this.dispatch({ type: 'edited', clearStatus: true });
       void this.provider.loadModels(this.currentProvider);
+    });
+
+    // Opens AI Studio in a new tab and switches the form to Gemini, ready
+    // for the key.
+    $('freeKeyLink').addEventListener('click', () => {
+      const select = $('providerSelect');
+      if (select.value === 'gemini') return;
+      select.value = 'gemini';
+      select.dispatchEvent(new Event('change'));
     });
 
     $('responseLanguage').addEventListener('change', event => {

@@ -8,6 +8,17 @@ const CITATION_PATTERN = /\[(S\d+(?:\s*[,;]\s*S\d+)*)\]/g;
 
 const CITATION_SKIP_TAG = /^<(\/?)(a|code|pre)\b/i;
 
+// The source IDs an answer cites ([S1], [S1, S2]), in order of first use.
+export function citedSourceIds(markdown) {
+  const ids = new Set();
+  for (const match of String(markdown || '').matchAll(CITATION_PATTERN)) {
+    for (const id of match[1].split(/\s*[,;]\s*/)) {
+      ids.add(id);
+    }
+  }
+  return [...ids];
+}
+
 // Turns [S1] and [S1, S2] in sanitized answer HTML into in-panel source links.
 // Text inside links and code is left alone, as are unknown source IDs.
 export function linkifyCitations(html, sourceIds = []) {

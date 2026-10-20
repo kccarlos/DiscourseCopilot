@@ -378,6 +378,24 @@
       margin-top: 4px;
       line-height: 1.4;
     }
+
+    .free-key-hint {
+      margin-top: 8px;
+      color: var(--s-label);
+    }
+
+    .free-key-hint.hidden {
+      display: none;
+    }
+
+    .free-key-hint a {
+      font-weight: 600;
+    }
+
+    .free-key-note {
+      display: block;
+      color: var(--s-muted);
+    }
     
     .status {
       padding: 12px 16px;
@@ -1280,6 +1298,41 @@
     .project-footer a:hover {
       text-decoration: underline;
     }
+
+    /* ---------- Embedded in the side panel (?embedded=1) ---------- */
+
+    html.embedded body {
+      min-height: 0;
+      padding: 0;
+    }
+
+    html.embedded .container {
+      max-width: none;
+      min-height: 100vh;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    html.embedded .header,
+    html.embedded .welcome-header {
+      display: none;
+    }
+
+    html.embedded .content {
+      padding: 14px 16px;
+    }
+
+    html.embedded .action-bar {
+      padding: 10px 16px;
+    }
+
+    html.embedded .button-group button {
+      flex: 1 1 100%;
+    }
+
+    html.embedded .section-head {
+      flex-direction: column;
+    }
   </style>
 </head>
 <body>
@@ -1347,6 +1400,10 @@
             <option value="deepseek">DeepSeek</option>
             <option value="lmstudio">LM Studio (Local)</option>
           </select>
+          <div id="freeKeyHint" class="help-text free-key-hint">
+            <span data-i18n="setup.freeKey.prompt">No API key?</span> <a data-i18n="setup.freeKey.link" id="freeKeyLink" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Get a free Gemini key from Google AI Studio</a>
+            <span class="free-key-note" data-i18n="setup.freeKey.note">The free tier has usage limits, and Google may use free-tier prompts to improve its products.</span>
+          </div>
         </div>
         
         <!-- OpenRouter Config -->
@@ -1422,7 +1479,7 @@
           <div class="form-group">
             <label for="geminiApiKey" class="step-label" data-step="2">Google Gemini <span data-i18n="settings.provider.apiKeySuffix">API Key:</span></label>
             <input type="password" id="geminiApiKey" placeholder="AIza..." autocomplete="off" spellcheck="false">
-            <div class="help-text"><span data-i18n="settings.provider.getKeyFrom">Get your API key from</span> <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" data-provider-link="gemini">Google AI Studio</a></div>
+            <div class="help-text"><span data-i18n="settings.provider.getKeyFrom">Get your API key from</span> <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" data-provider-link="gemini">Google AI Studio</a></div>
           </div>
           <div class="form-group">
             <label for="geminiModel" class="step-label" data-step="3" data-i18n="settings.model.label">Model:</label>

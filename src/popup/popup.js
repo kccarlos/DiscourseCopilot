@@ -12,6 +12,8 @@
 //   chat-view         follow-up chat and the forum context limit
 //   agent-*           Agent runs, inline panel, pill, composer, answers
 //   activity-view     Activity screen (tasks, saved items, Agent detail)
+//   settings-view     Settings screen: the settings page in an iframe
+//   reading-focus     which result card is open: the one being worked on
 //   task-registry     the panel's copy of the task queue + requests to it
 //   session-store     topic sessions cached and saved to IndexedDB
 //   operations        the one request being submitted
@@ -46,6 +48,8 @@ import { TopicController } from './topic-controller.mjs';
 import { ChatView } from './chat-view.mjs';
 import { AgentController } from './agent-controller.mjs';
 import { ActivityView } from './activity-view.mjs';
+import { SettingsView } from './settings-view.mjs';
+import { FOCUS_CARD, ReadingFocus } from './reading-focus.mjs';
 import { ForumAccessCard } from './forum-access-card.mjs';
 import { BackgroundLink } from './background-link.mjs';
 import { UndoToast } from './undo-toast.mjs';
@@ -65,7 +69,8 @@ class DiscourseCopilotPopup {
     // Panel state read across modules. Writers: pageContext
     // (PageContextController), session and isHydratingSession
     // (TopicController), the availability flags (this file), savedViewOpen
-    // and agentDetailOpen (ActivityView).
+    // agentDetailOpen (ActivityView) and
+    // settingsViewOpen (SettingsView).
     const state = {
       pageContext: null,
       session: null,
@@ -73,7 +78,8 @@ class DiscourseCopilotPopup {
       persistenceAvailable: true,
       isHydratingSession: false,
       savedViewOpen: false,
-      agentDetailOpen: false
+      agentDetailOpen: false,
+      settingsViewOpen: false
     };
     this.state = state;
     this.started = false;
@@ -98,6 +104,7 @@ class DiscourseCopilotPopup {
       status: this.status,
       onUnavailable: () => this.updateControls()
     });
+    this.settings = new SettingsView({ state });
     this.starPrompt = new StarPromptCard({ element: $('starPrompt') });
     this.undo = new UndoToast({
       element: $('undoToast'),
@@ -146,19 +153,21 @@ class DiscourseCopilotPopup {
       getPageContext: () => state.pageContext,
       onSaved: () => this.updateUI({ announce: false }),
       onStateChange: () => this.updateUI(),
-      openSettings: () => chrome.runtime.openOptionsPage()
+      openSettings: () => this.settings.open()
     });
     this.header = new ProviderHeader({
       config: this.config,
       status: this.status,
       setupCard: this.setupCard,
-      openSettings: () => chrome.runtime.openOptionsPage(),
-      onSetupJump: () => {
-        if (state.savedViewOpen) {
-          this.activity.hide();
-        }
-        this.setupCard.focus();
-      }
+      openSettings: section => this.settings.open({ section }),
+      toggleSettings: () => this.settings.toggle(),
+      onSetupJump: () =>
+        this.settings.leave(() => {
+          if (state.savedViewOpen) {
+            this.activity.hide();
+          }
+          this.setupCard.focus();
+        })
     });
 
     // Callbacks the views use to reach the rest of the panel.
@@ -174,7 +183,10 @@ class DiscourseCopilotPopup {
       renderTaskState: task => this.topic.renderTaskState(task),
       persistSession: () => this.topic.persist(),
       cancelTask: (taskId, options) => this.cancelTask(taskId, options),
-      onTaskChanged: task => this.handleTaskUpdated(task)
+      onTaskChanged: task => this.handleTaskUpdated(task),
+      readingStart: card => this.reading.start(card),
+      readingFinish: card => this.reading.finish(card),
+      readingMayExpand: card => this.reading.mayExpand(card)
     };
     const shared = {
       state,
@@ -214,6 +226,14 @@ class DiscourseCopilotPopup {
         focusSavedItem: (key, index) => this.activity.focusSavedItem(key, index)
       }
     });
+    this.reading = new ReadingFocus({
+      cards: () => ({
+        [FOCUS_CARD.SUMMARY]: $('summaryContainer'),
+        [FOCUS_CARD.CHAT]: $('chatContainer'),
+        [FOCUS_CARD.AGENT]: this.agent.panel.details
+      }),
+      isTopicViewVisible: () => !$('topicView').classList.contains('hidden')
+    });
     this.activity = new ActivityView({
       state,
       tasks: this.tasks,
@@ -223,6 +243,7 @@ class DiscourseCopilotPopup {
       config: this.config,
       undo: this.undo,
       hooks: {
+        beforeNavigate: proceed => this.settings.leave(proceed),
         cancelTask: taskId => this.cancelTask(taskId),
         isCurrentTopic: topicKey => this.topic.isCurrentTopic(topicKey),
         showCurrentTopic: () => {
@@ -257,6 +278,8 @@ class DiscourseCopilotPopup {
     this.setupCard.mount();
     this.accessCard.mount();
     this.activity.mount();
+    this.settings.mount();
+    this.reading.mount();
     this.summary.mount();
     this.agent.mount();
     this.chat.mount();
@@ -367,6 +390,7 @@ class DiscourseCopilotPopup {
         this.setupCard.dismissSuccess();
       }
       this.operations.cancel();
+      this.reading.reset();
       await this.topic.open(context);
       if (pendingMetadata && context.pageKey === this.state.pageContext?.pageKey) {
         this.page.forgetMetadata(context.topicKey);

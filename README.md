@@ -88,7 +88,7 @@ An unpacked install is not updated automatically. To update it, download the new
 </details>
 
 **2. Connect an AI provider.**
-Click the DiscourseCopilot icon to open the side panel. A short setup card asks you to pick a provider, paste your API key, and pick a model (a recommended one from your provider's current list is filled in for you, usually a fast, low-cost model). See [Choosing an AI provider](#choosing-an-ai-provider) if you're not sure which to pick.
+Click the DiscourseCopilot icon to open the side panel. A short setup card asks you to pick a provider, paste your API key, and pick a model (a recommended one from your provider's current list is filled in for you, usually a fast, low-cost model). See [Choosing an AI provider](#choosing-an-ai-provider) if you're not sure which to pick. **No API key?** [Google AI Studio](https://aistudio.google.com/apikey) gives you a free Gemini key in a minute; the setup card links to it. The free tier has usage limits, and Google may use free-tier prompts to improve its products.
 
 **3. Open a forum topic, allow access, then Create summary.**
 Open any topic on a Discourse forum (log in first if it needs a login) and click the DiscourseCopilot icon. The first time you use a forum, the side panel shows **Allow DiscourseCopilot on *forum name***: click **Allow access**, then choose **Allow** when Chrome asks. Then click **Create summary**. Each forum asks only once, and after that the DiscourseCopilot button also appears in the corner of its pages.
@@ -158,7 +158,7 @@ DiscourseCopilot doesn't come with its own AI. You connect one you already use, 
 | OpenRouter | An API key | One key gives you many different models |
 | OpenAI | An API key | GPT models |
 | Anthropic | An API key | Claude models |
-| Google Gemini | An API key | Gemini models |
+| Google Gemini | An API key ([free from Google AI Studio](https://aistudio.google.com/apikey), with usage limits) | Gemini models |
 | Groq | An API key | Fast open models |
 | xAI | An API key | Grok models |
 | DeepSeek | An API key | DeepSeek models |
@@ -178,7 +178,7 @@ Start Ollama, then choose **Local (Ollama)** in setup. No Ollama settings are ne
 
 ## Customize
 
-Open **Settings** from the side panel (or right-click the extension icon and choose **Options**). Most changes apply when you click **Save Settings** (favorites and forum access change right away), and the Ask the forum, Reading topics, and History & privacy sections each have **Restore defaults**.
+Open **Settings** from the side panel; it opens inside the panel, so there is no extra tab to close (the extension's **Options** page in `chrome://extensions` shows the same settings). Most changes apply when you click **Save Settings** (favorites and forum access change right away), and the Ask the forum, Reading topics, and History & privacy sections each have **Restore defaults**.
 
 - **AI provider.** Switch providers, keys, or models. The model list comes from your provider (click **Refresh models** to reload it). Your saved model is never changed for you; if your provider stops offering it, Settings warns you so you can pick another.
 - **Favorite models.** Save models to switch between them from the top of the side panel.

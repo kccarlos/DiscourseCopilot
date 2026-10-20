@@ -25,6 +25,7 @@ pnpm build   # build the extension into dist/
 pnpm dev     # rebuild on change (vite build --watch --mode development; also turns on DiscourseCopilotLogger.log traces)
 pnpm test          # run unit tests (node --test)
 pnpm test:ui       # build, then run the UI flows in Chromium (light and dark)
+pnpm test:settings-panel  # build, then check Settings inside the side panel in real Chromium (extension loaded)
 pnpm test:local-models  # build, then check Ollama / LM Studio for real (local only, see Local model servers)
 pnpm shots:readme  # build, then render the README screenshots into tools/ui/out/readme/
 pnpm shots:store   # build, then render the Chrome Web Store images into tools/ui/out/store/
@@ -109,7 +110,12 @@ src/
     agent-requests.mjs    Continue / Retry / follow-up, with the forum access request
     agent-answer-view.mjs Renders one Agent run: live steps, thread, answer, sources, follow-up box
                           (shared by the inline panel and the detail view)
-    activity-view.mjs     Activity screen: Tasks/Saved tabs, Agent detail, deleting saved items
+    activity-view.mjs     Activity screen: Tasks/Saved tabs, saved search, Agent detail, deleting saved items
+    settings-view.mjs     Settings screen: settings.html?embedded=1 in an iframe, the inline unsaved-changes
+                          question, every way out goes through leave()
+    reading-focus.mjs     Which result card (summary, chat, answer) is open: starts and finishes of work,
+                          never overriding what the user touched since
+    clamp.mjs             "Show all" / "Show less" for long summaries and earlier answers
     forum-groups.mjs      Activity lists grouped by forum, forum filter chips
     activity-cards.mjs    Task and saved-item cards
     undo-toast.mjs, undo-slot.mjs  Undo after a delete: the toast (#undoToast) and the pure
@@ -124,7 +130,7 @@ src/
     topic-controls.mjs    Enabled state and labels of every control, derived from panel state
     markdown.mjs, status-line.mjs, forum-tabs.mjs, clipboard.mjs  Rendering and small helpers
     ui-state.mjs, conversation-state.mjs, runtime-state.mjs  Pure view logic shared by views
-  settings/         Options page
+  settings/         Options page (also the Settings screen of the side panel, with ?embedded=1)
     settings.js           Wires the sections to the ConfigStore and the form state machine;
                           status line, save bar, busy state, Save/Test, Reset (with confirmation)
     settings-form-state.mjs  Form state machine (status line, dirty indicator, busy state,
@@ -388,6 +394,12 @@ Ask the forum is a read-only agent. The model is asked for **one JSON action per
 
 Deleting a saved summary or an Agent answer removes it at once, from IndexedDB too (`TopicSessionDatabase.take()` / `takeAgentActivity()` return the stored record), and shows an **Undo** toast for 8 seconds. Undo (the button, or Ctrl/⌘+Z outside a text field) writes that record back unchanged (`restore()` / `restoreAgentActivity()`). Because the database is always the truth, re-renders and background broadcasts during the window can't bring an item back, and closing the panel keeps the delete. A new delete ends the previous offer. The window pauses while the pointer or focus is on the toast; the message is announced through the panel's `announce()` helper. Focus moves to the next saved card (or the list's tab), to **Ask the forum** after a delete from the topic view, and to the restored card after Undo. A finished Agent task whose activity is gone (deleted, expired, pruned) never becomes a run again, though the task stays in the task list for days; runs deleted in this panel also ignore late broadcasts (`AgentRuns.deletedRunIds`). `undo-slot.mjs` is the pure model (injected timers, unit-tested); `undo-toast.mjs` renders it.
 
+### Side panel views and reading focus
+
+The panel shows one of three views: the topic view, Activity (`#savedView`) or Settings (`#settingsView`). Settings hosts `src/settings/settings.html?embedded=1` (optionally `&section=forumAccess`, `provider`, …) in an iframe of the same extension, so Save, `chrome.permissions.request` and `chrome.storage.onChanged` behave as on the options page and the panel's `ConfigStore` follows a save without a reload. In embedded mode the page hides its own header and welcome banner and ignores `?welcome=1`; the standalone options page (`options_page`) is unchanged. `SettingsView.leave(then)` is the one way out (Back, the header's Activity and Settings buttons, "Not set up"): with unsaved edits (`window.settingsInstance.form.edited`, read through the same-origin frame) it shows the inline question instead of leaving. The frame is dropped on close, so each visit starts from what is saved. `pnpm test:settings-panel` checks all of this in real Chromium with the built extension loaded (Chrome's permission prompt itself cannot be answered in automation, so only that the request is accepted from a click inside the frame is verified).
+
+`ReadingFocus` (`reading-focus.mjs`) decides which result card is open. `start(card)` (a chat question was queued, a summary was requested, Ask the forum or a follow-up was queued) opens that card, folds the others and scrolls it into view. `finish(card)` (the task completed) does the same only if the user pressed, typed or used the keyboard in no other card since `start` and the keyboard focus is not inside another card; programmatic focus does not count. `mayExpand()` stops a streaming summary from reopening a card the user folded. A page change clears pending starts. `clamp.mjs` cuts content taller than about 60% of the viewport (summary) or 180 px + 64 px (earlier answers, older chat answers) behind a Show all button, never while streaming and never the newest answer; focus or a citation click inside clamped content expands it first.
+
 ## Interface language (i18n)
 
 The interface follows the browser language: any `zh*` language gets Simplified Chinese, everything else English. There is no in-app switch. `src/shared/i18n.mjs` picks the locale (`chrome.i18n.getUILanguage()`, else `navigator.language`) and exports `t(key, params)`, `tn(key, count, params)` (plurals: `key.one` / `key.other`; Chinese needs only `.other`), `intlLocale()` for `Intl` calls and `localizeDocument()`.
@@ -510,9 +522,12 @@ tools/ui/
   demo-gif.mjs        docs/screenshots/demo.gif: the side panel driven step by step (summary, follow-up,
                       Ask the forum) over the store page template, encoded with ffmpeg
   pixdiff.mjs         compare two PNGs or two folders of PNGs
+  settings-panel-e2e.mjs  real Chromium with dist/ loaded: Settings inside the side panel (iframe, save,
+                      inline leave question, permissions.request from the frame, standalone page unchanged)
   lib/
     chrome-stub.mjs   chrome.* stand-in (storage with onChanged, permissions, scripting probe,
-                      runtime messages, tabs); options and test hooks documented in the file.
+                      runtime messages, tabs; an iframe of a stubbed page shares its parent's chrome.*);
+                      options and test hooks documented in the file.
                       alert/confirm/prompt throw: the pages must not use native dialogs
     extension-page.mjs  open a dist/ page in its own context: stub installed, network sealed off
                       (model lists get an empty answer), page errors collected; IndexedDB seeding

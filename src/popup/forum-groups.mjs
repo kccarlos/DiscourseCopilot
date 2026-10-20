@@ -3,6 +3,7 @@
 import { groupByForum } from './forum-names.mjs';
 import { applyForumHue, createForumAvatar } from './forum-ui.mjs';
 import { t, tn } from '../shared/i18n.mjs';
+import { createIcon } from './icons.mjs';
 
 const $ = id => document.getElementById(id);
 
@@ -11,6 +12,23 @@ export function emptyMessage(className, text) {
   paragraph.className = className;
   paragraph.textContent = text;
   return paragraph;
+}
+
+// An empty list: an icon, one line of what is missing and one of what to do.
+// `className` keeps the list's own hook (task-empty, saved-empty).
+export function emptyState(className, icon, title, hint) {
+  const box = document.createElement('div');
+  box.className = `${className} empty-state`;
+  const tile = document.createElement('span');
+  tile.className = 'empty-state-icon';
+  tile.setAttribute('aria-hidden', 'true');
+  tile.appendChild(createIcon(icon));
+  const heading = document.createElement('strong');
+  heading.textContent = title;
+  const text = document.createElement('span');
+  text.textContent = hint;
+  box.append(tile, heading, text);
+  return box;
 }
 
 export class ForumGroups {

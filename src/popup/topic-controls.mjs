@@ -2,6 +2,7 @@
 // from one snapshot of the panel state (pure), then applied to the DOM.
 
 import { t } from '../shared/i18n.mjs';
+import { setButtonLabel } from './icons.mjs';
 
 export function getSummaryActionLabel({
   taskStatus = '',
@@ -140,7 +141,7 @@ function setBusy(element, busy) {
 export function applyTopicControls(controls, helperText) {
   const summarize = $('summarizeBtn');
   summarize.disabled = controls.summarize.disabled;
-  summarize.textContent = controls.summarize.label;
+  setButtonLabel(summarize, controls.summarize.label);
   setBusy(summarize, controls.summarize.busy);
 
   const agentLaunch = $('agentLaunchBtn');
@@ -152,7 +153,7 @@ export function applyTopicControls(controls, helperText) {
     agentInput.disabled = controls.agentInput.disabled;
     sendAgent.disabled = controls.sendAgent.disabled;
     setBusy(sendAgent, controls.sendAgent.busy);
-    sendAgent.textContent = controls.sendAgent.label;
+    setButtonLabel(sendAgent, controls.sendAgent.label);
   }
 
   $('copyPostBtn').disabled = controls.copyPost.disabled;

@@ -6,6 +6,7 @@ import { formatExpiresIn } from '../shared/preferences.mjs';
 import { describeSummarizedReplies, formatRelativeTime, retentionCopy } from './ui-state.mjs';
 import { cleanTopicTitle } from './forum-names.mjs';
 import { t, tn } from '../shared/i18n.mjs';
+import { createIcon, setIconButton } from './icons.mjs';
 
 // data-saved-key of a saved card (focus after a delete, tests).
 export const savedTopicKey = entry => `topic:${entry.topicKey}`;
@@ -13,11 +14,18 @@ export const savedAgentKey = activity => `agent:${activity.activityId}`;
 
 const statusLabel = status => t(`task.status.${status}`);
 
-function createButton(label, className, onClick) {
+// Every card button is an icon button: the label stays in the button (visually
+// hidden) as its name, and is the tooltip. `primary` marks the one that opens
+// the item.
+function createButton(label, className, onClick, { icon, primary = false } = {}) {
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = className;
-  button.textContent = label;
+  button.className = `activity-action ${className}`.trim();
+  button.classList.toggle('primary', primary);
+  setIconButton(button, { icon, label });
+  button.classList.add('icon-only');
+  button.setAttribute('aria-label', label);
+  button.title = label;
   button.addEventListener('click', onClick);
   return button;
 }
@@ -28,19 +36,34 @@ function createMetadataSpan(text) {
   return span;
 }
 
+// A tile with the kind of item: summary, chat or Agent.
+function createTypeIcon(kind) {
+  const tile = document.createElement('span');
+  tile.className = `activity-icon ${kind}`;
+  tile.setAttribute('aria-hidden', 'true');
+  tile.appendChild(createIcon({ summary: 'summary', chat: 'chat', agent: 'search' }[kind]));
+  return tile;
+}
+
 function createCancelButton(task, onCancel) {
-  const cancel = createButton(task.phase === 'cancelling' ? t('answer.stopping') : t('activity.stopTask'), 'outline secondary', () =>
-    onCancel(task.id)
+  const cancel = createButton(
+    task.phase === 'cancelling' ? t('answer.stopping') : t('activity.stopTask'),
+    'stop-task',
+    () => onCancel(task.id),
+    { icon: 'stop' }
   );
   cancel.disabled = task.phase === 'cancelling';
   return cancel;
 }
 
-// Header, status line and progress bar shared by every task card.
-function createTaskCardBase(task, { className, title, titleTooltip, badge, queuePosition }) {
+// One line each: the title with its status badge, forum · counts · time, and
+// what the task is doing (or the error). Actions sit to the right.
+function createTaskCardBase(task, { className, kind, title, titleTooltip, badge, queuePosition, forumName, details = [], buttons }) {
   const card = document.createElement('article');
   card.className = className;
 
+  const main = document.createElement('div');
+  main.className = 'task-card-main';
   const header = document.createElement('div');
   header.className = 'task-card-header';
   const heading = document.createElement('h4');
@@ -50,15 +73,26 @@ function createTaskCardBase(task, { className, title, titleTooltip, badge, queue
   badgeElement.className = 'task-badge';
   badgeElement.textContent = badge;
   header.append(heading, badgeElement);
-  card.appendChild(header);
+  main.appendChild(header);
 
-  const status = document.createElement('p');
-  status.className = 'task-card-status';
-  status.textContent =
+  const meta = document.createElement('p');
+  meta.className = 'task-card-meta';
+  meta.textContent = [forumName, ...details, formatRelativeTime(task.updatedAt || task.createdAt)].filter(Boolean).join(' · ');
+  main.appendChild(meta);
+
+  const finishedQuietly = task.status === TASK_STATUS.COMPLETED || task.status === TASK_STATUS.CANCELLED;
+  const text =
     task.status === TASK_STATUS.QUEUED && queuePosition
       ? t('activity.queuePosition', { position: queuePosition, status: task.statusText })
       : task.error || task.statusText || task.phase;
-  card.appendChild(status);
+  if (text && !(finishedQuietly && !task.error)) {
+    const status = document.createElement('p');
+    status.className = 'task-card-status';
+    status.textContent = text;
+    // One line; the full text is the tooltip.
+    status.title = text;
+    main.appendChild(status);
+  }
 
   if (task.progress && !isTerminalTaskStatus(task.status)) {
     const progress = document.createElement('progress');
@@ -66,9 +100,11 @@ function createTaskCardBase(task, { className, title, titleTooltip, badge, queue
     if (task.progress.percent !== null) {
       progress.value = task.progress.percent;
     }
-    progress.setAttribute('aria-label', status.textContent);
-    card.appendChild(progress);
+    progress.setAttribute('aria-label', text || badge);
+    main.appendChild(progress);
   }
+
+  card.append(createTypeIcon(kind), main, createActions('task-card-actions', buttons));
   return card;
 }
 
@@ -91,23 +127,23 @@ function createActions(className, buttons) {
  */
 export function createTopicTaskCard(task, { queuePosition, forumName, isCurrentTopic, onOpen, onCancel }) {
   const topicTitle = cleanTopicTitle(task.title, forumName);
-  const card = createTaskCardBase(task, {
+  const isChat = task.type === TASK_TYPE.CHAT;
+  return createTaskCardBase(task, {
     className: `task-card ${task.status}`,
-    title: t('activity.taskTitle', {
-      type: task.type === TASK_TYPE.CHAT ? t('activity.type.chat') : t('activity.type.summary'),
-      title: topicTitle
-    }),
+    kind: isChat ? 'chat' : 'summary',
+    title: t('activity.taskTitle', { type: isChat ? t('activity.type.chat') : t('activity.type.summary'), title: topicTitle }),
     titleTooltip: topicTitle,
     badge: statusLabel(task.status),
-    queuePosition
-  });
-  card.appendChild(
-    createActions('task-card-actions', [
-      createButton(isCurrentTopic ? t('activity.viewSession') : t('activity.openPost'), 'outline secondary', () => onOpen(task)),
+    queuePosition,
+    forumName,
+    buttons: [
+      createButton(isCurrentTopic ? t('activity.viewSession') : t('activity.openPost'), 'open-task', () => onOpen(task), {
+        icon: 'open',
+        primary: true
+      }),
       !isTerminalTaskStatus(task.status) && createCancelButton(task, onCancel)
-    ])
-  );
-  return card;
+    ]
+  });
 }
 
 /**
@@ -121,53 +157,48 @@ export function createTopicTaskCard(task, { queuePosition, forumName, isCurrentT
  * @param {(task: object) => void} options.onRetry
  * @param {(taskId: string) => void} options.onCancel
  */
-export function createAgentTaskCard(task, { queuePosition = 0, activity, onOpen, onResume, onRetry, onCancel }) {
+export function createAgentTaskCard(task, { queuePosition = 0, forumName = '', activity, onOpen, onResume, onRetry, onCancel }) {
   const waiting = task.status === TASK_STATUS.WAITING_USER_ACTION;
-  const card = createTaskCardBase(task, {
-    className: `task-card agent ${task.status}`,
-    title: t('activity.agentTitle', { title: task.title || task.question || t('common.askForum') }),
-    titleTooltip: task.question || task.title || t('common.askForum'),
-    badge: waiting ? t('task.status.waiting_user_action') : statusLabel(task.status),
-    queuePosition
-  });
-
   const stepCount = activity ? agentStepsOf(activity).length : 0;
-  if (stepCount || activity?.sourceRefs?.length) {
-    const meta = document.createElement('small');
-    meta.className = 'task-card-status';
-    meta.textContent = [
-      stepCount && tn('answer.count.step', stepCount),
-      activity.sourceRefs.length && tn('answer.count.source', activity.sourceRefs.length)
-    ]
-      .filter(Boolean)
-      .join(' · ');
-    card.appendChild(meta);
-  }
-
+  const sourceCount = activity?.sourceRefs?.length || 0;
   const openLabel = waiting
     ? t('common.continue')
     : isTerminalTaskStatus(task.status)
       ? t('activity.viewAnswer')
       : t('activity.viewProgress');
-  card.appendChild(
-    createActions('task-card-actions', [
-      createButton(openLabel, 'outline secondary', () => {
-        if (waiting) {
-          onResume(task.id);
-        } else {
-          onOpen(task);
-        }
-      }),
+  return createTaskCardBase(task, {
+    className: `task-card agent ${task.status}`,
+    kind: 'agent',
+    title: t('activity.agentTitle', { title: task.title || task.question || t('common.askForum') }),
+    titleTooltip: task.question || task.title || t('common.askForum'),
+    badge: waiting ? t('task.status.waiting_user_action') : statusLabel(task.status),
+    queuePosition,
+    forumName,
+    details: [stepCount && tn('answer.count.step', stepCount), sourceCount && tn('answer.count.source', sourceCount)].filter(Boolean),
+    buttons: [
+      createButton(
+        openLabel,
+        'open-task',
+        () => {
+          if (waiting) {
+            onResume(task.id);
+          } else {
+            onOpen(task);
+          }
+        },
+        { icon: waiting ? 'play' : 'open', primary: true }
+      ),
       (task.status === TASK_STATUS.FAILED || task.status === TASK_STATUS.CANCELLED)
-        && createButton(t('common.retry'), 'outline secondary', () => onRetry(task)),
+        && createButton(t('common.retry'), 'retry-task', () => onRetry(task), { icon: 'retry' }),
       !isTerminalTaskStatus(task.status) && createCancelButton(task, onCancel)
-    ])
-  );
-  return card;
+    ]
+  });
 }
 
 function createKeepButton({ kept, label, title, disabledTitle, onToggle }) {
-  const keepButton = createButton(kept ? t('common.unkeep') : t('common.keep'), 'outline secondary keep-saved', () => onToggle(keepButton));
+  const keepButton = createButton(kept ? t('common.unkeep') : t('common.keep'), 'keep-saved', () => onToggle(keepButton), {
+    icon: 'bookmark'
+  });
   keepButton.setAttribute('aria-pressed', String(kept === true));
   keepButton.setAttribute('aria-label', t(kept ? 'activity.unkeepAria' : 'activity.keepAria', { label }));
   keepButton.title = title;
@@ -176,6 +207,33 @@ function createKeepButton({ kept, label, title, disabledTitle, onToggle }) {
     keepButton.title = disabledTitle;
   }
   return keepButton;
+}
+
+// The shell both saved cards share: a type icon, the title with its meta
+// line, the actions on the right, and a short excerpt underneath.
+function createSavedCardShell({ className, key, kind, titleText, tooltip, excerptText, metaParts, buttons }) {
+  const card = document.createElement('article');
+  card.className = className;
+  card.dataset.savedKey = key;
+
+  const title = document.createElement('h3');
+  title.textContent = titleText;
+  title.title = tooltip;
+  const metadata = document.createElement('div');
+  metadata.className = 'saved-card-meta';
+  metadata.appendChild(createMetadataSpan(metaParts.filter(Boolean).join(' · ')));
+  const main = document.createElement('div');
+  main.className = 'saved-card-main';
+  main.append(title, metadata);
+
+  const top = document.createElement('div');
+  top.className = 'saved-card-top';
+  top.append(createTypeIcon(kind), main, createActions('saved-card-actions', buttons));
+
+  const excerpt = document.createElement('p');
+  excerpt.textContent = excerptText;
+  card.append(top, excerpt);
+  return card;
 }
 
 /**
@@ -193,36 +251,14 @@ export function createSavedTopicCard(
   entry,
   { forumName, isCurrent, hasActiveTasks, onOpen, onKeep, onDelete, copy = retentionCopy(null) }
 ) {
-  const card = document.createElement('article');
-  card.className = 'saved-card';
-  card.dataset.savedKey = savedTopicKey(entry);
-  card.classList.toggle('kept', entry.kept === true);
-  if (isCurrent) {
-    card.classList.add('current');
-  }
-
   const topicTitle = cleanTopicTitle(entry.title, forumName);
-  const title = document.createElement('h3');
-  title.textContent = topicTitle;
-  title.title = topicTitle;
-  card.appendChild(title);
 
-  const excerpt = document.createElement('p');
-  excerpt.textContent = entry.summaryExcerpt || t('activity.savedSummary');
-  card.appendChild(excerpt);
+  const openButton = createButton(isCurrent ? t('activity.viewCurrent') : t('activity.openSaved'), 'open-saved', () => onOpen(entry), {
+    icon: 'open',
+    primary: true
+  });
 
-  const metadata = document.createElement('div');
-  metadata.className = 'saved-card-meta';
-  metadata.append(
-    createMetadataSpan(describeSummarizedReplies(entry)),
-    createMetadataSpan(tn('activity.chatMessages', entry.historyCount)),
-    createMetadataSpan(formatRelativeTime(entry.updatedAt))
-  );
-  card.appendChild(metadata);
-
-  const openButton = createButton(isCurrent ? t('activity.viewCurrent') : t('activity.openSaved'), 'open-saved', () => onOpen(entry));
-
-  const deleteButton = createButton(t('common.delete'), 'outline secondary delete-saved', () => onDelete(entry));
+  const deleteButton = createButton(t('common.delete'), 'delete-saved', () => onDelete(entry), { icon: 'trash' });
   deleteButton.setAttribute('aria-label', t('activity.deleteSummaryAria', { title: topicTitle }));
   if (hasActiveTasks) {
     deleteButton.disabled = true;
@@ -237,7 +273,23 @@ export function createSavedTopicCard(
     onToggle: button => onKeep(entry, button)
   });
 
-  card.appendChild(createActions('saved-card-actions', [openButton, keepButton, deleteButton]));
+  const card = createSavedCardShell({
+    className: 'saved-card',
+    key: savedTopicKey(entry),
+    kind: 'summary',
+    titleText: topicTitle,
+    tooltip: topicTitle,
+    excerptText: entry.summaryExcerpt || t('activity.savedSummary'),
+    metaParts: [
+      forumName,
+      describeSummarizedReplies(entry),
+      entry.historyCount ? tn('activity.chatMessages', entry.historyCount) : '',
+      formatRelativeTime(entry.updatedAt)
+    ],
+    buttons: [openButton, keepButton, deleteButton]
+  });
+  card.classList.toggle('kept', entry.kept === true);
+  card.classList.toggle('current', Boolean(isCurrent));
   return card;
 }
 
@@ -261,37 +313,8 @@ export function answerExcerpt(answer, maxLength = 240) {
  */
 export function createSavedAgentCard(
   activity,
-  { onOpen, onKeep, onDelete, now = Date.now(), retention = null, copy = retentionCopy(retention) }
+  { onOpen, onKeep, onDelete, forumName = '', now = Date.now(), retention = null, copy = retentionCopy(retention) }
 ) {
-  const card = document.createElement('article');
-  card.className = 'saved-card agent-saved-card';
-  card.dataset.savedKey = savedAgentKey(activity);
-  card.classList.toggle('kept', activity.kept === true);
-
-  const title = document.createElement('h3');
-  title.textContent = t('activity.agentTitle', { title: activity.title });
-  title.title = activity.question || activity.title;
-  card.appendChild(title);
-
-  const excerpt = document.createElement('p');
-  excerpt.textContent = answerExcerpt(activity.answer) || t('activity.savedAnswer');
-  card.appendChild(excerpt);
-
-  const metadata = document.createElement('div');
-  metadata.className = 'saved-card-meta';
-  const stepCount = agentStepsOf(activity).length;
-  metadata.append(
-    ...(stepCount ? [createMetadataSpan(tn('answer.count.step', stepCount))] : []),
-    createMetadataSpan(tn('answer.count.source', activity.sourceRefs.length)),
-    createMetadataSpan(formatRelativeTime(activity.completedAt || activity.updatedAt))
-  );
-  // Recomputed with the current history setting (never the stored copy).
-  const expires = formatExpiresIn(agentActivityExpiry(activity, retention ? retention.agentMs : undefined), now);
-  if (expires) {
-    metadata.appendChild(createMetadataSpan(expires));
-  }
-  card.appendChild(metadata);
-
   const keepButton = createKeepButton({
     kept: activity.kept,
     label: t('activity.answerLabel', { title: activity.title }),
@@ -299,14 +322,32 @@ export function createSavedAgentCard(
     onToggle: button => onKeep(activity, button)
   });
 
-  const deleteButton = createButton(t('common.delete'), 'outline secondary delete-saved', () => onDelete(activity));
+  const deleteButton = createButton(t('common.delete'), 'delete-saved', () => onDelete(activity), { icon: 'trash' });
   deleteButton.setAttribute('aria-label', t('activity.deleteAnswerAria', { title: activity.title }));
-  card.appendChild(
-    createActions('saved-card-actions', [
-      createButton(t('activity.viewAnswer'), 'open-saved', () => onOpen(activity)),
+
+  const stepCount = agentStepsOf(activity).length;
+  // Recomputed with the current history setting (never the stored copy).
+  const expires = formatExpiresIn(agentActivityExpiry(activity, retention ? retention.agentMs : undefined), now);
+  const card = createSavedCardShell({
+    className: 'saved-card agent-saved-card',
+    key: savedAgentKey(activity),
+    kind: 'agent',
+    titleText: t('activity.agentTitle', { title: activity.title }),
+    tooltip: activity.question || activity.title,
+    excerptText: answerExcerpt(activity.answer) || t('activity.savedAnswer'),
+    metaParts: [
+      forumName,
+      stepCount ? tn('answer.count.step', stepCount) : '',
+      tn('answer.count.source', activity.sourceRefs.length),
+      formatRelativeTime(activity.completedAt || activity.updatedAt),
+      expires
+    ],
+    buttons: [
+      createButton(t('activity.viewAnswer'), 'open-saved', () => onOpen(activity), { icon: 'open', primary: true }),
       keepButton,
       deleteButton
-    ])
-  );
+    ]
+  });
+  card.classList.toggle('kept', activity.kept === true);
   return card;
 }
