@@ -2646,7 +2646,7 @@ zhScenario('popup-setup', 'src/popup/popup.html', { store: {} }, async ({ page, 
   await page.fill('#setupModel', 'gpt-4o');
   await page.click('#setupTestSaveBtn');
   await page.waitForTimeout(500);
-  check('success copy', (await text(page, '#setupSuccessText')).includes('生成总结'), await text(page, '#setupSuccessText'));
+  check('success copy', (await text(page, '#setupSuccessText')).includes('总结贴文'), await text(page, '#setupSuccessText'));
   await zhScreen(page, check, 'setup success', ['设置完成', '完成']);
   await shot('success');
   await page.click('label.setup-provider-option[data-provider="ollama"]').catch(() => {});
@@ -2666,7 +2666,7 @@ zhScenario('popup-topic', 'src/popup/popup.html', { store: configuredStore, task
   await page.reload();
   await page.waitForTimeout(700);
   check('summarize label', (await text(page, '#summarizeBtn')) === '检查新回复', await text(page, '#summarizeBtn'));
-  check('agent button', (await text(page, '#agentLaunchBtn')) === '问论坛', await text(page, '#agentLaunchBtn'));
+  check('agent button', (await text(page, '#agentLaunchBtn')) === '全站搜索', await text(page, '#agentLaunchBtn'));
   check('chat count', (await text(page, '#chatCount')) === '已提 1 个问题', await text(page, '#chatCount'));
   check('summary meta', (await text(page, '#summaryMeta')).includes('保存'), await text(page, '#summaryMeta'));
   await page.click('.chat-context-summary');
@@ -2800,7 +2800,7 @@ zhScenario(
   { store: configuredStore, tabUrl: `${SITE}/latest`, tabTitle: 'Latest - Discourse Meta', pageState: forumHomeState },
   async ({ page, check, shot }) => {
     check('title', (await text(page, '#currentPageTitle')) === '你正在浏览 Discourse Meta', await text(page, '#currentPageTitle'));
-    await zhScreen(page, check, 'forum home', ['Discourse 论坛', '打开任意话题即可生成总结']);
+    await zhScreen(page, check, 'forum home', ['Discourse 论坛', '打开任意话题即可总结贴文']);
     await shot('forum-home');
   }
 );

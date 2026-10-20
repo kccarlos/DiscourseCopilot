@@ -4,7 +4,7 @@
     "description": "Extension name shown in the Chrome Web Store and chrome://extensions."
   },
   "extDescription": {
-    "message": "为任意 Discourse 论坛提供 AI 总结和研究助手：一键总结长帖，向论坛提问并获得带来源的回答。",
+    "message": "为任意 Discourse 论坛提供 AI 助手：一键总结贴文，全站搜索并获得带来源的回答。",
     "description": "Short description (max 132 characters)."
   },
   "actionTitle": {
