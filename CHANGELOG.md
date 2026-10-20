@@ -1,8 +1,15 @@
 # Changelog
 
-Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each release is published on the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases) (with the installable zip) and submitted to the [Chrome Web Store](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac). The store offers a version only after Google's review, which can take from a few hours to several days, so it may lag behind the newest release.
+Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each release is published on the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases) (with the installable zip) and submitted to the [Chrome Web Store](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac) and Microsoft Edge Add-ons. Each store offers a version only after its review, which can take from a few hours to several days, so it may lag behind the newest release.
 
 ## [Unreleased]
+
+## [2.3.2] - 2026-10-20
+
+Same extension as 2.3.1, now also published on Microsoft Edge Add-ons.
+
+### Changed
+- Releases are uploaded to Microsoft Edge Add-ons as well as the Chrome Web Store. Nothing in the extension itself changed.
 
 ## [2.3.1] - 2026-10-20
 
@@ -103,7 +110,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.1...HEAD
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.2...HEAD
+[2.3.2]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.1...v2.3.2
 [2.3.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.0...v2.2.1

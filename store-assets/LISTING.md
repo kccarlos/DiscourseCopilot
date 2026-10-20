@@ -1,6 +1,6 @@
 # Chrome Web Store listing
 
-The text submitted to the Chrome Web Store for DiscourseCopilot, kept here so it changes together with the extension. Update it whenever `manifest.json` permissions or user-facing features change. Current as of version 2.3.1. The release workflow uploads only the package, never this text: the listing text, screenshots and permission justifications are pasted by hand into the [developer dashboard](https://chrome.google.com/webstore/devconsole), so copy any change made here there too (and the other way round). The short description comes from `extDescription` in `public/_locales/en/messages.json` (the manifest's `description` is a `__MSG_extDescription__` placeholder); the Chinese one is in `public/_locales/zh_CN/messages.json`.
+The text submitted to the Chrome Web Store for DiscourseCopilot, kept here so it changes together with the extension. Update it whenever `manifest.json` permissions or user-facing features change. Current as of version 2.3.2. The release workflow uploads only the package, never this text: the listing text, screenshots and permission justifications are pasted by hand into the [developer dashboard](https://chrome.google.com/webstore/devconsole), so copy any change made here there too (and the other way round). The short description comes from `extDescription` in `public/_locales/en/messages.json` (the manifest's `description` is a `__MSG_extDescription__` placeholder); the Chinese one is in `public/_locales/zh_CN/messages.json`.
 
 ## Summary (short description, max 132 characters)
 
