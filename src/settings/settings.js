@@ -29,8 +29,7 @@ const STATUS_AUTO_HIDE_MS = 5000;
 const $ = id => document.getElementById(id);
 
 // Inside the side panel the page is shown in an iframe (?embedded=1): the
-// panel supplies the title and back button, so the page drops its own header
-// and welcome banner. Set before the first paint.
+// panel supplies the title and back button, so the page drops its own header. Set before the first paint.
 const pageParams = new URLSearchParams(location.search);
 const EMBEDDED = pageParams.get('embedded') === '1';
 document.documentElement.classList.toggle('embedded', EMBEDDED);
@@ -44,7 +43,6 @@ class DiscourseCopilotSettings {
     this.renderedConfirmingReset = undefined;
     this.hasSavedConfiguration = false;
     this.statusTimer = null;
-    this.welcomeMode = !EMBEDDED && pageParams.get('welcome') === '1';
     const isBusy = () => this.isBusy;
     this.provider = new ProviderSection({
       store: this.store,
@@ -75,7 +73,6 @@ class DiscourseCopilotSettings {
 
   async init() {
     localizeDocument();
-    this.renderWelcome();
     this.provider.renderLinks();
     this.preferences.renderRetentionOptions();
     this.renderForm();
@@ -94,9 +91,7 @@ class DiscourseCopilotSettings {
     this.provider.render();
     this.favorites.render();
     this.renderSavedConfiguration();
-    this.dispatch(
-      loadError ? { type: 'load-failed', message: loadError.message } : { type: 'loaded', welcomeMode: this.welcomeMode, quiet: EMBEDDED }
-    );
+    this.dispatch(loadError ? { type: 'load-failed', message: loadError.message } : { type: 'loaded', quiet: EMBEDDED });
 
     this.forumAccess = new ForumAccessSection({
       loadRecords: async () => {
@@ -323,12 +318,6 @@ class DiscourseCopilotSettings {
     });
   }
 
-  // First install opens this page with ?welcome=1.
-  renderWelcome() {
-    document.body.classList.toggle('welcome-mode', this.welcomeMode);
-    $('welcomeHeader')?.classList.toggle('hidden', !this.welcomeMode);
-  }
-
   renderSavedConfiguration() {
     const { config } = this.store;
     const saved = describeSavedConfiguration(config.provider, config.providers[config.provider], PROVIDER_CONFIGS);
@@ -380,7 +369,7 @@ class DiscourseCopilotSettings {
       if (this.form.revision === this.form.savingRevision) {
         this.preferences.populate();
       }
-      this.dispatch({ type: 'save-succeeded', welcomeMode: this.welcomeMode });
+      this.dispatch({ type: 'save-succeeded' });
       if (!serverAllowed) {
         this.notify(t('settings.status.savedServerDenied', { detail: serverAccessDeniedText(server.serverUrl) }), 'warning', false);
       }

@@ -8,13 +8,6 @@ export default {
   'settings.cancel': 'Cancel',
   'settings.restoreDefaults': 'Restore defaults',
   'settings.header.currentlySaved': 'Currently saved',
-  'settings.welcome.title': 'Welcome to DiscourseCopilot — 3 steps to get started',
-  'settings.welcome.intro':
-    'DiscourseCopilot summarizes long topics and answers questions with sources on <strong>any Discourse forum</strong>. Connect your own AI provider below — or finish setup in the side panel, which walks you through the same steps.',
-  'settings.welcome.step1':
-    '<strong>Choose a provider.</strong> OpenRouter gives you many models with one key; Ollama runs on your computer.',
-  'settings.welcome.step2': '<strong>Paste your API key</strong> (or your local server URL). It stays in this browser.',
-  'settings.welcome.step3': '<strong>Pick a model</strong>, then <em>Test Connection</em> and <em>Save Settings</em>.',
   'settings.nav.label': 'Settings sections',
   'settings.section.provider': 'AI provider',
   'settings.section.prompt': 'Prompt & language',
@@ -173,8 +166,6 @@ export default {
   'settings.formState.saved': 'Saved',
   'settings.formState.allSaved': 'All changes saved',
   'settings.formState.notSetUp': 'Not set up yet',
-  'settings.status.welcomeSaved':
-    'Settings saved. You’re set — open any Discourse topic, click the DiscourseCopilot icon, allow access to the forum, and press Create summary.',
   'settings.status.loadingSaved': 'Loading saved settings…',
   'settings.status.loaded': 'Settings loaded.',
   'settings.status.loadFailed': 'Could not load saved settings: {error}',

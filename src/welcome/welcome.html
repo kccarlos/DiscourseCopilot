@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="welcome.title">Welcome to DiscourseCopilot</title>
+  <link rel="icon" type="image/svg+xml" href="/brand/tab-icon-light.svg" media="(prefers-color-scheme: light)">
+  <link rel="icon" type="image/svg+xml" href="/brand/tab-icon-dark.svg" media="(prefers-color-scheme: dark)">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --w-bg: #f4f7fb;
+      --w-surface: #ffffff;
+      --w-ink: #172033;
+      --w-muted: #687387;
+      --w-line: #dfe5ee;
+      --w-accent: #1769e0;
+      --w-accent-2: #4f63e8;
+      --w-danger: #b42318;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --w-bg: #0f141b;
+        --w-surface: #171d26;
+        --w-ink: #e6ebf2;
+        --w-muted: #9aa6b8;
+        --w-line: #2a3340;
+        --w-accent: #2563d9;
+        --w-accent-2: #4b57d6;
+        --w-danger: #f97066;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      display: grid;
+      min-height: 100vh;
+      margin: 0;
+      padding: 24px 16px;
+      place-items: center;
+      background: var(--w-bg);
+      color: var(--w-ink);
+      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(440px, 100%);
+      padding: 32px 28px;
+      border: 1px solid var(--w-line);
+      border-radius: 18px;
+      background: var(--w-surface);
+      text-align: center;
+    }
+
+    .logo {
+      width: 56px;
+      height: 56px;
+    }
+
+    h1 {
+      margin: 12px 0 6px;
+      font-size: 1.35rem;
+    }
+
+    p {
+      margin: 0;
+      color: var(--w-muted);
+    }
+
+    #openPanel {
+      width: 100%;
+      min-height: 48px;
+      margin: 24px 0 0;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--w-accent), var(--w-accent-2));
+      color: #ffffff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    #openPanel:disabled {
+      opacity: 0.7;
+      cursor: default;
+    }
+
+    #openPanel:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--w-accent) 45%, transparent);
+      outline-offset: 2px;
+    }
+
+    #status {
+      min-height: 1.5em;
+      margin-top: 12px;
+      font-size: 0.88rem;
+    }
+
+    #status[data-type="error"] {
+      color: var(--w-danger);
+    }
+
+    .tip {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--w-line);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <picture>
+      <source srcset="/brand/icon-on-dark.svg" media="(prefers-color-scheme: dark)">
+      <img class="logo" src="/brand/icon-on-light.svg" alt="" width="56" height="56" draggable="false">
+    </picture>
+    <h1 data-i18n="welcome.heading">Welcome to DiscourseCopilot</h1>
+    <p data-i18n="welcome.lede">It works in Chrome's side panel, next to the forum you're reading. Open it to connect an AI provider; it takes about a minute.</p>
+    <button id="openPanel" type="button" data-i18n="welcome.open">Open DiscourseCopilot</button>
+    <p id="status" role="status" aria-live="polite"></p>
+    <p class="tip" data-i18n="welcome.pinTip">Tip: click the puzzle icon in Chrome's toolbar and pin DiscourseCopilot, so its icon is always one click away.</p>
+  </main>
+  <script type="module" src="./welcome.js"></script>
+</body>
+</html>

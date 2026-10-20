@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import {
   FORM_PHASE,
-  WELCOME_SAVED_MESSAGE,
   canSave,
   dirtyIndicatorText,
   formStateLabel,
@@ -22,12 +21,12 @@ test('starts loading and busy with a loading message', () => {
   assert.deepEqual(state.status, { message: 'Loading saved settings…', type: 'info', autoHide: false });
 });
 
-test('loaded → pristine with an auto-hiding confirmation, or quiet in welcome mode', () => {
+test('loaded → pristine with an auto-hiding confirmation, or quiet in the side panel', () => {
   const loaded = run([{ type: 'loaded' }]);
   assert.equal(loaded.phase, FORM_PHASE.PRISTINE);
   assert.equal(isFormBusy(loaded), false);
   assert.deepEqual(loaded.status, { message: 'Settings loaded.', type: 'success', autoHide: true });
-  assert.equal(run([{ type: 'loaded', welcomeMode: true }]).status, null);
+  assert.equal(run([{ type: 'loaded', quiet: true }]).status, null);
 });
 
 test('load-failed → error with a sticky message', () => {
@@ -93,11 +92,6 @@ test('edits made while saving keep the form dirty after the save', () => {
   const saved = transitionForm(state, { type: 'save-succeeded' });
   assert.equal(saved.phase, FORM_PHASE.DIRTY);
   assert.equal(saved.edited, true);
-});
-
-test('welcome mode keeps the post-save guidance on screen', () => {
-  const state = run([{ type: 'loaded', welcomeMode: true }, { type: 'save-started' }, { type: 'save-succeeded', welcomeMode: true }]);
-  assert.deepEqual(state.status, { message: WELCOME_SAVED_MESSAGE, type: 'success', autoHide: false });
 });
 
 test('saving → error keeps the edits', () => {
