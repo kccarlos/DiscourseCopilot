@@ -15,8 +15,8 @@ export const savedAgentKey = activity => `agent:${activity.activityId}`;
 const statusLabel = status => t(`task.status.${status}`);
 
 // Every card button is an icon button: the label stays in the button (visually
-// hidden) as its name, and is the tooltip. `primary` marks the one that opens
-// the item.
+// hidden) as its name, and is the tooltip. `primary` marks the one to press
+// (Continue on a task waiting for the user).
 function createButton(label, className, onClick, { icon, primary = false } = {}) {
   const button = document.createElement('button');
   button.type = 'button';
@@ -28,6 +28,22 @@ function createButton(label, className, onClick, { icon, primary = false } = {})
   button.title = label;
   button.addEventListener('click', onClick);
   return button;
+}
+
+// The card's title is the button that opens it; its hit area covers the
+// whole card (see .card-open in popup.css), so a click anywhere on the row
+// opens the item while the action buttons keep their own clicks.
+function createCardOpener(tagName, { text, tooltip, label, className, onClick }) {
+  const heading = document.createElement(tagName);
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `card-open ${className}`;
+  button.textContent = text;
+  button.title = tooltip && tooltip !== label ? `${tooltip}\n${label}` : label;
+  button.dataset.openLabel = label;
+  button.addEventListener('click', onClick);
+  heading.appendChild(button);
+  return heading;
 }
 
 function createMetadataSpan(text) {
@@ -58,7 +74,7 @@ function createCancelButton(task, onCancel) {
 
 // One line each: the title with its status badge, forum · counts · time, and
 // what the task is doing (or the error). Actions sit to the right.
-function createTaskCardBase(task, { className, kind, title, titleTooltip, badge, queuePosition, forumName, details = [], buttons }) {
+function createTaskCardBase(task, { className, kind, title, titleTooltip, open, badge, queuePosition, forumName, details = [], buttons }) {
   const card = document.createElement('article');
   card.className = className;
 
@@ -66,9 +82,7 @@ function createTaskCardBase(task, { className, kind, title, titleTooltip, badge,
   main.className = 'task-card-main';
   const header = document.createElement('div');
   header.className = 'task-card-header';
-  const heading = document.createElement('h4');
-  heading.textContent = title;
-  heading.title = titleTooltip;
+  const heading = createCardOpener('h4', { text: title, tooltip: titleTooltip, className: 'open-task', ...open });
   const badgeElement = document.createElement('span');
   badgeElement.className = 'task-badge';
   badgeElement.textContent = badge;
@@ -133,16 +147,11 @@ export function createTopicTaskCard(task, { queuePosition, forumName, isCurrentT
     kind: isChat ? 'chat' : 'summary',
     title: t('activity.taskTitle', { type: isChat ? t('activity.type.chat') : t('activity.type.summary'), title: topicTitle }),
     titleTooltip: topicTitle,
+    open: { label: isCurrentTopic ? t('activity.viewSession') : t('activity.openPost'), onClick: () => onOpen(task) },
     badge: statusLabel(task.status),
     queuePosition,
     forumName,
-    buttons: [
-      createButton(isCurrentTopic ? t('activity.viewSession') : t('activity.openPost'), 'open-task', () => onOpen(task), {
-        icon: 'open',
-        primary: true
-      }),
-      !isTerminalTaskStatus(task.status) && createCancelButton(task, onCancel)
-    ]
+    buttons: [!isTerminalTaskStatus(task.status) && createCancelButton(task, onCancel)]
   });
 }
 
@@ -166,28 +175,26 @@ export function createAgentTaskCard(task, { queuePosition = 0, forumName = '', a
     : isTerminalTaskStatus(task.status)
       ? t('activity.viewAnswer')
       : t('activity.viewProgress');
+  const open = () => {
+    if (waiting) {
+      onResume(task.id);
+    } else {
+      onOpen(task);
+    }
+  };
   return createTaskCardBase(task, {
     className: `task-card agent ${task.status}`,
     kind: 'agent',
     title: t('activity.agentTitle', { title: task.title || task.question || t('common.askForum') }),
     titleTooltip: task.question || task.title || t('common.askForum'),
+    open: { label: openLabel, onClick: open },
     badge: waiting ? t('task.status.waiting_user_action') : statusLabel(task.status),
     queuePosition,
     forumName,
     details: [stepCount && tn('answer.count.step', stepCount), sourceCount && tn('answer.count.source', sourceCount)].filter(Boolean),
     buttons: [
-      createButton(
-        openLabel,
-        'open-task',
-        () => {
-          if (waiting) {
-            onResume(task.id);
-          } else {
-            onOpen(task);
-          }
-        },
-        { icon: waiting ? 'play' : 'open', primary: true }
-      ),
+      // Waiting on the user: Continue is the thing to do, so it stays a button too.
+      waiting && createButton(openLabel, 'continue-task', open, { icon: 'play', primary: true }),
       (task.status === TASK_STATUS.FAILED || task.status === TASK_STATUS.CANCELLED)
         && createButton(t('common.retry'), 'retry-task', () => onRetry(task), { icon: 'retry' }),
       !isTerminalTaskStatus(task.status) && createCancelButton(task, onCancel)
@@ -211,14 +218,12 @@ function createKeepButton({ kept, label, title, disabledTitle, onToggle }) {
 
 // The shell both saved cards share: a type icon, the title with its meta
 // line, the actions on the right, and a short excerpt underneath.
-function createSavedCardShell({ className, key, kind, titleText, tooltip, excerptText, metaParts, buttons }) {
+function createSavedCardShell({ className, key, kind, titleText, tooltip, open, excerptText, metaParts, buttons }) {
   const card = document.createElement('article');
   card.className = className;
   card.dataset.savedKey = key;
 
-  const title = document.createElement('h3');
-  title.textContent = titleText;
-  title.title = tooltip;
+  const title = createCardOpener('h3', { text: titleText, tooltip, className: 'open-saved', ...open });
   const metadata = document.createElement('div');
   metadata.className = 'saved-card-meta';
   metadata.appendChild(createMetadataSpan(metaParts.filter(Boolean).join(' · ')));
@@ -253,11 +258,6 @@ export function createSavedTopicCard(
 ) {
   const topicTitle = cleanTopicTitle(entry.title, forumName);
 
-  const openButton = createButton(isCurrent ? t('activity.viewCurrent') : t('activity.openSaved'), 'open-saved', () => onOpen(entry), {
-    icon: 'open',
-    primary: true
-  });
-
   const deleteButton = createButton(t('common.delete'), 'delete-saved', () => onDelete(entry), { icon: 'trash' });
   deleteButton.setAttribute('aria-label', t('activity.deleteSummaryAria', { title: topicTitle }));
   if (hasActiveTasks) {
@@ -279,6 +279,7 @@ export function createSavedTopicCard(
     kind: 'summary',
     titleText: topicTitle,
     tooltip: topicTitle,
+    open: { label: isCurrent ? t('activity.viewCurrent') : t('activity.openSaved'), onClick: () => onOpen(entry) },
     excerptText: entry.summaryExcerpt || t('activity.savedSummary'),
     metaParts: [
       forumName,
@@ -286,17 +287,19 @@ export function createSavedTopicCard(
       entry.historyCount ? tn('activity.chatMessages', entry.historyCount) : '',
       formatRelativeTime(entry.updatedAt)
     ],
-    buttons: [openButton, keepButton, deleteButton]
+    buttons: [keepButton, deleteButton]
   });
   card.classList.toggle('kept', entry.kept === true);
   card.classList.toggle('current', Boolean(isCurrent));
   return card;
 }
 
-// Plain-text excerpt of a markdown answer.
+// Plain-text excerpt of a markdown answer. Inline markers go without a trace
+// (Chinese has no spaces to keep); line markers become a space.
 export function answerExcerpt(answer, maxLength = 240) {
   return String(answer || '')
-    .replace(/[#*_>`~[\]]/g, ' ')
+    .replace(/[*`~[\]]/g, '')
+    .replace(/[#_>]/g, ' ')
     .replace(/\s+/g, ' ')
     .replace(/\s+([.,!?;:])/g, '$1')
     .trim()
@@ -334,6 +337,7 @@ export function createSavedAgentCard(
     kind: 'agent',
     titleText: t('activity.agentTitle', { title: activity.title }),
     tooltip: activity.question || activity.title,
+    open: { label: t('activity.viewAnswer'), onClick: () => onOpen(activity) },
     excerptText: answerExcerpt(activity.answer) || t('activity.savedAnswer'),
     metaParts: [
       forumName,
@@ -342,11 +346,7 @@ export function createSavedAgentCard(
       formatRelativeTime(activity.completedAt || activity.updatedAt),
       expires
     ],
-    buttons: [
-      createButton(t('activity.viewAnswer'), 'open-saved', () => onOpen(activity), { icon: 'open', primary: true }),
-      keepButton,
-      deleteButton
-    ]
+    buttons: [keepButton, deleteButton]
   });
   card.classList.toggle('kept', activity.kept === true);
   return card;

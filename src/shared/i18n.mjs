@@ -1,10 +1,11 @@
 // Interface language. The locale follows the browser UI language and is never
-// chosen in-app: Chinese browsers get Simplified Chinese, everything else
-// English. Text sent to the AI model is not translated and stays out of here.
+// chosen in-app: Chinese browsers get Simplified or Traditional Chinese,
+// everything else English. Text sent to the AI model is not translated and stays out of here.
 import en from './locales/en.mjs';
 import zhCN from './locales/zh-CN.mjs';
+import zhTW from './locales/zh-TW.mjs';
 
-export const LOCALES = Object.freeze({ en, 'zh-CN': zhCN });
+export const LOCALES = Object.freeze({ en, 'zh-CN': zhCN, 'zh-TW': zhTW });
 
 let forcedLocale = null;
 let cachedLocale = null;
@@ -19,10 +20,12 @@ function browserLanguage() {
   return globalThis.navigator?.language || 'en';
 }
 
-// Any Chinese variant (zh, zh-CN, zh-SG, zh-TW, zh-HK, ...) gets Simplified
-// Chinese; Simplified reads better than English for them.
+// Traditional Chinese for Taiwan, Hong Kong, Macau and any zh-Hant tag;
+// Simplified Chinese for every other Chinese variant (zh, zh-CN, zh-SG, ...).
 export function resolveLocale(language) {
-  return /^zh(?:[-_]|$)/i.test(String(language || '')) ? 'zh-CN' : 'en';
+  const tag = String(language || '');
+  if (!/^zh(?:[-_]|$)/i.test(tag)) return 'en';
+  return /^zh[-_](?:TW|HK|MO|Hant)(?:[-_]|$)/i.test(tag) ? 'zh-TW' : 'zh-CN';
 }
 
 export function getLocale() {
@@ -31,7 +34,7 @@ export function getLocale() {
   return cachedLocale;
 }
 
-// Test hook: pass 'en' or 'zh-CN' to force a locale, or null to detect again.
+// Test hook: pass 'en', 'zh-CN' or 'zh-TW' to force a locale, or null to detect again.
 export function setLocaleForTests(locale) {
   forcedLocale = locale ? resolveLocale(locale) : null;
   cachedLocale = null;
@@ -40,7 +43,8 @@ export function setLocaleForTests(locale) {
 // Locale argument for Intl APIs: undefined keeps the browser default for
 // English, so English dates and numbers format exactly as before.
 export function intlLocale() {
-  return getLocale() === 'zh-CN' ? 'zh-CN' : undefined;
+  const locale = getLocale();
+  return locale === 'en' ? undefined : locale;
 }
 
 function interpolate(template, params) {
@@ -106,7 +110,7 @@ function localizeTree(root) {
 export function localizeDocument(root = globalThis.document) {
   if (!root) return;
   const doc = root.ownerDocument || root;
-  if (doc.documentElement) doc.documentElement.lang = getLocale() === 'zh-CN' ? 'zh-CN' : 'en';
+  if (doc.documentElement) doc.documentElement.lang = getLocale();
   localizeTree(root);
   const title = doc.querySelector?.('title[data-i18n]');
   if (title) doc.title = t(title.dataset.i18n);

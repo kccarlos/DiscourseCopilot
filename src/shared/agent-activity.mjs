@@ -461,7 +461,8 @@ export function buildAgentActivityIndexEntry(value) {
     status: activity.status,
     answerStatus: activity.answerStatus,
     answerExcerpt: activity.answer
-      .replace(/[#*_>`~[\]]/g, ' ')
+      .replace(/[*`~[\]]/g, '')
+      .replace(/[#_>]/g, ' ')
       .replace(/\s+/g, ' ')
       .replace(/\s+([.,!?;:])/g, '$1')
       .trim()

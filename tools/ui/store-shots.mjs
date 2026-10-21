@@ -7,7 +7,9 @@
 //               tiles) rendered at 2x                       → out/store/html/ (generated pages)
 //   3. downsample to 1x (lanczos3), flatten, no alpha      → out/store/
 //
-// Usage: node tools/ui/store-shots.mjs [--only=01,promo-small,social-preview] [--check] [--write]
+// Usage: node tools/ui/store-shots.mjs [--locale=en|zh-CN|zh-TW] [--only=01,promo-small,social-preview] [--check] [--write]
+//   --locale interface and fixture language (default en); other languages
+//            write to out/store/<locale>/ and store-assets/<locale>/
 //   --check  compare out/store/ with store-assets/ (exit 1 on a material difference)
 //   --write  also copy the results over store-assets/
 import fs from 'node:fs';
@@ -19,11 +21,15 @@ import { startServer } from './lib/static-server.mjs';
 import { brandImagesLoaded, openExtensionPage, seedHistory } from './lib/extension-page.mjs';
 import { compareDirs } from './lib/pixdiff.mjs';
 import { META, OPENAI, OPENAI_STORE, ANTHROPIC_STORE, history, onTopic } from './fixtures/forums.mjs';
-import {
-  FORUM_LOOKS,
-  LONG_THREADS_TOPIC,
-  META_TIPS_TOPIC,
-  STREAMING_TOPIC,
+import { FORUM_LOOKS, storeFixtures } from './fixtures/store.mjs';
+import { COPY, copyFor, localeDir } from './fixtures/copy/index.mjs';
+import { screenshotPage, topicList, topicView } from './templates/store/screenshot.mjs';
+
+const args = parseArgs();
+const locale = args.locale || 'en';
+const copy = copyFor(locale);
+const {
+  topics,
   agentRun,
   keptAgentRun,
   longThreadsForumTopic,
@@ -33,23 +39,20 @@ import {
   openaiLatest,
   savedTopics,
   streamingForumTopic
-} from './fixtures/store.mjs';
-import { screenshotPage, topicList, topicView } from './templates/store/screenshot.mjs';
-
-const args = parseArgs();
-const outDir = path.join(OUT, 'store');
+} = storeFixtures(copy);
+const outDir = localeDir(path.join(OUT, 'store'), locale);
 const panelDir = path.join(outDir, 'panels');
 const htmlDir = path.join(outDir, 'html');
-const assetsDir = path.join(REPO, 'store-assets');
+const assetsDir = localeDir(path.join(REPO, 'store-assets'), locale);
 
 // ---------- Panels ----------
 
 const PANEL_W = 440;
 const PANEL_H = 732;
 
-const metaTipsTab = onTopic(META, META_TIPS_TOPIC, `${META_TIPS_TOPIC.title} - Community - ${META.name}`);
-const streamingTab = onTopic(OPENAI, STREAMING_TOPIC, `${STREAMING_TOPIC.title} - API - ${OPENAI.name}`);
-const longThreadsTab = onTopic(OPENAI, LONG_THREADS_TOPIC, `${LONG_THREADS_TOPIC.title} - API - ${OPENAI.name}`);
+const metaTipsTab = onTopic(META, topics.metaTips, `${topics.metaTips.title} - ${copy.tabCategory.meta} - ${META.name}`);
+const streamingTab = onTopic(OPENAI, topics.streaming, `${topics.streaming.title} - ${copy.tabCategory.openai} - ${OPENAI.name}`);
+const longThreadsTab = onTopic(OPENAI, topics.longThreads, `${topics.longThreads.title} - ${copy.tabCategory.openai} - ${OPENAI.name}`);
 
 // The sources list open, as after a click on "Sources". The research steps
 // stay folded into their "N steps · N sources" row: with them open, the
@@ -69,7 +72,7 @@ const PANELS = {
     data: history({ sessions: [metaTips] }),
     // The whole summary, with a follow-up being typed into the question box.
     prepare: async page => {
-      await page.fill('#chatInput', 'How long does that usually take?');
+      await page.fill('#chatInput', copy.store.draft);
       await page.waitForTimeout(150);
     }
   },
@@ -117,7 +120,8 @@ async function renderPanel(browser, base, name, { theme = 'light', height = PANE
     height,
     deviceScaleFactor: 2,
     stub,
-    settle: 600
+    settle: 600,
+    locale: locale === 'en' ? undefined : locale
   });
   if (data) {
     await seedHistory(page, data);
@@ -154,6 +158,8 @@ async function renderPanel(browser, base, name, { theme = 'light', height = PANE
 
 // ---------- Compositions ----------
 
+const caption = id => copy.store.captions[id];
+const forum = { lang: copy.lang, ui: copy.forum.ui };
 const SHOTS = [
   {
     id: '01',
@@ -161,11 +167,11 @@ const SHOTS = [
     panels: ['summary-light'],
     html: () =>
       screenshotPage({
+        lang: forum.lang,
         panel: 'summary-light',
-        url: `meta.discourse.org/t/${META_TIPS_TOPIC.slug}/${META_TIPS_TOPIC.topicId}`,
-        forumHtml: topicView(FORUM_LOOKS.meta, metaTipsForumTopic),
-        title: 'Summarize any Discourse topic in seconds',
-        sub: 'Get the main points of a long thread, then ask follow-up questions about it.'
+        url: `meta.discourse.org/t/${topics.metaTips.slug}/${topics.metaTips.topicId}`,
+        forumHtml: topicView(FORUM_LOOKS.meta, metaTipsForumTopic, forum.ui),
+        ...caption('01')
       })
   },
   {
@@ -174,11 +180,11 @@ const SHOTS = [
     panels: ['agent-light'],
     html: () =>
       screenshotPage({
+        lang: forum.lang,
         panel: 'agent-light',
-        url: `community.openai.com/t/${STREAMING_TOPIC.slug}/${STREAMING_TOPIC.topicId}`,
-        forumHtml: topicView(FORUM_LOOKS.openai, streamingForumTopic),
-        title: 'Ask the whole forum — answers with sources',
-        sub: 'An agent searches and reads step by step, then cites the posts it used.'
+        url: `community.openai.com/t/${topics.streaming.slug}/${topics.streaming.topicId}`,
+        forumHtml: topicView(FORUM_LOOKS.openai, streamingForumTopic, forum.ui),
+        ...caption('02')
       })
   },
   {
@@ -187,11 +193,11 @@ const SHOTS = [
     panels: ['activity-light'],
     html: () =>
       screenshotPage({
+        lang: forum.lang,
         panel: 'activity-light',
         url: 'community.openai.com/latest',
-        forumHtml: topicList(FORUM_LOOKS.openai, openaiLatest, '#0e76bd'),
-        title: 'Made for Discourse forums',
-        sub: 'One click enables each forum you use. Saved summaries and answers stay grouped by forum.'
+        forumHtml: topicList(FORUM_LOOKS.openai, openaiLatest, '#0e76bd', forum.ui),
+        ...caption('03')
       })
   },
   {
@@ -200,11 +206,11 @@ const SHOTS = [
     panels: ['setup-light'],
     html: () =>
       screenshotPage({
+        lang: forum.lang,
         panel: 'setup-light',
-        url: `community.openai.com/t/${LONG_THREADS_TOPIC.slug}/${LONG_THREADS_TOPIC.topicId}`,
-        forumHtml: topicView(FORUM_LOOKS.openai, longThreadsForumTopic),
-        title: 'Bring your own AI',
-        sub: 'Connect the AI provider you already use, or run a model on your own computer. Your key stays in your browser.'
+        url: `community.openai.com/t/${topics.longThreads.slug}/${topics.longThreads.topicId}`,
+        forumHtml: topicView(FORUM_LOOKS.openai, longThreadsForumTopic, forum.ui),
+        ...caption('04')
       })
   },
   {
@@ -213,12 +219,12 @@ const SHOTS = [
     panels: ['summary-dark'],
     html: () =>
       screenshotPage({
+        lang: forum.lang,
         panel: 'summary-dark',
         theme: 'dark',
-        url: `meta.discourse.org/t/${META_TIPS_TOPIC.slug}/${META_TIPS_TOPIC.topicId}`,
-        forumHtml: topicView(FORUM_LOOKS.meta, metaTipsForumTopic),
-        title: 'Light and dark mode',
-        sub: 'The side panel follows your system theme automatically.'
+        url: `meta.discourse.org/t/${topics.metaTips.slug}/${topics.metaTips.topicId}`,
+        forumHtml: topicView(FORUM_LOOKS.meta, metaTipsForumTopic, forum.ui),
+        ...caption('05')
       })
   }
 ];
@@ -245,13 +251,35 @@ const JOBS = [
   }
 ];
 
+// A promo template with this language's copy (copy.store.promo) in place of
+// the English one, and its <html lang>.
+function localizePromo(html) {
+  const from = COPY.en.store.promo;
+  const to = copy.store.promo;
+  const pairs = [
+    [from.tag, to.tag],
+    [from.headline, to.headline],
+    [from.foot, to.foot],
+    ...from.points.map((point, index) => [`<li>${point}</li>`, `<li>${to.points[index]}</li>`])
+  ];
+  let out = html.replace(/<html[^>]*>/, `<html lang="${copy.lang}">`);
+  for (const [english, localized] of pairs) {
+    if (out.includes(english)) out = out.replaceAll(english, localized);
+  }
+  return out;
+}
+
 async function compose(browser, base, job) {
   let url;
   if (job.html) {
     fs.writeFileSync(path.join(htmlDir, `${job.id}.html`), job.html());
     url = `${base}/html/${job.id}.html`;
-  } else {
+  } else if (locale === 'en') {
     url = `${base}/templates/${job.template}`;
+  } else {
+    // The promo templates hold the English copy; swap in this language's.
+    fs.writeFileSync(path.join(htmlDir, `${job.id}.html`), localizePromo(fs.readFileSync(path.join(TEMPLATES, job.template), 'utf8')));
+    url = `${base}/html/${job.id}.html`;
   }
   const ctx = await browser.newContext({ viewport: { width: job.w, height: job.h }, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
@@ -310,6 +338,7 @@ if (args.check) {
   if (!(await compareDirs(outDir, assetsDir, files))) problems++;
 }
 if (args.write) {
+  fs.mkdirSync(assetsDir, { recursive: true });
   for (const file of files) fs.copyFileSync(path.join(outDir, file), path.join(assetsDir, file));
   console.log(`\nWrote ${files.length} image(s) to ${relative(assetsDir)}`);
 } else {

@@ -4,6 +4,18 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+- The interface is available in Traditional Chinese (Taiwan wording), chosen automatically for `zh-TW`, `zh-HK`, `zh-MO` and `zh-Hant` browsers; other Chinese browsers keep Simplified Chinese. The button on forum pages and the store listing are translated too.
+- A Traditional Chinese README (README.zh-TW.md), and README screenshots, store images and the demo in Simplified and Traditional Chinese, Chinese throughout, forum pages included.
+- docs/guide.md and docs/faq.md (with Simplified and Traditional Chinese versions): the details that used to make the README long.
+
+### Changed
+- In Activity, click anywhere on a task or saved item to open it; the separate open button is gone. Keep, Delete, Stop, Retry and Continue stay as buttons.
+- The READMEs are shorter: what it does, the forums it works with, the screenshots and three steps to start; everything else links to the guide and the FAQ.
+
+### Fixed
+- Saved items' previews in Activity no longer get stray spaces where bold text or a citation was in Chinese answers and summaries.
+
 ## [2.4.0] - 2026-10-21
 
 ### Changed

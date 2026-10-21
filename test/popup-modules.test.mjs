@@ -360,6 +360,7 @@ test('formatRelativeTime rounds down to minutes, hours and days', () => {
 
 test('answerExcerpt strips markdown and tidies punctuation', () => {
   assert.equal(answerExcerpt('## Title\n\nUse **caching** , see [S1] .'), 'Title Use caching, see S1.');
+  assert.equal(answerExcerpt('大多是因为**重试太快**：见 [S1]。'), '大多是因为重试太快：见 S1。');
   assert.equal(answerExcerpt('x'.repeat(300)).length, 240);
   assert.equal(answerExcerpt(undefined), '');
 });
