@@ -3570,7 +3570,19 @@ const actionNames = (page, selector) =>
 scenario(
   'popup-activity-cards',
   'src/popup/popup.html',
-  { store: configuredStore, tasks: [{ ...deletableRunTask }] },
+  {
+    store: configuredStore,
+    tasks: [
+      { ...deletableRunTask },
+      {
+        ...deletableRunTask,
+        id: 'run-failed',
+        status: 'failed',
+        statusText: 'Failed',
+        error: 'The provider rejected the request: the model is not available for this API key.'
+      }
+    ]
+  },
   async ({ page, check, shot }) => {
     await seedHistory(page, savedSearchHistory());
     await page.reload();
@@ -3590,6 +3602,24 @@ scenario(
         && (await page.$$('#savedView .task-card-actions .open-task')).length === 0
     );
     check('task cards show a type icon', (await page.$$('#savedView .task-card .activity-icon svg')).length >= 1);
+    check(
+      'openers say what a click does',
+      await page.$$eval('#savedView .card-open', buttons => buttons.every(b => b.getAttribute('aria-description') === b.dataset.openLabel))
+    );
+    await page.click('#tasksTab');
+    await page.waitForTimeout(200);
+    check(
+      'a status line sits above the open area (its tooltip shows)',
+      await page.$$eval(
+        '#savedView .task-card-status',
+        lines =>
+          lines.length > 0
+          && lines.every(line => {
+            const box = line.getBoundingClientRect();
+            return line.contains(document.elementFromPoint(box.left + 4, box.top + box.height / 2));
+          })
+      )
+    );
     check(
       'no full-width text buttons',
       await page.$$eval('#savedView .task-card-actions button', buttons => buttons.every(b => b.getBoundingClientRect().width <= 44))

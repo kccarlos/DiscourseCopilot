@@ -3769,13 +3769,13 @@ select.model-switcher:hover:not(:disabled) {
     z-index: 1;
 }
 
-/* The title gives way to the floating actions while they show. */
-.saved-card:is(:hover, :focus-within, .kept) h3 {
+/* The title and meta line give way to the floating actions while they show. */
+.saved-card:is(:hover, :focus-within, .kept) :is(h3, .saved-card-meta) {
     padding-right: 76px;
 }
 
 @media (hover: none) {
-    .saved-card h3 {
+    .saved-card :is(h3, .saved-card-meta) {
         padding-right: 76px;
     }
 }
@@ -3850,6 +3850,9 @@ select.model-switcher:hover:not(:disabled) {
 
 .task-card-meta,
 .task-card-status {
+    /* Above the row's open area, so the full text shows on hover and can be selected. */
+    position: relative;
+    z-index: 1;
     margin: 2px 0 0;
     overflow: hidden;
     color: var(--dc-muted);
@@ -3955,6 +3958,10 @@ select.model-switcher:hover:not(:disabled) {
 }
 
 .saved-card-meta {
+    /* One line, like the title, so making room for the actions never moves the row. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     margin-top: 2px;
     color: var(--dc-muted);
     font-size: 12px;
