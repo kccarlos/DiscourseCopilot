@@ -79,6 +79,8 @@ export function deriveTopicControls(input) {
     exportSummary: { disabled: !input.hasSummary },
     chatInput: {
       disabled: !background || submitting('chat') || !input.hasSummary,
+      // Off (no chat to have) rather than briefly disabled while a question sends.
+      off: !background || !input.hasSummary,
       placeholder: input.hasSummary ? t('popup.chat.placeholder') : t('popup.chat.needsSummary')
     },
     contextLimit: {
@@ -165,6 +167,7 @@ export function applyTopicControls(controls, helperText) {
   const chatInput = $('chatInput');
   chatInput.disabled = controls.chatInput.disabled;
   chatInput.placeholder = controls.chatInput.placeholder;
+  $('composerDock').classList.toggle('chat-off', controls.chatInput.off);
   const contextLimit = $('forumContextLimit');
   contextLimit.disabled = controls.contextLimit.disabled;
   contextLimit.title = controls.contextLimit.title;
