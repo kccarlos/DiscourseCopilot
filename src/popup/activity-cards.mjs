@@ -41,6 +41,8 @@ function createCardOpener(tagName, { text, tooltip, label, className, onClick })
   button.textContent = text;
   button.title = tooltip && tooltip !== label ? `${tooltip}\n${label}` : label;
   button.dataset.openLabel = label;
+  // The name is the title; screen readers still hear what the click does.
+  button.setAttribute('aria-description', label);
   button.addEventListener('click', onClick);
   heading.appendChild(button);
   return heading;

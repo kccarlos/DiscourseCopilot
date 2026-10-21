@@ -4,8 +4,10 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-10-21
+
 ### Added
-- The interface is available in Traditional Chinese (Taiwan wording), chosen automatically for `zh-TW`, `zh-HK`, `zh-MO` and `zh-Hant` browsers; other Chinese browsers keep Simplified Chinese. The button on forum pages and the store listing are translated too.
+- The interface is available in Traditional Chinese (Taiwan wording), chosen automatically for `zh-TW`, `zh-HK`, `zh-MO` and `zh-Hant` browsers; other Chinese browsers keep Simplified Chinese. The store listing is translated too, and so is the button on forum pages in `zh-TW` browsers (Chrome offers extensions no Hong Kong or Macau locale, so there it stays in English).
 - A Traditional Chinese README (README.zh-TW.md), and README screenshots, store images and the demo in Simplified and Traditional Chinese, Chinese throughout, forum pages included.
 - docs/guide.md and docs/faq.md (with Simplified and Traditional Chinese versions): the details that used to make the README long.
 
@@ -14,6 +16,7 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 - The READMEs are shorter: what it does, the forums it works with, the screenshots and three steps to start; everything else links to the guide and the FAQ.
 
 ### Fixed
+- In Activity, a task's status or error line shows its full text on hover again, and a saved item's details line no longer runs under the Keep and Delete buttons.
 - Saved items' previews in Activity no longer get stray spaces where bold text or a citation was in Chinese answers and summaries.
 
 ## [2.4.0] - 2026-10-21
@@ -130,7 +133,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.2...v2.4.0
 [2.3.2]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.1...v2.3.2
 [2.3.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.0...v2.3.1
