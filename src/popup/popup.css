@@ -4,6 +4,11 @@
    13/18, meta 12/16, badge 11. Radii: 5 cite, 8 button, 10 field, 12 group,
    pill for chips. */
 
+/* Traditional Chinese glyphs for the zh-TW interface. */
+:root:lang(zh-TW) {
+    --dc-font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+
 :root {
     color-scheme: light dark;
     --dc-font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;

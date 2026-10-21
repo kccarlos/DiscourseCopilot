@@ -2707,13 +2707,21 @@ const pageChangedTo = (page, topicId) =>
 // The launcher's labels come from _locales through chrome.i18n.getMessage;
 // hand the stub the messages Chrome would pick for the page's language.
 const LOCALE_MESSAGES = Object.fromEntries(
-  ['en', 'zh_CN'].map(locale => [locale, JSON.parse(fs.readFileSync(path.join(DIST, '_locales', locale, 'messages.json'), 'utf8'))])
+  ['en', 'zh_CN', 'zh_TW'].map(locale => [
+    locale,
+    JSON.parse(fs.readFileSync(path.join(DIST, '_locales', locale, 'messages.json'), 'utf8'))
+  ])
 );
 async function loadContentScript(page, path) {
   await page.evaluate(
     ({ path, messages }) => {
       history.pushState({}, '', path);
-      window.__localeMessages = navigator.language.toLowerCase().startsWith('zh') ? messages.zh_CN : messages.en;
+      const language = navigator.language.toLowerCase();
+      window.__localeMessages = !language.startsWith('zh')
+        ? messages.en
+        : /^zh-(tw|hk|mo|hant)/.test(language)
+          ? messages.zh_TW
+          : messages.zh_CN;
     },
     { path, messages: LOCALE_MESSAGES }
   );
@@ -3073,6 +3081,60 @@ zhScenario(
   }
 );
 
+// ---------- Traditional Chinese ----------
+// A Taiwan browser language: the zh-TW messages, Traditional glyphs only, and
+// no English interface string left.
+const SIMPLIFIED_ONLY = /[这个为么说时们会发对开关问题论坛页设请过还没点显与历应选择网络链译输简检数据记录总结话复删务读语码图标签]/;
+const twScenario = (name, pagePath, options, steps) => scenario(`zh-tw-${name}`, pagePath, { ...options, locale: 'zh-TW' }, steps);
+const twScreen = async (page, check, label, expected) => {
+  await zhScreen(page, check, label, expected);
+  const simplified = (await visibleStrings(page)).filter(value => SIMPLIFIED_ONLY.test(value));
+  check(`${label}: no Simplified characters`, simplified.length === 0, simplified.slice(0, 5).join(' | '));
+};
+
+twScenario('popup-setup', 'src/popup/popup.html', { store: {} }, async ({ page, check, shot }) => {
+  check('document language', (await page.evaluate(() => document.documentElement.lang)) === 'zh-TW');
+  await twScreen(page, check, 'setup card', ['首次設定', '連線 AI 供應商', '選擇供應商', '設定', '紀錄']);
+  await shot('setup');
+});
+
+twScenario('popup-topic', 'src/popup/popup.html', { store: configuredStore, tasks: [deletableRunTask] }, async ({ page, check, shot }) => {
+  await seedHistory(page, { ...savedSessionHistory(), activities: [deletableRun] });
+  await page.reload();
+  await page.waitForTimeout(700);
+  check('summarize label', (await text(page, '#summarizeBtn')) === '檢查新回覆', await text(page, '#summarizeBtn'));
+  check('agent button', (await text(page, '#agentLaunchBtn')) === '全站搜尋', await text(page, '#agentLaunchBtn'));
+  await page.click('#chatTab');
+  await page.click('.chat-context-summary');
+  await twScreen(page, check, 'topic', ['摘要', '對話', '清除對話', '此貼文', '論壇上下文', '30,000 個字元']);
+  await shot('topic');
+  await page.click('#savedBtn');
+  await page.waitForTimeout(300);
+  await page.click('#summariesTab');
+  await page.waitForTimeout(300);
+  await twScreen(page, check, 'activity saved', ['保留', '刪除', '已儲存']);
+  await shot('activity-saved');
+});
+
+twScenario('popup-agent', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  await page.click('#agentLaunchBtn');
+  await page.waitForTimeout(150);
+  await twScreen(page, check, 'composer', ['全論壇研究', '你想查詢什麼？', '此話題的最新動態', '搜尋論壇。']);
+  await shot('composer');
+});
+
+twScenario('settings', 'src/settings/settings.html', { store: configuredStore }, async ({ page, check, outDir }) => {
+  check('document language', (await page.evaluate(() => document.documentElement.lang)) === 'zh-TW');
+  check('tab title', (await page.title()).includes('設定'), await page.title());
+  await twScreen(page, check, 'settings', ['設定', 'AI 供應商', '常用模型', '研究深度', '論壇存取', '還原預設值']);
+  await page.screenshot({ path: path.join(outDir, 'zh-tw-settings-full.png'), fullPage: true });
+});
+
+twScenario('welcome', 'src/welcome/welcome.html', { store: {} }, async ({ page, check, shot }) => {
+  await twScreen(page, check, 'welcome page', ['歡迎使用 DiscourseCopilot', '開啟 DiscourseCopilot']);
+  await shot();
+});
+
 zhScenario('content-forum-button', '__fixtures__/discourse-topic.html', { store: configuredStore }, async ({ page, check, shot }) => {
   await loadContentScript(page, '/t/fixture-topic/123');
   const label = await page.evaluate(sel => {
@@ -3085,6 +3147,19 @@ zhScenario('content-forum-button', '__fixtures__/discourse-topic.html', { store:
     label.join(' | ')
   );
   await shot('launcher');
+});
+
+twScenario('content-forum-button', '__fixtures__/discourse-topic.html', { store: configuredStore }, async ({ page, check }) => {
+  await loadContentScript(page, '/t/fixture-topic/123');
+  const label = await page.evaluate(sel => {
+    const button = document.querySelector(sel).shadowRoot.querySelector('button');
+    return [button.title, button.getAttribute('aria-label')];
+  }, LAUNCHER);
+  check(
+    'button title and name are Traditional Chinese',
+    label[0] === '開啟 DiscourseCopilot' && label[1] === '開啟 DiscourseCopilot 面板',
+    label.join(' | ')
+  );
 });
 
 // ---------- Settings inside the side panel ----------

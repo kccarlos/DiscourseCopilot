@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import test from 'node:test';
 import en from '../src/shared/locales/en.mjs';
 import zhCN from '../src/shared/locales/zh-CN.mjs';
+import zhTW from '../src/shared/locales/zh-TW.mjs';
 import { getLocale, intlLocale, localizeDocument, resolveLocale, setLocaleForTests, t, tn } from '../src/shared/i18n.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -23,8 +24,11 @@ const placeholders = message => [...message.matchAll(/\{(\w+)\}/g)].map(match =>
 
 test.afterEach(() => setLocaleForTests(null));
 
-test('English and Simplified Chinese define the same keys', () => {
+const CHINESE = { 'zh-CN': zhCN, 'zh-TW': zhTW };
+
+test('English, Simplified and Traditional Chinese define the same keys', () => {
   // Chinese has no singular form, so `.one` keys are optional there.
+  assert.deepEqual(Object.keys(zhTW).sort(), Object.keys(zhCN).sort(), 'zh-TW and zh-CN keys differ');
   const zhKeys = new Set(Object.keys(zhCN));
   const enKeys = Object.keys(en).filter(key => zhKeys.has(key) || !key.endsWith('.one'));
   assert.deepEqual([...zhKeys].sort(), [...enKeys].sort());
@@ -37,17 +41,29 @@ test('every message is a non-empty string with matching placeholders', () => {
   for (const [key, message] of Object.entries(en)) {
     assert.equal(typeof message, 'string', key);
     assert.ok(message.trim(), `empty English text for ${key}`);
-    if (!(key in zhCN)) continue;
-    assert.ok(zhCN[key].trim(), `empty Chinese text for ${key}`);
-    assert.deepEqual(placeholders(zhCN[key]), placeholders(message), `placeholders differ for ${key}`);
+    for (const [locale, messages] of Object.entries(CHINESE)) {
+      if (!(key in messages)) continue;
+      assert.ok(messages[key].trim(), `empty ${locale} text for ${key}`);
+      assert.deepEqual(placeholders(messages[key]), placeholders(message), `${locale} placeholders differ for ${key}`);
+    }
   }
 });
 
 test('Chinese messages use full-width punctuation instead of ASCII ,.?!:;', () => {
-  for (const [key, message] of Object.entries(zhCN)) {
+  for (const [key, message] of [...Object.entries(zhCN), ...Object.entries(zhTW)]) {
     // Keep ASCII punctuation only inside Latin text (URLs, product names, "10–200", env vars).
     const cjkThenAscii = /[一-鿿][,.?!:;]|[,?!:;]\s*[一-鿿]/.test(message.replace(/\{\w+\}/g, ''));
     assert.ok(!cjkThenAscii, `ASCII punctuation next to Chinese text in ${key}: ${message}`);
+  }
+});
+
+test('Traditional Chinese messages contain no Simplified-only characters', () => {
+  // The most common characters whose Simplified form differs; the language
+  // names in responseLanguage.zh-Hans are the one place Simplified is meant.
+  const simplified = /[这个为么说时们会发对开关问题论坛页设请过还没点显与历应选择网络链译输简检数据记录总结话复删务读语码图标签]/;
+  for (const [key, message] of Object.entries(zhTW)) {
+    if (key === 'responseLanguage.zh-Hans') continue;
+    assert.ok(!simplified.test(message), `Simplified character in zh-TW ${key}: ${message}`);
   }
 });
 
@@ -66,7 +82,8 @@ for (const page of ['popup/popup.html', 'settings/settings.html']) {
     const keys = dataKeys(join(SRC, page));
     assert.ok(keys.size > 20, 'the page should be tagged');
     for (const key of keys) assert.ok(key in en, `missing English message ${key}`);
-    for (const key of keys) assert.ok(key in zhCN || key.endsWith('.one'), `missing Chinese message ${key}`);
+    for (const key of keys) assert.ok(key in zhCN || key.endsWith('.one'), `missing Simplified Chinese message ${key}`);
+    for (const key of keys) assert.ok(key in zhTW || key.endsWith('.one'), `missing Traditional Chinese message ${key}`);
   });
 
   test(`${page}: visible text nodes are all tagged`, () => {
@@ -119,12 +136,16 @@ test('every literal t()/tn() key used in src exists', () => {
   for (const [key, path] of used) {
     assert.ok(key in en, `${path.replace(ROOT, '')} uses unknown key ${key}`);
     assert.ok(key in zhCN, `${path.replace(ROOT, '')} key ${key} is missing in zh-CN`);
+    assert.ok(key in zhTW, `${path.replace(ROOT, '')} key ${key} is missing in zh-TW`);
   }
 });
 
-test('locale detection maps Chinese browsers to zh-CN and everything else to English', () => {
-  for (const language of ['zh', 'zh-CN', 'zh-SG', 'zh-TW', 'zh-HK', 'zh_CN', 'ZH-cn', 'zh-Hans-CN']) {
+test('locale detection maps Chinese browsers to zh-CN or zh-TW and everything else to English', () => {
+  for (const language of ['zh', 'zh-CN', 'zh-SG', 'zh_CN', 'ZH-cn', 'zh-Hans-CN', 'zh-Hans']) {
     assert.equal(resolveLocale(language), 'zh-CN', language);
+  }
+  for (const language of ['zh-TW', 'zh-HK', 'zh-MO', 'zh_TW', 'ZH-tw', 'zh-Hant', 'zh-Hant-TW', 'zh-Hant-HK']) {
+    assert.equal(resolveLocale(language), 'zh-TW', language);
   }
   for (const language of ['en', 'en-US', 'ja', 'ko-KR', 'fr', 'de-DE', '', undefined, null, 'zhx']) {
     assert.equal(resolveLocale(language), 'en', String(language));
@@ -135,6 +156,9 @@ test('the locale comes from chrome.i18n, then navigator, then English', () => {
   const had = Object.getOwnPropertyDescriptor(globalThis, 'chrome');
   try {
     globalThis.chrome = { i18n: { getUILanguage: () => 'zh-TW' } };
+    setLocaleForTests(null);
+    assert.equal(getLocale(), 'zh-TW');
+    globalThis.chrome = { i18n: { getUILanguage: () => 'zh-CN' } };
     setLocaleForTests(null);
     assert.equal(getLocale(), 'zh-CN');
     globalThis.chrome = { i18n: { getUILanguage: () => 'de' } };
@@ -157,6 +181,9 @@ test('t() interpolates, falls back to English, and returns unknown keys with a w
   setLocaleForTests('zh-CN');
   assert.equal(t('guide.hero.title', { forum: 'Meta' }), '你正在浏览 Meta');
   assert.equal(intlLocale(), 'zh-CN');
+  setLocaleForTests('zh-TW');
+  assert.equal(t('guide.hero.title', { forum: 'Meta' }), '你正在瀏覽 Meta');
+  assert.equal(intlLocale(), 'zh-TW');
 
   // A key present only in English falls back to English text.
   en['test.onlyEnglish'] = 'Only English {name}';
@@ -185,6 +212,8 @@ test('tn() picks singular only in English', () => {
   setLocaleForTests('zh-CN');
   assert.equal(tn('answer.count.step', 1), '1 个步骤');
   assert.equal(tn('answer.count.step', 3), '3 个步骤');
+  setLocaleForTests('zh-TW');
+  assert.equal(tn('answer.count.step', 1), '1 個步驟');
 });
 
 test('localizeDocument fills text, attributes and the document language', () => {
@@ -212,17 +241,24 @@ test('localizeDocument fills text, attributes and the document language', () => 
   assert.equal(html.innerHTML, '设置');
   assert.equal(attr.attrs.placeholder, '提出追问…');
   assert.equal(attr.attrs['aria-label'], 'AI 模型');
+  setLocaleForTests('zh-TW');
+  localizeDocument(root);
+  assert.equal(root.documentElement.lang, 'zh-TW');
+  assert.equal(text.textContent, '紀錄');
+  assert.equal(attr.attrs.placeholder, '提出追問…');
 });
 
 test('_locales message files have the same keys, and the manifest points at them', () => {
   const read = locale => JSON.parse(readFileSync(join(ROOT, 'public', '_locales', locale, 'messages.json'), 'utf8'));
   const english = read('en');
-  const chinese = read('zh_CN');
-  assert.deepEqual(Object.keys(chinese).sort(), Object.keys(english).sort());
-  for (const key of Object.keys(english)) {
-    assert.ok(english[key].message.trim() && chinese[key].message.trim(), key);
+  for (const locale of ['zh_CN', 'zh_TW']) {
+    const chinese = read(locale);
+    assert.deepEqual(Object.keys(chinese).sort(), Object.keys(english).sort(), locale);
+    for (const key of Object.keys(english)) {
+      assert.ok(english[key].message.trim() && chinese[key].message.trim(), `${locale} ${key}`);
+    }
+    assert.ok(chinese.extDescription.message.length <= 132, `${locale}: Chrome Web Store short description limit`);
   }
-  assert.ok(chinese.extDescription.message.length <= 132, 'Chrome Web Store short description limit');
   assert.ok(english.extDescription.message.length <= 132);
 
   const manifest = JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8'));

@@ -183,7 +183,8 @@ export function buildTopicIndexEntry(value) {
     hasSummary: Boolean(session.summary),
     kept: session.kept,
     summaryExcerpt: session.summary
-      .replace(/[#*_>`~[\]]/g, ' ')
+      .replace(/[*`~[\]]/g, '')
+      .replace(/[#_>]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 180),

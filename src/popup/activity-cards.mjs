@@ -294,10 +294,12 @@ export function createSavedTopicCard(
   return card;
 }
 
-// Plain-text excerpt of a markdown answer.
+// Plain-text excerpt of a markdown answer. Inline markers go without a trace
+// (Chinese has no spaces to keep); line markers become a space.
 export function answerExcerpt(answer, maxLength = 240) {
   return String(answer || '')
-    .replace(/[#*_>`~[\]]/g, ' ')
+    .replace(/[*`~[\]]/g, '')
+    .replace(/[#_>]/g, ' ')
     .replace(/\s+/g, ' ')
     .replace(/\s+([.,!?;:])/g, '$1')
     .trim()
