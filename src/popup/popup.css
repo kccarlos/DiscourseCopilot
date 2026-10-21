@@ -3704,8 +3704,79 @@ select.model-switcher:hover:not(:disabled) {
     height: 15px;
 }
 
+/* A card opens from anywhere on it: its title is the button, and the
+   button's hit area (::after) covers the card. The action buttons sit above. */
+.card-open,
+:is(button, [type="button"]).card-open {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    line-height: inherit;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+:is(button, [type="button"]).card-open:hover:not(:disabled) {
+    border: 0;
+    background: transparent;
+    color: inherit;
+}
+
+.card-open::after {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    border-radius: inherit;
+    content: "";
+}
+
+.card-open:focus-visible {
+    outline: none;
+}
+
+.card-open:focus-visible::after {
+    outline: 2px solid var(--dc-focus);
+    outline-offset: -2px;
+    border-radius: 10px;
+}
+
+:is(.task-card, .saved-card) {
+    cursor: pointer;
+}
+
+.task-card-actions {
+    position: relative;
+    z-index: 1;
+}
+
+.saved-card-actions {
+    z-index: 1;
+}
+
+/* The title gives way to the floating actions while they show. */
+.saved-card:is(:hover, :focus-within, .kept) h3 {
+    padding-right: 76px;
+}
+
+@media (hover: none) {
+    .saved-card h3 {
+        padding-right: 76px;
+    }
+}
+
 /* Running tasks: bordered cards; recent ones are plain rows. */
 .task-card {
+    position: relative;
     display: grid;
     min-width: 0;
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -3717,6 +3788,10 @@ select.model-switcher:hover:not(:disabled) {
     border-radius: 12px;
     background: var(--dc-bg);
     animation: enter-up 160ms ease both;
+}
+
+.task-card:hover {
+    background: var(--dc-hover);
 }
 
 .task-card.waiting_user_action {
@@ -3787,7 +3862,8 @@ select.model-switcher:hover:not(:disabled) {
 }
 
 #taskList .task-card {
-    padding: 8px 0;
+    margin: 0 -8px;
+    padding: 8px;
     border: 0;
     border-bottom: 1px solid var(--dc-line);
     border-radius: 0;
@@ -3796,6 +3872,10 @@ select.model-switcher:hover:not(:disabled) {
 
 #taskList .task-card:last-child {
     border-bottom: 0;
+}
+
+#taskList .task-card:hover {
+    border-radius: 10px;
 }
 
 #taskList .forum-group-items,
@@ -3848,7 +3928,7 @@ select.model-switcher:hover:not(:disabled) {
 
 .saved-card-top {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
     gap: 12px;
 }
@@ -3895,6 +3975,9 @@ select.model-switcher:hover:not(:disabled) {
 }
 
 .saved-card-actions {
+    position: absolute;
+    top: 6px;
+    right: 6px;
     padding: 2px;
     border: 1px solid transparent;
     border-radius: 9px;

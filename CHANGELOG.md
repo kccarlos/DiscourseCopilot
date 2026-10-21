@@ -8,6 +8,7 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 - A new look everywhere: the side panel, Settings, the welcome tab and the button on forum pages share one calm design (neutral grays, one indigo accent, the system font, flat surfaces), in light and dark.
 - The side panel's header shows the forum you're on, with icon buttons for Activity (it counts running tasks) and Settings.
 - Summary and Chat are tabs. Copy, Download and a More menu (Copy full post) sit beside them.
+- In Activity, click anywhere on a task or saved item to open it; the separate open button is gone. Keep, Delete, Stop, Retry and Continue stay as buttons.
 - One question box at the bottom of the side panel: **This post** asks about the topic and its summary, **Whole forum** asks the forum. The model switcher and the forum context limit moved into it.
 
 ## [2.3.2] - 2026-10-20

@@ -1304,7 +1304,10 @@ scenario('popup-chat-edit', 'src/popup/popup.html', { store: configuredStore }, 
   await page.click('#summariesTab');
   await page.waitForTimeout(200);
   check('saved card', (await page.$$('#savedList .saved-card')).length === 1, await text(page, '#savedList'));
-  check('saved card is current', (await text(page, '#savedList .saved-card .open-saved')) === 'View current session');
+  check(
+    'saved card is current',
+    (await page.getAttribute('#savedList .saved-card .open-saved', 'data-open-label')) === 'View current session'
+  );
   await shot('saved');
   await page.click('#savedList .keep-saved');
   await page.waitForTimeout(300);
@@ -3490,8 +3493,14 @@ scenario(
     const taskActions = await actionNames(page, '#savedView .task-card-actions button');
     check(
       'task actions are icon buttons with names',
-      taskActions.length > 0 && taskActions.every(b => b.icon && b.name && b.title === b.name),
+      taskActions.every(b => b.icon && b.name && b.title === b.name),
       JSON.stringify(taskActions)
+    );
+    check(
+      'a task opens from its title, with no separate open button',
+      (await page.$$eval('#savedView .task-card h4 > button.card-open', buttons => buttons.every(b => b.dataset.openLabel)))
+        && (await page.$$('#savedView .task-card h4 > button.card-open')).length > 0
+        && (await page.$$('#savedView .task-card-actions .open-task')).length === 0
     );
     check('task cards show a type icon', (await page.$$('#savedView .task-card .activity-icon svg')).length >= 1);
     check(
@@ -3505,11 +3514,16 @@ scenario(
     const savedActions = await actionNames(page, '#savedList .saved-card-actions button');
     check(
       'saved actions are icon buttons with names',
-      savedActions.length === 9 && savedActions.every(b => b.icon && b.name && b.title),
+      savedActions.length === 6 && savedActions.every(b => b.icon && b.name && b.title),
       JSON.stringify(savedActions)
     );
     check('count is the total', (await text(page, '#savedCount')) === '3', await text(page, '#savedCount'));
     check('three saved cards', (await page.$$('#savedList .saved-card')).length === 3);
+    check(
+      'a saved row opens from its title, with no separate open button',
+      (await page.$$('#savedList .saved-card h3 > button.card-open')).length === 3
+        && (await page.$$('#savedList .saved-card-actions .open-saved')).length === 0
+    );
     check('saved cards have a type icon', (await page.$$('#savedList .saved-card .activity-icon svg')).length === 3);
     check(
       'search has a label',
@@ -3581,10 +3595,11 @@ zhScenario(
     await page.waitForTimeout(400);
     const cjk = /[一-鿿]/;
     const taskActions = await actionNames(page, '#savedView .task-card-actions button');
+    const openLabels = await page.$$eval('#savedView .task-card .card-open', buttons => buttons.map(b => b.dataset.openLabel));
     check(
       'task action names are Chinese',
-      taskActions.length > 0 && taskActions.every(b => cjk.test(b.name) && b.title === b.name),
-      JSON.stringify(taskActions)
+      openLabels.length > 0 && [...openLabels, ...taskActions.map(b => b.name)].every(name => cjk.test(name)),
+      JSON.stringify({ openLabels, taskActions })
     );
     await zhScreen(page, check, 'activity tasks', ['记录']);
     await page.click('#summariesTab');
@@ -3592,7 +3607,7 @@ zhScenario(
     const savedActions = await actionNames(page, '#savedList .saved-card-actions button');
     check(
       'saved action names are Chinese',
-      savedActions.length === 9 && savedActions.every(b => cjk.test(b.name) && b.title),
+      savedActions.length === 6 && savedActions.every(b => cjk.test(b.name) && b.title),
       JSON.stringify(savedActions)
     );
     check('search is Chinese', (await page.getAttribute('#savedSearch', 'placeholder')) === '搜索已保存的内容…');
