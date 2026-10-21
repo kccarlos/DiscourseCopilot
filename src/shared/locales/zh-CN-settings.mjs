@@ -40,7 +40,7 @@ export default {
   'settings.model.none': '{name} 没有返回任何模型。你可以自行输入模型 ID。',
   'settings.model.loadFailed': '无法加载模型列表：{error} 你可以保留或输入模型 ID，“测试连接”会对其进行检查。',
   'settings.favorites.heading': '常用模型',
-  'settings.favorites.help': '最多可保存 30 个模型，在 DiscourseCopilot 顶部即可快速切换。',
+  'settings.favorites.help': '最多可保存 30 个模型，在侧边栏的输入框中即可快速切换。',
   'settings.favorites.add': '添加当前模型',
   'settings.favorites.empty': '还没有常用模型。请先在上方选择或输入模型，再添加。',
   'settings.favorites.already': '已在常用模型中',

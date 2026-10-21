@@ -20,59 +20,38 @@
 
 <body>
   <main class="container">
+    <!-- One header row for every screen: the forum on the topic view, the
+         screen's own title (Activity, Settings) elsewhere; navigation on the right. -->
     <header class="app-header">
-      <div class="brand-lockup">
-        <picture class="brand-mark" aria-hidden="true">
-          <source srcset="/brand/icon-on-dark.svg" media="(prefers-color-scheme: dark)">
-          <img src="/brand/icon-on-light.svg" alt="" width="40" height="40" draggable="false">
-        </picture>
-        <div class="brand-copy">
-          <h1 class="brand-name"><span class="brand-name-strong">Discourse</span>Copilot</h1>
-          <select data-i18n-attr="aria-label:popup.aiModel" id="favoriteModelSelect" class="model-switcher hidden" aria-label="AI model">
-            <option data-i18n="popup.loading">Loading…</option>
-          </select>
-          <button data-i18n-attr="aria-label:popup.aiModel" id="modelChipBtn" class="model-switcher model-chip hidden" type="button" aria-label="AI model">
-            <span data-i18n="popup.loading" id="modelChipLabel" class="model-chip-label">Loading…</span>
-            <svg class="model-chip-icon" aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M4 7h10M18 7h2M4 17h4M12 17h8"/>
-              <circle cx="16" cy="7" r="2"/>
-              <circle cx="10" cy="17" r="2"/>
-            </svg>
-          </button>
-          <button id="setupJumpBtn" class="setup-jump-btn hidden" type="button" aria-controls="setupCard">
-            <span class="setup-jump-dot" aria-hidden="true"></span>
-            <span data-i18n="popup.notSetUp">Not set up</span>
-          </button>
-        </div>
+      <div id="forumBar" class="forum-bar" data-state="none">
+        <span class="forum-avatar" aria-hidden="true">
+          <img id="forumBarIcon" class="forum-avatar-icon hidden" alt="" referrerpolicy="no-referrer">
+          <span id="forumBarInitial" class="forum-avatar-initial">?</span>
+        </span>
+        <span class="forum-bar-copy">
+          <strong data-i18n="forumBar.notForum" id="forumBarName">Not a Discourse forum</strong>
+          <span id="forumBarHost" class="forum-bar-host"></span>
+        </span>
       </div>
+      <button id="setupJumpBtn" class="setup-jump-btn hidden" type="button" aria-controls="setupCard">
+        <span class="setup-jump-dot" aria-hidden="true"></span>
+        <span data-i18n="popup.notSetUp">Not set up</span>
+      </button>
       <nav data-i18n-attr="aria-label:popup.nav" class="header-actions" aria-label="App navigation">
-        <button id="savedBtn" class="nav-btn" type="button">
-          <svg aria-hidden="true" viewBox="0 0 24 24">
-            <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Z"/>
-            <path d="M8 8h8M8 12h8M8 16h5"/>
-          </svg>
-          <span data-i18n="popup.activity">Activity</span>
+        <button data-i18n-attr="title:popup.activity" id="savedBtn" class="nav-btn" type="button" title="Activity">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg>
+          <span data-i18n="popup.activity" class="nav-btn-label">Activity</span>
+          <span id="activityBadge" class="nav-badge hidden" aria-hidden="true"></span>
         </button>
-        <button id="settingsBtn" class="nav-btn" type="button">
+        <button data-i18n-attr="title:popup.settings" id="settingsBtn" class="nav-btn" type="button" title="Settings">
           <svg aria-hidden="true" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.1.38.3.73.6 1 .3.27.69.4 1.1.4H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"/>
+            <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21h-4v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-2.8-2.8.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3v-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 2.8-2.8.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3h4v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.8 2.8-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21v4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>
           </svg>
-          <span data-i18n="popup.settings">Settings</span>
+          <span data-i18n="popup.settings" class="nav-btn-label">Settings</span>
         </button>
       </nav>
     </header>
-
-    <div id="forumBar" class="forum-bar" data-state="none">
-      <span class="forum-avatar" aria-hidden="true">
-        <img id="forumBarIcon" class="forum-avatar-icon hidden" alt="" referrerpolicy="no-referrer">
-        <span id="forumBarInitial" class="forum-avatar-initial">?</span>
-      </span>
-      <span class="forum-bar-copy">
-        <strong data-i18n="forumBar.notForum" id="forumBarName">Not a Discourse forum</strong>
-        <span id="forumBarHost" class="forum-bar-host"></span>
-      </span>
-    </div>
     <div id="forumSwitchAnnouncer" class="sr-only" role="status" aria-live="polite"></div>
 
     <div id="topicView">
@@ -85,11 +64,11 @@
         <div class="hero-action">
           <div class="hero-action-buttons">
             <button id="summarizeBtn" class="summarize-main-btn has-icon" type="button">
-              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7V3Z"/><path d="M15 3v5h5M10 12h6M10 16h6"/></svg>
+              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7V3Z"/><path d="M15 3v5h4M10 12h6M10 16h6"/></svg>
               <span data-i18n="controls.summary.create" class="btn-label">Create summary</span>
             </button>
             <button id="agentLaunchBtn" class="outline agent-launch-btn has-icon" type="button">
-              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z"/><path d="m20 20-4-4"/></svg>
+              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
               <span data-i18n="common.askForum" class="btn-label">Ask the forum</span>
             </button>
           </div>
@@ -214,10 +193,7 @@
 
       <section id="pageGuide" class="page-guide hidden" data-state="" aria-labelledby="pageGuideHeading">
         <span class="page-guide-icon" aria-hidden="true">
-          <picture class="page-guide-brand" data-icon="unchecked">
-            <source srcset="/brand/icon-on-dark.svg" media="(prefers-color-scheme: dark)">
-            <img src="/brand/icon-on-light.svg" alt="" width="28" height="28" draggable="false">
-          </picture>
+          <svg data-icon="unchecked" viewBox="0 0 24 24"><path d="M5 5h14v11H10l-5 4V5Z"/><path d="M9 9.5h6M9 12.5h4"/></svg>
           <svg data-icon="not-forum" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-1.9 4.5-4.5 1.9 1.9-4.5 4.5-1.9Z"/></svg>
           <svg data-icon="allow" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 7.6-1.7"/><path d="M12 14.5v2"/></svg>
           <svg data-icon="maybe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6"/><path d="M12 17h.01"/></svg>
@@ -238,17 +214,28 @@
 
       <div id="status" class="status hidden" role="status" aria-live="polite"></div>
       <div id="agentAnnouncer" class="sr-only" role="status" aria-live="polite"></div>
-      <button id="agentPill" class="agent-pill hidden" type="button">
-        <span class="agent-pill-dot" aria-hidden="true"></span>
-        <span data-i18n="task.answerReady" id="agentPillText" class="agent-pill-text">Answer ready</span>
-        <span data-i18n="popup.view" class="agent-pill-action" aria-hidden="true">View</span>
-      </button>
+      <section id="backgroundRecovery" class="recovery-card hidden" role="alert">
+        <div>
+          <strong data-i18n="popup.recovery.title">Finish updating DiscourseCopilot</strong>
+          <p data-i18n="popup.recovery.text">The interface is newer than its background service. Restart once, then reopen the side panel.</p>
+        </div>
+        <button data-i18n="popup.recovery.button" id="restartExtensionBtn" type="button">Restart DiscourseCopilot</button>
+      </section>
+
+      <section id="fetchProgress" class="fetch-progress hidden">
+        <div class="fetch-progress-details">
+          <span data-i18n="summary.readingResponses" id="fetchProgressLabel">Reading responses…</span>
+          <span data-i18n="fetchProgress.calculating" id="fetchProgressEta">Calculating ETA…</span>
+        </div>
+        <progress id="fetchProgressBar" max="100"></progress>
+      </section>
+
       <section data-i18n-attr="aria-label:popup.forumAnswer" id="agentPanel" class="agent-panel hidden" aria-label="Forum answer">
         <details class="content-panel agent-panel-details" open>
           <summary class="panel-summary agent-panel-summary">
             <span class="panel-heading">
               <span class="panel-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.2-4.2"/></svg>
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
               </span>
               <span>
                 <strong data-i18n="common.askForum" class="agent-panel-question" data-part="question">Ask the forum</strong>
@@ -266,53 +253,6 @@
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
       </section>
-      <section id="agentComposer" class="agent-composer-panel hidden" aria-labelledby="agentComposerHeading">
-        <div class="agent-composer-header">
-          <div>
-            <span data-i18n="popup.composer.eyebrow" class="eyebrow">Forum-wide research</span>
-            <h2 data-i18n="agent.searchThisForum" id="agentComposerHeading">Search this forum</h2>
-            <p data-i18n="popup.composer.intro">Search relevant discussions on this forum and answer with sources.</p>
-          </div>
-          <button id="agentCloseBtn" class="text-btn has-icon" type="button">
-            <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
-            <span data-i18n="popup.close" class="btn-label">Close</span>
-          </button>
-        </div>
-        <form id="agentForm" class="agent-form">
-          <label data-i18n="popup.composer.label" for="agentInput">What would you like to find?</label>
-          <textarea data-i18n-attr="placeholder:agent.askAboutThis"
-            id="agentInput"
-            rows="4"
-            maxlength="4000"
-            placeholder="Ask a question about this forum…"
-          ></textarea>
-          <div data-i18n-attr="aria-label:popup.composer.suggestions" class="agent-suggestions" aria-label="Suggested forum questions">
-            <button data-i18n="popup.composer.q1.label" data-i18n-attr="data-agent-question:popup.composer.q1.question" id="agentTopicSuggestion" type="button" data-agent-question="What have people added recently about this topic, and are there related discussions?">Recent on this topic</button>
-            <button data-i18n="popup.composer.q2.label" data-i18n-attr="data-agent-question:popup.composer.q2.question" type="button" data-agent-question="What are the most common recommendations, and what warnings or caveats do people mention?">Common advice &amp; caveats</button>
-            <button data-i18n="popup.composer.q3.label" data-i18n-attr="data-agent-question:popup.composer.q3.question" type="button" data-agent-question="How do the most active recent discussions compare?">Compare discussions</button>
-          </div>
-          <small data-i18n="popup.composer.hint" class="composer-hint">Searches the forum. The task continues while you browse elsewhere.</small>
-          <button id="sendAgentBtn" class="summarize-main-btn has-icon" type="submit">
-            <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z"/><path d="m20 20-4-4"/></svg>
-            <span data-i18n="agent.searchThisForum" class="btn-label">Search this forum</span>
-          </button>
-        </form>
-      </section>
-      <section id="backgroundRecovery" class="recovery-card hidden" role="alert">
-        <div>
-          <strong data-i18n="popup.recovery.title">Finish updating DiscourseCopilot</strong>
-          <p data-i18n="popup.recovery.text">The interface is newer than its background service. Restart once, then reopen the side panel.</p>
-        </div>
-        <button data-i18n="popup.recovery.button" id="restartExtensionBtn" type="button">Restart DiscourseCopilot</button>
-      </section>
-
-      <section id="fetchProgress" class="fetch-progress hidden">
-        <div class="fetch-progress-details">
-          <span data-i18n="summary.readingResponses" id="fetchProgressLabel">Reading responses…</span>
-          <span data-i18n="fetchProgress.calculating" id="fetchProgressEta">Calculating ETA…</span>
-        </div>
-        <progress id="fetchProgressBar" max="100"></progress>
-      </section>
 
       <section id="welcomePanel" class="welcome-panel">
         <div class="welcome-icon" aria-hidden="true">
@@ -327,38 +267,66 @@
         </div>
       </section>
 
+      <!-- Summary and Chat share one place: tabs over the two cards (result-tabs.mjs). -->
+      <div id="resultTabs" class="result-tabs hidden">
+        <div data-i18n-attr="aria-label:popup.tabs.label" class="result-tablist" role="tablist" aria-label="Post views">
+          <button id="summaryTab" class="result-tab" data-focus-card="summary" type="button" role="tab" aria-selected="true" aria-controls="summaryContainer">
+            <span data-i18n="activity.type.summary">Summary</span>
+          </button>
+          <button id="chatTab" class="result-tab" data-focus-card="chat" type="button" role="tab" aria-selected="false" aria-controls="chatContainer" tabindex="-1">
+            <span data-i18n="activity.type.chat">Chat</span>
+            <span id="chatTabCount" class="count-badge hidden"></span>
+          </button>
+        </div>
+        <div data-i18n-attr="aria-label:popup.summary.actions" class="result-tools action-toolbar" data-for="summary" data-focus-card="summary" role="group" aria-label="Summary actions">
+          <button data-i18n-attr="aria-label:popup.summary.copy;title:popup.summary.copy" id="copyBtn" class="tool-btn icon-only has-icon" type="button" aria-label="Copy summary" title="Copy summary" disabled>
+            <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg>
+            <span data-i18n="popup.summary.copy" class="btn-label">Copy summary</span>
+          </button>
+          <button data-i18n-attr="aria-label:popup.summary.download;title:popup.summary.download" id="exportBtn" class="tool-btn icon-only has-icon" type="button" aria-label="Download" title="Download" disabled>
+            <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7.5 11 4.5 4.5 4.5-4.5"/><path d="M5 20h14"/></svg>
+            <span data-i18n="popup.summary.download" class="btn-label">Download</span>
+          </button>
+          <div class="menu-wrap">
+            <button data-i18n-attr="aria-label:popup.summary.more;title:popup.summary.more" id="summaryMoreBtn" class="tool-btn icon-only has-icon" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="summaryMoreMenu" aria-label="More actions" title="More actions">
+              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+              <span data-i18n="popup.summary.more" class="btn-label">More actions</span>
+            </button>
+            <div id="summaryMoreMenu" class="popover-menu align-end hidden" role="menu" aria-labelledby="summaryMoreBtn">
+              <button data-i18n-attr="aria-label:popup.summary.copyPost;title:popup.summary.copyPost" id="copyPostBtn" class="menu-item has-icon" type="button" role="menuitem" aria-label="Copy full post" title="Copy full post" disabled>
+                <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7V3Z"/><path d="M15 3v5h4M10 12h6M10 16h6"/></svg>
+                <span data-i18n="popup.summary.copyPost" class="btn-label">Copy full post</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="result-tools chat-toolbar" data-for="chat" data-focus-card="chat">
+          <span data-i18n="chat.start" id="chatCount">Start a conversation</span>
+          <button id="clearChatBtn" class="text-btn has-icon" type="button">
+            <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 7h14"/><path d="M10 4h4"/><path d="M7 7l1 13h8l1-13"/></svg>
+            <span data-i18n="popup.chat.clear" class="btn-label">Clear conversation</span>
+          </button>
+        </div>
+      </div>
+
       <details id="summaryContainer" class="content-panel summary-container hidden" open>
         <summary class="panel-summary">
           <span class="panel-heading">
             <span class="panel-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7V3Z"/><path d="M15 3v5h5M10 12h6M10 16h6"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7V3Z"/><path d="M15 3v5h4M10 12h6M10 16h6"/></svg>
             </span>
             <span>
               <strong data-i18n="activity.type.summary">Summary</strong>
-              <small data-i18n="summary.metaEmpty" id="summaryMeta" class="summary-meta">Your saved overview</small>
             </span>
           </span>
           <span class="chevron" aria-hidden="true"></span>
         </summary>
         <div class="panel-body">
+          <p class="summary-meta-line"><span class="meta-dot" aria-hidden="true"></span><small data-i18n="summary.metaEmpty" id="summaryMeta" class="summary-meta">Your saved overview</small></p>
           <p id="summaryCoverageNote" class="summary-coverage-note hidden" role="note"></p>
           <article id="summaryDisplay" class="summary-display">
             <p data-i18n="popup.summary.placeholder">Your summary will appear here…</p>
           </article>
-          <div data-i18n-attr="aria-label:popup.summary.actions" class="action-toolbar" role="group" aria-label="Summary actions">
-            <button data-i18n-attr="aria-label:popup.summary.copy;title:popup.summary.copy" id="copyBtn" class="tool-btn has-icon" type="button" aria-label="Copy summary" title="Copy summary" disabled>
-              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M9 9h10v11H9z"/><path d="M5 15V4h10"/></svg>
-              <span data-i18n="popup.summary.copy" class="btn-label">Copy summary</span>
-            </button>
-            <button data-i18n-attr="aria-label:popup.summary.copyPost;title:popup.summary.copyPost" id="copyPostBtn" class="tool-btn has-icon" type="button" aria-label="Copy full post" title="Copy full post" disabled>
-              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M8 4h8l3 3v13H8z"/><path d="M16 4v3h3M11 12h5M11 16h5"/></svg>
-              <span data-i18n="popup.summary.copyPost" class="btn-label">Copy full post</span>
-            </button>
-            <button data-i18n-attr="aria-label:popup.summary.download;title:popup.summary.download" id="exportBtn" class="tool-btn has-icon" type="button" aria-label="Download" title="Download" disabled>
-              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7.5 11 4.5 4.5 4.5-4.5"/><path d="M5 20h14"/></svg>
-              <span data-i18n="popup.summary.download" class="btn-label">Download</span>
-            </button>
-          </div>
         </div>
       </details>
 
@@ -374,7 +342,7 @@
         <button data-i18n-attr="aria-label:popup.dismiss" class="text-btn star-prompt-close" type="button" aria-label="Dismiss" data-star-action="dismiss">×</button>
       </aside>
 
-      <details id="chatContainer" class="content-panel chat-container hidden" open>
+      <details id="chatContainer" class="content-panel chat-container hidden">
         <summary class="panel-summary">
           <span class="panel-heading">
             <span class="panel-icon" aria-hidden="true">
@@ -388,14 +356,6 @@
           <span class="chevron" aria-hidden="true"></span>
         </summary>
         <div class="panel-body chat-panel-body">
-          <div class="chat-toolbar">
-            <span data-i18n="chat.start" id="chatCount">Start a conversation</span>
-            <button id="clearChatBtn" class="text-btn has-icon" type="button">
-              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 7h14"/><path d="M10 4h4"/><path d="M7 7l1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></svg>
-              <span data-i18n="popup.chat.clear" class="btn-label">Clear conversation</span>
-            </button>
-          </div>
-
           <div data-i18n-attr="aria-label:popup.chat.suggestions" id="chatSuggestions" class="chat-suggestions" aria-label="Suggested questions">
             <button data-i18n="popup.chat.q1.label" data-i18n-attr="data-question:popup.chat.q1.question" type="button" data-question="What are the key takeaways?">Key takeaways</button>
             <button data-i18n="popup.chat.q2.label" data-i18n-attr="data-question:popup.chat.q2.question" type="button" data-question="Are there any warnings or important caveats?">Warnings &amp; caveats</button>
@@ -403,72 +363,146 @@
           </div>
 
           <div id="chatMessages" class="chat-messages"></div>
-
-          <details class="chat-context-control">
-            <summary class="chat-context-summary">
-              <span data-i18n="popup.chat.context">Forum context</span>
-              <span class="chat-context-value">
-                <output id="forumContextLimitValue" for="forumContextLimit">
-                  30,000 characters
-                </output>
-                <span class="chevron" aria-hidden="true"></span>
-              </span>
-            </summary>
-            <div class="chat-context-body">
-              <label data-i18n="popup.chat.limitLabel" class="sr-only" for="forumContextLimit">
-                Forum discussion context character limit
-              </label>
-              <input
-                id="forumContextLimit"
-                type="range"
-                min="5000"
-                max="1000000"
-                step="5000"
-                value="30000"
-                aria-describedby="forumContextLimitHelp forumContextLimitWarning"
-              >
-              <div class="chat-context-scale" aria-hidden="true">
-                <span>5k</span>
-                <span data-i18n="popup.chat.moreContext">More context</span>
-                <span>1M</span>
-              </div>
-              <small id="forumContextLimitHelp">
-                Up to 30,000 characters from the discussion will be sent with each question.
-              </small>
-              <small data-i18n="popup.chat.warning" id="forumContextLimitWarning" class="chat-context-warning hidden">
-                Large contexts can exceed some models’ limits and may use substantially more tokens.
-              </small>
-            </div>
-          </details>
-
-          <form id="chatForm" class="chat-form">
-            <label data-i18n="popup.chat.askFollowUp" class="sr-only" for="chatInput">Ask a follow-up question</label>
-            <div class="chat-composer">
-              <textarea data-i18n-attr="placeholder:popup.chat.placeholder"
-                id="chatInput"
-                rows="1"
-                maxlength="2000"
-                placeholder="Ask a follow-up question…"
-              ></textarea>
-              <button data-i18n-attr="aria-label:popup.chat.send" id="sendChatBtn" type="submit" aria-label="Send question" disabled>
-                <span data-i18n="controls.send">Send</span>
-                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 14-7-4 14-3-6-7-1Z"/><path d="m12 13 7-8"/></svg>
-              </button>
-            </div>
-            <small data-i18n="popup.chat.hint" class="composer-hint">Press Enter to send · Shift+Enter for a new line</small>
-          </form>
         </div>
       </details>
+
+      <!-- The composer: one box at the bottom of the topic view. "This post"
+           asks the follow-up chat, "Whole forum" asks the Agent (composer-dock.mjs). -->
+      <section id="composerDock" class="composer-dock" data-scope="post">
+        <button id="agentPill" class="agent-pill hidden" type="button">
+          <span class="agent-pill-dot" aria-hidden="true"></span>
+          <span data-i18n="task.answerReady" id="agentPillText" class="agent-pill-text">Answer ready</span>
+          <span data-i18n="popup.view" class="agent-pill-action" aria-hidden="true">View</span>
+        </button>
+        <section id="agentComposer" class="agent-composer-panel hidden" aria-labelledby="agentComposerHeading">
+          <div class="agent-composer-header">
+            <div>
+              <span data-i18n="popup.composer.eyebrow" class="eyebrow">Forum-wide research</span>
+              <h2 data-i18n="agent.searchThisForum" id="agentComposerHeading">Search this forum</h2>
+              <p data-i18n="popup.composer.intro">Search relevant discussions on this forum and answer with sources.</p>
+            </div>
+            <button id="agentCloseBtn" class="text-btn has-icon" type="button">
+              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+              <span data-i18n="popup.close" class="btn-label">Close</span>
+            </button>
+          </div>
+          <div data-i18n-attr="aria-label:popup.composer.suggestions" class="agent-suggestions" aria-label="Suggested forum questions">
+            <button data-i18n="popup.composer.q1.label" data-i18n-attr="data-agent-question:popup.composer.q1.question" id="agentTopicSuggestion" type="button" data-agent-question="What have people added recently about this topic, and are there related discussions?">Recent on this topic</button>
+            <button data-i18n="popup.composer.q2.label" data-i18n-attr="data-agent-question:popup.composer.q2.question" type="button" data-agent-question="What are the most common recommendations, and what warnings or caveats do people mention?">Common advice &amp; caveats</button>
+            <button data-i18n="popup.composer.q3.label" data-i18n-attr="data-agent-question:popup.composer.q3.question" type="button" data-agent-question="How do the most active recent discussions compare?">Compare discussions</button>
+          </div>
+        </section>
+
+
+        <div class="composer-box">
+          <form id="chatForm" class="chat-form composer-form" data-scope="post" data-focus-card="chat">
+            <label data-i18n="popup.chat.askFollowUp" class="sr-only" for="chatInput">Ask a follow-up question</label>
+            <textarea data-i18n-attr="placeholder:popup.chat.placeholder"
+              id="chatInput"
+              rows="2"
+              maxlength="2000"
+              placeholder="Ask a follow-up question…"
+            ></textarea>
+          </form>
+          <form id="agentForm" class="agent-form composer-form" data-scope="forum">
+            <label data-i18n="popup.composer.label" class="sr-only" for="agentInput">What would you like to find?</label>
+            <textarea data-i18n-attr="placeholder:agent.askAboutThis"
+              id="agentInput"
+              rows="2"
+              maxlength="4000"
+              placeholder="Ask a question about this forum…"
+            ></textarea>
+          </form>
+          <div class="composer-row">
+            <div class="menu-wrap">
+              <button data-i18n-attr="aria-label:popup.scope.label" id="composerScopeBtn" class="scope-chip" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="composerScopeMenu" aria-label="Choose what to ask about">
+                <svg class="btn-icon scope-icon-post" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7V3Z"/><path d="M15 3v5h4"/></svg>
+                <svg class="btn-icon scope-icon-forum" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+                <span id="composerScopeLabel" data-i18n="popup.scope.post">This post</span>
+                <svg class="btn-icon scope-chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              <div id="composerScopeMenu" class="popover-menu align-up hidden" role="menu" aria-labelledby="composerScopeBtn">
+                <button id="composerScopePost" class="menu-item scope-option" type="button" role="menuitemradio" aria-checked="true" data-scope="post">
+                  <span class="menu-item-copy"><strong data-i18n="popup.scope.post">This post</strong><small data-i18n="popup.scope.postHint">Uses the post and summary</small></span>
+                  <svg class="btn-icon menu-check" aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></svg>
+                </button>
+                <button id="composerScopeForum" class="menu-item scope-option" type="button" role="menuitemradio" aria-checked="false" data-scope="forum">
+                  <span class="menu-item-copy"><strong data-i18n="popup.scope.forum">Whole forum</strong><small data-i18n="popup.scope.forumHint">Searches discussions, answers with sources</small></span>
+                  <svg class="btn-icon menu-check" aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></svg>
+                </button>
+              </div>
+            </div>
+            <details class="chat-context-control" id="forumContextControl" data-focus-card="chat">
+              <summary class="chat-context-summary">
+                <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+                <span data-i18n="popup.chat.context" class="sr-only">Forum context</span>
+                <span id="forumContextChipValue" class="chat-context-chip" aria-hidden="true">30k</span>
+              </summary>
+              <div class="chat-context-body">
+                <div class="chat-context-head">
+                  <strong data-i18n="popup.chat.context" aria-hidden="true">Forum context</strong>
+                  <span class="chat-context-value">
+                    <output id="forumContextLimitValue" for="forumContextLimit">
+                      30,000 characters
+                    </output>
+                  </span>
+                </div>
+                <label data-i18n="popup.chat.limitLabel" class="sr-only" for="forumContextLimit">
+                  Forum discussion context character limit
+                </label>
+                <input
+                  id="forumContextLimit"
+                  type="range"
+                  min="5000"
+                  max="1000000"
+                  step="5000"
+                  value="30000"
+                  aria-describedby="forumContextLimitHelp forumContextLimitWarning"
+                >
+                <div class="chat-context-scale" aria-hidden="true">
+                  <span>5k</span>
+                  <span data-i18n="popup.chat.moreContext">More context</span>
+                  <span>1M</span>
+                </div>
+                <small id="forumContextLimitHelp">
+                  Up to 30,000 characters from the discussion will be sent with each question.
+                </small>
+                <small data-i18n="popup.chat.warning" id="forumContextLimitWarning" class="chat-context-warning hidden">
+                  Large contexts can exceed some models’ limits and may use substantially more tokens.
+                </small>
+              </div>
+            </details>
+            <select data-i18n-attr="aria-label:popup.aiModel" id="favoriteModelSelect" class="model-switcher hidden" aria-label="AI model">
+              <option data-i18n="popup.loading">Loading…</option>
+            </select>
+            <button data-i18n-attr="aria-label:popup.aiModel" id="modelChipBtn" class="model-switcher model-chip hidden" type="button" aria-label="AI model">
+              <span data-i18n="popup.loading" id="modelChipLabel" class="model-chip-label">Loading…</span>
+              <svg class="model-chip-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <span class="composer-spacer"></span>
+            <button data-i18n-attr="aria-label:popup.chat.send;title:popup.chat.send" id="sendChatBtn" class="send-btn" type="submit" form="chatForm" aria-label="Send question" title="Send question" disabled>
+              <span data-i18n="controls.send" class="sr-only">Send</span>
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+            </button>
+            <button id="sendAgentBtn" class="send-btn has-icon" type="submit" form="agentForm">
+              <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+              <span data-i18n="agent.searchThisForum" class="btn-label sr-only">Search this forum</span>
+            </button>
+          </div>
+        </div>
+        <small data-i18n="popup.chat.hint" class="composer-hint" data-scope="post">Press Enter to send · Shift+Enter for a new line</small>
+        <small data-i18n="popup.composer.hint" class="composer-hint" data-scope="forum">Searches the forum. The task continues while you browse elsewhere.</small>
+      </section>
+
     </div>
 
     <section id="savedView" class="saved-view hidden" aria-labelledby="savedHeading">
-      <div id="savedViewHeader" class="saved-view-header">
+      <div id="savedViewHeader" class="saved-view-header view-header">
         <button data-i18n-attr="aria-label:popup.backToPost" id="closeSavedBtn" class="back-btn" type="button" aria-label="Back to current post">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
         </button>
         <h2 data-i18n="popup.activity" id="savedHeading">Activity</h2>
       </div>
-      <div id="savedStatus" class="status hidden" role="status" aria-live="polite"></div>
 
       <div data-i18n-attr="aria-label:popup.activity.sections" class="tab-list" role="tablist" aria-label="Activity sections">
         <button id="tasksTab" class="tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="tasksPanel">
@@ -478,6 +512,7 @@
           <span data-i18n="popup.tab.saved">Saved</span> <span id="savedCount" class="count-badge">0</span>
         </button>
       </div>
+      <div id="savedStatus" class="status hidden" role="status" aria-live="polite"></div>
 
       <div data-i18n-attr="aria-label:popup.activity.filter" id="forumFilter" class="forum-filter hidden" role="group" aria-label="Filter activity by forum"></div>
 
@@ -488,6 +523,7 @@
           <summary>
             <span data-i18n="popup.activity.recent">Recent activity</span>
             <span id="recentTaskCount" class="count-badge">0</span>
+            <span class="chevron" aria-hidden="true"></span>
           </summary>
           <div id="taskList" class="task-list"></div>
         </details>
@@ -495,34 +531,34 @@
 
       <section id="summariesPanel" class="tab-panel hidden" role="tabpanel" aria-labelledby="summariesTab">
         <div class="saved-search">
-          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z"/><path d="m20 20-4-4"/></svg>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
           <label data-i18n="activity.search.label" class="sr-only" for="savedSearch">Search saved items</label>
           <input data-i18n-attr="placeholder:activity.search.placeholder" id="savedSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Search saved items…">
           <button data-i18n-attr="aria-label:activity.search.clear;title:activity.search.clear" id="savedSearchClear" class="saved-search-clear hidden" type="button" aria-label="Clear search" title="Clear search">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
           </button>
         </div>
-        <p id="savedExpiryIntro" class="section-note">Conversations and Agent answers expire after 1 day. Keep one to preserve it.</p>
         <div id="savedList" class="saved-list"></div>
+        <p id="savedExpiryIntro" class="section-note saved-expiry-note">Conversations and Agent answers expire after 1 day. Keep one to preserve it.</p>
       </section>
 
       <section id="agentDetailView" class="agent-detail-view hidden" aria-labelledby="agentDetailHeading">
-        <div class="saved-view-header agent-detail-header">
+        <div class="saved-view-header view-header agent-detail-header">
           <button data-i18n-attr="aria-label:activity.backToActivity" id="closeAgentDetailBtn" class="back-btn" type="button" aria-label="Back to Activity">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
           </button>
-          <div>
-            <span data-i18n="popup.agentDetail.eyebrow" class="eyebrow">Agent answer</span>
-            <h2 data-i18n="common.askForum" id="agentDetailHeading" tabindex="-1">Ask the forum</h2>
-            <p data-i18n="popup.agentDetail.loading" id="agentDetailMeta">Loading answer…</p>
-          </div>
+          <span data-i18n="popup.agentDetail.eyebrow" class="eyebrow">Agent answer</span>
+        </div>
+        <div class="agent-detail-intro">
+          <h2 data-i18n="common.askForum" id="agentDetailHeading" tabindex="-1">Ask the forum</h2>
+          <p data-i18n="popup.agentDetail.loading" id="agentDetailMeta">Loading answer…</p>
         </div>
         <div id="agentDetailBody" data-agent-body></div>
       </section>
     </section>
 
     <section id="settingsView" class="settings-view hidden" aria-labelledby="settingsHeading">
-      <div class="saved-view-header settings-view-header">
+      <div class="saved-view-header view-header settings-view-header">
         <button data-i18n-attr="aria-label:popup.settings.back;title:popup.settings.back" id="closeSettingsBtn" class="back-btn" type="button" aria-label="Close settings" title="Close settings">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
         </button>
@@ -551,7 +587,7 @@
       <div class="agent-progress-row">
         <span data-i18n="agent.starting" class="agent-progress-label" data-part="progress-label">Starting forum research…</span>
         <button class="outline secondary agent-stop-btn has-icon" type="button" data-agent-action="stop">
-          <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 7h10v10H7z"/></svg>
+          <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
           <span data-i18n="answer.stop" class="btn-label">Stop</span>
         </button>
       </div>
@@ -565,8 +601,8 @@
       <label data-i18n="answer.followUp" class="sr-only" data-part="followup-label">Ask a follow-up</label>
       <div class="chat-composer agent-followup-composer">
         <textarea data-i18n-attr="placeholder:popup.followUpPlaceholder" class="agent-followup-input" data-part="followup-input" rows="1" maxlength="4000" placeholder="Ask a follow-up about this answer…"></textarea>
-        <button data-i18n-attr="aria-label:popup.chat.send;title:popup.chat.send" class="agent-followup-send" type="submit" data-part="followup-send" aria-label="Send question" title="Send question" disabled>
-          <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 14-7-4 14-3-6-7-1Z"/><path d="m12 13 7-8"/></svg>
+        <button data-i18n-attr="aria-label:popup.chat.send;title:popup.chat.send" class="agent-followup-send send-btn" type="submit" data-part="followup-send" aria-label="Send question" title="Send question" disabled>
+          <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
         </button>
       </div>
     </form>

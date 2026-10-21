@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { FORUM_CONTEXT_LIMIT, formatForumContextLimit, normalizeForumContextLimit } from '../src/shared/chat-context-limit.mjs';
+import {
+  FORUM_CONTEXT_LIMIT,
+  formatForumContextLimit,
+  formatForumContextLimitShort,
+  normalizeForumContextLimit
+} from '../src/shared/chat-context-limit.mjs';
 
 test('normalizes forum context limits to the supported slider range', () => {
   assert.equal(FORUM_CONTEXT_LIMIT.max, 1000000);
@@ -16,4 +21,11 @@ test('normalizes forum context limits to the supported slider range', () => {
 test('formats the normalized forum context limit for the popup', () => {
   assert.equal(formatForumContextLimit(45000), '45,000 characters');
   assert.equal(formatForumContextLimit(1000000), '1,000,000 characters');
+});
+
+test('the chip shows the limit in thousands, or 1M at the top', () => {
+  assert.equal(formatForumContextLimitShort(5000), '5k');
+  assert.equal(formatForumContextLimitShort(300000), '300k');
+  assert.equal(formatForumContextLimitShort(1000000), '1M');
+  assert.equal(formatForumContextLimitShort('nonsense'), '30k');
 });

@@ -40,7 +40,7 @@ export default {
   'settings.model.none': '{name} returned no models. You can enter a model ID yourself.',
   'settings.model.loadFailed': 'Couldn’t load the model list: {error} You can keep or enter a model ID; Test Connection checks it.',
   'settings.favorites.heading': 'Favorite models',
-  'settings.favorites.help': 'Save up to 30 models to switch between them from the DiscourseCopilot header.',
+  'settings.favorites.help': 'Save up to 30 models to switch between them from the side panel’s composer.',
   'settings.favorites.add': 'Add current model',
   'settings.favorites.empty': 'No favorites yet. Choose or enter a model above, then add it.',
   'settings.favorites.already': 'Already a favorite',

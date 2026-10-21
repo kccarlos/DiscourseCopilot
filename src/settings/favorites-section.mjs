@@ -11,6 +11,10 @@ import {
 } from '../shared/favorite-models.mjs';
 
 const { PROVIDER_CONFIGS } = DiscourseCopilotConstants;
+// The chip's remove button shows an X; its aria-label names the model.
+const REMOVE_ICON =
+  '<svg class="icon" aria-hidden="true" focusable="false" width="11" height="11" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+
 const $ = id => document.getElementById(id);
 
 export class FavoritesSection {
@@ -72,7 +76,7 @@ export class FavoritesSection {
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'favorite-remove';
-      remove.textContent = t('settings.favorites.remove');
+      remove.innerHTML = REMOVE_ICON;
       remove.disabled = this.isBusy();
       remove.setAttribute('aria-label', t('settings.favorites.removeAria', { model: favorite.model }));
       remove.addEventListener('click', () => {

@@ -77,7 +77,10 @@ export function deriveTopicControls(input) {
     copyPost: { disabled: !input.hasSource },
     copySummary: { disabled: !input.hasSummary },
     exportSummary: { disabled: !input.hasSummary },
-    chatInput: { disabled: !background || submitting('chat') || !input.hasSummary },
+    chatInput: {
+      disabled: !background || submitting('chat') || !input.hasSummary,
+      placeholder: input.hasSummary ? t('popup.chat.placeholder') : t('popup.chat.needsSummary')
+    },
     contextLimit: {
       disabled: contextLimitDisabled,
       title: contextLimitDisabled && input.hasSummary ? t('controls.contextLocked') : t('controls.contextChoose')
@@ -159,7 +162,9 @@ export function applyTopicControls(controls, helperText) {
   $('copyPostBtn').disabled = controls.copyPost.disabled;
   $('copyBtn').disabled = controls.copySummary.disabled;
   $('exportBtn').disabled = controls.exportSummary.disabled;
-  $('chatInput').disabled = controls.chatInput.disabled;
+  const chatInput = $('chatInput');
+  chatInput.disabled = controls.chatInput.disabled;
+  chatInput.placeholder = controls.chatInput.placeholder;
   const contextLimit = $('forumContextLimit');
   contextLimit.disabled = controls.contextLimit.disabled;
   contextLimit.title = controls.contextLimit.title;

@@ -81,7 +81,7 @@ scenario('popup-configured', 'src/popup/popup.html', { store: configuredStore },
   check('chip visible, select hidden', (await visible(page, '#modelChipBtn')) && !(await visible(page, '#favoriteModelSelect')));
   check('chip accessible name', (await page.getAttribute('#modelChipBtn', 'aria-label')).includes('OpenAI · gpt-4o-mini'));
   check('no subline', (await page.$('#providerContext')) === null);
-  check('logo loaded', await page.$eval('.brand-mark img', i => i.complete && i.naturalWidth > 0));
+  check('model chip sits in the composer', await page.$eval('#modelChipBtn', b => Boolean(b.closest('#composerDock .composer-row'))));
   await page.evaluate(() => {
     window.__openedOptions = 0;
     chrome.runtime.openOptionsPage = () => {
@@ -1219,9 +1219,18 @@ scenario('popup-chat', 'src/popup/popup.html', { store: configuredStore }, async
   check('copy post enabled', await page.$eval('#copyPostBtn', b => !b.disabled));
   check(
     'summary toolbar buttons are named',
-    (await toolbarNames(page, '#summaryContainer .action-toolbar')).map(b => b.name).join('|') === 'Copy summary|Copy full post|Download'
-      && (await toolbarNames(page, '#summaryContainer .action-toolbar')).every(b => b.title),
-    JSON.stringify(await toolbarNames(page, '#summaryContainer .action-toolbar'))
+    (await toolbarNames(page, '#resultTabs [data-for="summary"]')).map(b => b.name).join('|')
+      === 'Copy summary|Download|More actions|Copy full post'
+      && (await toolbarNames(page, '#resultTabs [data-for="summary"]')).every(b => b.title),
+    JSON.stringify(await toolbarNames(page, '#resultTabs [data-for="summary"]'))
+  );
+  await page.click('#summaryMoreBtn');
+  check('more menu holds Copy full post', await visible(page, '#copyPostBtn'));
+  await page.focus('#copyPostBtn');
+  await page.keyboard.press('Escape');
+  check(
+    'Escape closes the menu',
+    !(await visible(page, '#copyPostBtn')) && (await page.evaluate(() => document.activeElement?.id)) === 'summaryMoreBtn'
   );
   check(
     'hero buttons keep an icon beside their label',
@@ -1281,6 +1290,7 @@ scenario('popup-chat-edit', 'src/popup/popup.html', { store: configuredStore }, 
   await seedHistory(page, savedSessionHistory());
   await page.reload();
   await page.waitForTimeout(700);
+  await page.click('#chatTab');
   await page.click('.chat-edit-btn');
   await page.waitForTimeout(300);
   check('edit restores prompt', (await page.$eval('#chatInput', i => i.value)) === 'What is the consensus?');
@@ -1749,8 +1759,8 @@ scenario(
     }));
     check('non-favorite active model selected first', sel.n === 2 && sel.text.startsWith('OpenAI · gpt-4o-mini-2024'), JSON.stringify(sel));
     check('full name in title', sel.title.includes('fine-tune-suffix'));
-    const nav = await page.$eval('.header-actions', n => n.getBoundingClientRect().left);
-    check('switcher does not overlap nav', sel.w <= nav, `${sel.w} vs ${nav}`);
+    const send = await page.$eval('#sendChatBtn', n => n.getBoundingClientRect().left);
+    check('switcher does not overlap the send button', sel.w <= send, `${sel.w} vs ${send}`);
     check('no horizontal scroll', await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.screenshot({ path: path.join(outDir, 'popup-header-narrow-top.png'), clip: { x: 0, y: 0, width: 360, height: 90 } });
     await shot();
@@ -2855,8 +2865,9 @@ zhScenario('popup-topic', 'src/popup/popup.html', { store: configuredStore, task
   check('agent button', (await text(page, '#agentLaunchBtn')) === '全站搜索', await text(page, '#agentLaunchBtn'));
   check('chat count', (await text(page, '#chatCount')) === '已提 1 个问题', await text(page, '#chatCount'));
   check('summary meta', (await text(page, '#summaryMeta')).includes('保存'), await text(page, '#summaryMeta'));
+  await page.click('#chatTab');
   await page.click('.chat-context-summary');
-  await zhScreen(page, check, 'topic', ['总结', '针对此帖提问', '清除对话', '论坛上下文', '30,000 个字符']);
+  await zhScreen(page, check, 'topic', ['总结', '对话', '清除对话', '此帖子', '论坛上下文', '30,000 个字符']);
   await shot('topic');
   await page.click('#savedBtn');
   await page.waitForTimeout(300);
@@ -3285,6 +3296,7 @@ scenario('popup-clamp', 'src/popup/popup.html', { store: configuredStore }, asyn
   check('no toggle on short content', (await page.$$('#chatMessages .chat-message.assistant:last-of-type + .clamp-toggle')).length === 0);
 
   // Older chat answers clamp; the latest is always whole.
+  await page.click('#chatTab');
   const answers = '#chatMessages .chat-message.assistant';
   const answerClamps = () => page.$$eval(answers, els => els.map(el => el.classList.contains('is-clamped')));
   check(
@@ -3336,15 +3348,18 @@ scenario('popup-clamp', 'src/popup/popup.html', { store: configuredStore }, asyn
 scenario('popup-reading-focus', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
   await seedFocus(page);
   check(
-    'everything starts open',
-    (await isOpen(page, '#summaryContainer')) && (await isOpen(page, '#chatContainer')) && (await isOpen(page, '#agentPanel details'))
+    'summary and answer start open, chat waits behind its tab',
+    (await isOpen(page, '#summaryContainer')) && !(await isOpen(page, '#chatContainer')) && (await isOpen(page, '#agentPanel details'))
   );
+  check('the Summary tab is selected', (await page.getAttribute('#summaryTab', 'aria-selected')) === 'true');
+  check('the Chat tab counts the questions', (await text(page, '#chatTabCount')) === '2', await text(page, '#chatTabCount'));
 
   // Sending a chat question opens chat and folds the others to their header line.
   await page.fill('#chatInput', 'What about mobile?');
   await page.click('#sendChatBtn');
   await page.waitForTimeout(400);
   check('chat opens', await isOpen(page, '#chatContainer'));
+  check('the Chat tab follows', (await page.getAttribute('#chatTab', 'aria-selected')) === 'true');
   check('summary folds', !(await isOpen(page, '#summaryContainer')));
   check('answer folds', !(await isOpen(page, '#agentPanel details')));
   check(
@@ -3362,8 +3377,9 @@ scenario('popup-reading-focus', 'src/popup/popup.html', { store: configuredStore
 
   // The user moves on to the summary while the answer is being written: nothing is yanked away.
   const taskId = await page.$$eval('#chatMessages .chat-message.assistant', els => els.at(-1).dataset.taskId);
-  await page.click('#summaryContainer > summary');
+  await page.click('#summaryTab');
   check('summary opened by hand', await isOpen(page, '#summaryContainer'));
+  check('its tab folds the chat', !(await isOpen(page, '#chatContainer')));
   await fireTask(page, chatTaskDone(taskId));
   await page.waitForTimeout(400);
   check('finished chat does not yank the view', await isOpen(page, '#summaryContainer'));
@@ -3375,8 +3391,11 @@ scenario('popup-reading-focus', 'src/popup/popup.html', { store: configuredStore
   await page.waitForTimeout(400);
   check('second question folds the summary again', !(await isOpen(page, '#summaryContainer')));
   const second = await page.$$eval('#chatMessages .chat-message.assistant', els => els.at(-1).dataset.taskId);
-  await page.click('#chatContainer > summary');
-  check('chat folded by hand', !(await isOpen(page, '#chatContainer')));
+  // Folded without the user (nothing touched since sending).
+  await page.$eval('#chatContainer', details => {
+    details.open = false;
+  });
+  check('chat folded', !(await isOpen(page, '#chatContainer')));
   await fireTask(page, chatTaskDone(second));
   await page.waitForTimeout(400);
   check('finished chat opens itself', await isOpen(page, '#chatContainer'));
@@ -3395,7 +3414,7 @@ scenario('popup-reading-focus', 'src/popup/popup.html', { store: configuredStore
   check('follow-up folds chat and summary', !(await isOpen(page, '#chatContainer')) && !(await isOpen(page, '#summaryContainer')));
   await shot('follow-up-started');
   // The user opens the summary, so the finished answer must not take over.
-  await page.click('#summaryContainer > summary');
+  await page.click('#summaryTab');
   await fireActivity(page, {
     ...focusRun,
     status: 'running',
@@ -3609,7 +3628,7 @@ zhScenario('popup-clamp', 'src/popup/popup.html', { store: configuredStore }, as
   );
   await page.click('#summaryDisplay + .clamp-toggle');
   check('toggle says 收起', (await text(page, '#summaryDisplay + .clamp-toggle')) === '收起');
-  await zhScreen(page, check, 'topic with clamps', ['总结', '针对此帖提问']);
+  await zhScreen(page, check, 'topic with clamps', ['总结', '此帖子']);
   await shot('clamped');
 });
 
@@ -3660,7 +3679,7 @@ requireDist();
 if (!scenarios.length) throw new Error('--only matched no scenario');
 const started = Date.now();
 const server = await startServer({ '/': DIST, '/__fixtures__/': path.join(UI_DIR, 'fixtures') });
-const browser = await chromium.launch();
+const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 let runs;
 try {
   // Themes run side by side; every scenario has its own browser context.
