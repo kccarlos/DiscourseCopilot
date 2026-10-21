@@ -103,7 +103,7 @@ On a page that isn't a Discourse forum, the side panel says so and suggests foru
 <table>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/screenshots/feature-summary-chat.png" alt="A topic summary followed by a short chat about the topic">
+      <img src="docs/screenshots/feature-summary-chat.png" alt="A topic summary, with a follow-up question typed in the question box below it">
       <p><strong>Summaries and chat</strong><br>
       See the original post, how people responded, and the key takeaways, even on huge topics (every page is read unless you set a limit, so very long topics take longer and use more of your provider's tokens). Then ask follow-up questions.</p>
     </td>

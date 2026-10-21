@@ -51,21 +51,27 @@ const metaTipsTab = onTopic(META, META_TIPS_TOPIC, `${META_TIPS_TOPIC.title} - C
 const streamingTab = onTopic(OPENAI, STREAMING_TOPIC, `${STREAMING_TOPIC.title} - API - ${OPENAI.name}`);
 const longThreadsTab = onTopic(OPENAI, LONG_THREADS_TOPIC, `${LONG_THREADS_TOPIC.title} - API - ${OPENAI.name}`);
 
+// The sources list open, as after a click on "Sources". The research steps
+// stay folded into their "N steps · N sources" row: with them open, the
+// sources would end under the question box of a 732 px panel.
 const openSources = async page => {
   await page.evaluate(() => {
-    for (const d of document.querySelectorAll('#agentPanel details')) {
-      if (/Steps/.test(d.querySelector('summary')?.textContent || '')) d.open = true;
-    }
+    for (const d of document.querySelectorAll('#agentPanel details[data-part="sources"]')) d.open = true;
   });
   await page.waitForTimeout(150);
 };
 
-// Each panel is the side-panel viewport, scrolled so `scrollTo` sits `offset` px from the top.
+// Each panel is the side-panel viewport (question box at the bottom), scrolled
+// so `scrollTo` sits `offset` px under the sticky header.
 const PANELS = {
   'summary-light': {
     stub: { ...metaTipsTab, store: ANTHROPIC_STORE },
     data: history({ sessions: [metaTips] }),
-    scrollTo: '#summaryContainer'
+    // The whole summary, with a follow-up being typed into the question box.
+    prepare: async page => {
+      await page.fill('#chatInput', 'How long does that usually take?');
+      await page.waitForTimeout(150);
+    }
   },
   'agent-light': {
     stub: { ...streamingTab, store: OPENAI_STORE },
@@ -104,7 +110,7 @@ const PANELS = {
   }
 };
 
-async function renderPanel(browser, base, name, { theme = 'light', height = PANEL_H, stub, data, prepare, scrollTo, offset = 10 }) {
+async function renderPanel(browser, base, name, { theme = 'light', height = PANEL_H, stub, data, prepare, scrollTo, offset = 8 }) {
   const { ctx, page, errors } = await openExtensionPage(browser, base, {
     theme,
     width: PANEL_W,
@@ -122,14 +128,16 @@ async function renderPanel(browser, base, name, { theme = 'light', height = PANE
   await page.evaluate(() => document.activeElement?.blur());
   await page.mouse.move(0, 0);
   if (scrollTo) {
-    // Let the target reach the top even when the content below it is shorter than the viewport.
-    await page.evaluate(() => {
-      document.body.style.paddingBottom = '400px';
-    });
+    // Let the target reach the top even when the content below it is shorter
+    // than the viewport: a taller topic view keeps the question box at the
+    // bottom of the viewport (it is sticky) instead of leaving a gap under it.
+    await page.addStyleTag({ content: '#topicView { min-height: calc(100vh + 400px) !important; }' });
+    // The header is sticky: measure the offset from its bottom edge.
     await page.evaluate(
       ({ sel, offset }) => {
         const el = document.querySelector(sel);
-        window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - offset);
+        const header = document.querySelector('.app-header')?.getBoundingClientRect().height || 0;
+        window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - header - offset);
       },
       { sel: scrollTo, offset }
     );

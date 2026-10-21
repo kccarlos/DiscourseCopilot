@@ -1,25 +1,23 @@
-/* Chrome Web Store screenshots (1280x800): gradient stage, browser window, mock Discourse forum, caption, side panel. */
+/* Chrome Web Store screenshots (1280x800): flat stage, browser window, mock Discourse forum, caption, side panel.
+   The extension's design language: zinc neutrals, one indigo accent, hairlines, radii 8/10/12, no glows. */
 * { box-sizing: border-box; }
 html, body { margin: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "PingFang SC", "Microsoft YaHei", sans-serif; -webkit-font-smoothing: antialiased; }
 .stage { position: relative; width: 1280px; height: 800px; overflow: hidden;
-  background:
-    radial-gradient(circle at 8% 0%, rgba(255,255,255,0.22), transparent 38%),
-    radial-gradient(circle at 100% 100%, rgba(40,10,80,0.35), transparent 50%),
-    linear-gradient(125deg, #3A5BE0 0%, #6440CC 50%, #8E2DB5 100%); }
-.window { position: absolute; left: 28px; top: 28px; width: 1224px; height: 800px; border-radius: 14px 14px 0 0; overflow: hidden;
-  background: #fff; box-shadow: 0 30px 70px -10px rgba(20, 10, 60, 0.55), 0 0 0 1px rgba(255,255,255,0.18); }
-.bar { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #eceff4; border-bottom: 1px solid #dde1e8; }
-.dot { width: 12px; height: 12px; border-radius: 50%; }
-.dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
-.url { margin-left: 18px; flex: 1; height: 26px; border-radius: 13px; background: #fff; color: #444c5a; font-size: 13px; display: flex; align-items: center; padding: 0 14px; gap: 8px; white-space: nowrap; overflow: hidden; }
-.url .lock { width: 13px; height: 13px; color: #6b7382; display: inline-flex; } .url .lock svg { width: 13px; height: 13px; }
-.url .host { color: #1b2130; }
-.ext { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; background: #dfe3ff; }
+  background: linear-gradient(180deg, #eef0ff 0%, #f5f5f7 70%); }
+.window { position: absolute; left: 28px; top: 28px; width: 1224px; height: 800px; border-radius: 12px 12px 0 0; overflow: hidden;
+  background: #fff; border: 1px solid #e4e4e7; border-bottom: 0;
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.06), 0 24px 60px -28px rgba(24, 24, 27, 0.28); }
+.bar { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #f5f5f7; border-bottom: 1px solid #e4e4e7; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: #d4d4d8; }
+.url { margin-left: 18px; flex: 1; height: 26px; border-radius: 8px; background: #fff; border: 1px solid #e4e4e7; color: #5e5e68; font-size: 13px; display: flex; align-items: center; padding: 0 12px; gap: 8px; white-space: nowrap; overflow: hidden; }
+.url .lock { width: 13px; height: 13px; color: #5e5e68; display: inline-flex; } .url .lock svg { width: 13px; height: 13px; }
+.url .host { color: #18181b; }
+.ext { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: #eef0ff; }
 .ext img { width: 18px; height: 18px; }
 .content { display: flex; height: 760px; }
 .forum { position: relative; flex: 1; overflow: hidden; background: #fff; color: #222; }
-.divider { width: 1px; background: #d6dae2; }
+.divider { width: 1px; background: #e4e4e7; }
 .panel { width: 440px; height: 732px; flex: 0 0 440px; overflow: hidden; }
 .panel img { display: block; width: 440px; height: 732px; }
 
@@ -67,14 +65,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI"
 .d-avs b { width: 24px; height: 24px; border-radius: 50%; color: #fff; font-size: 11px; display: grid; place-items: center; margin-right: -4px; border: 2px solid #fff; }
 
 /* dark forum */
-.dark .window { background: #131820; box-shadow: 0 30px 70px -10px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.12); }
-.dark .bar { background: #1c212b; border-bottom-color: #2a303b; }
-.dark .url { background: #11151c; color: #9aa3b2; }
-.dark .url .host { color: #e3e7ee; }
-.dark .url .lock { color: #8791a2; }
-.dark .ext { background: #2c3350; }
+.dark .stage { background: linear-gradient(180deg, #1c1b33 0%, #111113 70%); }
+.dark .window { background: #18181b; border-color: #2c2c31; box-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.7); }
+.dark .bar { background: #111113; border-bottom-color: #2c2c31; }
+.dark .dot { background: #3f3f46; }
+.dark .url { background: #18181b; border-color: #2c2c31; color: #a1a1aa; }
+.dark .url .host { color: #f4f4f5; }
+.dark .url .lock { color: #a1a1aa; }
+.dark .ext { background: #262451; }
 .dark .forum { background: #111; color: #ddd; }
-.dark .divider { background: #2c323d; }
+.dark .divider { background: #2c2c31; }
 .dark .d-header { border-bottom-color: #2a2a2a; box-shadow: none; background: #161616; }
 .dark .d-title { color: #eee; }
 .dark .d-cat { color: #bbb; }
@@ -88,12 +88,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI"
 .dark .d-timeline .handle { background: #aaa; }
 .dark .d-timeline .pos { color: #ccc; }
 
-/* caption */
-.caption { position: absolute; left: 30px; right: 30px; bottom: 30px; padding: 26px 32px 28px; border-radius: 20px; color: #fff;
-  background: linear-gradient(120deg, #3A5BE0 0%, #8E2DB5 100%);
-  box-shadow: 0 24px 50px -16px rgba(58, 40, 160, 0.6), 0 0 0 1px rgba(255,255,255,0.15) inset; }
-.caption h1 { margin: 0; font-size: 42px; line-height: 1.12; font-weight: 800; letter-spacing: -0.025em; text-wrap: balance; }
-.caption p { margin: 12px 0 0; font-size: 20px; line-height: 1.4; color: rgba(255,255,255,0.92); font-weight: 500; text-wrap: pretty; }
-.caption .fade { position: absolute; left: -30px; right: -30px; bottom: -30px; top: -90px; z-index: -1; }
-.forum .veil { position: absolute; left: 0; right: 0; bottom: 0; height: 420px; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.9) 45%); pointer-events: none; }
-.dark .forum .veil { background: linear-gradient(to bottom, rgba(17,17,17,0), rgba(17,17,17,0.9) 45%); }
+/* caption: a flat indigo card over the faded forum */
+.caption { position: absolute; left: 30px; right: 30px; bottom: 30px; padding: 26px 32px 28px; border-radius: 12px; color: #fff;
+  background: #4f46e5;
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.12), 0 20px 44px -24px rgba(49, 46, 129, 0.55); }
+.caption h1 { margin: 0; font-size: 42px; line-height: 1.12; font-weight: 700; letter-spacing: -0.022em; text-wrap: balance; }
+.caption p { margin: 12px 0 0; font-size: 20px; line-height: 1.4; color: rgba(255,255,255,0.86); font-weight: 450; text-wrap: pretty; }
+.forum .veil { position: absolute; left: 0; right: 0; bottom: 0; height: 420px; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.92) 45%); pointer-events: none; }
+.dark .forum .veil { background: linear-gradient(to bottom, rgba(17,17,17,0), rgba(17,17,17,0.92) 45%); }

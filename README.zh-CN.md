@@ -104,7 +104,7 @@ DiscourseCopilot 的设计原则是：你看了什么，只有你自己知道。
 <table>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/screenshots/feature-summary-chat.png" alt="帖子总结，以及之后关于这个帖子的简短对话">
+      <img src="docs/screenshots/feature-summary-chat.png" alt="帖子总结，下方的提问框里正在输入一个追问">
       <p><strong>总结贴文与追问</strong><br>
       看到主楼内容、大家的回应和关键结论，再长的帖子也行（默认读完所有页，所以特别长的帖子会慢一些，也会多用一些 token）。然后可以继续追问。</p>
     </td>

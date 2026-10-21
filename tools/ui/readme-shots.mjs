@@ -3,7 +3,7 @@
 //   1. panels:  dist/ side panel and settings page with the chrome.* stub and
 //               fixtures/readme.mjs data, captured at 2x   → out/readme/panels/
 //   2. compose: templates/readme-showcase.html frames the panels (browser
-//               window, gradient, shadow), one element per image
+//               window, flat stage, hairline), one element per image
 //   3. compress: ≤1600 px wide, 8-bit palette PNG          → out/readme/
 //
 // Usage: node tools/ui/readme-shots.mjs [--only=hero,feature-setup] [--check] [--write]
@@ -27,6 +27,7 @@ import {
   keptAgentRun,
   metaLong,
   metaTips,
+  metaTipsLongChat,
   savedTopics
 } from './fixtures/readme.mjs';
 
@@ -37,7 +38,7 @@ const docsDir = path.join(REPO, 'docs', 'screenshots');
 
 // Final image → showcase element and the panels it frames.
 const IMAGES = [
-  { file: 'hero.png', id: 'heroStage', panels: ['meta-summary-chat-light', 'openai-agent-answer-light', 'meta-summary-chat-dark'] },
+  { file: 'hero.png', id: 'heroStage', panels: ['meta-summary-light', 'openai-agent-tall-light', 'meta-chat-dark'] },
   { file: 'feature-summary-chat.png', id: 'featureSummary', panels: ['meta-long-summary-light'] },
   { file: 'feature-agent-answer.png', id: 'featureAgent', panels: ['openai-agent-answer-light'] },
   { file: 'feature-activity.png', id: 'featureActivity', panels: ['activity-grouped-light'] },
@@ -53,6 +54,40 @@ const IMAGES = [
 // capturing, so every run produces the same pixels.
 const STILL = { animations: 'disabled' };
 
+// The panel as the side panel shows it: the whole viewport, with the question
+// box (#composerDock, sticky) at the bottom.
+const captureViewport = async (page, outPath) => {
+  await page.screenshot({ ...STILL, path: outPath });
+};
+
+// Shrink the viewport to the content, so the question box sits right under
+// the last card instead of at the bottom of a tall, mostly empty viewport.
+const fitToContent = async (page, outPath) => {
+  const width = page.viewportSize().width;
+  const height = await page.evaluate(() => {
+    const dock = document.getElementById('composerDock');
+    let bottom = 0;
+    for (const el of dock.parentElement.children) {
+      const box = el.getBoundingClientRect();
+      if (el !== dock && box.height) bottom = Math.max(bottom, box.bottom + window.scrollY);
+    }
+    return Math.ceil(bottom + 20 + dock.offsetHeight);
+  });
+  await page.setViewportSize({ width, height });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(200);
+  await captureViewport(page, outPath);
+};
+
+// "Show all" on a long summary (it is cut to a share of the viewport).
+const expandSummary = async page => {
+  const toggle = page.locator('#summaryContainer .clamp-toggle');
+  if (await toggle.count()) {
+    await toggle.first().click();
+    await page.waitForTimeout(200);
+  }
+};
+
 const captureUntil =
   (selector, pad = 14) =>
   async (page, outPath) => {
@@ -65,12 +100,34 @@ const captureUntil =
     });
   };
 
-const openSources = async page => {
+// Ask the forum: the research steps and the sources open, as after a click on each.
+const openSteps = async page => {
   await page.evaluate(() => {
-    for (const d of document.querySelectorAll('#agentPanel details')) {
-      if (/Steps/.test(d.querySelector('summary')?.textContent || '')) d.open = true;
+    for (const d of document.querySelectorAll('#agentPanel details[data-part="steps"], #agentPanel details[data-part="sources"]')) {
+      d.classList.remove('hidden');
+      d.open = true;
     }
   });
+  await page.waitForTimeout(150);
+};
+
+// Only the sources list, as after a click on "Sources".
+const openSources = async page => {
+  await page.evaluate(() => {
+    for (const d of document.querySelectorAll('#agentPanel details[data-part="sources"]')) d.open = true;
+  });
+  await page.waitForTimeout(150);
+};
+
+const openChatTab = async page => {
+  await page.click('#chatTab');
+  await page.waitForTimeout(300);
+};
+
+// A follow-up being typed into the question box ("This post" scope).
+const draftFollowUp = text => async page => {
+  await expandSummary(page);
+  await page.fill('#chatInput', text);
   await page.waitForTimeout(150);
 };
 
@@ -78,27 +135,51 @@ const metaTipsTab = onTopic(META, META_TIPS_TOPIC, `${META_TIPS_TOPIC.title} - C
 const streamingTab = onTopic(OPENAI, STREAMING_TOPIC, `${STREAMING_TOPIC.title} - API - ${OPENAI.name}`);
 const longThreadsTab = onTopic(OPENAI, LONG_THREADS_TOPIC, `${LONG_THREADS_TOPIC.title} - API - ${OPENAI.name}`);
 
-const PANELS = {};
-for (const theme of ['light', 'dark']) {
-  PANELS[`meta-summary-chat-${theme}`] = {
-    theme,
+// Hero frames show a real side-panel viewport: 272 px wide frames, 640 px
+// (the raised one 692 px) tall, i.e. 460 x 1082 / 1170 CSS px.
+const HERO_H = 1082;
+const HERO_RAISED_H = 1170;
+
+const PANELS = {
+  'meta-summary-light': {
+    height: HERO_H,
     stub: { ...metaTipsTab, store: ANTHROPIC_STORE },
     data: history({ sessions: [metaTips] }),
-    capture: captureUntil('#chatContainer')
-  };
-  PANELS[`openai-agent-answer-${theme}`] = {
-    theme,
+    capture: captureViewport
+  },
+  'openai-agent-tall-light': {
+    height: HERO_RAISED_H,
     stub: { ...streamingTab, store: OPENAI_STORE },
     data: history({ activities: [agentRun] }),
     prepare: openSources,
+    capture: captureViewport
+  },
+  'meta-chat-dark': {
+    theme: 'dark',
+    height: HERO_H,
+    stub: { ...metaTipsTab, store: ANTHROPIC_STORE },
+    data: history({ sessions: [metaTipsLongChat] }),
+    prepare: openChatTab,
+    capture: captureViewport
+  },
+  'meta-long-summary-light': {
+    stub: { ...onTopic(META, META_LONG_TOPIC, `${META_LONG_TOPIC.title} - Community - ${META.name}`), store: ANTHROPIC_STORE },
+    data: history({ sessions: [metaLong] }),
+    prepare: draftFollowUp('Which migration tips come up most often?'),
+    capture: fitToContent
+  }
+};
+for (const theme of ['light', 'dark']) {
+  PANELS[`openai-agent-answer-${theme}`] = {
+    theme,
+    // Tall enough that the question box (sticky at the bottom) stays below the clip.
+    height: 2400,
+    stub: { ...streamingTab, store: OPENAI_STORE },
+    data: history({ activities: [agentRun] }),
+    prepare: openSteps,
     capture: captureUntil('#agentPanel')
   };
 }
-PANELS['meta-long-summary-light'] = {
-  stub: { ...onTopic(META, META_LONG_TOPIC, `${META_LONG_TOPIC.title} - Community - ${META.name}`), store: ANTHROPIC_STORE },
-  data: history({ sessions: [metaLong] }),
-  capture: captureUntil('#chatContainer')
-};
 PANELS['activity-grouped-light'] = {
   stub: { ...streamingTab, store: OPENAI_STORE },
   data: history({ sessions: savedTopics, activities: [keptAgentRun] }),
@@ -150,12 +231,12 @@ PANELS['settings-light'] = {
     await page.waitForTimeout(100);
     const top = await page.locator('section:has(#researchHeading)').boundingBox();
     const bottom = await page.locator('section:has(#historyHeading)').boundingBox();
-    const x = Math.min(top.x, bottom.x) - 16;
+    // Exactly the white settings column: no slivers of the neighbouring sections.
     await page.screenshot({
       ...STILL,
       path: outPath,
       fullPage: true,
-      clip: { x, y: top.y - 16, width: top.width + 32, height: bottom.y + bottom.height - top.y + 32 }
+      clip: { x: top.x, y: top.y, width: top.width, height: bottom.y + bottom.height - top.y }
     });
   }
 };

@@ -570,7 +570,7 @@ tools/ui/
     static-server.mjs, env.mjs, pixdiff.mjs  Static server, repo paths/arguments, pixel comparison
   fixtures/           Fixture data: forums.mjs (Discourse Meta and OpenAI Developer Community,
                       record builders), readme.mjs, store.mjs (incl. the mock forum pages), flows.mjs
-  templates/          Composition templates: readme-showcase.html (browser frame, gradient,
+  templates/          Composition templates: readme-showcase.html (browser frame, flat stage,
                       shadow) and store/ (screenshot page builder + CSS, promo tiles)
   out/                Everything the runners write (gitignored)
 ```
