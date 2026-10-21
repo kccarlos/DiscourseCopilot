@@ -6,7 +6,9 @@
 //               window, flat stage, hairline), one element per image
 //   3. compress: ≤1600 px wide, 8-bit palette PNG          → out/readme/
 //
-// Usage: node tools/ui/readme-shots.mjs [--only=hero,feature-setup] [--check] [--write]
+// Usage: node tools/ui/readme-shots.mjs [--locale=en|zh-CN|zh-TW] [--only=hero,feature-setup] [--check] [--write]
+//   --locale interface and fixture language (default en); other languages
+//            write to out/readme/<locale>/ and docs/screenshots/<locale>/
 //   --check  compare out/readme/ with docs/screenshots/ (exit 1 on a material difference)
 //   --write  also copy the results over docs/screenshots/
 import fs from 'node:fs';
@@ -18,23 +20,16 @@ import { startServer } from './lib/static-server.mjs';
 import { POPUP, SETTINGS, brandImagesLoaded, openExtensionPage, seedHistory } from './lib/extension-page.mjs';
 import { compareDirs } from './lib/pixdiff.mjs';
 import { ANTHROPIC_STORE, META, OPENAI, OPENAI_STORE, history, onTopic } from './fixtures/forums.mjs';
-import {
-  LONG_THREADS_TOPIC,
-  META_LONG_TOPIC,
-  META_TIPS_TOPIC,
-  STREAMING_TOPIC,
-  agentRun,
-  keptAgentRun,
-  metaLong,
-  metaTips,
-  metaTipsLongChat,
-  savedTopics
-} from './fixtures/readme.mjs';
+import { readmeFixtures } from './fixtures/readme.mjs';
+import { copyFor, localeDir } from './fixtures/copy/index.mjs';
 
 const args = parseArgs();
-const outDir = path.join(OUT, 'readme');
+const locale = args.locale || 'en';
+const copy = copyFor(locale);
+const { topics, agentRun, keptAgentRun, metaLong, metaTips, metaTipsLongChat, savedTopics, followUpDraft } = readmeFixtures(copy);
+const outDir = localeDir(path.join(OUT, 'readme'), locale);
 const panelDir = path.join(outDir, 'panels');
-const docsDir = path.join(REPO, 'docs', 'screenshots');
+const docsDir = localeDir(path.join(REPO, 'docs', 'screenshots'), locale);
 
 // Final image → showcase element and the panels it frames.
 const IMAGES = [
@@ -131,9 +126,10 @@ const draftFollowUp = text => async page => {
   await page.waitForTimeout(150);
 };
 
-const metaTipsTab = onTopic(META, META_TIPS_TOPIC, `${META_TIPS_TOPIC.title} - Community - ${META.name}`);
-const streamingTab = onTopic(OPENAI, STREAMING_TOPIC, `${STREAMING_TOPIC.title} - API - ${OPENAI.name}`);
-const longThreadsTab = onTopic(OPENAI, LONG_THREADS_TOPIC, `${LONG_THREADS_TOPIC.title} - API - ${OPENAI.name}`);
+const tab = (forum, topic, category) => onTopic(forum, topic, `${topic.title} - ${category} - ${forum.name}`);
+const metaTipsTab = tab(META, topics.metaTipsReadme, copy.tabCategory.meta);
+const streamingTab = tab(OPENAI, topics.streaming, copy.tabCategory.openai);
+const longThreadsTab = tab(OPENAI, topics.longThreads, copy.tabCategory.openai);
 
 // Hero frames show a real side-panel viewport: 272 px wide frames, 640 px
 // (the raised one 692 px) tall, i.e. 460 x 1082 / 1170 CSS px.
@@ -163,9 +159,9 @@ const PANELS = {
     capture: captureViewport
   },
   'meta-long-summary-light': {
-    stub: { ...onTopic(META, META_LONG_TOPIC, `${META_LONG_TOPIC.title} - Community - ${META.name}`), store: ANTHROPIC_STORE },
+    stub: { ...tab(META, topics.metaLong, copy.tabCategory.meta), store: ANTHROPIC_STORE },
     data: history({ sessions: [metaLong] }),
-    prepare: draftFollowUp('Which migration tips come up most often?'),
+    prepare: draftFollowUp(followUpDraft),
     capture: fitToContent
   }
 };
@@ -254,7 +250,8 @@ async function renderPanel(
     height,
     deviceScaleFactor: 2,
     stub,
-    settle: 600
+    settle: 600,
+    locale: locale === 'en' ? undefined : locale
   });
   if (data) {
     await seedHistory(page, data);
@@ -328,6 +325,7 @@ if (args.check) {
   if (!(await compareDirs(outDir, docsDir, files))) problems++;
 }
 if (args.write) {
+  fs.mkdirSync(docsDir, { recursive: true });
   for (const file of files) fs.copyFileSync(path.join(outDir, file), path.join(docsDir, file));
   console.log(`\nWrote ${files.length} image(s) to ${relative(docsDir)}`);
 } else {

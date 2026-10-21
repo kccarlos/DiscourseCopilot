@@ -2,8 +2,12 @@
 // are real public Discourse sites; every topic, post and username in the
 // fixtures is invented.
 //
+// The text they hold comes from copy/*.mjs, one file per language.
+//
 // Timestamps are relative to the time of the run, so labels like
 // "12 min ago" or "expires in 23h" come out the same on every run.
+
+import enCopy from './copy/en.mjs';
 
 export const now = Date.now();
 export const MIN = 60 * 1000;
@@ -236,114 +240,57 @@ export function agentAnswer({ id, question, steps, sources, answer, followUps })
   return agentActivity({ id, question, steps, sources, answer, followUps });
 }
 
-// The Agent question used in the README and store images, with its sources.
-export const RATE_LIMIT_QUESTION = 'How are people handling rate limits during streaming?';
-export const RATE_LIMIT_SOURCES = [
-  {
-    topicId: 1088142,
-    postId: 10881424,
-    postNumber: 4,
-    slug: 'rate-limit-errors-only-during-streamed-tool-calls',
-    title: 'Rate limit errors only during streamed tool calls',
-    excerpt: 'We started seeing 429s when a tool call happened mid-stream and the client retried immediately…'
-  },
-  {
-    topicId: 1071920,
-    postId: 10719201,
-    postNumber: 1,
-    slug: 'guide-exponential-backoff-with-retry-after',
-    title: 'Guide: exponential backoff with Retry-After',
-    excerpt: 'Rather than a fixed one-second delay, read the Retry-After header and back off from that value…'
-  },
-  {
-    topicId: 1080655,
-    postId: 10806559,
-    postNumber: 9,
-    slug: 'batching-several-tool-calls-in-one-turn',
-    title: 'Batching several tool calls in one turn',
-    excerpt: 'Each call still counts toward the same per-minute budget, so batching cut our error rate a lot…'
-  },
-  {
-    topicId: 1064310,
-    postId: 10643102,
-    postNumber: 2,
-    slug: 'how-to-request-a-higher-rate-limit',
-    title: 'How to request a higher rate limit',
-    excerpt: 'Once your usage is steady for a couple of weeks, asking for an increase is the better long-term fix…'
-  }
+// The Agent run used in the README, store images and demo, in the language
+// of `copy` (copy/*.mjs): the question, its sources and what the agent did
+// (two searches, then one read per source; the store image uses the first
+// four steps).
+const SOURCE_POSTS = [
+  { topicId: 1088142, postId: 10881424, postNumber: 4 },
+  { topicId: 1071920, postId: 10719201, postNumber: 1 },
+  { topicId: 1080655, postId: 10806559, postNumber: 9 },
+  { topicId: 1064310, postId: 10643102, postNumber: 2 }
 ];
-
-// What the agent did to answer it: two searches, then one read per source (the store image uses the first four steps).
-export const RATE_LIMIT_STEPS = [
-  {
-    tool: 'search_forum',
-    args: { query: 'streaming rate limit 429' },
-    reason: 'Start with the most direct wording of the question.',
-    resultCount: 6,
-    detail:
-      'Search results for "streaming rate limit 429" (page 1): 6 topics.\n- id 1088142: Rate limit errors only during streamed tool calls — 42 posts, last activity 2026-09-28\n- id 1080655: Batching several tool calls in one turn — 27 posts'
-  },
-  {
-    tool: 'search_forum',
-    args: { query: 'Retry-After backoff streaming' },
-    reason: 'People may describe the fix instead of the error.',
-    resultCount: 4,
-    detail:
-      'Search results for "Retry-After backoff streaming" (page 1): 4 topics.\n- id 1071920: Guide: exponential backoff with Retry-After — 18 posts'
-  },
-  {
-    tool: 'read_topic',
-    args: { topic_id: '1088142' },
-    reason: 'The best match for the error itself.',
-    title: RATE_LIMIT_SOURCES[0].title,
-    resultCount: 42,
-    topicId: RATE_LIMIT_SOURCES[0].topicId,
-    sourceId: 'S1',
-    detail:
-      '[S1] Topic 1088142: Rate limit errors only during streamed tool calls\nShowing: the opening and the newest replies (42 posts; middle omitted)'
-  },
-  {
-    tool: 'read_topic',
-    args: { topic_id: '1071920' },
-    reason: 'A guide that explains the usual fix.',
-    title: RATE_LIMIT_SOURCES[1].title,
-    resultCount: 18,
-    topicId: RATE_LIMIT_SOURCES[1].topicId,
-    sourceId: 'S2',
-    detail: '[S2] Topic 1071920: Guide: exponential backoff with Retry-After\nShowing: all posts'
-  },
-  {
-    tool: 'read_topic',
-    args: { topic_id: '1080655' },
-    reason: 'Batching came up in two results.',
-    title: RATE_LIMIT_SOURCES[2].title,
-    resultCount: 27,
-    topicId: RATE_LIMIT_SOURCES[2].topicId,
-    sourceId: 'S3',
-    detail: '[S3] Topic 1080655: Batching several tool calls in one turn\nShowing: all posts'
-  },
-  {
-    tool: 'read_topic',
-    args: { topic_id: '1064310' },
-    reason: 'For steady, high-volume apps the question is whether to ask for more.',
-    title: RATE_LIMIT_SOURCES[3].title,
-    resultCount: 9,
-    topicId: RATE_LIMIT_SOURCES[3].topicId,
-    sourceId: 'S4',
-    detail: '[S4] Topic 1064310: How to request a higher rate limit\nShowing: all posts'
-  }
+const STEP_RESULTS = [
+  { tool: 'search_forum', resultCount: 6 },
+  { tool: 'search_forum', resultCount: 4 },
+  { tool: 'read_topic', resultCount: 42, source: 0 },
+  { tool: 'read_topic', resultCount: 18, source: 1 },
+  { tool: 'read_topic', resultCount: 27, source: 2 },
+  { tool: 'read_topic', resultCount: 9, source: 3 }
 ];
+export function rateLimitRun(copy) {
+  const sources = copy.agent.sources.map((text, index) => ({ ...SOURCE_POSTS[index], ...text }));
+  const steps = copy.agent.steps.map((text, index) => {
+    const { tool, resultCount, source } = STEP_RESULTS[index];
+    const step = { tool, reason: text.reason, resultCount, detail: text.detail };
+    if (tool === 'search_forum') return { ...step, args: { query: text.query } };
+    const { topicId, title } = sources[source];
+    return { ...step, args: { topic_id: String(topicId) }, title, topicId, sourceId: `S${source + 1}` };
+  });
+  return { question: copy.agent.question, sources, steps };
+}
 
-export const STREAMING_TOPIC = {
-  topicId: 1093417,
-  slug: 'streaming-function-calls-with-the-responses-api',
-  title: 'Streaming function calls with the Responses API'
-};
-export const LONG_THREADS_TOPIC = {
-  topicId: 1079884,
-  slug: 'best-practices-for-long-running-assistant-threads',
-  title: 'Best practices for long-running assistant threads'
-};
+// The topics the images open, in the language of `copy`.
+export function topicsFor(copy) {
+  const { metaTips, metaLong, notifications, streaming, longThreads } = copy.topics;
+  return {
+    metaTips: { topicId: 241807, slug: metaTips.slug, title: metaTips.title },
+    metaTipsReadme: { topicId: 241807, slug: metaTips.readmeSlug, title: metaTips.title },
+    metaLong: { topicId: 187233, ...metaLong },
+    notifications: { topicId: 229140, ...notifications },
+    streaming: { topicId: 1093417, ...streaming },
+    longThreads: { topicId: 1079884, ...longThreads }
+  };
+}
+
+// The English run and topics, for the UI flows.
+const englishRun = rateLimitRun(enCopy);
+const englishTopics = topicsFor(enCopy);
+export const RATE_LIMIT_QUESTION = englishRun.question;
+export const RATE_LIMIT_SOURCES = englishRun.sources;
+export const RATE_LIMIT_STEPS = englishRun.steps;
+export const STREAMING_TOPIC = englishTopics.streaming;
+export const LONG_THREADS_TOPIC = englishTopics.longThreads;
 
 // Configured providers.
 export const FAVORITES = [

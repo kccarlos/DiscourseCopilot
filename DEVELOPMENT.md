@@ -407,16 +407,16 @@ The panel shows one of three views: the topic view, Activity (`#savedView`) or S
 
 ## Interface language (i18n)
 
-The interface follows the browser language: any `zh*` language gets Simplified Chinese, everything else English. There is no in-app switch. `src/shared/i18n.mjs` picks the locale (`chrome.i18n.getUILanguage()`, else `navigator.language`) and exports `t(key, params)`, `tn(key, count, params)` (plurals: `key.one` / `key.other`; Chinese needs only `.other`), `intlLocale()` for `Intl` calls and `localizeDocument()`.
+The interface follows the browser language: `zh-TW`, `zh-HK`, `zh-MO` and any `zh-Hant*` language get Traditional Chinese (`zh-TW`), every other `zh*` language Simplified Chinese (`zh-CN`), everything else English. There is no in-app switch. `src/shared/i18n.mjs` picks the locale (`chrome.i18n.getUILanguage()`, else `navigator.language`) and exports `t(key, params)`, `tn(key, count, params)` (plurals: `key.one` / `key.other`; Chinese needs only `.other`), `intlLocale()` for `Intl` calls and `localizeDocument()`.
 
 To add or change a UI string:
 
-1. Add the key to **both** `src/shared/locales/en.mjs` and `zh-CN.mjs` (settings page keys live in `en-settings.mjs` / `zh-CN-settings.mjs`). Keep the same `{placeholders}`. English text is the source; Chinese uses full-width punctuation and the glossary already in the file (总结, 问论坛, 记录, 设置, 论坛访问, ...).
+1. Add the key to **all three** of `src/shared/locales/en.mjs`, `zh-CN.mjs` and `zh-TW.mjs` (settings page keys live in `en-settings.mjs` / `zh-CN-settings.mjs` / `zh-TW-settings.mjs`). Keep the same `{placeholders}`. English text is the source; Chinese uses full-width punctuation and the glossary already in the file. Simplified: 总结, 全站搜索, 记录, 设置, 论坛访问, 服务商, 帖子. Traditional uses Taiwan wording, not a character-by-character conversion: 摘要, 全站搜尋, 紀錄, 設定, 論壇存取, 供應商, 貼文, 「」 quotes, 則 for replies.
 2. In JavaScript call `t('area.key', { name })` with a literal key. In HTML add `data-i18n="key"` (text), `data-i18n-attr="placeholder:key;aria-label:key"` (attributes) or, only when markup is needed, `data-i18n-html="key"`, and keep the English text in the element as the fallback.
-3. Run `npm test`: `test/i18n.test.mjs` checks both locales have the same keys and placeholders, every literal `t()` key and every `data-i18n` key exists, and no visible English text is left untagged in `popup.html` / `settings.html`.
-4. `pnpm test:ui` also runs the pages with a Chinese browser language (`zh-*` scenarios) and fails if an English interface string is still on screen.
+3. Run `npm test`: `test/i18n.test.mjs` checks all locales have the same keys and placeholders, that `zh-TW` has no Simplified-only characters, every literal `t()` key and every `data-i18n` key exists, and no visible English text is left untagged in `popup.html` / `settings.html`.
+4. `pnpm test:ui` also runs the pages with a Simplified (`zh-*` scenarios) and a Traditional Chinese browser language (`zh-tw-*`) and fails if an English interface string, or in `zh-TW` a Simplified character, is still on screen.
 
-Do not translate anything sent to the AI model (system prompts, agent tool observations), the product name, provider names or model ids. The extension name and description are in `public/_locales/*/messages.json` (referenced from `manifest.json` as `__MSG_...__`). So are the in-page button's labels: `src/content/content.js` reads them with `chrome.i18n.getMessage`, so the script injected into forum pages doesn't bundle every UI string. Chrome picks those by its own rules, so a `zh-TW` browser shows that button in English.
+Do not translate anything sent to the AI model (system prompts, agent tool observations), the product name, provider names or model ids. The extension name and description are in `public/_locales/*/messages.json` (referenced from `manifest.json` as `__MSG_...__`). So are the in-page button's labels: `src/content/content.js` reads them with `chrome.i18n.getMessage`, so the script injected into forum pages doesn't bundle every UI string (`en`, `zh_CN` and `zh_TW`; Chrome picks one by its own rules).
 
 ## CI/CD & releases
 
@@ -569,13 +569,15 @@ tools/ui/
                       (model lists get an empty answer), page errors collected; IndexedDB seeding
     static-server.mjs, env.mjs, pixdiff.mjs  Static server, repo paths/arguments, pixel comparison
   fixtures/           Fixture data: forums.mjs (Discourse Meta and OpenAI Developer Community,
-                      record builders), readme.mjs, store.mjs (incl. the mock forum pages), flows.mjs
+                      record builders), readme.mjs, store.mjs (incl. the mock forum pages), flows.mjs;
+                      copy/en.mjs, zh-CN.mjs, zh-TW.mjs hold every word of the images (forum text,
+                      answers, captions, promo copy) in each language
   templates/          Composition templates: readme-showcase.html (browser frame, flat stage,
                       shadow) and store/ (screenshot page builder + CSS, promo tiles)
   out/                Everything the runners write (gitignored)
 ```
 
-The forums are real public Discourse sites so the images look familiar; every topic, post, username and answer in the fixtures is invented and in English. Fixture timestamps are relative to the run ("12m ago", "expires in 23h"), so the output doesn't drift with the date.
+The forums are real public Discourse sites so the images look familiar; every topic, post, username and answer in the fixtures is invented. The Chinese images are Chinese throughout, forum pages included; only brand names and hosts stay as they are. Fixture timestamps are relative to the run ("12m ago", "expires in 23h"), so the output doesn't drift with the date.
 
 **Setup** (once, and again after a Playwright upgrade): `pnpm install`, then `pnpm exec playwright install chromium`.
 
@@ -595,9 +597,13 @@ pnpm shots:readme --check     # render, then pixel-compare with docs/screenshots
 pnpm shots:store --check      # same for store-assets/
 pnpm shots:readme --write     # render and overwrite docs/screenshots/*.png
 pnpm shots:store --write --only=01,promo-marquee
+pnpm shots:readme --locale=zh-CN --write   # docs/screenshots/zh-CN/ (zh-TW: docs/screenshots/zh-TW/)
+pnpm shots:store --locale=zh-TW --write    # store-assets/zh-TW/
 ```
 
-**Demo GIF.** `pnpm shots:demo` records the README's animated demo into `tools/ui/out/demo/demo.gif` (`--write` also copies it to `docs/screenshots/demo.gif`, `--width=` sets the GIF width, 960 by default). It needs `ffmpeg` on the PATH; `CHROMIUM_PATH` points it at a Chromium other than Playwright's.
+`--locale=zh-CN` or `--locale=zh-TW` (all three runners, default `en`) sets the browser language and takes the fixture text from `fixtures/copy/<locale>.mjs`; the output goes to a folder named after the locale. The Chinese images need a CJK font (on Linux, `fonts-noto-cjk`); `<html lang>` picks Simplified or Traditional glyphs.
+
+**Demo GIF.** `pnpm shots:demo` records the README's animated demo into `tools/ui/out/demo/demo.gif` (`--write` also copies it to `docs/screenshots/demo.gif`, or `docs/screenshots/<locale>/demo.gif` with `--locale=`, `--width=` sets the GIF width, 960 by default). It needs `ffmpeg` on the PATH; `CHROMIUM_PATH` points it at a Chromium other than Playwright's.
 
 `--check` reports each image as a match or with the size of the difference (pixels differing by more than a small anti-aliasing threshold), and exits non-zero on a material difference. Run it after a UI change to see which committed images went stale, look at the new ones in `tools/ui/out/`, then `--write` those. Rendering uses the system font stack, so regenerate the committed images on macOS (where they were made); other systems render text slightly differently.
 
