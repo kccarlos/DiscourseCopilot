@@ -4,6 +4,8 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-10-21
+
 ### Changed
 - A new look everywhere: the side panel, Settings, the welcome tab and the button on forum pages share one calm design (neutral grays, one indigo accent, the system font, flat surfaces), in light and dark.
 - The side panel's header shows the forum you're on, with icon buttons for Activity (it counts running tasks) and Settings.
@@ -116,7 +118,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.2...HEAD
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.2...v2.4.0
 [2.3.2]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.1...v2.3.2
 [2.3.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.1...v2.3.0
