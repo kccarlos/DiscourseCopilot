@@ -41,6 +41,7 @@ test('an idle topic can be summarized and the forum asked', () => {
   assert.equal(controls.sendAgent.disabled, true, 'no question yet');
   assert.equal(controls.sendAgent.label, 'Search Meta');
   assert.equal(controls.chatInput.disabled, true, 'no summary to chat about');
+  assert.equal(controls.chatInput.off, true, 'no summary to chat about');
   assert.equal(controls.copySummary.disabled, true);
   assert.equal(controls.clearChat.disabled, true);
 });
@@ -84,6 +85,7 @@ test('submitting a request marks the matching control busy and locks the rest', 
   assert.equal(chat.sendChat.disabled, true);
   assert.equal(chat.sendChat.label, 'Starting');
   assert.equal(chat.chatInput.disabled, true);
+  assert.equal(chat.chatInput.off, false, 'sending keeps the chat on');
   assert.equal(chat.contextLimit.disabled, true);
 });
 
