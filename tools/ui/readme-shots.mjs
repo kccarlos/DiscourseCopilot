@@ -230,7 +230,7 @@ fs.mkdirSync(panelDir, { recursive: true });
 
 const server = await startServer({ '/': TEMPLATES, '/panels/': panelDir });
 const dist = await startServer({ '/': DIST });
-const browser = await chromium.launch();
+const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 let problems = 0;
 try {
   for (const name of panels) problems += await renderPanel(browser, dist.base, name, PANELS[name]);

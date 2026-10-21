@@ -121,8 +121,12 @@ src/
     undo-toast.mjs, undo-slot.mjs  Undo after a delete: the toast (#undoToast) and the pure
                           one-pending-action model with its 8 s window
     provider-header.mjs   Model switcher (active provider · model, favorites), setup state
+    result-tabs.mjs       Summary / Chat tabs over the two cards, the summary's More menu
+    composer-dock.mjs     The composer at the bottom: This post (chat) or Whole forum (Agent),
+                          the forum context popover
+    popover-menu.mjs      Menus that open from a button (More, the composer's scope)
     setup-card.mjs        First-run setup (uses the shared ConfigStore)
-    forum-ui.mjs          Forum directory (names), forum bar, forum accents
+    forum-ui.mjs          Forum directory (names), forum bar (the header's forum), forum accents
     forum-names.mjs       Forum identity as data: names, hostnames, hue, grouping by forum
     task-registry.mjs     The panel's copy of the task queue and requests to it
     session-store.mjs     Topic sessions cached in memory and saved to IndexedDB
@@ -139,6 +143,7 @@ src/
     preferences-section.mjs  Research, reading and history preferences, Restore defaults
     favorites-section.mjs Favorite models
     forum-access-section.mjs  "Forum access": enabled forums, Remove access
+    section-nav.mjs       The sticky section nav: marks the section being read
     settings-helpers.mjs  Model choices for the model field, latest-request check, re-exported
                           provider-setup validation
   services/         AI provider calls
