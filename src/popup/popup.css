@@ -1489,19 +1489,31 @@ progress:indeterminate::-webkit-progress-bar {
     background: var(--dc-bg);
 }
 
-/* Before setup, or on a page the panel can't read, there is nothing to ask. */
-#topicView.needs-setup .composer-dock > :not(#agentPill),
-#topicView:not([data-guidance="topic"], [data-guidance="forum-home"]) .composer-dock > :not(#agentPill) {
-    display: none;
-}
+/* Before setup, or on a page the panel can't read, there is nothing to ask:
+   only the model line stays, so the model can still be checked or switched. */
+:is(#topicView.needs-setup, #topicView:not([data-guidance="topic"], [data-guidance="forum-home"])) .composer-dock {
+    & > :not(#agentPill, .composer-box),
+    .composer-form,
+    .composer-row > .menu-wrap,
+    .chat-context-control,
+    .send-btn {
+        display: none;
+    }
 
-#topicView.needs-setup .composer-dock,
-#topicView:not([data-guidance="topic"], [data-guidance="forum-home"]) .composer-dock {
-    border-top: 0;
-}
+    .composer-box {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+    }
 
-.composer-dock:not(:has(> :not(.hidden, .composer-hint))) {
-    display: none;
+    .composer-row {
+        margin-left: -4px;
+    }
+
+    &:not(:has(.model-switcher:not(.hidden), #agentPill:not(.hidden))) {
+        display: none;
+    }
 }
 
 .composer-box {
@@ -1519,8 +1531,8 @@ progress:indeterminate::-webkit-progress-bar {
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--dc-fill) 14%, transparent);
 }
 
-.composer-dock[data-scope="post"] .composer-box:has(#chatInput:disabled),
-.composer-dock[data-scope="forum"] .composer-box:has(#agentInput:disabled) {
+.composer-dock[data-scope="post"] .composer-box:where(:has(#chatInput:disabled)),
+.composer-dock[data-scope="forum"] .composer-box:where(:has(#agentInput:disabled)) {
     background: var(--dc-sunken);
     border-color: var(--dc-line);
 }
@@ -1598,8 +1610,8 @@ progress:indeterminate::-webkit-progress-bar {
     color: var(--dc-ink);
 }
 
-.composer-dock[data-scope="post"] .composer-box:has(#chatInput:disabled) .scope-chip,
-.composer-dock[data-scope="forum"] .composer-box:has(#agentInput:disabled) .scope-chip {
+.composer-dock[data-scope="post"] .composer-box:where(:has(#chatInput:disabled)) .scope-chip,
+.composer-dock[data-scope="forum"] .composer-box:where(:has(#agentInput:disabled)) .scope-chip {
     background: var(--dc-bg);
 }
 
