@@ -20,3 +20,9 @@ export function normalizeForumContextLimit(value, fallback = FORUM_CONTEXT_LIMIT
 export function formatForumContextLimit(value) {
   return t('chatContext.characters', { count: normalizeForumContextLimit(value).toLocaleString() });
 }
+
+// The limit as a short chip label: 5k, 300k, 1M.
+export function formatForumContextLimitShort(value) {
+  const limit = normalizeForumContextLimit(value);
+  return limit >= 1000000 ? `${limit / 1000000}M` : `${Math.round(limit / 1000)}k`;
+}

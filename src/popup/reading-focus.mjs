@@ -6,7 +6,8 @@
 // typed. Anyone can still open or close any card by hand.
 //
 // A card counts as touched by a pointer press, a key press or typing inside
-// it. Programmatic focus (the chat box regaining focus after a send, the
+// it, or in a control that names it with data-focus-card (its tab, the chat
+// box). Programmatic focus (the chat box regaining focus after a send, the
 // panel's own focus() calls) is not an interaction.
 
 export const FOCUS_CARD = { SUMMARY: 'summary', CHAT: 'chat', AGENT: 'agent' };
@@ -38,6 +39,13 @@ export class ReadingFocus {
   cardOf(node) {
     if (!(node instanceof Node)) {
       return null;
+    }
+    // Controls that live outside their card (its tab, its tools, the chat
+    // box at the bottom of the panel) name the card they belong to.
+    const element = node instanceof Element ? node : node.parentElement;
+    const owner = element?.closest('[data-focus-card]');
+    if (owner) {
+      return owner.dataset.focusCard;
     }
     for (const [name, details] of Object.entries(this.cards())) {
       // The Agent card's <details> sits inside #agentPanel, which also holds its dismiss button.

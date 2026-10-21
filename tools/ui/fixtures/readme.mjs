@@ -61,6 +61,20 @@ A staff post collecting the most common new-user questions: how trust levels wor
   ]
 });
 
+// The hero's Chat tab: the same topic with one more exchange.
+export const metaTipsLongChat = {
+  ...metaTips,
+  history: [
+    ...metaTips.history,
+    chat('user', 'Can a moderator raise my trust level by hand?', 6),
+    chat(
+      'assistant',
+      'Yes. Staff can **promote you manually**, and the thread notes they sometimes do for known contributors. Most people never need to ask: reading a few topics and replying is enough.',
+      6
+    )
+  ]
+};
+
 export const metaLong = session(META, {
   ...META_LONG_TOPIC,
   totalPosts: 2431,

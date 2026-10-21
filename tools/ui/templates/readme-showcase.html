@@ -6,92 +6,87 @@
 <meta charset="utf-8">
 <title>README screenshots</title>
 <style>
+  /* The panel's design language: zinc neutrals, one indigo accent, flat
+     surfaces with hairlines, radii 8/10/12, the system UI font stack. */
   :root {
-    --accent: #1769e0;
-    --agent: #7254e8;
+    --bg: #ffffff;
+    --sunken: #f5f5f7;
+    --line: #e4e4e7;
+    --muted: #5e5e68;
+    --accent-soft: #eef0ff;
+    --dark-bg: #18181b;
+    --dark-sunken: #111113;
+    --dark-line: #2c2c31;
+    --dark-muted: #a1a1aa;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
   .stage {
     display: inline-block;
     padding: 64px;
-    background:
-      radial-gradient(circle at 15% 10%, rgba(23,105,224,0.16), transparent 42%),
-      radial-gradient(circle at 88% 82%, rgba(114,84,232,0.18), transparent 46%),
-      linear-gradient(160deg, #eef3fc 0%, #f3f0fc 55%, #eef6fb 100%);
+    /* Flat zinc with a faint indigo tint at the top. */
+    background: linear-gradient(180deg, var(--accent-soft) 0%, var(--sunken) 62%);
   }
 
   /* ---- browser-style frame ---- */
   .frame {
-    border-radius: 18px;
-    background: #fff;
-    box-shadow: 0 30px 60px -20px rgba(23, 35, 64, 0.35), 0 10px 24px -8px rgba(23, 35, 64, 0.18);
+    border-radius: 12px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    box-shadow: 0 1px 2px rgba(24, 24, 27, 0.06), 0 16px 40px -20px rgba(24, 24, 27, 0.22);
     overflow: hidden;
-    border: 1px solid rgba(20, 30, 60, 0.06);
   }
-  .frame.dark { background: #171d26; }
+  .frame.dark {
+    background: var(--dark-bg);
+    border-color: #27272a;
+  }
   .frame-bar {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 10px 12px;
-    background: #eef1f6;
-    border-bottom: 1px solid rgba(20, 30, 60, 0.06);
+    padding: 9px 12px;
+    background: var(--sunken);
+    border-bottom: 1px solid var(--line);
   }
   .frame.dark .frame-bar {
-    background: #11151c;
-    border-bottom-color: rgba(255,255,255,0.06);
+    background: var(--dark-sunken);
+    border-bottom-color: var(--dark-line);
   }
-  .frame-dot { width: 9px; height: 9px; border-radius: 50%; }
-  .frame-dot.red { background: #ff5f57; }
-  .frame-dot.yellow { background: #febc2e; }
-  .frame-dot.green { background: #28c840; }
+  .frame-dot { width: 9px; height: 9px; border-radius: 50%; background: #d4d4d8; }
+  .frame.dark .frame-dot { background: #3f3f46; }
   .frame-url {
     margin-left: 10px;
     flex: 1;
-    background: #fff;
-    border-radius: 7px;
-    padding: 4px 10px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 3px 10px;
     font-size: 12px;
-    color: #5b667a;
+    color: var(--muted);
     text-align: center;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .frame.dark .frame-url { background: #1e2530; color: #9aa6b8; }
+  .frame.dark .frame-url { background: var(--dark-bg); border-color: var(--dark-line); color: var(--dark-muted); }
   .frame-body { display: block; width: 100%; }
   .frame-body img { display: block; width: 100%; height: auto; }
 
-  /* ---- hero ---- */
+  /* ---- hero: three side-panel viewports, question box at the bottom ---- */
   .hero {
     display: flex;
     align-items: flex-end;
     gap: 26px;
   }
   .hero .frame { width: 272px; flex: 0 0 auto; }
-  .hero .frame-body { height: 640px; overflow: hidden; position: relative; }
-  .hero .frame-body img { position: absolute; top: 0; left: 0; }
-  .hero .frame-body::after {
-    content: "";
-    position: absolute;
-    left: 0; right: 0; bottom: 0;
-    height: 120px;
-    background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.94));
-    pointer-events: none;
-  }
-  .hero .frame.dark .frame-body::after {
-    background: linear-gradient(to bottom, rgba(23,29,38,0), rgba(23,29,38,0.94));
-  }
   .hero .frame.raised { transform: translateY(-28px); }
-  .hero .frame.raised .frame-body { height: 692px; }
 
   /* ---- single feature frame ---- */
   .feature .frame { width: 400px; }
-  .feature .frame-body img { width: 100%; height: auto; }
   .feature.wide .frame { width: 620px; }
 </style>
 </head>
@@ -104,21 +99,21 @@
           <span class="frame-dot red"></span><span class="frame-dot yellow"></span><span class="frame-dot green"></span>
           <span class="frame-url">meta.discourse.org</span>
         </div>
-        <div class="frame-body"><img src="panels/meta-summary-chat-light.png" alt=""></div>
+        <div class="frame-body"><img src="panels/meta-summary-light.png" alt=""></div>
       </div>
       <div class="frame raised">
         <div class="frame-bar">
           <span class="frame-dot red"></span><span class="frame-dot yellow"></span><span class="frame-dot green"></span>
           <span class="frame-url">community.openai.com</span>
         </div>
-        <div class="frame-body"><img src="panels/openai-agent-answer-light.png" alt=""></div>
+        <div class="frame-body"><img src="panels/openai-agent-tall-light.png" alt=""></div>
       </div>
       <div class="frame dark">
         <div class="frame-bar">
           <span class="frame-dot red"></span><span class="frame-dot yellow"></span><span class="frame-dot green"></span>
           <span class="frame-url">meta.discourse.org</span>
         </div>
-        <div class="frame-body"><img src="panels/meta-summary-chat-dark.png" alt=""></div>
+        <div class="frame-body"><img src="panels/meta-chat-dark.png" alt=""></div>
       </div>
     </div>
   </div>

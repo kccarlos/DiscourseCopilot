@@ -20,6 +20,7 @@ import { ForumAccessSection, customServerPatterns } from './forum-access-section
 import { INPUT_FIELDS, PROVIDER_FIELDS, ProviderSection } from './provider-section.mjs';
 import { PREFERENCE_INPUT_IDS, PreferencesSection } from './preferences-section.mjs';
 import { FavoritesSection } from './favorites-section.mjs';
+import { trackSectionNav } from './section-nav.mjs';
 import { dirtyIndicatorText, formStateLabel, initialFormState, isFormBusy, transitionForm } from './settings-form-state.mjs';
 
 const { PROVIDER_CONFIGS } = DiscourseCopilotConstants;
@@ -428,5 +429,6 @@ class DiscourseCopilotSettings {
 document.addEventListener('DOMContentLoaded', () => {
   const settings = new DiscourseCopilotSettings();
   window.settingsInstance = settings;
+  trackSectionNav();
   void settings.init();
 });

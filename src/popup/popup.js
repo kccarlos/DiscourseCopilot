@@ -14,6 +14,9 @@
 //   activity-view     Activity screen (tasks, saved items, Agent detail)
 //   settings-view     Settings screen: the settings page in an iframe
 //   reading-focus     which result card is open: the one being worked on
+//   result-tabs       the Summary / Chat tabs over the two cards
+//   composer-dock     the composer at the bottom: this post (chat) or the
+//                     whole forum (Agent), the forum context popover
 //   task-registry     the panel's copy of the task queue + requests to it
 //   session-store     topic sessions cached and saved to IndexedDB
 //   operations        the one request being submitted
@@ -30,7 +33,7 @@ import { subscribeForumAccess } from '../shared/forum-access.mjs';
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { ConfigStore } from '../shared/config-state.mjs';
 import { resolveRetention, retentionEqual } from '../shared/preferences.mjs';
-import { TASK_TYPE } from '../shared/task-record.mjs';
+import { TASK_TYPE, isTerminalTaskStatus } from '../shared/task-record.mjs';
 import { normalizeAgentQuestion } from '../services/agent-context.mjs';
 import { topicSessionDatabase } from '../shared/topic-session-db.mjs';
 import { resolveIdleStatus, shouldRederiveStatus } from './ui-state.mjs';
@@ -50,13 +53,15 @@ import { AgentController } from './agent-controller.mjs';
 import { ActivityView } from './activity-view.mjs';
 import { SettingsView } from './settings-view.mjs';
 import { FOCUS_CARD, ReadingFocus } from './reading-focus.mjs';
+import { ResultTabs } from './result-tabs.mjs';
+import { COMPOSER_SCOPE, ComposerDock } from './composer-dock.mjs';
 import { ForumAccessCard } from './forum-access-card.mjs';
 import { BackgroundLink } from './background-link.mjs';
 import { UndoToast } from './undo-toast.mjs';
 import { StarPromptCard } from './star-prompt-card.mjs';
 import { GUIDANCE_STATE, derivePageGuidance } from './page-guidance.mjs';
 import { applyTopicControls, deriveTopicControls, deriveTopicHelper } from './topic-controls.mjs';
-import { localizeDocument, t } from '../shared/i18n.mjs';
+import { localizeDocument, t, tn } from '../shared/i18n.mjs';
 
 const { MESSAGES } = DiscourseCopilotConstants;
 // Storage changes arrive in bursts (one per key); reload settings once.
@@ -234,6 +239,17 @@ class DiscourseCopilotPopup {
       }),
       isTopicViewVisible: () => !$('topicView').classList.contains('hidden')
     });
+    this.resultTabs = new ResultTabs();
+    this.dock = new ComposerDock({
+      onScope: scope => {
+        if (scope === COMPOSER_SCOPE.FORUM) {
+          this.agent.composer.show();
+        } else {
+          this.agent.composer.hide();
+          $('chatInput').focus();
+        }
+      }
+    });
     this.activity = new ActivityView({
       state,
       tasks: this.tasks,
@@ -280,6 +296,8 @@ class DiscourseCopilotPopup {
     this.activity.mount();
     this.settings.mount();
     this.reading.mount();
+    this.resultTabs.mount();
+    this.dock.mount();
     this.summary.mount();
     this.agent.mount();
     this.chat.mount();
@@ -429,6 +447,7 @@ class DiscourseCopilotPopup {
       return;
     }
     this.tasks.set(task);
+    this.renderActivityBadge();
     if (task.type === TASK_TYPE.AGENT) {
       this.agent.handleTaskUpdated(task);
       this.tasks.updateHeartbeat();
@@ -498,6 +517,7 @@ class DiscourseCopilotPopup {
   updateUI({ announce = true } = {}) {
     const { state } = this;
     this.header.render();
+    this.renderActivityBadge();
     this.chat.renderContextControl();
     const settingsValid = this.config.isReady();
     const previousSettingsValid = this.lastSettingsValid;
@@ -576,6 +596,18 @@ class DiscourseCopilotPopup {
     return guidance;
   }
 
+  // The Activity button counts the tasks still queued or running.
+  renderActivityBadge() {
+    const running = [...this.tasks.values()].filter(task => !isTerminalTaskStatus(task.status)).length;
+    const badge = $('activityBadge');
+    badge.textContent = running ? String(running) : '';
+    badge.classList.toggle('hidden', !running);
+    const button = $('savedBtn');
+    const label = running ? tn('popup.activityRunning', running) : t('popup.activity');
+    button.title = label;
+    button.setAttribute('aria-label', label);
+  }
+
   updateControls() {
     const { pageContext, session } = this.state;
     const accessReady = pageContext?.forumAccess !== 'missing';
@@ -603,6 +635,7 @@ class DiscourseCopilotPopup {
       chatEditSaving: this.chat.isSavingEdit,
       agentSearchLabel: this.agent.searchLabel()
     });
+    this.dock.render({ hasTopic: Boolean(pageContext?.isForumTopic) && accessReady, forumOpen: this.agent.composer.open });
     applyTopicControls(
       controls,
       deriveTopicHelper({

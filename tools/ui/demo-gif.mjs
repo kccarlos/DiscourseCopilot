@@ -88,7 +88,7 @@ const CURSOR = Buffer.from(
   `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><path d="M5 3 L5 22 L10 17.5 L13.5 25 L17 23.5 L13.6 16 L20 16 Z" fill="#111" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg>`
 );
 const clickRing = Buffer.from(
-  `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><circle cx="22" cy="22" r="18" fill="rgba(66,133,244,0.25)" stroke="rgba(66,133,244,0.9)" stroke-width="3"/></svg>`
+  `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><circle cx="22" cy="22" r="18" fill="rgba(79,70,229,0.22)" stroke="rgba(79,70,229,0.9)" stroke-width="3"/></svg>`
 );
 
 const frames = [];
@@ -135,11 +135,13 @@ const lastEnqueued = (page, type) =>
     return { ...window.__sent[i], id: `task-${i + 1}` };
   }, type);
 
-const scrollTo = (page, sel, offset = 10) =>
+// `offset` px under the sticky header.
+const scrollTo = (page, sel, offset = 8) =>
   page.evaluate(
     ({ sel, offset }) => {
       const el = document.querySelector(sel);
-      window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - offset);
+      const header = document.querySelector('.app-header')?.getBoundingClientRect().height || 0;
+      window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - header - offset);
     },
     { sel, offset }
   );
@@ -233,13 +235,9 @@ async function summaryAndChat(browser, base) {
   await page.waitForTimeout(500);
   await snap(page, 2200);
 
-  // Follow-up chat.
+  // Follow-up chat: typed into the question box at the bottom ("This post");
+  // sending it opens the Chat tab.
   scene = 'chat';
-  await page.evaluate(() => {
-    document.body.style.paddingBottom = '300px';
-  });
-  await scrollTo(page, '#chatContainer', 230);
-  await page.waitForTimeout(200);
   await snap(page, 700);
   cursor = await center(page, '#chatInput');
   await typeInto(page, '#chatInput', QUESTION);
@@ -347,7 +345,7 @@ async function askTheForum(browser, base) {
         })
       });
       await page.waitForTimeout(120);
-      await scrollTo(page, '#agentPanel', 10);
+      await scrollTo(page, '#agentPanel');
       await snap(page, finished ? 450 : 350);
     }
   }
@@ -376,10 +374,7 @@ async function askTheForum(browser, base) {
   });
   await fire(page, { action: 'activityUpdated', activity: run({ steps, sources, answer, updatedAt: Date.now() + 10 }) });
   await page.waitForTimeout(500);
-  await page.evaluate(() => {
-    document.body.style.paddingBottom = '300px';
-  });
-  await scrollTo(page, '#agentPanel', 10);
+  await scrollTo(page, '#agentPanel');
   await snap(page, 900);
   await clickOn(page, '#agentPanel .agent-citation');
   await page.waitForTimeout(300);

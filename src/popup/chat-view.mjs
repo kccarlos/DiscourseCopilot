@@ -2,7 +2,12 @@
 // earlier question, sending a question, and the forum context limit slider.
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { TASK_STATUS, TASK_TYPE, isTerminalTaskStatus } from '../shared/task-record.mjs';
-import { FORUM_CONTEXT_LIMIT, formatForumContextLimit, normalizeForumContextLimit } from '../shared/chat-context-limit.mjs';
+import {
+  FORUM_CONTEXT_LIMIT,
+  formatForumContextLimit,
+  formatForumContextLimitShort,
+  normalizeForumContextLimit
+} from '../shared/chat-context-limit.mjs';
 import { normalizeChatQuestion, prepareChatEdit } from './conversation-state.mjs';
 import { renderMarkdown } from './markdown.mjs';
 import { ANSWER_CLAMP_PX, setClamp } from './clamp.mjs';
@@ -403,6 +408,10 @@ export class ChatView {
     slider.value = String(limit);
     const formattedLimit = formatForumContextLimit(limit);
     output.textContent = formattedLimit;
+    const chip = $('forumContextChipValue');
+    if (chip) {
+      chip.textContent = formatForumContextLimitShort(limit);
+    }
     slider.setAttribute('aria-valuetext', formattedLimit);
 
     const source = this.state.session?.source;

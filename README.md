@@ -103,7 +103,7 @@ On a page that isn't a Discourse forum, the side panel says so and suggests foru
 <table>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/screenshots/feature-summary-chat.png" alt="A topic summary followed by a short chat about the topic">
+      <img src="docs/screenshots/feature-summary-chat.png" alt="A topic summary, with a follow-up question typed in the question box below it">
       <p><strong>Summaries and chat</strong><br>
       See the original post, how people responded, and the key takeaways, even on huge topics (every page is read unless you set a limit, so very long topics take longer and use more of your provider's tokens). Then ask follow-up questions.</p>
     </td>
@@ -139,11 +139,11 @@ On a page that isn't a Discourse forum, the side panel says so and suggests foru
   </tr>
 </table>
 
-The top of the side panel always shows which AI provider and model you're using. If you save favorite models in Settings, you can switch between them right there.
+Questions go in one box at the bottom of the side panel: choose **This post** to ask about the topic and its summary, or **Whole forum** to search the forum. The box also shows which AI provider and model you're using; if you save favorite models in Settings, you can switch between them right there.
 
 ## Using Ask the forum
 
-1. Open a forum page and click **Ask the forum**, then type what you want to know ("What are people saying about X?", "What's new this week?").
+1. Open a forum page and click **Ask the forum** (or pick **Whole forum** in the question box), then type what you want to know ("What are people saying about X?", "What's new this week?").
 2. The side panel shows the agent's steps as it works: what it searched for, which topics it read, with how many posts. Open a step to see why it did it and what came back. **Stop** ends the run.
 3. The answer appears with numbered sources like [S1]. Click one to jump to its source card, which links to the topic.
 4. Ask a **follow-up** under the answer. It continues the same conversation, on the same forum, with a fresh budget.
@@ -182,7 +182,7 @@ Start Ollama, then choose **Local (Ollama)** in setup. No Ollama settings are ne
 Open **Settings** from the side panel; it opens inside the panel, so there is no extra tab to close (the extension's **Options** page in `chrome://extensions` shows the same settings). Most changes apply when you click **Save Settings** (favorites and forum access change right away), and the Ask the forum, Reading topics, and History & privacy sections each have **Restore defaults**.
 
 - **AI provider.** Switch providers, keys, or models. The model list comes from your provider (click **Refresh models** to reload it). Your saved model is never changed for you; if your provider stops offering it, Settings warns you so you can pick another.
-- **Favorite models.** Save models to switch between them from the top of the side panel.
+- **Favorite models.** Save models to switch between them from the question box in the side panel.
 - **Response language.** **Auto (match the discussion)** is the default: summaries follow the discussion's language, and questions are answered in the language you ask in. You can also pick one of 12 languages.
 - **Custom instructions.** Your own instructions for summaries, chats, and Ask the forum answers, in place of the built-in ones. Leave it empty to use the defaults.
 - **Ask the forum: Research depth.** The agent works in steps (a search, a topic read, a list of latest topics) until it can answer. **Quick** allows up to 6 steps and 3 topics read, **Balanced** (the default) 15 steps and 8 topics, **Thorough** 25 steps and 14 topics, and **Custom** lets you set the steps, the topics read and the characters taken from each read. Each follow-up gets the same budget again. A bigger budget finds more but takes longer and costs more.

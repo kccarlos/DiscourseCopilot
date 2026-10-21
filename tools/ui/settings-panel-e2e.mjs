@@ -32,7 +32,7 @@ function check(name, ok, detail = '') {
 
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'dc-settings-panel-'));
 const context = await chromium.launchPersistentContext(profile, {
-  channel: 'chromium',
+  ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: 'chromium' }),
   headless: true,
   args: [`--disable-extensions-except=${dist}`, `--load-extension=${dist}`]
 });
