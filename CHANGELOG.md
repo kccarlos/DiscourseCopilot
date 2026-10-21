@@ -10,12 +10,18 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 - docs/guide.md and docs/faq.md (with Simplified and Traditional Chinese versions): the details that used to make the README long.
 
 ### Changed
+- In Activity, click anywhere on a task or saved item to open it; the separate open button is gone. Keep, Delete, Stop, Retry and Continue stay as buttons.
 - The READMEs are shorter: what it does, the forums it works with, the screenshots and three steps to start; everything else links to the guide and the FAQ.
+
+### Fixed
+- Saved items' previews in Activity no longer get stray spaces where bold text or a citation was in Chinese answers and summaries.
+
+## [2.4.0] - 2026-10-21
+
+### Changed
 - A new look everywhere: the side panel, Settings, the welcome tab and the button on forum pages share one calm design (neutral grays, one indigo accent, the system font, flat surfaces), in light and dark.
 - The side panel's header shows the forum you're on, with icon buttons for Activity (it counts running tasks) and Settings.
 - Summary and Chat are tabs. Copy, Download and a More menu (Copy full post) sit beside them.
-- In Activity, click anywhere on a task or saved item to open it; the separate open button is gone. Keep, Delete, Stop, Retry and Continue stay as buttons.
-- Saved items' previews in Activity no longer get stray spaces where bold text or a citation was in Chinese answers and summaries.
 - One question box at the bottom of the side panel: **This post** asks about the topic and its summary, **Whole forum** asks the forum. The model switcher and the forum context limit moved into it.
 
 ## [2.3.2] - 2026-10-20
@@ -124,7 +130,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.2...HEAD
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.2...v2.4.0
 [2.3.2]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.1...v2.3.2
 [2.3.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.2.1...v2.3.0

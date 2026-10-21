@@ -561,6 +561,14 @@ scenario(
     check('agent question', (await text(page, '#agentPanel [data-part="question"]')).includes('caching'));
     await shot('running');
 
+    // Picking Whole forum opens the composer in the dock; the answer stays.
+    await page.click('#composerScopeBtn');
+    await page.click('#composerScopeForum');
+    check('whole forum scope keeps the answer', (await visible(page, '#agentPanel')) && (await visible(page, '#agentForm')));
+    await page.click('#composerScopeBtn');
+    await page.click('#composerScopePost');
+    check('back to this post keeps the answer', await visible(page, '#agentPanel'));
+
     // The agent searches, then starts reading: the step list is live.
     await fireActivity(
       page,
@@ -1244,6 +1252,10 @@ scenario('popup-chat', 'src/popup/popup.html', { store: configuredStore }, async
     await text(page, '#forumContextLimitHelp')
   );
   check('send disabled without text', await page.$eval('#sendChatBtn', b => b.disabled));
+  check(
+    'context chip shows once there is a summary',
+    (await visible(page, '#forumContextControl')) && !(await page.$eval('#composerDock', d => d.classList.contains('chat-off')))
+  );
   await shot('restored');
   await page.fill('#chatInput', 'Any caveats?');
   check('send enabled', await page.$eval('#sendChatBtn', b => !b.disabled));

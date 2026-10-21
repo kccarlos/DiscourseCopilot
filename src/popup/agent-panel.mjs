@@ -38,9 +38,9 @@ export class AgentPanel {
     return !$('topicView').classList.contains('hidden');
   }
 
-  // Renders the panel (unless the composer has its place) and the pill;
-  // returns the selectAgentRunView() result.
-  render({ composerOpen = false } = {}) {
+  // Renders the panel and the pill; returns the selectAgentRunView() result.
+  // The composer lives in the dock below, so the panel stays while it is open.
+  render() {
     const panel = this.root;
     const pill = $('agentPill');
     const siteUrl = this.state.pageContext?.siteUrl || '';
@@ -49,7 +49,7 @@ export class AgentPanel {
       windowMs: agentRecentWindowMs(this.getRetention())
     });
 
-    const showPanel = view.mode === 'panel' && !composerOpen;
+    const showPanel = view.mode === 'panel';
     panel.classList.toggle('hidden', !showPanel);
     $('topicView').classList.toggle('has-agent-panel', view.mode === 'panel');
     if (showPanel) {

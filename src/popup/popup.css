@@ -1649,7 +1649,7 @@ progress:indeterminate::-webkit-progress-bar {
 }
 
 /* The chat hint says how to send, so it goes while the chat box is off. */
-.composer-dock:has(#chatInput:disabled) > .composer-hint[data-scope="post"] {
+.composer-dock.chat-off > .composer-hint[data-scope="post"] {
     display: none;
 }
 
@@ -1754,8 +1754,9 @@ select.model-switcher:hover:not(:disabled) {
 }
 
 /* Forum context: a chip in the box; the slider opens above the composer.
-   It only applies to a chat, so it goes while the chat box is off. */
-.composer-box:has(#chatInput:disabled) .chat-context-control {
+   It only applies to a chat, so it goes while the chat is off (no summary),
+   but stays while a question is sending. */
+.composer-dock.chat-off .chat-context-control {
     display: none;
 }
 

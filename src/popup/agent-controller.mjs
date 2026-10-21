@@ -207,7 +207,7 @@ export class AgentController {
   // ---------- Topic view (see agent-panel.mjs, agent-composer.mjs) ----------
 
   renderPanel() {
-    return this.panel.render({ composerOpen: this.composer.open });
+    return this.panel.render();
   }
 
   searchLabel(forumName) {
