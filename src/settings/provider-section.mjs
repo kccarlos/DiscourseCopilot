@@ -12,7 +12,7 @@ import {
   orderModelChoices,
   pickDefaultModel
 } from '../shared/model-catalog.mjs';
-import { LOCAL_PROVIDER_IDS, PROVIDER_LINKS } from '../shared/provider-setup.mjs';
+import { LOCAL_PROVIDER_IDS, OPTIONAL_KEY_PROVIDER_IDS, PROVIDER_LINKS } from '../shared/provider-setup.mjs';
 import { PROVIDER_IDS } from '../shared/config-state.mjs';
 import { buildModelChoices, isLatestRequest, normalizeProviderSettings } from './settings-helpers.mjs';
 
@@ -26,6 +26,8 @@ export const PROVIDER_FIELDS = Object.fromEntries(
     {
       credential: LOCAL_PROVIDER_IDS.has(provider) ? `${provider}Url` : `${provider}ApiKey`,
       credentialField: LOCAL_PROVIDER_IDS.has(provider) ? 'url' : 'apiKey',
+      // A local server's optional key (LM Studio), next to its URL.
+      optionalKey: OPTIONAL_KEY_PROVIDER_IDS.has(provider) ? `${provider}ApiKey` : null,
       model: `${provider}Model`,
       modelList: `${provider}ModelList`,
       modelStatus: `${provider}ModelStatus`,
@@ -40,6 +42,7 @@ export const INPUT_FIELDS = new Map(
     const fields = PROVIDER_FIELDS[provider];
     return [
       [fields.credential, { provider, field: fields.credentialField }],
+      ...(fields.optionalKey ? [[fields.optionalKey, { provider, field: 'apiKey' }]] : []),
       [fields.model, { provider, field: 'model' }]
     ];
   })
@@ -90,6 +93,8 @@ export class ProviderSection {
       const credential = $(fields.credential);
       const model = $(fields.model);
       if (credential) credential.value = settings[fields.credentialField] || '';
+      const optionalKey = fields.optionalKey && $(fields.optionalKey);
+      if (optionalKey) optionalKey.value = settings.apiKey || '';
       if (model) model.value = settings.model || '';
     }
   }
@@ -133,10 +138,14 @@ export class ProviderSection {
   markInvalidFields(validation) {
     const fields = PROVIDER_FIELDS[this.current];
     const credential = $(fields.credential);
+    const optionalKey = fields.optionalKey && $(fields.optionalKey);
     const model = $(fields.model);
     credential?.removeAttribute('aria-invalid');
+    optionalKey?.removeAttribute('aria-invalid');
     model?.removeAttribute('aria-invalid');
-    if (validation.fieldErrors.apiKey || validation.fieldErrors.url) {
+    if (validation.fieldErrors.apiKey && optionalKey) {
+      optionalKey.setAttribute('aria-invalid', 'true');
+    } else if (validation.fieldErrors.apiKey || validation.fieldErrors.url) {
       credential?.setAttribute('aria-invalid', 'true');
     }
     if (validation.fieldErrors.model) {

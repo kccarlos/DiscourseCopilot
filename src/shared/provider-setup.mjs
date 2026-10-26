@@ -3,6 +3,9 @@
 import { t } from './i18n.mjs';
 
 export const LOCAL_PROVIDER_IDS = new Set(['ollama', 'lmstudio']);
+// Local servers that may sit behind an optional API key (sent as
+// `Authorization: Bearer <key>`); empty means no Authorization header.
+export const OPTIONAL_KEY_PROVIDER_IDS = new Set(['lmstudio']);
 
 // Shown as large choices in the side panel; every other provider is listed
 // under "More providers".
@@ -64,9 +67,10 @@ export function defaultLocalUrl(provider, providerConfigs) {
 export function defaultProviderSettings(provider, providerConfigs) {
   const config = providerConfigs?.[provider];
   if (!config) return {};
-  return LOCAL_PROVIDER_IDS.has(provider)
-    ? { url: defaultLocalUrl(provider, providerConfigs), model: config.defaultModel }
-    : { apiKey: '', model: config.defaultModel };
+  if (!LOCAL_PROVIDER_IDS.has(provider)) return { apiKey: '', model: config.defaultModel };
+  const settings = { url: defaultLocalUrl(provider, providerConfigs), model: config.defaultModel };
+  if (OPTIONAL_KEY_PROVIDER_IDS.has(provider)) settings.apiKey = '';
+  return settings;
 }
 
 export function normalizeProviderSettings(provider, settings = {}) {
@@ -76,7 +80,8 @@ export function normalizeProviderSettings(provider, settings = {}) {
 
   if (LOCAL_PROVIDER_IDS.has(provider)) {
     normalized.url = typeof settings.url === 'string' ? settings.url.trim().replace(/\/+$/, '') : '';
-  } else {
+  }
+  if (!LOCAL_PROVIDER_IDS.has(provider) || OPTIONAL_KEY_PROVIDER_IDS.has(provider)) {
     normalized.apiKey = typeof settings.apiKey === 'string' ? settings.apiKey.trim() : '';
   }
 
@@ -161,6 +166,7 @@ export function buildConnectionTest(provider, settings, providerConfigs, apiHead
   } else if (provider === 'lmstudio') {
     url = `${settings.url}/v1/models`;
     method = 'GET';
+    if (settings.apiKey) headers.Authorization = `Bearer ${settings.apiKey}`;
   } else if (provider === 'anthropic') {
     url = `${config.baseUrl}/messages`;
     headers['x-api-key'] = settings.apiKey;
@@ -252,6 +258,9 @@ export function classifyConnectionFailure(provider, error, providerConfigs = {})
       field: null,
       message: t('providerSetup.cantReach', { name })
     };
+  }
+  if (OPTIONAL_KEY_PROVIDER_IDS.has(provider) && status === 401) {
+    return { field: 'apiKey', message: withDetail(t('providerSetup.localKeyRejected', { name })) };
   }
   if (status === 401 || status === 403) {
     return {

@@ -63,7 +63,7 @@ DiscourseCopilot 不自帶 AI。你可以連線一個已經在用的供應商，
 <details>
 <summary>在電腦上使用 Ollama</summary>
 
-啟動 Ollama，然後在設定裡選 **本機 (Ollama)**。不需要改任何 Ollama 設定：擴充功能會自動處理 Ollama 預設會拒絕的那個瀏覽器請求標頭（見[常見問題](faq.md#ollama-報錯ollama-拒絕了連線403)）。位址預設填好 `http://localhost:11434`，LM Studio 預設是 `http://localhost:1234`。如果服務跑在另一台電腦上，填它的位址即可；點 **測試並儲存** 時 Chrome 會請求一次連線權限。
+啟動 Ollama，然後在設定裡選 **本機 (Ollama)**。不需要改任何 Ollama 設定：擴充功能會自動處理 Ollama 預設會拒絕的那個瀏覽器請求標頭（見[常見問題](faq.md#ollama-報錯ollama-拒絕了連線403)）。位址預設填好 `http://localhost:11434`，LM Studio 預設是 `http://localhost:1234`。如果服務跑在另一台電腦上，填它的位址即可；點 **測試並儲存** 時 Chrome 會請求一次連線權限。如果 LM Studio（或其他 OpenAI 相容）伺服器要求 API 金鑰，請在 **設定 → AI 供應商 → API 金鑰（選填）** 中填寫。
 
 </details>
 

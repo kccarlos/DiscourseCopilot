@@ -93,7 +93,7 @@ export function buildModelListRequest(provider, settings = {}, providerConfigs =
     case 'ollama':
       return { url: `${localBaseUrl(provider, settings, providerConfigs)}/api/tags`, headers: {} };
     case 'lmstudio':
-      return { url: `${localBaseUrl(provider, settings, providerConfigs)}/v1/models`, headers: {} };
+      return { url: `${localBaseUrl(provider, settings, providerConfigs)}/v1/models`, headers: { ...bearer } };
     default:
       // OpenAI and the OpenAI-compatible hosted APIs (Groq, xAI, DeepSeek).
       return { url: `${config.baseUrl}/models`, headers: { ...bearer } };
@@ -269,8 +269,11 @@ export function orderModelChoices(provider, models, providerConfigs = PROVIDER_C
 }
 
 // SHA-256 of the credential, so cached lists are keyed without the key itself.
+// A local server's credential is its URL plus the optional key.
 async function credentialHash(provider, settings) {
-  const credential = LOCAL_PROVIDERS.has(provider) ? trimmed(settings?.url).replace(/\/+$/, '') : trimmed(settings?.apiKey);
+  const credential = LOCAL_PROVIDERS.has(provider)
+    ? [trimmed(settings?.url).replace(/\/+$/, ''), trimmed(settings?.apiKey)].filter(Boolean).join('\n')
+    : trimmed(settings?.apiKey);
   const bytes = new TextEncoder().encode(`${provider}\n${credential}`);
   const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
   return [...new Uint8Array(digest)]

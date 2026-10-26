@@ -41,6 +41,8 @@ export default {
   'providerSetup.theProvider': '該供應商',
   'providerSetup.cantReachLocal': '無法透過此位址連線 {name}。請確認它正在執行，並檢查位址是否正確。',
   'providerSetup.cantReach': '無法連線 {name}。請檢查網路連線後重試。',
+  'providerSetup.localKeyRejected':
+    '{name} 需要 API 金鑰，或拒絕了已填寫的金鑰。請在「設定 → AI 供應商」中填寫伺服器要求的金鑰；如果伺服器未啟用驗證，請留空。',
   'providerSetup.refused': '{name} 拒絕了該請求。',
   'providerSetup.keyRejected': '{name} 不接受此 API 金鑰。請檢查後重試。',
   'providerSetup.modelUnknown': '{name} 無法識別此模型。請檢查模型名稱。',

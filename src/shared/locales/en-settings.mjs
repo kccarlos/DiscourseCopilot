@@ -26,6 +26,8 @@ export default {
   'settings.provider.lmstudioRunning': 'Make sure LM Studio is running with the local server enabled.',
   'settings.provider.downloadLmstudio': 'Download LM Studio',
   'settings.provider.lmstudioLoad': 'Load a model in LM Studio and start the local server (Developer tab → Start Server)',
+  'settings.provider.optionalApiKeySuffix': 'API Key (optional):',
+  'settings.provider.lmstudioApiKey': 'Only needed if your server requires one. Sent as an Authorization: Bearer header.',
   'settings.model.label': 'Model:',
   'settings.model.placeholder': 'Enter or choose a model',
   'settings.model.refresh': 'Refresh models',

@@ -44,6 +44,8 @@ export default {
   'providerSetup.theProvider': 'The provider',
   'providerSetup.cantReachLocal': "Can't reach {name} at this address. Make sure it is running and the URL is correct.",
   'providerSetup.cantReach': "Couldn't reach {name}. Check your internet connection and try again.",
+  'providerSetup.localKeyRejected':
+    '{name} needs an API key, or rejected the one entered. Enter the key the server expects under Settings → AI provider, or leave it empty if the server has no authentication.',
   'providerSetup.refused': '{name} refused the request.',
   'providerSetup.keyRejected': "{name} didn't accept this API key. Check it and try again.",
   'providerSetup.modelUnknown': "{name} doesn't recognize this model. Check the model name.",

@@ -242,6 +242,25 @@ test('Agent steps and answers go through the same sampling rules', async () => {
   assert.equal(answerRequests.requests[0].body.temperature, 0.3);
 });
 
+test('LM Studio sends its optional API key as a Bearer header', async () => {
+  const keyed = mockFetch(() => sseResponse(chatCompletionsSse(['ok'])));
+  await new AIService({ fetch: keyed.fetch }).completeAgentStep(
+    'lmstudio',
+    { system: 'You are an agent.', messages: [{ role: 'user', content: 'Hi' }] },
+    { url: 'http://box:8080', apiKey: 'lan-key', model: 'local-model' }
+  );
+  assert.equal(keyed.requests[0].url, 'http://box:8080/v1/chat/completions');
+  assert.equal(keyed.requests[0].headers.authorization, 'Bearer lan-key');
+
+  const open = mockFetch(() => sseResponse(chatCompletionsSse(['ok'])));
+  await new AIService({ fetch: open.fetch }).completeAgentStep(
+    'lmstudio',
+    { system: 'You are an agent.', messages: [{ role: 'user', content: 'Hi' }] },
+    { url: 'http://box:8080', apiKey: '', model: 'local-model' }
+  );
+  assert.equal(open.requests[0].headers.authorization, undefined);
+});
+
 test('Ollama keeps the /api base path', async () => {
   const { fetch, requests } = mockFetch(() =>
     jsonResponse({

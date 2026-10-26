@@ -6,6 +6,7 @@ import {
   PROVIDER_LINKS,
   RECOMMENDED_PROVIDERS,
   buildConnectionTest,
+  normalizeProviderSettings,
   classifyConnectionFailure,
   defaultLocalUrl,
   describeSavedConfiguration,
@@ -108,6 +109,12 @@ test('connection tests use each provider’s cheapest request shape', () => {
   const ollama = buildConnectionTest('ollama', { url: 'http://localhost:11434', model: 'llama3.2' }, configs);
   assert.deepEqual([ollama.url, ollama.options.method], ['http://localhost:11434/api/tags', 'GET']);
 
+  const lmstudio = buildConnectionTest('lmstudio', { url: 'http://box:8080', model: 'm' }, configs);
+  assert.deepEqual([lmstudio.url, lmstudio.options.method], ['http://box:8080/v1/models', 'GET']);
+  assert.equal('Authorization' in lmstudio.options.headers, false, 'no key, no Authorization header');
+  const lmstudioKeyed = buildConnectionTest('lmstudio', { url: 'http://box:8080', apiKey: 'lan-key', model: 'm' }, configs);
+  assert.equal(lmstudioKeyed.options.headers.Authorization, 'Bearer lan-key');
+
   const gemini = buildConnectionTest('gemini', { apiKey: 'a b', model: 'gemini-x' }, configs);
   assert.match(gemini.url, /models\/gemini-x:generateContent\?key=a%20b$/);
 });
@@ -162,6 +169,10 @@ test('connection failures map to the field the user should fix', () => {
     /refused the connection \(403\).*OLLAMA_ORIGINS=chrome-extension:\/\/\*/
   );
   assert.doesNotMatch(classifyConnectionFailure('lmstudio', { status: 403 }, configs).message, /OLLAMA_ORIGINS/);
+  const lmstudioKey = classifyConnectionFailure('lmstudio', { status: 401, body: 'Unauthorized' }, configs);
+  assert.equal(lmstudioKey.field, 'apiKey');
+  assert.match(lmstudioKey.message, /API key.*Unauthorized/);
+  assert.equal(classifyConnectionFailure('ollama', { status: 401 }, configs).field, 'url');
   assert.equal(classifyConnectionFailure('openai', { status: 0 }, configs).field, null);
 });
 
@@ -191,4 +202,16 @@ test('setup success copy adapts to the current page', () => {
     setupSuccessMessage({ isForumTopic: true, isDiscourse: true, forumAccess: 'missing' }),
     'You’re set. Next, allow access to this forum below.'
   );
+});
+
+test('LM Studio settings take an optional API key; Ollama does not', () => {
+  assert.deepEqual(defaultProviderSettings('lmstudio', configs), { url: 'http://localhost:1234', model: 'local-model', apiKey: '' });
+  assert.deepEqual(normalizeProviderSettings('lmstudio', { url: 'http://box:8080/', apiKey: ' lan-key ', model: 'm' }), {
+    model: 'm',
+    url: 'http://box:8080',
+    apiKey: 'lan-key'
+  });
+  assert.equal('apiKey' in normalizeProviderSettings('ollama', { url: 'http://x', apiKey: 'k', model: 'm' }), false);
+  // Empty is valid: the key is optional.
+  assert.equal(validateProviderSettings('lmstudio', { url: 'http://box:8080', apiKey: '', model: 'm' }, configs).valid, true);
 });

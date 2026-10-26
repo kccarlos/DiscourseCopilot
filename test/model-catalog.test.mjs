@@ -193,6 +193,10 @@ test('buildModelListRequest: one list endpoint per provider, keys only in header
   assert.equal(buildModelListRequest('ollama', { url: 'http://box:11434/' }, configs).url, 'http://box:11434/api/tags');
   assert.equal(buildModelListRequest('ollama', {}, configs).url, 'http://localhost:11434/api/tags');
   assert.equal(buildModelListRequest('lmstudio', { url: 'http://localhost:1234' }, configs).url, 'http://localhost:1234/v1/models');
+  assert.deepEqual(buildModelListRequest('lmstudio', { url: 'http://localhost:1234' }, configs).headers, {});
+  assert.deepEqual(buildModelListRequest('lmstudio', { url: 'http://box:8080', apiKey: 'lan-key' }, configs).headers, {
+    Authorization: 'Bearer lan-key'
+  });
   assert.throws(() => buildModelListRequest('nope', {}, configs), ModelListError);
 });
 
@@ -489,4 +493,14 @@ test('modelMissingText names the provider', () => {
   const { modelMissingText } = catalogModule;
   assert.equal(modelMissingText('openai'), 'This model is no longer offered by OpenAI. Choose another.');
   assert.equal(modelMissingText('ollama'), "This model isn't available on your Ollama server. Choose another.");
+});
+
+test('an LM Studio key is its own cache entry and never part of the URL', async () => {
+  const { catalog, calls } = catalogWith(() => jsonResponse(FIXTURES.lmstudio));
+  await catalog.list('lmstudio', { url: 'http://box:8080' });
+  await catalog.list('lmstudio', { url: 'http://box:8080', apiKey: 'lan-key' });
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1].init.headers.Authorization, 'Bearer lan-key');
+  assert.equal(calls[1].url.includes('lan-key'), false);
+  assert.equal((await catalog.list('lmstudio', { url: 'http://box:8080', apiKey: 'lan-key' })).fromCache, true);
 });
