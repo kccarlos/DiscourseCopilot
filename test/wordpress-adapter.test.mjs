@@ -296,12 +296,27 @@ test('bad identities fail before any request', async () => {
   assert.equal(site.state.requests.length, 0);
 });
 
-test('the registry hands WordPress tasks to this reader and refuses Agent runs there for now', async () => {
+test('the registry hands WordPress tasks to this reader and tool client', async () => {
   const sites = createDefaultSiteRegistry({ fetchImpl: fakeSite({ commentCount: 3 }).fetchImpl });
   const adapter = sites.forTask({ siteType: 'wordpress' });
   assert.equal(adapter.label, 'WordPress');
   const result = await adapter.fetchTopicContent(SITE, POST_ID, () => {}, undefined, {});
   assert.equal(result.totalPosts, 4);
-  assert.throws(() => adapter.createToolClient({ siteUrl: SITE }), /not available on WordPress sites yet/);
+  assert.equal(adapter.createToolClient({ siteUrl: SITE }).siteUrl, SITE);
   assert.equal(COMMENTS_PER_PAGE, 100);
+});
+
+test('a site that strips the X-WP-Total headers is read from what the first page holds', async () => {
+  const site = fakeSite({ commentCount: 3 });
+  site.state.respond = url => {
+    if (!url.includes('/comments')) return null;
+    return Object.defineProperty(
+      new Response(JSON.stringify(site.state.comments), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+      'url',
+      { value: url }
+    );
+  };
+  const result = await read(site);
+  assert.equal(result.totalPosts, 4);
+  assert.equal(result.rawPages.length, 1);
 });

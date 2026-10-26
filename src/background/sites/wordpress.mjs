@@ -18,6 +18,7 @@ import { FORUM_RESPONSE_KIND, classifyForumResponse, forumAccessError, readForum
 import { decodeEntities, htmlToText } from '../../shared/html-text.mjs';
 import { SITE_TYPE } from '../../shared/site-types.mjs';
 import { t } from '../../shared/i18n.mjs';
+import { WordPressToolClient } from '../wordpress-tools.mjs';
 import { buildContentResult, createRateLimitProgress } from '../topic-fetcher.mjs';
 
 export const WORDPRESS_SITE_TYPE = SITE_TYPE.WORDPRESS;
@@ -54,7 +55,7 @@ function requirePostId(postId) {
   return id;
 }
 
-function restUrl(siteUrl, path, params = {}) {
+export function restUrl(siteUrl, path, params = {}) {
   const url = new URL(`${siteUrl}/wp-json${path}`);
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, String(value));
@@ -63,12 +64,12 @@ function restUrl(siteUrl, path, params = {}) {
 }
 
 // "2026-05-14T17:02:05" (GMT) -> "2026-05-14 17:02 UTC"
-function timestamp(value) {
+export function timestamp(value) {
   const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(String(value || ''));
   return match ? `${match[1]} ${match[2]} UTC` : '';
 }
 
-function oneLine(value) {
+export function oneLine(value) {
   return decodeEntities(String(value ?? ''))
     .replace(/\s+/g, ' ')
     .trim();
@@ -97,15 +98,19 @@ export function formatComment(comment) {
 
 // Blocks are separated by two blank lines; a trailing newline keeps the next
 // page's first block apart when pages are joined with a blank line.
-function joinBlocks(blocks) {
+export function joinBlocks(blocks) {
   return `${blocks.join('\n\n\n')}\n`;
 }
 
-export function createWordPressFetcher({ fetchImpl, config = WORDPRESS_FETCH_CONFIG } = {}) {
+/**
+ * The REST calls the reader and the agent's tools share. Access problems
+ * (login, a challenge page, a missing post) throw the same user-actionable
+ * errors as the Discourse reader.
+ */
+export function createWordPressApi({ fetchImpl, config = WORDPRESS_FETCH_CONFIG } = {}) {
   const retryOptions = extra => (fetchImpl ? { fetchImpl, ...extra } : extra);
 
-  // One REST GET. Access problems (login, a challenge page, a missing post)
-  // throw the same user-actionable errors as the Discourse reader.
+  // One REST GET.
   async function requestJson(siteUrl, url, { signal, onRetry, allowNotFound = false }) {
     const requestStartedAt = Date.now();
     const response = await fetchWithRateLimitRetry(
@@ -134,7 +139,8 @@ export function createWordPressFetcher({ fetchImpl, config = WORDPRESS_FETCH_CON
       }
     }
     const count = name => {
-      const value = Number(headers?.get?.(name));
+      const raw = headers?.get?.(name);
+      const value = raw === null || raw === undefined || raw === '' ? Number.NaN : Number(raw);
       return Number.isInteger(value) && value >= 0 ? value : null;
     };
     return { data, total: count('X-WP-Total'), totalPages: count('X-WP-TotalPages'), requestMs: Date.now() - requestStartedAt };
@@ -165,6 +171,12 @@ export function createWordPressFetcher({ fetchImpl, config = WORDPRESS_FETCH_CON
     );
     return { ...result, comments: Array.isArray(result.data) ? result.data : [] };
   }
+
+  return { requestJson, fetchArticle, fetchCommentPage };
+}
+
+export function createWordPressFetcher({ fetchImpl, config = WORDPRESS_FETCH_CONFIG } = {}) {
+  const { fetchArticle, fetchCommentPage } = createWordPressApi({ fetchImpl, config });
 
   /**
    * Same contract as the Discourse adapter's fetchTopicContent. `postId` is the
@@ -295,10 +307,7 @@ export function createWordPressSiteAdapter({ fetchImpl } = {}) {
     type: WORDPRESS_SITE_TYPE,
     label: 'WordPress',
     fetchTopicContent: createWordPressFetcher({ fetchImpl }),
-    // The Agent's WordPress tools arrive with their own change; until then a
-    // WordPress run is refused where the question is asked (page-context.supportsAgent).
-    createToolClient: () => {
-      throw Object.assign(new Error('Agent research is not available on WordPress sites yet'), { retryable: false });
-    }
+    // One client per agent run: searchForum, searchComments, listLatest, getTopic, getRawPage.
+    createToolClient: ({ siteUrl, signal, governor }) => new WordPressToolClient({ siteUrl, signal, governor, fetchImpl })
   });
 }

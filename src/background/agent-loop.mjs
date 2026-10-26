@@ -75,6 +75,7 @@ export async function runAgentLoop({
   signal,
   budget: requestedBudget,
   forumName = '',
+  siteType,
   responseLanguage,
   customInstructions = '',
   report = async () => {},
@@ -91,6 +92,7 @@ export async function runAgentLoop({
     forumName: forumDisplayName(siteUrl, forumName) || 'the forum',
     siteUrl,
     budget,
+    siteType,
     responseLanguage,
     customInstructions,
     now: now()
@@ -114,6 +116,7 @@ export async function runAgentLoop({
   const stepsUsed = () => turnSteps().filter(step => step.status !== 'running').length;
   const ctx = {
     siteUrl,
+    siteType,
     toolClient,
     budget,
     sources,

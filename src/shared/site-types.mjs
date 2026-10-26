@@ -18,7 +18,7 @@ export function normalizeSiteType(value) {
 
 // Which site types the Agent can research. A type is added here when its
 // adapter (background/sites/) has real Agent tools.
-const AGENT_SITE_TYPES = new Set([SITE_TYPE.DISCOURSE]);
+const AGENT_SITE_TYPES = new Set([SITE_TYPE.DISCOURSE, SITE_TYPE.WORDPRESS]);
 
 export function siteTypeSupportsAgent(value) {
   return AGENT_SITE_TYPES.has(value);
