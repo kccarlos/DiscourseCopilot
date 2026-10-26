@@ -2390,6 +2390,21 @@ select.model-switcher:hover:not(:disabled) {
     transition: background-color 160ms ease;
 }
 
+.agent-source-summary {
+    flex: 1 0 100%;
+    min-width: 0;
+    max-height: 320px;
+    overflow: auto;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--dc-hover);
+    font-size: 13px;
+}
+
+.agent-source-card:has(.agent-source-summary) {
+    flex-wrap: wrap;
+}
+
 .agent-source-card:last-child {
     border-bottom: 0;
 }

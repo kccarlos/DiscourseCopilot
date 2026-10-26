@@ -113,9 +113,11 @@ function readSourceMap(ctx) {
 // "user | date | #1" header line the raw endpoint puts before each post and
 // without the posts after the first (separated by a line of dashes).
 export function firstPostExcerpt(content) {
-  const lines = String(content ?? '')
-    .split(/\n-{5,}[ \t]*(?:\n|$)/)[0]
-    .split('\n');
+  const raw = String(content ?? '');
+  // A WordPress article is "Article: …" header lines, a blank line, the body;
+  // its comments follow after two blank lines.
+  const article = raw.startsWith('Article: ');
+  const lines = (article ? raw.split(/\n{3,}/)[0].replace(/^[\s\S]*?\n\n/, '') : raw.split(/\n-{5,}[ \t]*(?:\n|$)/)[0]).split('\n');
   let index = 0;
   while (index < lines.length && !lines[index].trim()) index++;
   if (index < lines.length && /\|\s*#?\d+\s*$/.test(lines[index])) index++;

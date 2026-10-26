@@ -25,6 +25,8 @@ export default {
     'The topic was not found. It may be private or deleted; if it is private, log in to {host} in this browser and try again.',
   'forumResponse.loginRequired':
     'This forum requires you to be logged in (or the topic is private). Log in to {host} in this browser and try again.',
+  'forumResponse.postNotFound':
+    'That post could not be found on this site. It may be private, deleted, or a kind of page the extension cannot read.',
   'forumResponse.httpError': 'Forum request failed with HTTP {status}',
   // Provider setup
   'providerSetup.ollamaOrigins':
@@ -89,6 +91,10 @@ export default {
   'agent.step.search.stopped': 'Search for {query}{page}',
   'agent.step.search.failed': 'Search failed for {query}{page}',
   'agent.step.search.done': 'Searched {query}{page}',
+  'agent.step.comments.running': 'Searching comments for {query}{page}…',
+  'agent.step.comments.stopped': 'Comment search for {query}{page}',
+  'agent.step.comments.failed': 'Comment search failed for {query}{page}',
+  'agent.step.comments.done': 'Searched comments for {query}{page}',
   'agent.step.latest.running': 'Listing latest topics…',
   'agent.step.latest.stopped': 'Listing latest topics',
   'agent.step.latest.failed': 'Could not list latest topics',
@@ -433,6 +439,9 @@ export default {
   'answer.noExcerpt': 'Source content was not excerpted.',
   'answer.openPost': 'Open post {number}',
   'answer.openTopic': 'Open topic',
+  'answer.viewSummary': 'View saved summary',
+  'answer.summaryLoading': 'Loading the saved summary…',
+  'answer.summaryGone': 'This saved summary is no longer available.',
   'answer.copyShort': 'Copy',
   // Agent controller
   'agent.retryQueued': 'Agent retry queued.',

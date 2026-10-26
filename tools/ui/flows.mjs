@@ -701,6 +701,69 @@ scenario(
     );
     await shot('answered');
 
+    // A saved summary used as a source opens in place, not on the site.
+    const summaryKey = 'meta.discourse.org/t/1';
+    await page.evaluate(
+      key =>
+        new Promise((resolve, reject) => {
+          const open = indexedDB.open('discourse-copilot-history');
+          open.onerror = () => reject(open.error);
+          open.onsuccess = () => {
+            const db = open.result;
+            const tx = db.transaction(['topicSessions'], 'readwrite');
+            tx.objectStore('topicSessions').put({
+              schemaVersion: 1,
+              topicKey: key,
+              topicId: '1',
+              siteUrl: 'https://meta.discourse.org',
+              title: 'Caching guide',
+              url: 'https://meta.discourse.org/t/caching/1',
+              summary: 'Saved summary: turn caching on in the admin panel.',
+              updatedAt: Date.now(),
+              createdAt: Date.now()
+            });
+            tx.oncomplete = () => {
+              db.close();
+              resolve();
+            };
+            tx.onerror = () => reject(tx.error);
+          };
+        }),
+      summaryKey
+    );
+    const withSummary = cachingRun({
+      steps: [SEARCH_STEP, READ_STEP],
+      answer: CACHING_ANSWER,
+      updatedAt: Date.now() + 60,
+      lastOpenedAt: 0
+    });
+    withSummary.sourceRefs[0] = { ...withSummary.sourceRefs[0], evidenceType: 'summary', topicKey: summaryKey };
+    await fireActivity(page, withSummary);
+    await page.waitForTimeout(300);
+    check(
+      'a saved-summary source has no link to the site',
+      (await page.$$('#agentPanel .agent-source-card[data-source-id="S1"] a.agent-source-open')).length === 0
+    );
+    await page.click('#agentPanel .agent-source-card[data-source-id="S1"] button.agent-source-open');
+    await page.waitForTimeout(300);
+    check(
+      'it shows the saved summary under the card',
+      (await text(page, '#agentPanel .agent-source-card[data-source-id="S1"] .agent-source-summary')).includes(
+        'turn caching on in the admin panel'
+      ),
+      await text(page, '#agentPanel .agent-source-card[data-source-id="S1"] .agent-source-summary')
+    );
+    await page.click('#agentPanel .agent-source-card[data-source-id="S1"] button.agent-source-open');
+    check(
+      'and hides it again',
+      await page.$eval('#agentPanel .agent-source-card[data-source-id="S1"] .agent-source-summary', el => el.classList.contains('hidden'))
+    );
+    await fireActivity(
+      page,
+      cachingRun({ steps: [SEARCH_STEP, READ_STEP], answer: CACHING_ANSWER, updatedAt: Date.now() + 90, lastOpenedAt: 0 })
+    );
+    await page.waitForTimeout(300);
+
     // A follow-up on the same run, on the same forum.
     await page.fill('#agentPanel [data-part="followup-input"]', 'And what about a CDN?');
     await page.click('#agentPanel [data-part="followup-send"]');

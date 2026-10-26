@@ -23,6 +23,7 @@ export default {
   'forumResponse.challenge': '该论坛需要先通过验证。请在此浏览器中打开 {host}，完成验证后重试。',
   'forumResponse.notFound': '找不到该话题，它可能是私密话题或已被删除。如果是私密话题，请在此浏览器中登录 {host} 后重试。',
   'forumResponse.loginRequired': '该论坛需要登录才能查看（或该话题为私密话题）。请在此浏览器中登录 {host} 后重试。',
+  'forumResponse.postNotFound': '在该站点上找不到这篇文章，它可能是私密的、已被删除，或是扩展无法读取的页面类型。',
   'forumResponse.httpError': '论坛请求失败（HTTP {status}）',
   // Provider setup
   'providerSetup.ollamaOrigins': 'Ollama 拒绝了连接（403）。请更新 Ollama，或使用 OLLAMA_ORIGINS=chrome-extension://* 启动它。',
@@ -86,6 +87,10 @@ export default {
   'agent.step.search.stopped': '搜索 {query}{page}',
   'agent.step.search.failed': '搜索 {query}{page} 失败',
   'agent.step.search.done': '已搜索 {query}{page}',
+  'agent.step.comments.running': '正在搜索评论 {query}{page}…',
+  'agent.step.comments.stopped': '搜索评论 {query}{page}',
+  'agent.step.comments.failed': '搜索评论 {query}{page} 失败',
+  'agent.step.comments.done': '已搜索评论 {query}{page}',
   'agent.step.latest.running': '正在列出最新话题…',
   'agent.step.latest.stopped': '列出最新话题',
   'agent.step.latest.failed': '无法列出最新话题',
@@ -426,6 +431,9 @@ export default {
   'answer.noExcerpt': '未摘录来源内容。',
   'answer.openPost': '打开第 {number} 楼',
   'answer.openTopic': '打开话题',
+  'answer.viewSummary': '查看已保存的摘要',
+  'answer.summaryLoading': '正在加载已保存的摘要…',
+  'answer.summaryGone': '这份已保存的摘要已不存在。',
   'answer.copyShort': '复制',
   // Agent controller
   'agent.retryQueued': '已将重试加入队列。',
