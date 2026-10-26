@@ -121,6 +121,7 @@ export class AgentComposer {
           title: question,
           question,
           siteUrl: operation.siteUrl,
+          siteType: operation.siteType,
           forumName: operation.forumName,
           provider: operation.provider,
           settings: operation.settings,
