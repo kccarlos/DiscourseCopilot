@@ -1,4 +1,5 @@
 import { TASK_STATUS, isTerminalTaskStatus } from './task-record.mjs';
+import { normalizeSiteType } from './site-types.mjs';
 import { buildTopicKey, forumDisplayName, isSameForumUrl, normalizeSiteUrl, siteUrlFromPageUrl } from './forum-site.mjs';
 import { t, tn } from './i18n.mjs';
 
@@ -305,6 +306,8 @@ export function createAgentActivity(value, now = Date.now()) {
     title: text(value?.title, 500) || question.slice(0, 120),
     question,
     siteUrl,
+    // How the site is read; records from before site types are Discourse.
+    siteType: normalizeSiteType(value?.siteType),
     forumName: siteUrl ? forumDisplayName(siteUrl, value?.forumName) : '',
     // The agent's work: one entry per tool call, the conversation with the
     // model (for resuming and follow-ups), the question and answer of each
@@ -353,6 +356,7 @@ export function agentActivityFromTask(task, { withTimestamps = false } = {}) {
     title: task?.title,
     question: task?.question || task?.title,
     siteUrl: task?.siteUrl,
+    siteType: task?.siteType,
     forumName: task?.forumName,
     provider: task?.provider,
     model: task?.model,
@@ -457,6 +461,7 @@ export function buildAgentActivityIndexEntry(value) {
     title: activity.title,
     question: activity.question,
     siteUrl: activity.siteUrl,
+    siteType: activity.siteType,
     forumName: activity.forumName,
     status: activity.status,
     answerStatus: activity.answerStatus,

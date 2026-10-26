@@ -2,6 +2,8 @@
 // side panel's probe, and how that page flows into the panel's context and
 // the tasks queued from it.
 import assert from 'node:assert/strict';
+import { agentActivityFromTask } from '../src/shared/agent-activity.mjs';
+import { AgentRequests } from '../src/popup/agent-requests.mjs';
 import test from 'node:test';
 
 import { validateEnqueueRequest } from '../src/background/task-service.mjs';
@@ -170,4 +172,31 @@ test('a task keeps the site type it was queued with; old tasks are Discourse', (
   const validated = validateEnqueueRequest({ taskType: 'summary', topicId: '258086', siteUrl: SITE, siteType: 'wordpress' });
   assert.equal(validated.siteType, 'wordpress');
   assert.equal(validated.topicKey, 'www.doctorofcredit.com/t/258086');
+});
+
+test('an Agent run remembers its site type, so a follow-up or retry is read the same way', async () => {
+  const task = { id: 'a1', type: 'agent', question: 'Who got the 10x?', siteUrl: SITE, siteType: 'wordpress' };
+  const activity = agentActivityFromTask(task);
+  assert.equal(activity.siteType, 'wordpress');
+  assert.equal(agentActivityFromTask({ ...task, siteType: undefined }).siteType, 'discourse', 'older runs are Discourse');
+
+  const sent = [];
+  const requests = new AgentRequests({
+    tasks: {
+      enqueue: async payload => {
+        sent.push(payload);
+        return { id: 'next' };
+      }
+    },
+    config: { isReady: () => true, config: { provider: 'ollama' }, activeSettings: {} },
+    runs: { currentRuns: new Map(), trackQueuedTask() {}, get: async () => activity },
+    hooks: { onTaskChanged() {} },
+    report() {},
+    onRetryQueued() {}
+  });
+  await requests.askGrantedFollowUp(activity, 'And Amex?');
+  assert.equal(sent.at(-1).siteType, 'wordpress');
+  await requests.retryGrantedTask(activity);
+  assert.equal(sent.at(-1).siteType, 'wordpress');
+  assert.equal(sent.length, 2);
 });
