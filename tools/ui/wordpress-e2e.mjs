@@ -13,7 +13,7 @@
 //   3. a follow-up question is answered from the saved text;
 //   4. a second summary request asks the site only for what could have changed;
 //   5. a Discourse topic still works through the same registry (no site type),
-//      and an Agent run on WordPress is refused with a clear message.
+//      and an Agent run on WordPress searches comments, reads the post and answers.
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -75,6 +75,22 @@ const site = http.createServer((req, res) => {
       modified_gmt: '2026-10-25T11:50:59',
       content: { rendered: '<p>Chase Sapphire cards earn <strong>10x</strong> with Paze through 2026.</p>' }
     });
+  } else if (url.pathname === '/wp-json/wp/v2/comments' && url.searchParams.get('search')) {
+    json(
+      [
+        {
+          id: 5100,
+          post: POST_ID,
+          parent: 0,
+          author_name: 'speedy',
+          date_gmt: '2026-10-25T13:00:00',
+          content: { rendered: '<p>The 10x posted within 3 days for me.</p>' }
+        }
+      ],
+      { 'X-WP-Total': '1', 'X-WP-TotalPages': '1' }
+    );
+  } else if (url.pathname === '/wp-json/wp/v2/posts' && url.searchParams.get('include')) {
+    json([{ id: POST_ID, title: { rendered: '(Update) Chase 10x &#038; Paze Checkout' } }]);
   } else if (url.pathname === '/wp-json/wp/v2/comments') {
     const page = Number(url.searchParams.get('page') || 1);
     const perPage = Number(url.searchParams.get('per_page') || 10);
@@ -117,7 +133,20 @@ const model = http.createServer((req, res) => {
     }
     const parsed = JSON.parse(body || '{}');
     prompts.push(parsed.messages.map(message => message.content).join('\n---\n'));
-    const answer = 'FIXTURE ANSWER: readers report the 10x posting within days.';
+    // The Agent plans with JSON actions (search comments, read the post,
+    // finish); the answer that follows is ordinary text.
+    let answer = 'FIXTURE ANSWER: readers report the 10x posting within days.';
+    const last = parsed.messages.at(-1)?.content || '';
+    if (/research agent/.test(parsed.messages[0]?.content || '') && !last.startsWith('Now write the final answer')) {
+      const seen = parsed.messages.filter(message => /^OBSERVATION from /.test(message.content)).length;
+      answer = JSON.stringify(
+        [
+          { tool: 'search_comments', arguments: { query: '10x posted' }, reason: 'find reports' },
+          { tool: 'read_topic', arguments: { topic_id: String(POST_ID) }, reason: 'read the post' },
+          { tool: 'final_answer', arguments: { answer: 'About three days.' }, reason: 'done' }
+        ][Math.min(seen, 2)]
+      );
+    }
     const base = { model: parsed.model, created_at: new Date().toISOString() };
     const done = {
       ...base,
@@ -284,12 +313,21 @@ try {
   check('a Discourse topic without a site type still summarizes', discourse.status === 'completed', discourse.status);
   check('and its replies reach the model', (prompts.at(-1) || '').includes('Reply from Ana: use deep pots.'));
 
+  requests.length = 0;
   const agent = await run({ ...wordpress, taskType: 'agent', topicId: '', question: 'Who got the 10x?' });
-  const agentError = JSON.stringify(agent.task?.error || agent.error || '');
+  check('an Agent run on WordPress completes', agent.status === 'completed', `${agent.status} ${JSON.stringify(agent.task?.error || '')}`);
   check(
-    'an Agent run on WordPress is refused with a clear message',
-    agent.status !== 'completed' && /not available on WordPress sites yet/.test(agentError + JSON.stringify(agent.task || {})),
-    `${agent.status} ${agentError.slice(0, 200)}`
+    'it searched the comments and read the post',
+    requests.some(entry => entry.includes('/comments?search=')) && requests.some(entry => entry.includes('/posts/42'))
+  );
+  check('the answer streams in', agent.text.includes('FIXTURE ANSWER'), agent.text.slice(0, 80));
+  const agentPrompts = prompts.filter(entry => entry.includes('OBSERVATION from read_topic'));
+  check(
+    'the model saw the comment hits and the post, with a source number',
+    agentPrompts.length > 0
+      && agentPrompts.at(-1).includes('The 10x posted within 3 days for me.')
+      && agentPrompts.at(-1).includes('[S1] Topic 42'),
+    agentPrompts.at(-1)?.slice(0, 120)
   );
 
   if (pageErrors.length) notes.push(`page errors: ${pageErrors.slice(0, 3).join(' | ')}`);

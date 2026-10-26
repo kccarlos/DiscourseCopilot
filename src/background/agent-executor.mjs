@@ -145,6 +145,7 @@ export function createAgentExecutor({
         // follow-up is its own task, so it carries a fresh budget.
         budget: clampAgentBudget(configuration.limits?.agent),
         forumName: configuration.forumName,
+        siteType: task.siteType,
         responseLanguage: configuration.responseLanguage,
         customInstructions: configuration.systemPrompt,
         signal,

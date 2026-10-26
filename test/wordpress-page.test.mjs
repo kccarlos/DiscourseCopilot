@@ -112,13 +112,13 @@ test('the probe turns a WordPress post into page state for the panel', () => {
   assert.deepEqual(pageStateFromProbe(notWordPress), { url: POST_URL, isSupportedSite: false, detectedBy: 'probe' });
 });
 
-test('the panel context for a WordPress post: a topic, readable, no Agent yet', () => {
+test('the panel context for a WordPress post: a topic, readable, with the Agent', () => {
   const probed = withDocument(wordpressElements, POST_FACTS.bodyClass, probeDiscoursePage);
   const pageState = pageStateFromProbe(probed);
   const context = getTopicContext({ id: 3, url: POST_URL, title: 'Chase 10x - Doctor Of Credit' }, pageState, { forumAccess: false });
   assert.equal(context.isSupportedSite, true);
   assert.equal(context.siteType, 'wordpress');
-  assert.equal(context.supportsAgent, false);
+  assert.equal(context.supportsAgent, true);
   assert.equal(context.isForumTopic, true);
   assert.equal(context.postId, '258086');
   assert.equal(context.siteUrl, SITE);
@@ -153,12 +153,13 @@ test('the access card names the site type', () => {
   assert.equal(derivePageGuidance(context).card.eyebrow, 'WordPress site found');
 });
 
-test('site types: unknown ones are Discourse, and only Discourse has Agent tools so far', () => {
+test('site types: unknown ones are Discourse, and both have Agent tools', () => {
   assert.equal(normalizeSiteType('wordpress'), 'wordpress');
   assert.equal(normalizeSiteType('flarum'), 'discourse');
   assert.equal(normalizeSiteType(undefined), 'discourse');
   assert.equal(siteTypeSupportsAgent('discourse'), true);
-  assert.equal(siteTypeSupportsAgent('wordpress'), false);
+  assert.equal(siteTypeSupportsAgent('wordpress'), true);
+  assert.equal(siteTypeSupportsAgent('flarum'), false);
 });
 
 test('a task keeps the site type it was queued with; old tasks are Discourse', () => {
