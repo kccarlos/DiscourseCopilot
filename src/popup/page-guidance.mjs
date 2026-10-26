@@ -43,7 +43,9 @@ export function splitEmphasis(text) {
     .filter(part => part.text);
 }
 
-const isWordPress = context => context?.siteType === SITE_TYPE.WORDPRESS;
+// The wording key for a site type: Discourse has the bare key.
+const siteKey = (key, context) =>
+  context?.siteType === SITE_TYPE.WORDPRESS ? `${key}.wordpress` : context?.siteType === SITE_TYPE.REDDIT ? `${key}.reddit` : key;
 
 function pageState(context) {
   if (!context) return GUIDANCE_STATE.LOADING;
@@ -59,11 +61,7 @@ function accessCard(state, context, { forumName, host, nextStep }) {
   const finalStep = context.isForumTopic ? t('guide.access.finalTopic') : t('guide.access.finalForum');
   const maybe = state === GUIDANCE_STATE.MAYBE;
   return {
-    eyebrow: nextStep
-      ? t('guide.step2Next')
-      : maybe
-        ? t('guide.maybeEyebrow')
-        : t(isWordPress(context) ? 'guide.foundEyebrow.wordpress' : 'guide.foundEyebrow'),
+    eyebrow: nextStep ? t('guide.step2Next') : maybe ? t('guide.maybeEyebrow') : t(siteKey('guide.foundEyebrow', context)),
     title: maybe ? t('guide.maybeTitle') : t('guide.allowTitle', { forum: forumName }),
     text: maybe ? t('guide.maybeText', { host }) : t('guide.allowText'),
     steps: [
@@ -136,7 +134,7 @@ export function derivePageGuidance(
   } else if (state === GUIDANCE_STATE.FORUM_HOME) {
     // The helper line comes from deriveTopicHelper (topic-controls.mjs).
     hero = {
-      eyebrow: t(isWordPress(context) ? 'guide.hero.eyebrow.wordpress' : 'guide.hero.eyebrow'),
+      eyebrow: t(siteKey('guide.hero.eyebrow', context)),
       title: t('guide.hero.title', { forum: name })
     };
   }
