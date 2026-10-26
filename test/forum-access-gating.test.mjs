@@ -2,6 +2,7 @@
 // Summaries and chat fail fast with an actionable error; Agent research
 // waits for the user (WAITING_USER_ACTION) and Continue works once access
 // is granted — also when access is removed while a task runs.
+import { sitesReading } from './site-registry-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
@@ -111,7 +112,7 @@ test('enqueue refuses a forum that is not enabled, before queuing anything', asy
   assert.ok([TASK_STATUS.QUEUED, TASK_STATUS.RUNNING].includes(task.status));
 });
 
-function topicExecutors({ access, fetchTopicContent }) {
+function topicExecutors({ access, sites }) {
   return createTopicExecutors({
     aiService: {
       async generateSummary() {
@@ -121,7 +122,7 @@ function topicExecutors({ access, fetchTopicContent }) {
     db: fakeDb(),
     broadcast: () => {},
     getTaskConfiguration: async () => ({ provider: 'openai', settings: { model: 'm' }, limits: {} }),
-    fetchTopicContent,
+    sites,
     hasForumAccess: async () => access()
   });
 }
@@ -133,9 +134,9 @@ test('a summary for a forum without access fails fast with the actionable error'
   let fetched = 0;
   const { executeSummaryTask } = topicExecutors({
     access: () => false,
-    fetchTopicContent: async () => {
+    sites: sitesReading(async () => {
       fetched++;
-    }
+    })
   });
   await assert.rejects(
     executeSummaryTask(summaryTask, { signal: new AbortController().signal, report: noopReport }),
@@ -148,10 +149,10 @@ test('access removed while reading turns the refused request into the access err
   let granted = true;
   const { executeSummaryTask } = topicExecutors({
     access: () => granted,
-    fetchTopicContent: async () => {
+    sites: sitesReading(async () => {
       granted = false;
       throw new TypeError('Failed to fetch');
-    }
+    })
   });
   await assert.rejects(
     executeSummaryTask(summaryTask, { signal: new AbortController().signal, report: noopReport }),
@@ -161,9 +162,9 @@ test('access removed while reading turns the refused request into the access err
   // A network error with access still granted stays what it is.
   const { executeSummaryTask: other } = topicExecutors({
     access: () => true,
-    fetchTopicContent: async () => {
+    sites: sitesReading(async () => {
       throw new TypeError('Failed to fetch');
-    }
+    })
   });
   await assert.rejects(
     other(summaryTask, { signal: new AbortController().signal, report: noopReport }),

@@ -16,7 +16,8 @@ import { isAbortError } from '../shared/rate-limit-retry.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { FORUM_ACCESS_ERROR_CODE, forumAccessMessage, isForumAccessError } from '../shared/forum-access.mjs';
 import { clampAgentBudget } from '../shared/preferences.mjs';
-import { ForumToolClient, ForumToolError } from './forum-tools.mjs';
+import { ForumToolError } from './forum-tools.mjs';
+import { createDefaultSiteRegistry } from './sites/index.mjs';
 import { runAgentLoop } from './agent-loop.mjs';
 import { t } from '../shared/i18n.mjs';
 
@@ -90,6 +91,7 @@ export function createAgentExecutor({
   broadcast,
   getTaskConfiguration,
   governor,
+  sites = createDefaultSiteRegistry(),
   hasForumAccess = async () => true,
   savedSummaries = {
     list: () => activities.db.list(),
@@ -134,7 +136,7 @@ export function createAgentExecutor({
       if (!(await hasForumAccess(siteUrl))) {
         throw forumAccessToolError(siteUrl);
       }
-      const toolClient = new ForumToolClient({ siteUrl, signal, governor });
+      const toolClient = sites.forTask(task).createToolClient({ siteUrl, signal, governor });
 
       const configuration = await getTaskConfiguration(task);
       const result = await runAgentLoop({

@@ -6,6 +6,7 @@ import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { createForumAccessError } from '../shared/forum-access.mjs';
 import { isAbortError } from '../shared/rate-limit-retry.mjs';
 import { formatFetchTaskStatus } from './topic-fetcher.mjs';
+import { createDefaultSiteRegistry } from './sites/index.mjs';
 import { describeTopicCoverage } from '../services/prompts.js';
 import { t, tn } from '../shared/i18n.mjs';
 
@@ -21,7 +22,7 @@ function pluralPosts(count) {
  * @param {object} deps.db topicSessionDatabase
  * @param {(message: object) => void} deps.broadcast
  * @param {(task: object) => Promise<object>} deps.getTaskConfiguration
- * @param {Function} deps.fetchTopicContent from createTopicFetcher()
+ * @param {object} [deps.sites] site registry (sites/index.mjs); the adapter of a task's site reads its topic
  * @param {(siteUrl: string) => Promise<boolean>} [deps.hasForumAccess] whether the
  *   user enabled the forum (forum-access.mjs)
  */
@@ -30,7 +31,7 @@ export function createTopicExecutors({
   db,
   broadcast,
   getTaskConfiguration,
-  fetchTopicContent,
+  sites = createDefaultSiteRegistry(),
   hasForumAccess = async () => true
 }) {
   const broadcastSessionUpdated = task => {
@@ -62,7 +63,7 @@ export function createTopicExecutors({
       throw createForumAccessError(task.siteUrl);
     }
     try {
-      return await fetchTopicContent(
+      return await sites.forTask(task).fetchTopicContent(
         task.siteUrl,
         task.topicId,
         progress => {

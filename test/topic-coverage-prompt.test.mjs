@@ -1,6 +1,7 @@
 // A topic read only in part (page limit, or the safety cap on topics of
 // unknown size) is described to the model: in the summary request, in every
 // hierarchical phase that sees replies, and in the follow-up chat rules.
+import { sitesReading } from './site-registry-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { IDBKeyRange, indexedDB } from 'fake-indexeddb';
@@ -224,13 +225,13 @@ function executorsFor(db, fetchResult, calls) {
     db,
     broadcast: () => {},
     getTaskConfiguration: async () => ({ provider: 'openai', settings: { model: 'm' }, limits: { topicPageLimit: 2 } }),
-    fetchTopicContent: async () => ({
+    sites: sitesReading(async () => ({
       content: 'c',
       rawPages: [{ page: 1, content: 'c' }],
       unchanged: false,
       newPosts: null,
       ...fetchResult
-    })
+    }))
   });
 }
 

@@ -1,6 +1,7 @@
 // The preferences reach every consumer: task limits are snapshotted at
 // enqueue (and survive a restart), the Agent and the topic fetcher honor
 // them, and history retention drives cleanup and the side panel's labels.
+import { sitesReading } from './site-registry-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { IDBKeyRange, indexedDB } from 'fake-indexeddb';
@@ -403,7 +404,7 @@ test('the summary executor uses the task’s page limit and records the truncati
     db,
     broadcast: () => {},
     getTaskConfiguration: async task => ({ provider: 'openai', settings: { model: 'm' }, limits: task.limits }),
-    fetchTopicContent: async (_siteUrl, _topicId, _onProgress, _signal, options) => {
+    sites: sitesReading(async (_siteUrl, _topicId, _onProgress, _signal, options) => {
       fetched.push(options.maxPages);
       return {
         content: 'c',
@@ -415,7 +416,7 @@ test('the summary executor uses the task’s page limit and records the truncati
         unchanged: false,
         newPosts: null
       };
-    }
+    })
   });
   const task = createTaskRecord({ id: 's', type: 'summary', topicId: '7', siteUrl: SITE, limits: { topicPageLimit: 2 } });
   await executeSummaryTask(task, { signal: new AbortController().signal, report: async () => {} });
@@ -439,7 +440,7 @@ test('the summary executor passes "every page" through and records no truncation
     db,
     broadcast: () => {},
     getTaskConfiguration: async task => ({ provider: 'openai', settings: { model: 'm' }, limits: task.limits }),
-    fetchTopicContent: async (_siteUrl, _topicId, _onProgress, _signal, options) => {
+    sites: sitesReading(async (_siteUrl, _topicId, _onProgress, _signal, options) => {
       fetched.push(options.maxPages);
       return {
         content: 'c',
@@ -451,7 +452,7 @@ test('the summary executor passes "every page" through and records no truncation
         unchanged: false,
         newPosts: null
       };
-    }
+    })
   });
   const task = createTaskRecord({ id: 's2', type: 'summary', topicId: '8', siteUrl: SITE, limits: { topicPageLimit: null } });
   assert.deepEqual(task.limits, { topicPageLimit: null });

@@ -11,7 +11,7 @@ import { recordSummaryCompleted } from '../shared/star-prompt.mjs';
 import { ForumRequestGovernor } from './forum-tools.mjs';
 import { AgentActivityStore } from './agent-activity-store.mjs';
 import { TaskService } from './task-service.mjs';
-import { createTopicFetcher } from './topic-fetcher.mjs';
+import { createDefaultSiteRegistry } from './sites/index.mjs';
 import { createTopicExecutors } from './topic-executors.mjs';
 import { createAgentExecutor } from './agent-executor.mjs';
 import { createMessageRouter, respondAsync } from './message-router.mjs';
@@ -42,6 +42,7 @@ function broadcast(message) {
 }
 
 const aiService = new AIService();
+const sites = createDefaultSiteRegistry();
 const agentActivities = new AgentActivityStore({ db: topicSessionDatabase, broadcast });
 const taskService = new TaskService({
   db: topicSessionDatabase,
@@ -57,7 +58,7 @@ const { executeSummaryTask, executeChatTask } = createTopicExecutors({
   db: topicSessionDatabase,
   broadcast,
   getTaskConfiguration,
-  fetchTopicContent: createTopicFetcher(),
+  sites,
   hasForumAccess: siteUrl => hasForumAccess(siteUrl)
 });
 const executeAgentTask = createAgentExecutor({
@@ -65,6 +66,7 @@ const executeAgentTask = createAgentExecutor({
   activities: agentActivities,
   broadcast,
   getTaskConfiguration,
+  sites,
   governor: new ForumRequestGovernor({ minIntervalMs: 750 }),
   hasForumAccess: siteUrl => hasForumAccess(siteUrl)
 });
