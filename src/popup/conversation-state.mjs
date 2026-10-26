@@ -147,9 +147,19 @@ export function topicKeyFromUrl(url, siteUrl) {
   return topicId ? buildTopicKey(siteUrl, topicId) : '';
 }
 
+// The same page: address without query or hash, except that a query on the
+// target (a plain-permalink WordPress "?p=123") is part of what identifies it.
 function sameLocation(left, right) {
   const a = pageLocation(left).replace(/\/+$/, '');
-  return Boolean(a) && a === pageLocation(right).replace(/\/+$/, '');
+  if (!a || a !== pageLocation(right).replace(/\/+$/, '')) {
+    return false;
+  }
+  try {
+    const search = new URL(right).search;
+    return !search || new URL(left).search === search;
+  } catch {
+    return false;
+  }
 }
 
 // Picks the tab to reuse for a forum target: one already showing the topic,

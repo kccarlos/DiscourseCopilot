@@ -293,3 +293,12 @@ test("the client only talks to the run's site", async () => {
   assert.ok(site.requests.length > 0);
   assert.throws(() => new WordPressToolClient({ siteUrl: '' }), /valid forum site URL/);
 });
+
+test('reading a topic after its saved summary turns the source into a page source with a link', async () => {
+  const { ctx } = setup({ commentCount: 1 });
+  ctx.sources.push({ sourceId: 'S1', topicId: '101', evidenceType: 'summary', url: '', excerpt: 'x' });
+  await run('read_topic', { topic_id: '101' }, ctx);
+  assert.equal(ctx.sources.length, 1);
+  assert.equal(ctx.sources[0].evidenceType, 'topic');
+  assert.equal(ctx.sources[0].url, `${SITE}/chase-10x/`);
+});

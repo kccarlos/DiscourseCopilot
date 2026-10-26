@@ -179,7 +179,8 @@ export function createWordPressApi({ fetchImpl, config = WORDPRESS_FETCH_CONFIG 
         options
       );
     } catch (error) {
-      const closed = error?.code === 'FORUM_ACCESS_DENIED';
+      // Only for the first page: a refusal further in is not "no comments".
+      const closed = page === 1 && error?.code === 'FORUM_ACCESS_DENIED';
       if (closed || (page > 1 && error?.status === 400)) {
         return { data: [], total: 0, totalPages: 1, requestMs: 0, comments: [] };
       }

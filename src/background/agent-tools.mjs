@@ -130,9 +130,21 @@ function nextSourceId(sources) {
 
 // Registers (or finds) the source card for a topic the agent read.
 function registerSource(ctx, { topicId, title, slug, url = '', excerpt, evidenceType }) {
+  // A site that has its own permalinks (WordPress) supplies them; they are
+  // checked against the run's site like every other link.
+  const link = isAllowedForumUrl(url, ctx.siteUrl)
+    ? url
+    : ctx.siteType === SITE_TYPE.WORDPRESS
+      ? `${ctx.siteUrl}/?p=${topicId}`
+      : buildTopicUrl({ siteUrl: ctx.siteUrl, topicId, slug });
   const existing = ctx.sources.find(source => source.topicId === topicId);
   if (existing) {
     if (excerpt && !existing.excerpt) existing.excerpt = excerpt;
+    // Reading the topic itself after its saved summary makes it a page source.
+    if (evidenceType === 'topic' && existing.evidenceType === 'summary') {
+      existing.evidenceType = 'topic';
+      existing.url = link;
+    }
     return existing;
   }
   const source = {
@@ -141,13 +153,7 @@ function registerSource(ctx, { topicId, title, slug, url = '', excerpt, evidence
     siteUrl: ctx.siteUrl,
     topicKey: buildTopicKey(ctx.siteUrl, topicId),
     title: text(title, 300) || `Topic ${topicId}`,
-    // A site that has its own permalinks (WordPress) supplies them; they are
-    // checked against the run's site like every other link.
-    url: isAllowedForumUrl(url, ctx.siteUrl)
-      ? url
-      : ctx.siteType === SITE_TYPE.WORDPRESS
-        ? `${ctx.siteUrl}/?p=${topicId}`
-        : buildTopicUrl({ siteUrl: ctx.siteUrl, topicId, slug }),
+    url: link,
     postNumber: null,
     excerpt: text(excerpt, SOURCE_EXCERPT_CHARS),
     evidenceType,

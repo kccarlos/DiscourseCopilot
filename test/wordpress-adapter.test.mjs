@@ -332,3 +332,12 @@ test('a site that closes the comments endpoint is summarized from the article al
   assert.match(result.content, /Article: /);
   assert.doesNotMatch(result.content, /Comment \d+ ·/);
 });
+
+test('a refusal on a later comment page fails the read instead of truncating it silently', async () => {
+  const site = fakeSite();
+  site.state.respond = url =>
+    /[?&]page=2\b/.test(url) && url.includes('/comments')
+      ? new Response('{}', { status: 403, headers: { 'Content-Type': 'application/json' } })
+      : null;
+  await assert.rejects(read(site), error => error.needsUserAction === true);
+});
