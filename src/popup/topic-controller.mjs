@@ -147,6 +147,32 @@ export class TopicController {
     }
   }
 
+  // Picks up the post the background saved once it finished reading, so
+  // "Copy full post" works while the summary is still being written. Only the
+  // post text is taken: the summary card is mid-stream.
+  async refreshSource() {
+    const { state } = this;
+    const topicKey = state.pageContext?.topicKey;
+    if (!state.persistenceAvailable || !topicKey || state.session?.source) {
+      return;
+    }
+    const pageKey = state.pageContext.pageKey;
+    try {
+      const stored = await this.sessions.load(topicKey);
+      if (!stored?.source || pageKey !== state.pageContext?.pageKey || state.session?.source) {
+        return;
+      }
+      if (state.session) {
+        state.session.source = stored.source;
+      } else {
+        state.session = stored;
+      }
+      this.summary.setPostContent(stored.source, { updateSession: false });
+    } catch (error) {
+      DiscourseCopilotLogger.error('Popup: Unable to load the post text:', error);
+    }
+  }
+
   render() {
     const { summary, chat } = this;
     summary.hideFetchProgress();
