@@ -4,6 +4,9 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+- LM Studio settings take an optional API key, for LM Studio or another OpenAI-compatible server that requires one. It is sent as `Authorization: Bearer <key>` with the connection test, the model list and every request; left empty, nothing changes. ([#14](https://github.com/kccarlos/DiscourseCopilot/issues/14))
+
 ## [2.5.0] - 2026-10-21
 
 ### Added

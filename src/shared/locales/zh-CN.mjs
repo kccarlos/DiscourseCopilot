@@ -41,6 +41,8 @@ export default {
   'providerSetup.theProvider': '该服务商',
   'providerSetup.cantReachLocal': '无法通过此地址连接 {name}。请确认它正在运行，并检查地址是否正确。',
   'providerSetup.cantReach': '无法连接 {name}。请检查网络连接后重试。',
+  'providerSetup.localKeyRejected':
+    '{name} 需要 API 密钥，或拒绝了已填写的密钥。请在“设置 → AI 服务商”中填写服务器要求的密钥；如果服务器未启用身份验证，请留空。',
   'providerSetup.refused': '{name} 拒绝了该请求。',
   'providerSetup.keyRejected': '{name} 不接受此 API 密钥。请检查后重试。',
   'providerSetup.modelUnknown': '{name} 无法识别此模型。请检查模型名称。',

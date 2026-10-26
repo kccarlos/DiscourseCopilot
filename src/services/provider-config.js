@@ -40,6 +40,8 @@ const CLIENT_FACTORIES = {
     createOpenAICompatible({
       name: 'lmstudio',
       baseURL: `${settings.url || 'http://localhost:1234'}/v1`,
+      // Optional: servers that require one get `Authorization: Bearer <key>`.
+      ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
       ...http
     })
 };

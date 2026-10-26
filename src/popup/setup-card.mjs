@@ -386,6 +386,9 @@ export class SetupCard {
   }
 
   showFieldError(field, message) {
+    // A local server's optional key isn't on this card (Settings only); its
+    // errors go under the server URL.
+    if (field === 'apiKey' && LOCAL_PROVIDER_IDS.has(this.provider)) field = 'url';
     const input = $(FIELD_INPUTS[field]);
     const error = $(FIELD_ERRORS[field]);
     if (!input || !error) return false;
@@ -473,7 +476,7 @@ export class SetupCard {
         this.setBusy(false);
         this.setProgress('');
         if (failure.field && this.showFieldError(failure.field, failure.message)) {
-          $(FIELD_INPUTS[failure.field]).focus();
+          $(FIELD_INPUTS[failure.field === 'apiKey' && LOCAL_PROVIDER_IDS.has(provider) ? 'url' : failure.field]).focus();
         } else {
           this.showFormError(t('setup.failureHint', { message: failure.message }));
           $('setupTestSaveBtn').focus();

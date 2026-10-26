@@ -63,7 +63,7 @@ Once you paste a key, the model field lists the models your provider offers toda
 <details>
 <summary>Using Ollama on your computer</summary>
 
-Start Ollama, then choose **Local (Ollama)** in setup. No Ollama settings are needed: the extension takes care of the browser header that Ollama would otherwise refuse (see the [FAQ](faq.md#ollama-says-refused-the-connection-403)). The address `http://localhost:11434` is filled in for you. LM Studio uses `http://localhost:1234` by default. If the server runs on another computer, enter its address; Chrome asks once for permission to connect to it when you click **Test & save**.
+Start Ollama, then choose **Local (Ollama)** in setup. No Ollama settings are needed: the extension takes care of the browser header that Ollama would otherwise refuse (see the [FAQ](faq.md#ollama-says-refused-the-connection-403)). The address `http://localhost:11434` is filled in for you. LM Studio uses `http://localhost:1234` by default. If the server runs on another computer, enter its address; Chrome asks once for permission to connect to it when you click **Test & save**. If your LM Studio (or other OpenAI-compatible) server requires an API key, enter it under **Settings → AI provider → API Key (optional)**.
 
 </details>
 

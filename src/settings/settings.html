@@ -1597,6 +1597,11 @@
             <div class="help-text"><span data-i18n="settings.provider.lmstudioRunning">Make sure LM Studio is running with the local server enabled.</span> <a href="https://lmstudio.ai" target="_blank" rel="noopener noreferrer" data-provider-link="lmstudio" data-i18n="settings.provider.downloadLmstudio">Download LM Studio</a></div>
           </div>
           <div class="form-group">
+            <label for="lmstudioApiKey">LM Studio <span data-i18n="settings.provider.optionalApiKeySuffix">API Key (optional):</span></label>
+            <input type="password" id="lmstudioApiKey" autocomplete="off" spellcheck="false">
+            <div class="help-text" data-i18n="settings.provider.lmstudioApiKey">Only needed if your server requires one. Sent as an Authorization: Bearer header.</div>
+          </div>
+          <div class="form-group">
             <label for="lmstudioModel" class="step-label" data-step="3" data-i18n="settings.model.label">Model:</label>
             <input type="text" id="lmstudioModel" list="lmstudioModelList" aria-describedby="lmstudioModelStatus lmstudioModelWarning" placeholder="Enter or choose a model" data-i18n-attr="placeholder:settings.model.placeholder" autocomplete="off" spellcheck="false">
             <datalist id="lmstudioModelList"></datalist>

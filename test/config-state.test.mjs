@@ -100,7 +100,7 @@ test('reads defaults for a fresh install', () => {
   assert.equal(config.providerChoice, '');
   assert.deepEqual(config.providers.openrouter, { apiKey: '', model: 'openai/gpt-6-luna' });
   assert.deepEqual(config.providers.ollama, { url: 'http://localhost:11434', model: 'llama3.2' });
-  assert.deepEqual(config.providers.lmstudio, { url: 'http://localhost:1234', model: 'local-model' });
+  assert.deepEqual(config.providers.lmstudio, { url: 'http://localhost:1234', model: 'local-model', apiKey: '' });
   assert.deepEqual(config.favorites, []);
   assert.equal(config.systemPrompt, '');
   assert.equal(config.responseLanguage, 'auto');
@@ -236,6 +236,13 @@ test('buildConfigurationWrite writes provider, fields and prompt in one object',
     ollamaModel: 'm'
   });
   assert.throws(() => buildConfigurationWrite('missing', {}), /Unsupported provider: missing/);
+});
+
+test('LM Studio keeps an optional API key next to its server URL', () => {
+  const write = buildConfigurationWrite('lmstudio', { url: 'http://box:8080', apiKey: 'lan-key', model: 'qwen' });
+  assert.equal(write.lmstudioApiKey, 'lan-key');
+  assert.deepEqual(readConfig(write).providers.lmstudio, { url: 'http://box:8080', apiKey: 'lan-key', model: 'qwen' });
+  assert.equal(buildConfigurationWrite('lmstudio', { url: 'http://box:8080', model: 'qwen' }).lmstudioApiKey, '');
 });
 
 test('buildActiveModelWrite trims the model and rejects bad input', () => {

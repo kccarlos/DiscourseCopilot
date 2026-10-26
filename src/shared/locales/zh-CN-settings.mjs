@@ -26,6 +26,8 @@ export default {
   'settings.provider.lmstudioRunning': '请确认 LM Studio 已运行并启用了本地服务器。',
   'settings.provider.downloadLmstudio': '下载 LM Studio',
   'settings.provider.lmstudioLoad': '在 LM Studio 中加载模型并启动本地服务器（“Developer”标签页 → “Start Server”）',
+  'settings.provider.optionalApiKeySuffix': 'API 密钥（可选）：',
+  'settings.provider.lmstudioApiKey': '仅当服务器要求时填写，将以 Authorization: Bearer 请求头发送。',
   'settings.model.label': '模型：',
   'settings.model.placeholder': '输入或选择模型',
   'settings.model.refresh': '刷新模型列表',

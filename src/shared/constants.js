@@ -60,6 +60,7 @@ export const DiscourseCopilotConstants = {
     DEEPSEEK_MODEL: 'deepseekModel',
     LMSTUDIO_URL: 'lmstudioUrl',
     LMSTUDIO_MODEL: 'lmstudioModel',
+    LMSTUDIO_API_KEY: 'lmstudioApiKey',
     SYSTEM_PROMPT: 'systemPrompt',
     RESPONSE_LANGUAGE: 'responseLanguage',
     FORUM_CONTEXT_LIMIT: 'forumContextLimit',

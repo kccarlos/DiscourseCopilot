@@ -50,7 +50,7 @@ export const PROVIDER_STORAGE_KEYS = Object.freeze({
   ollama: { url: STORAGE_KEYS.OLLAMA_URL, model: STORAGE_KEYS.OLLAMA_MODEL },
   xai: { apiKey: STORAGE_KEYS.XAI_API_KEY, model: STORAGE_KEYS.XAI_MODEL },
   deepseek: { apiKey: STORAGE_KEYS.DEEPSEEK_API_KEY, model: STORAGE_KEYS.DEEPSEEK_MODEL },
-  lmstudio: { url: STORAGE_KEYS.LMSTUDIO_URL, model: STORAGE_KEYS.LMSTUDIO_MODEL }
+  lmstudio: { url: STORAGE_KEYS.LMSTUDIO_URL, apiKey: STORAGE_KEYS.LMSTUDIO_API_KEY, model: STORAGE_KEYS.LMSTUDIO_MODEL }
 });
 
 export const PROVIDER_IDS = Object.freeze(Object.keys(PROVIDER_CONFIGS));
