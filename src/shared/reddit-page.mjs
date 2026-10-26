@@ -66,9 +66,15 @@ export function redditPostFromUrl(value) {
     return null;
   }
   const segments = url.pathname.split('/').filter(Boolean);
-  const at = segments.indexOf('comments');
-  const prefixOk = at === 0 || (at === 2 && ['r', 'u', 'user'].includes(segments[0].toLowerCase()));
-  if (!prefixOk) {
+  // /comments/<id>, or /r|u|user/<name>/comments/<id>: the prefix is checked by
+  // position, since a subreddit or user can itself be called "comments".
+  const at =
+    segments[0]?.toLowerCase() === 'comments'
+      ? 0
+      : ['r', 'u', 'user'].includes(segments[0]?.toLowerCase()) && segments[2]?.toLowerCase() === 'comments'
+        ? 2
+        : -1;
+  if (at < 0) {
     return null;
   }
   const redditId = String(segments[at + 1] || '').toLowerCase();

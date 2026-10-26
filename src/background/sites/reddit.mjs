@@ -159,6 +159,15 @@ export function createCommentTree(rootFullname) {
       }
     };
     walk(rootFullname, null);
+    // A comment whose parent never came back (filtered, or past the request
+    // budget) is kept at the top level rather than dropped.
+    for (const id of comments.keys()) {
+      if (!seen.has(id)) {
+        seen.add(id);
+        out.push({ comment: comments.get(id), parentCommentId: null });
+        walk(`t1_${id}`, id);
+      }
+    }
     return out;
   }
 
@@ -246,34 +255,38 @@ export function createRedditFetcher({ fetchImpl, config = REDDIT_FETCH_CONFIG } 
     const tree = createCommentTree(`t3_${redditId}`);
     tree.add(thread[1].data.children, `t3_${redditId}`);
 
-    // Hidden branches, 100 ids at a time. Replies of what comes back can hold
-    // more stubs, so go on until none is left or the request budget is spent.
+    // Hidden branches, 100 ids at a time, and "continue this thread" pages.
+    // What either brings back can hold more stubs, so go on until none is left
+    // or the request budget is spent.
     let moreRequests = 0;
-    while (tree.pendingIds.size && moreRequests < MAX_MORE_REQUESTS) {
-      const ids = [...tree.pendingIds].slice(0, MORE_CHILDREN_BATCH);
-      const result = await api.fetchMoreChildren(site, redditId, ids, options);
-      step();
-      moreRequests++;
-      const before = tree.comments.size;
-      tree.add(result?.json?.data?.things, `t3_${redditId}`);
-      for (const id of ids) {
-        // Ids Reddit would not return (removed, spam-filtered) must not loop.
-        tree.pendingIds.delete(id);
-      }
-      if (tree.comments.size === before && !tree.pendingIds.size) break;
-    }
-
-    // "Continue this thread" stubs: the comment's own page has its replies.
     let continueRequests = 0;
-    for (const commentId of [...tree.continueFor]) {
-      if (continueRequests >= MAX_CONTINUE_REQUESTS) break;
-      const sub = await api.fetchCommentThread(site, redditId, commentId, options);
-      step();
-      continueRequests++;
-      const top = sub?.[1]?.data?.children?.[0]?.data;
-      if (top?.replies?.data?.children) {
-        tree.add(top.replies.data.children, `t1_${commentId}`);
+    const continued = new Set();
+    for (;;) {
+      if (tree.pendingIds.size && moreRequests < MAX_MORE_REQUESTS) {
+        const ids = [...tree.pendingIds].slice(0, MORE_CHILDREN_BATCH);
+        const result = await api.fetchMoreChildren(site, redditId, ids, options);
+        step();
+        moreRequests++;
+        tree.add(result?.json?.data?.things, `t3_${redditId}`);
+        for (const id of ids) {
+          // Ids Reddit would not return (removed, spam-filtered) must not loop.
+          tree.pendingIds.delete(id);
+        }
+        continue;
       }
+      const commentId = [...tree.continueFor].find(id => !continued.has(id));
+      if (commentId && continueRequests < MAX_CONTINUE_REQUESTS) {
+        continued.add(commentId);
+        const sub = await api.fetchCommentThread(site, redditId, commentId, options);
+        step();
+        continueRequests++;
+        const top = sub?.[1]?.data?.children?.[0]?.data;
+        if (top?.replies?.data?.children) {
+          tree.add(top.replies.data.children, `t1_${commentId}`);
+        }
+        continue;
+      }
+      break;
     }
 
     const blocks = [

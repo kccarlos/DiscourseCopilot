@@ -178,6 +178,27 @@ test('a "continue this thread" stub is read from that comment\'s own page', asyn
   assert.equal(result.totalPosts, 3);
 });
 
+test('stubs found inside a continued thread are followed, and orphaned comments are kept', async () => {
+  const stub = parent => ({ kind: 'more', data: { count: 0, parent_id: parent, children: [] } });
+  const thread = [withReplies(t1('a1', `t3_${REDDIT_ID}`), [stub('t1_a1')])];
+  const site = fakeReddit({
+    thread,
+    continues: {
+      a1: [withReplies(t1('a1', `t3_${REDDIT_ID}`), [withReplies(t1('d1', 't1_a1'), [stub('t1_d1')])])],
+      d1: [withReplies(t1('d1', 't1_a1'), [t1('d2', 't1_d1')])]
+    }
+  });
+  const result = await read(site);
+  assert.match(result.content, /Comment d2 · .* reply to comment d1/);
+
+  const tree = createCommentTree(`t3_${REDDIT_ID}`);
+  tree.add([t1('lost', 't1_missing')], `t3_${REDDIT_ID}`);
+  assert.deepEqual(
+    tree.ordered().map(entry => entry.comment.id),
+    ['lost']
+  );
+});
+
 test('a long thread is paged 100 blocks to a page and honors the page limit', async () => {
   const thread = Array.from({ length: 250 }, (_, index) => t1(`c${index}`, `t3_${REDDIT_ID}`));
   const full = await read(fakeReddit({ thread }));

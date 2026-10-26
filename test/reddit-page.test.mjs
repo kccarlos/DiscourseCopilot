@@ -49,6 +49,12 @@ test('a post is recognized on every Reddit host and address shape', () => {
   assert.equal(redditPostFromUrl(POST_URL).redditId, '1wv40pf');
 });
 
+test('a subreddit or user called "comments" still shows posts', () => {
+  assert.equal(redditPostFromUrl('https://www.reddit.com/r/comments/comments/abc123/x/')?.redditId, 'abc123');
+  assert.equal(redditPostFromUrl('https://www.reddit.com/user/comments/comments/abc123/x/')?.redditId, 'abc123');
+  assert.equal(redditPostFromUrl('https://www.reddit.com/r/comments/'), null);
+});
+
 test('listings, profiles, search and other sites are not posts', () => {
   for (const url of [
     'https://www.reddit.com/r/churning/',
