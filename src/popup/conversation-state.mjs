@@ -147,11 +147,31 @@ export function topicKeyFromUrl(url, siteUrl) {
   return topicId ? buildTopicKey(siteUrl, topicId) : '';
 }
 
+// The same page: address without query or hash, except that a query on the
+// target (a plain-permalink WordPress "?p=123") is part of what identifies it.
+function sameLocation(left, right) {
+  const a = pageLocation(left).replace(/\/+$/, '');
+  if (!a || a !== pageLocation(right).replace(/\/+$/, '')) {
+    return false;
+  }
+  try {
+    const search = new URL(right).search;
+    return !search || new URL(left).search === search;
+  } catch {
+    return false;
+  }
+}
+
 // Picks the tab to reuse for a forum target: one already showing the topic,
-// or (without a topic) any tab on the forum. The active tab wins ties.
-export function findTabForForumTarget(tabs, { siteUrl = '', topicKey = '' } = {}) {
+// or (without a topic) any tab on the forum. The active tab wins ties. A
+// topic's tab is found by its key (Discourse addresses carry the topic id)
+// or, for sites whose addresses do not (a WordPress post's slug), by the
+// target's own address.
+export function findTabForForumTarget(tabs, { siteUrl = '', topicKey = '', url = '' } = {}) {
   const matches = (Array.isArray(tabs) ? tabs : []).filter(
-    tab => Number.isInteger(tab?.id) && (topicKey ? topicKeyFromUrl(tab.url, siteUrl) === topicKey : isSameForumUrl(tab.url, siteUrl))
+    tab =>
+      Number.isInteger(tab?.id)
+      && (topicKey ? topicKeyFromUrl(tab.url, siteUrl) === topicKey || sameLocation(tab.url, url) : isSameForumUrl(tab.url, siteUrl))
   );
   return matches.find(tab => tab.active) || matches[0] || null;
 }

@@ -519,6 +519,14 @@ export function describeAgentStep(step = {}) {
       if (failed) return { label: t('agent.step.search.failed', { query, page }), meta: '' };
       return outcome(t('agent.step.search.done', { query, page }), countText(count ?? 0, 'result'));
     }
+    case 'search_comments': {
+      const query = quoted(args.query || '');
+      const page = Number(args.page) > 1 ? t('agent.step.pageSuffix', { page: Number(args.page) }) : '';
+      if (running) return { label: t('agent.step.comments.running', { query, page }), meta: '' };
+      if (stopped) return { label: t('agent.step.comments.stopped', { query, page }), meta: t('agent.step.stopped') };
+      if (failed) return { label: t('agent.step.comments.failed', { query, page }), meta: '' };
+      return outcome(t('agent.step.comments.done', { query, page }), countText(count ?? 0, 'result'));
+    }
     case 'list_latest':
       if (running) return { label: t('agent.step.latest.running'), meta: '' };
       if (stopped) return { label: t('agent.step.latest.stopped'), meta: t('agent.step.stopped') };

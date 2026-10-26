@@ -201,6 +201,10 @@ export class ChatView {
   appendBubble(role, content, extraClasses = [], { onEdit = null } = {}) {
     const bubble = document.createElement('div');
     bubble.classList.add('chat-message', role, ...extraClasses);
+    // An answer is Markdown laid out like the summary's (headings, lists, code, quotes).
+    if (role === 'assistant') {
+      bubble.classList.add('summary-display');
+    }
     if (role === 'assistant') {
       renderMarkdown(bubble, content);
     } else {

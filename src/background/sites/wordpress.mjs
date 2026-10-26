@@ -146,29 +146,46 @@ export function createWordPressApi({ fetchImpl, config = WORDPRESS_FETCH_CONFIG 
     return { data, total: count('X-WP-Total'), totalPages: count('X-WP-TotalPages'), requestMs: Date.now() - requestStartedAt };
   }
 
-  // A post, or (for a WordPress "page") the page with that id.
+  // A post, or (for a WordPress "page") the page with that id. An id that is
+  // neither (a product, another custom post type) is not found, which is final:
+  // logging in does not change it.
   async function fetchArticle(siteUrl, postId, options) {
     const fields = { _fields: ARTICLE_FIELDS };
-    const post = await requestJson(siteUrl, restUrl(siteUrl, `/wp/v2/posts/${postId}`, fields), { ...options, allowNotFound: true });
-    if (post) {
-      return post.data;
+    for (const kind of ['posts', 'pages']) {
+      const found = await requestJson(siteUrl, restUrl(siteUrl, `/wp/v2/${kind}/${postId}`, fields), { ...options, allowNotFound: true });
+      if (found) {
+        return found.data;
+      }
     }
-    return (await requestJson(siteUrl, restUrl(siteUrl, `/wp/v2/pages/${postId}`, fields), options)).data;
+    throw Object.assign(new Error(t('forumResponse.postNotFound')), { status: 404, retryable: false });
   }
 
+  // A site may close its comments endpoint (a security plugin, a login wall
+  // on comments only) while the article stays readable; that reads as a post
+  // without comments, as does a page number past the last one.
   async function fetchCommentPage(siteUrl, postId, page, options) {
-    const result = await requestJson(
-      siteUrl,
-      restUrl(siteUrl, '/wp/v2/comments', {
-        post: postId,
-        per_page: COMMENTS_PER_PAGE,
-        page,
-        order: 'asc',
-        orderby: 'date_gmt',
-        _fields: COMMENT_FIELDS
-      }),
-      options
-    );
+    let result;
+    try {
+      result = await requestJson(
+        siteUrl,
+        restUrl(siteUrl, '/wp/v2/comments', {
+          post: postId,
+          per_page: COMMENTS_PER_PAGE,
+          page,
+          order: 'asc',
+          orderby: 'date_gmt',
+          _fields: COMMENT_FIELDS
+        }),
+        options
+      );
+    } catch (error) {
+      // Only for the first page: a refusal further in is not "no comments".
+      const closed = page === 1 && error?.code === 'FORUM_ACCESS_DENIED';
+      if (closed || (page > 1 && error?.status === 400)) {
+        return { data: [], total: 0, totalPages: 1, requestMs: 0, comments: [] };
+      }
+      throw error;
+    }
     return { ...result, comments: Array.isArray(result.data) ? result.data : [] };
   }
 

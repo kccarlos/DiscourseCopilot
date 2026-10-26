@@ -20,7 +20,7 @@ export async function openForumTarget(
   } catch {
     // An unusual site URL is not a valid match pattern; open a new tab.
   }
-  const existing = findTabForForumTarget(candidates, { siteUrl, topicKey });
+  const existing = findTabForForumTarget(candidates, { siteUrl, topicKey, url });
   if (existing) {
     await tabs.update(existing.id, navigateExisting && url && existing.url !== url ? { url, active: true } : { active: true });
     if (Number.isInteger(existing.windowId) && windows?.update) {

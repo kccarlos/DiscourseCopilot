@@ -189,3 +189,25 @@ test('finds a tab already showing the topic, else any tab on the forum', () => {
   assert.equal(findTabForForumTarget([{ id: 9, url: 'https://elsewhere.example.com/' }], { siteUrl: site }), null);
   assert.equal(findTabForForumTarget(null, { siteUrl: site }), null);
 });
+
+test('a WordPress tab is found by its address, and an unrelated tab on the site is left alone', () => {
+  const site = 'https://www.doctorofcredit.com';
+  const key = 'www.doctorofcredit.com/t/258086';
+  const tabs = [
+    { id: 1, url: `${site}/other-post/`, active: true },
+    { id: 2, url: `${site}/chase-10x/?utm=1#comments` }
+  ];
+  assert.equal(findTabForForumTarget(tabs, { siteUrl: site, topicKey: key, url: `${site}/chase-10x/` }).id, 2);
+  assert.equal(findTabForForumTarget(tabs.slice(0, 1), { siteUrl: site, topicKey: key, url: `${site}/chase-10x/` }), null);
+});
+
+test('a plain-permalink WordPress target is matched by its query, not just the home path', () => {
+  const site = 'https://blog.example.com';
+  const key = 'blog.example.com/t/7';
+  const tabs = [{ id: 1, url: `${site}/`, active: true }];
+  assert.equal(findTabForForumTarget(tabs, { siteUrl: site, topicKey: key, url: `${site}/?p=7` }), null);
+  assert.equal(
+    findTabForForumTarget([...tabs, { id: 2, url: `${site}/?p=7` }], { siteUrl: site, topicKey: key, url: `${site}/?p=7` }).id,
+    2
+  );
+});

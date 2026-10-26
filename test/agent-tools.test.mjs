@@ -341,6 +341,12 @@ test('unknown tools are reported with the available ones; final_answer is not a 
 test('first-post excerpts drop the author line', () => {
   assert.equal(firstPostExcerpt('ann | 2026-01-01 10:00:00 UTC | #1\n\nHello   world\n\nmore'), 'Hello world more');
   assert.equal(firstPostExcerpt('No header here'), 'No header here');
+  assert.equal(
+    firstPostExcerpt(
+      'Article: Chase 10x\nURL: https://x.example/p/\nUpdated: 2026-05-15 08:00 UTC\n\nThe bonus is now 80k.\n\n\nComment 5 · Bob\nhi'
+    ),
+    'The bonus is now 80k.'
+  );
   assert.equal(firstPostExcerpt('a | d | #1\n\nFirst\n\n-------------------------\n\nb | d | #2\n\nSecond'), 'First');
   assert.equal(firstPostExcerpt(''), '');
 });

@@ -12,6 +12,7 @@ import {
 } from '../shared/agent-activity.mjs';
 import { isTerminalTaskStatus } from '../shared/task-record.mjs';
 import { isSameForumUrl } from '../shared/forum-site.mjs';
+import { topicSessionDatabase } from '../shared/topic-session-db.mjs';
 import { forumAccessHost, isForumAccessError } from '../shared/forum-access.mjs';
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { topicKeyFromUrl } from './conversation-state.mjs';
@@ -52,6 +53,7 @@ export function describeAgentProgress(activity = {}) {
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const STEP_ICON_PATHS = {
   search_forum: ['M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'm20 20-4-4'],
+  search_comments: ['M4 5h16v12H9l-5 4V5Z', 'M9 10h6'],
   list_latest: ['M8 6h12M8 12h12M8 18h12', 'M4 6h.01M4 12h.01M4 18h.01'],
   read_topic: ['M6 3h9l4 4v14H6z', 'M14 3v5h5', 'M9 13h7M9 17h5'],
   saved_summaries: ['M7 4h10v17l-5-3.5L7 21z'],
@@ -368,7 +370,7 @@ export class AgentAnswerView {
       details.dataset.init = 'true';
       details.open = sources.length <= MAX_OPEN_SOURCES;
     }
-    const key = `${activity.activityId}|${activity.siteUrl}|${sources.map(source => source.sourceId).join(',')}`;
+    const key = `${activity.activityId}|${activity.siteUrl}|${sources.map(source => `${source.sourceId}:${source.evidenceType}`).join(',')}`;
     if (list.dataset.key === key) {
       return;
     }
@@ -599,6 +601,12 @@ export class AgentAnswerView {
     title.textContent = source.title;
     title.title = source.title;
     card.append(id, title);
+    // A saved summary is the user's own text, not a page of the forum: it
+    // opens in place instead of sending them to the site.
+    if (source.evidenceType === 'summary' && source.topicKey) {
+      card.append(this.createSummaryToggle(card, source));
+      return card;
+    }
     // Only link sources that belong to the forum this activity ran on.
     if (isSameForumUrl(source.url, activity.siteUrl || source.siteUrl)) {
       const link = document.createElement('a');
@@ -618,7 +626,7 @@ export class AgentAnswerView {
         openForumTarget({
           siteUrl,
           url: source.url,
-          topicKey: topicKeyFromUrl(source.url, siteUrl),
+          topicKey: source.topicKey || topicKeyFromUrl(source.url, siteUrl),
           navigateExisting: true
         }).catch(error => {
           DiscourseCopilotLogger.error('Popup: Unable to open source:', error);
@@ -628,6 +636,44 @@ export class AgentAnswerView {
       card.appendChild(link);
     }
     return card;
+  }
+
+  // The button on a saved-summary source: shows or hides the summary under
+  // the card, read from the saved topic the first time it is opened.
+  createSummaryToggle(card, source) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'agent-source-open';
+    button.setAttribute('aria-expanded', 'false');
+    const label = t('answer.viewSummary');
+    button.setAttribute('aria-label', `${label}: ${source.title}`);
+    button.title = label;
+    button.appendChild(createIcon('summary'));
+    let body = null;
+    button.addEventListener('click', async () => {
+      if (body) {
+        const hidden = body.classList.toggle('hidden');
+        button.setAttribute('aria-expanded', String(!hidden));
+        return;
+      }
+      body = document.createElement('div');
+      body.className = 'agent-source-summary summary-display';
+      body.textContent = t('answer.summaryLoading');
+      card.appendChild(body);
+      button.setAttribute('aria-expanded', 'true');
+      try {
+        const session = await topicSessionDatabase.get(source.topicKey);
+        if (session?.summary) {
+          renderMarkdown(body, session.summary);
+        } else {
+          body.textContent = t('answer.summaryGone');
+        }
+      } catch (error) {
+        DiscourseCopilotLogger.error('Popup: Unable to load a saved summary:', error);
+        body.textContent = t('answer.summaryGone');
+      }
+    });
+    return button;
   }
 
   // Follows a citation to its source: within the turn that cites it, else

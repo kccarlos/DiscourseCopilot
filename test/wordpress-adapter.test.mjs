@@ -266,10 +266,10 @@ test('a WordPress page (not a post) is read through the pages endpoint', async (
   assert.equal(result.totalPosts, 2);
 });
 
-test('a missing post, a login wall and a verification page are user-actionable errors', async () => {
+test('a login wall and a verification page are user-actionable errors, a missing post is final', async () => {
   const site = fakeSite();
   const missing = createWordPressFetcher({ fetchImpl: site.fetchImpl });
-  await assert.rejects(missing(SITE, '999'), error => error.needsUserAction === true && error.code === 'FORUM_ACCESS_DENIED');
+  await assert.rejects(missing(SITE, '999'), error => error.status === 404 && error.retryable === false && !error.needsUserAction);
 
   site.state.respond = () =>
     new Response(JSON.stringify({ code: 'rest_forbidden' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
@@ -319,4 +319,25 @@ test('a site that strips the X-WP-Total headers is read from what the first page
   const result = await read(site);
   assert.equal(result.totalPosts, 4);
   assert.equal(result.rawPages.length, 1);
+});
+
+test('a site that closes the comments endpoint is summarized from the article alone', async () => {
+  const site = fakeSite();
+  site.state.respond = url =>
+    url.includes('/comments')
+      ? new Response(JSON.stringify({ code: 'rest_no_route' }), { status: 404, headers: { 'Content-Type': 'application/json' } })
+      : null;
+  const result = await read(site);
+  assert.equal(result.totalPosts, 1);
+  assert.match(result.content, /Article: /);
+  assert.doesNotMatch(result.content, /Comment \d+ ·/);
+});
+
+test('a refusal on a later comment page fails the read instead of truncating it silently', async () => {
+  const site = fakeSite();
+  site.state.respond = url =>
+    /[?&]page=2\b/.test(url) && url.includes('/comments')
+      ? new Response('{}', { status: 403, headers: { 'Content-Type': 'application/json' } })
+      : null;
+  await assert.rejects(read(site), error => error.needsUserAction === true);
 });
