@@ -225,9 +225,57 @@ test('a post with few comments is read whole; a missing post is an error the mod
   assert.match(result.observation, /Showing: all posts/);
   assert.match(result.observation, /Comment text 2/);
   await assert.rejects(run('read_topic', { topic_id: '999' }, ctx), error => {
-    assert.ok(isRecoverableToolError(error) || error.needsUserAction);
+    assert.equal(error.code, 'NOT_FOUND');
+    assert.equal(isRecoverableToolError(error), true);
     return true;
   });
+});
+
+test('closed comments read as a post without comments; comment search says it is unavailable', async () => {
+  const { site, ctx } = setup({ commentCount: 5 });
+  const original = site.fetchImpl;
+  const blocked = new WordPressToolClient({
+    siteUrl: SITE,
+    governor: new ForumRequestGovernor({ minIntervalMs: 0 }),
+    fetchImpl: async url =>
+      new URL(url).pathname === '/wp-json/wp/v2/comments'
+        ? new Response(JSON.stringify({ code: 'rest_forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json' } })
+        : original(url)
+  });
+  const read = await run('read_topic', { topic_id: '101' }, { ...ctx, toolClient: blocked });
+  assert.match(read.observation, /Article: Chase 10x/);
+  assert.doesNotMatch(read.observation, /Comment \d+ ·/);
+  await assert.rejects(run('search_comments', { query: 'x' }, { ...ctx, toolClient: blocked }), error => {
+    assert.equal(error.code, 'COMMENTS_UNAVAILABLE');
+    assert.equal(isRecoverableToolError(error), true);
+    return true;
+  });
+});
+
+test('comment hits survive a failed title lookup; a missing total header falls back to the first page', async () => {
+  const { site, ctx } = setup({ commentCount: 3 });
+  const original = site.fetchImpl;
+  const client = new WordPressToolClient({
+    siteUrl: SITE,
+    governor: new ForumRequestGovernor({ minIntervalMs: 0 }),
+    fetchImpl: async url => {
+      const parsed = new URL(url);
+      if (parsed.pathname === '/wp-json/wp/v2/posts' && parsed.searchParams.get('include')) return new Response('{}', { status: 500 });
+      const response = await original(url);
+      if (parsed.pathname === '/wp-json/wp/v2/comments' && !parsed.searchParams.get('search')) {
+        // Same body, without the X-WP-* headers.
+        return Object.defineProperty(
+          new Response(await response.text(), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+          'url',
+          { value: String(url) }
+        );
+      }
+      return response;
+    }
+  });
+  const hits = await run('search_comments', { query: 'approved' }, { ...ctx, toolClient: client });
+  assert.match(hits.observation, /on post 101 "Post 101"/);
+  assert.equal((await client.getTopic({ topicId: '101' })).postsCount, 4);
 });
 
 test("a source link outside the run's site is replaced by one built from the site", async () => {
@@ -235,7 +283,7 @@ test("a source link outside the run's site is replaced by one built from the sit
   const original = ctx.toolClient.getTopic.bind(ctx.toolClient);
   ctx.toolClient.getTopic = async options => ({ ...(await original(options)), url: 'https://evil.example/phish' });
   await run('read_topic', { topic_id: '101' }, ctx);
-  assert.equal(new URL(ctx.sources[0].url).origin, SITE);
+  assert.equal(ctx.sources[0].url, `${SITE}/?p=101`);
 });
 
 test("the client only talks to the run's site", async () => {

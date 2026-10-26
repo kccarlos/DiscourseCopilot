@@ -139,7 +139,8 @@ export function createWordPressApi({ fetchImpl, config = WORDPRESS_FETCH_CONFIG 
       }
     }
     const count = name => {
-      const value = Number(headers?.get?.(name));
+      const raw = headers?.get?.(name);
+      const value = raw === null || raw === undefined || raw === '' ? Number.NaN : Number(raw);
       return Number.isInteger(value) && value >= 0 ? value : null;
     };
     return { data, total: count('X-WP-Total'), totalPages: count('X-WP-TotalPages'), requestMs: Date.now() - requestStartedAt };

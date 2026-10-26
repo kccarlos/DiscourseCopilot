@@ -42,7 +42,7 @@ function dateFilter(value, name) {
   if (!text) {
     return '';
   }
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
   if (!match || Number.isNaN(Date.parse(`${match[0]}T00:00:00Z`))) {
     throw new ForumToolError('INVALID_ARGUMENT', `${name} must be a date like 2026-03-01`, { retryable: false });
   }
@@ -100,6 +100,11 @@ export class WordPressToolClient {
         throw error;
       }
       const status = Number(error?.status) || 0;
+      // A post that does not exist is something the model can fix; a login
+      // wall or a challenge page is not.
+      if (status === 404) {
+        throw new ForumToolError('NOT_FOUND', 'Nothing was found for that id or request on this site.', { status, retryable: false });
+      }
       if (error?.needsUserAction) {
         throw new ForumToolError('USER_ACTION_REQUIRED', error.message, { status, retryable: false, needsUserAction: true });
       }
@@ -179,20 +184,41 @@ export class WordPressToolClient {
     const beforeDate = dateFilter(before, 'before');
     if (afterDate) params.after = afterDate;
     if (beforeDate) params.before = beforeDate;
-    const { data, total, totalPages } = await this.get('searchComments', '/wp/v2/comments', params);
+    let response;
+    try {
+      response = await this.get('searchComments', '/wp/v2/comments', params);
+    } catch (error) {
+      if (error instanceof ForumToolError && error.needsUserAction && error.status !== 0) {
+        throw new ForumToolError(
+          'COMMENTS_UNAVAILABLE',
+          'This site does not allow searching comments. Use search_forum and read_topic instead.',
+          {
+            status: error.status,
+            retryable: false
+          }
+        );
+      }
+      throw error;
+    }
+    const { data, total, totalPages } = response;
     const found = (Array.isArray(data) ? data : []).filter(comment => Number.isInteger(comment?.id) && Number.isInteger(comment?.post));
 
     // Comments only carry their post's id; one request names the posts.
     const postIds = [...new Set(found.map(comment => comment.post))];
     const titles = new Map();
     if (postIds.length) {
-      const posts = await this.get('searchComments', '/wp/v2/posts', {
-        include: postIds.join(','),
-        per_page: postIds.length,
-        _fields: 'id,title'
-      });
-      for (const post of Array.isArray(posts.data) ? posts.data : []) {
-        titles.set(post.id, oneLine(post.title?.rendered));
+      try {
+        const posts = await this.get('searchComments', '/wp/v2/posts', {
+          include: postIds.join(','),
+          per_page: postIds.length,
+          _fields: 'id,title'
+        });
+        for (const post of Array.isArray(posts.data) ? posts.data : []) {
+          titles.set(post.id, oneLine(post.title?.rendered));
+        }
+      } catch (error) {
+        // The hits are worth having without their titles.
+        if (error?.name === 'AbortError' || error?.needsUserAction) throw error;
       }
     }
     return {
@@ -223,6 +249,21 @@ export class WordPressToolClient {
     return { topics: summarizePosts(data).slice(0, FORUM_TOOL_LIMITS.maxLatestTopics) };
   }
 
+  // Some sites close the comments endpoint (a security plugin, a 403) while
+  // the posts stay readable; that reads as a post without comments.
+  async commentPage(toolName, id, page) {
+    try {
+      return await this.call(toolName, options => this.api.fetchCommentPage(this.siteUrl, id, page, options));
+    } catch (error) {
+      const blocked = error instanceof ForumToolError && (error.needsUserAction || error.code === 'NOT_FOUND');
+      // WordPress answers 400 for a page past the last one.
+      if (blocked || (page > 1 && error?.status === 400)) {
+        return { comments: [], total: 0, totalPages: 1 };
+      }
+      throw error;
+    }
+  }
+
   async article(topicId) {
     const id = positiveId(topicId, 'topicId');
     if (!this.articles.has(id)) {
@@ -236,15 +277,16 @@ export class WordPressToolClient {
   async getTopic({ topicId } = {}) {
     const id = positiveId(topicId, 'topicId');
     const article = await this.article(id);
-    const { total } = await this.get('getTopic', '/wp/v2/comments', { post: id, per_page: 1, _fields: 'id' });
-    const comments = total ?? 0;
+    const first = await this.commentPage('getTopic', id, 1);
+    // Without the total header (a proxy strips it) the first page is all there is evidence of.
+    const comments = first.total ?? first.comments.length;
     return {
       topicId: id,
       title: oneLine(article.title?.rendered) || `Post ${id}`,
       slug: '',
       url: cleanText(article.link, 600),
       postsCount: comments + 1,
-      totalPages: Math.max(1, Math.ceil(comments / COMMENTS_PER_PAGE)),
+      totalPages: Math.max(1, first.totalPages ?? Math.ceil(comments / COMMENTS_PER_PAGE)),
       createdAt: timestamp(article.date_gmt),
       lastPostedAt: timestamp(article.modified_gmt),
       category: '',
@@ -266,15 +308,7 @@ export class WordPressToolClient {
     if (pageNumber === 1) {
       blocks.push(formatArticle(await this.article(id)));
     }
-    let comments = [];
-    try {
-      comments = (await this.call('getRawPage', options => this.api.fetchCommentPage(this.siteUrl, id, pageNumber, options))).comments;
-    } catch (error) {
-      // WordPress answers 400 for a page past the last one.
-      if (!(pageNumber > 1 && error?.status === 400)) {
-        throw error;
-      }
-    }
+    const { comments } = await this.commentPage('getRawPage', id, pageNumber);
     blocks.push(...comments.map(formatComment));
     return { topicId: id, page: pageNumber, content: cleanText(blocks.length ? joinBlocks(blocks) : '', keep) };
   }

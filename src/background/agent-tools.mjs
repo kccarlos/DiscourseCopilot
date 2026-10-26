@@ -141,7 +141,11 @@ function registerSource(ctx, { topicId, title, slug, url = '', excerpt, evidence
     title: text(title, 300) || `Topic ${topicId}`,
     // A site that has its own permalinks (WordPress) supplies them; they are
     // checked against the run's site like every other link.
-    url: isAllowedForumUrl(url, ctx.siteUrl) ? url : buildTopicUrl({ siteUrl: ctx.siteUrl, topicId, slug }),
+    url: isAllowedForumUrl(url, ctx.siteUrl)
+      ? url
+      : ctx.siteType === SITE_TYPE.WORDPRESS
+        ? `${ctx.siteUrl}/?p=${topicId}`
+        : buildTopicUrl({ siteUrl: ctx.siteUrl, topicId, slug }),
     postNumber: null,
     excerpt: text(excerpt, SOURCE_EXCERPT_CHARS),
     evidenceType,
@@ -222,7 +226,7 @@ async function readTopic(args, ctx) {
     const tailChars = budget - head.length;
     const tail = last.content.length > tailChars ? last.content.slice(last.content.length - tailChars).trimStart() : last.content;
     const middle = postsCount ? `posts roughly 2–${postsCount - 1}` : 'the posts in between';
-    body = `${head}\n\n[… the middle of the topic (${middle}) is omitted; pass page=2 to ${totalPages - 1} to read other parts …]\n\n${tail}`;
+    body = `${head}\n\n[… the middle of the topic (${middle}) is omitted; pass page=2${totalPages > 2 ? ` to ${totalPages - 1}` : ''} to read other parts …]\n\n${tail}`;
     showing = `the opening and the newest replies (${postsCount} posts; middle omitted)`;
   }
   if (!body.trim()) {

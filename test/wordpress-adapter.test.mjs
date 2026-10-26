@@ -305,3 +305,18 @@ test('the registry hands WordPress tasks to this reader and tool client', async 
   assert.equal(adapter.createToolClient({ siteUrl: SITE }).siteUrl, SITE);
   assert.equal(COMMENTS_PER_PAGE, 100);
 });
+
+test('a site that strips the X-WP-Total headers is read from what the first page holds', async () => {
+  const site = fakeSite({ commentCount: 3 });
+  site.state.respond = url => {
+    if (!url.includes('/comments')) return null;
+    return Object.defineProperty(
+      new Response(JSON.stringify(site.state.comments), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+      'url',
+      { value: url }
+    );
+  };
+  const result = await read(site);
+  assert.equal(result.totalPosts, 4);
+  assert.equal(result.rawPages.length, 1);
+});
