@@ -119,7 +119,7 @@ export function deriveTopicControls(input) {
 // The hero shows only on a forum the panel can read (and while the page
 // loads); every other page state has its own guidance card.
 export function deriveTopicHelper({ pageContext, configReady, summaryRunning, hasSummary }) {
-  if (!pageContext?.isForumTopic && pageContext?.isDiscourse) {
+  if (!pageContext?.isForumTopic && pageContext?.isSupportedSite) {
     return configReady ? t('helper.forumOpenTopic') : t('helper.forumConnect');
   }
   if (!pageContext?.isForumTopic) {

@@ -33,7 +33,7 @@ function describesTab(pageState, tabUrl) {
   if (!tabUrl || typeof pageState.url !== 'string' || !pageState.url) {
     return true;
   }
-  if (pageState.isDiscourse !== true) {
+  if (pageState.isSupportedSite !== true) {
     return pageLocation(pageState.url) === pageLocation(tabUrl);
   }
   // Discourse rewrites the post number while scrolling, so compare topics.
@@ -49,9 +49,9 @@ function contextFromPageState(pageState, tabUrl) {
     return null;
   }
   const site = parseSiteUrl(pageState.siteUrl);
-  if (pageState.isDiscourse !== true || !site) {
+  if (pageState.isSupportedSite !== true || !site) {
     return {
-      isDiscourse: false,
+      isSupportedSite: false,
       siteUrl: '',
       forumName: '',
       topicId: null,
@@ -61,7 +61,7 @@ function contextFromPageState(pageState, tabUrl) {
   const siteUrl = normalizeSiteUrl(pageState.siteUrl);
   const topicId = pageState.topicId ? String(pageState.topicId) : extractForumTopicId(tabUrl || pageState.url, site.basePath);
   return {
-    isDiscourse: true,
+    isSupportedSite: true,
     siteUrl,
     forumName: forumDisplayName(siteUrl, pageState.forumName),
     topicId: buildTopicKey(siteUrl, topicId) ? topicId : null,
@@ -75,7 +75,7 @@ function contextFromUrl(tabUrl, siteUrlHint = '') {
   const topicId = extractForumTopicId(tabUrl, basePath);
   const siteUrl = topicId ? siteUrlFromPageUrl(tabUrl, basePath) : '';
   return {
-    isDiscourse: false,
+    isSupportedSite: false,
     siteUrl,
     forumName: siteUrl ? forumDisplayName(siteUrl) : '',
     topicId: siteUrl ? topicId : null,
@@ -107,7 +107,7 @@ export function getTopicContext(tab = {}, pageState = null, { siteUrlHint = '', 
     tabId,
     url,
     title: tab.title || (url ? t('page.unknown') : ''),
-    isDiscourse: detected.isDiscourse,
+    isSupportedSite: detected.isSupportedSite,
     detectedBy: detected.detectedBy,
     siteUrl: detected.siteUrl,
     forumName: detected.forumName,

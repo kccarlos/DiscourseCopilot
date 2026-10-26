@@ -117,8 +117,8 @@ test('chat controls follow the summary, question, running tasks and edit saves',
 });
 
 test('the topic helper line explains the next step', () => {
-  const topic = { isForumTopic: true, isDiscourse: true, siteUrl: 'https://meta.example', forumName: 'Meta' };
-  const home = { isForumTopic: false, isDiscourse: true, siteUrl: 'https://meta.example', forumName: 'Meta' };
+  const topic = { isForumTopic: true, isSupportedSite: true, siteUrl: 'https://meta.example', forumName: 'Meta' };
+  const home = { isForumTopic: false, isSupportedSite: true, siteUrl: 'https://meta.example', forumName: 'Meta' };
   assert.equal(deriveTopicHelper({ pageContext: null, configReady: false }), 'Open a Discourse forum topic to get started.');
   assert.equal(
     deriveTopicHelper({ pageContext: home, configReady: false }),
@@ -144,7 +144,7 @@ function createTracker() {
   const context = {
     pageKey: '1:t/1',
     isForumTopic: true,
-    isDiscourse: true,
+    isSupportedSite: true,
     postId: '1',
     topicKey: 't/1',
     siteUrl: 'https://f.example',
@@ -178,7 +178,7 @@ test('an operation snapshots the page and settings and allows one at a time', ()
 test('topic operations need a topic; Agent operations a forum page', () => {
   const { tracker, context } = createTracker();
   assert.equal(tracker.begin('summary', { ...context, isForumTopic: false }), null);
-  assert.equal(tracker.begin('agent', { ...context, isDiscourse: false }), null);
+  assert.equal(tracker.begin('agent', { ...context, isSupportedSite: false }), null);
   const agent = tracker.begin('agent', { ...context, isForumTopic: false });
   assert.equal(agent.pageKey, null, 'Agent questions survive navigation');
 });

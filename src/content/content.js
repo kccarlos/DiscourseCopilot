@@ -29,8 +29,8 @@ function detectDiscoursePage() {
   const generator = metaContent('meta[name="generator"]');
   const baseUriMeta = document.querySelector('meta[name="discourse-base-uri"]');
   const setup = document.getElementById('data-discourse-setup');
-  const isDiscourse = /\bDiscourse\b/i.test(generator) || Boolean(baseUriMeta) || Boolean(setup);
-  if (!isDiscourse) {
+  const isSupportedSite = /\bDiscourse\b/i.test(generator) || Boolean(baseUriMeta) || Boolean(setup);
+  if (!isSupportedSite) {
     return null;
   }
   // Current Discourse exposes the subfolder path on the setup tag; older
@@ -44,7 +44,7 @@ function detectDiscoursePage() {
 class DiscourseCopilotContent {
   constructor() {
     this.postId = null;
-    this.isDiscourse = false;
+    this.isSupportedSite = false;
     this.basePath = '';
     this.siteUrl = '';
     this.forumName = '';
@@ -75,7 +75,7 @@ class DiscourseCopilotContent {
     if (!detected) {
       return false;
     }
-    this.isDiscourse = true;
+    this.isSupportedSite = true;
     this.basePath = detected.basePath;
     this.forumName = detected.forumName;
     return true;
@@ -105,7 +105,7 @@ class DiscourseCopilotContent {
       }
       this.onStorageChanged = null;
     }
-    this.isDiscourse = false;
+    this.isSupportedSite = false;
   }
 
   // Reads the "show the button" preference once and follows later changes, so
@@ -139,7 +139,7 @@ class DiscourseCopilotContent {
   }
 
   refreshLocation({ notify = true } = {}) {
-    if (!this.isDiscourse) {
+    if (!this.isSupportedSite) {
       return false;
     }
     const nextUrl = window.location.href;
@@ -161,7 +161,7 @@ class DiscourseCopilotContent {
         action: MESSAGES.PAGE_CHANGED,
         postId: this.postId,
         url: nextUrl,
-        isDiscourse: true,
+        isSupportedSite: true,
         isForumPage: Boolean(this.siteUrl),
         siteUrl: this.siteUrl,
         topicKey: this.topicKey,
@@ -176,7 +176,7 @@ class DiscourseCopilotContent {
 
   syncLauncher() {
     const existing = document.getElementById(LAUNCHER_ID);
-    if (!this.isDiscourse || !this.postId || this.showLauncher !== true) {
+    if (!this.isSupportedSite || !this.postId || this.showLauncher !== true) {
       existing?.remove();
       return;
     }
@@ -356,14 +356,14 @@ class DiscourseCopilotContent {
   }
 
   getState() {
-    if (!this.isDiscourse && this.detect()) {
+    if (!this.isSupportedSite && this.detect()) {
       this.start();
     }
     this.refreshLocation({ notify: false });
-    const isForumPage = this.isDiscourse && Boolean(this.siteUrl);
+    const isForumPage = this.isSupportedSite && Boolean(this.siteUrl);
     return {
       url: window.location.href,
-      isDiscourse: this.isDiscourse,
+      isSupportedSite: this.isSupportedSite,
       isForumPage,
       isForumTopic: Boolean(this.postId),
       postId: this.postId,

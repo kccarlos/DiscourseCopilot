@@ -211,7 +211,7 @@ PANELS['allow-access-light'] = {
     store: ANTHROPIC_STORE,
     granted: [],
     activeTab: true,
-    probe: { url: longThreadsTab.tabUrl, isDiscourse: true, basePath: '', forumName: OPENAI.name }
+    probe: { url: longThreadsTab.tabUrl, isSupportedSite: true, basePath: '', forumName: OPENAI.name }
   },
   capture: captureUntil('#pageGuide')
 };

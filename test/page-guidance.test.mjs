@@ -19,7 +19,7 @@ const TOPIC_URL = `${OAI}/t/rate-limits-explained/4242`;
 const HOME_URL = `${OAI}/latest`;
 const FORUM = 'OpenAI Developer Community';
 
-const probe = url => pageStateFromProbe({ url, isDiscourse: true, basePath: '', forumName: FORUM });
+const probe = url => pageStateFromProbe({ url, isSupportedSite: true, basePath: '', forumName: FORUM });
 const contexts = {
   unchecked: getTopicContext({ id: 1 }, null),
   notForum: getTopicContext({ id: 1, url: 'https://example.com/', title: 'Example' }, null),

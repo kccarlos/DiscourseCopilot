@@ -47,7 +47,7 @@ test('the probe detects Discourse from server-rendered tags', () => {
   );
   assert.deepEqual(found, {
     url: TOPIC_URL,
-    isDiscourse: true,
+    isSupportedSite: true,
     basePath: '',
     forumName: 'OpenAI Developer Community'
   });
@@ -57,16 +57,16 @@ test('the probe detects Discourse from server-rendered tags', () => {
     },
     probeDiscoursePage
   );
-  assert.equal(subfolder.isDiscourse, true);
+  assert.equal(subfolder.isSupportedSite, true);
   assert.equal(subfolder.basePath, '/forum');
   const other = withDocument({ 'meta[name="generator"]': meta('WordPress 6.5') }, probeDiscoursePage);
-  assert.equal(other.isDiscourse, false);
+  assert.equal(other.isSupportedSite, false);
 });
 
 test('a probe result becomes page state; the forum is marked as needing access', () => {
   const pageState = pageStateFromProbe({
     url: TOPIC_URL,
-    isDiscourse: true,
+    isSupportedSite: true,
     basePath: '',
     forumName: 'OpenAI Developer Community'
   });
@@ -77,19 +77,19 @@ test('a probe result becomes page state; the forum is marked as needing access',
   const context = getTopicContext({ id: 4, url: TOPIC_URL, title: 'Some topic - OpenAI Developer Community' }, pageState, {
     forumAccess: false
   });
-  assert.equal(context.isDiscourse, true);
+  assert.equal(context.isSupportedSite, true);
   assert.equal(context.detectedBy, 'probe');
   assert.equal(context.forumAccess, 'missing');
   assert.equal(context.topicKey, 'community.openai.com/t/12345');
   assert.equal(context.pageHidden, false);
 
-  assert.deepEqual(pageStateFromProbe({ url: 'https://example.com/', isDiscourse: false }), {
+  assert.deepEqual(pageStateFromProbe({ url: 'https://example.com/', isSupportedSite: false }), {
     url: 'https://example.com/',
-    isDiscourse: false,
+    isSupportedSite: false,
     detectedBy: 'probe'
   });
   assert.equal(pageStateFromProbe(null), null);
-  assert.equal(pageStateFromProbe({ isDiscourse: true }), null);
+  assert.equal(pageStateFromProbe({ isSupportedSite: true }), null);
 });
 
 test('a hidden URL means "not checked yet" until the toolbar icon was clicked', () => {
@@ -139,9 +139,9 @@ test('without access nothing that reads the forum can start', () => {
 });
 
 test('idle status defers to the page guidance', () => {
-  assert.equal(resolveIdleStatus({ isForumTopic: false, isDiscourse: false, accessPending: true }), null);
-  assert.equal(resolveIdleStatus({ isForumTopic: false, isDiscourse: true, guidanceShown: true }), null);
-  assert.ok(resolveIdleStatus({ isForumTopic: false, isDiscourse: false }));
+  assert.equal(resolveIdleStatus({ isForumTopic: false, isSupportedSite: false, accessPending: true }), null);
+  assert.equal(resolveIdleStatus({ isForumTopic: false, isSupportedSite: true, guidanceShown: true }), null);
+  assert.ok(resolveIdleStatus({ isForumTopic: false, isSupportedSite: false }));
 });
 
 // ---------- settings list ----------

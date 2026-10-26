@@ -47,7 +47,7 @@ function pageState(context) {
   if (context.pageHidden) return GUIDANCE_STATE.UNCHECKED;
   if (!context.siteUrl) return GUIDANCE_STATE.NOT_FORUM;
   if (context.forumAccess === 'missing') {
-    return context.isDiscourse ? GUIDANCE_STATE.ALLOW : GUIDANCE_STATE.MAYBE;
+    return context.isSupportedSite ? GUIDANCE_STATE.ALLOW : GUIDANCE_STATE.MAYBE;
   }
   return context.isForumTopic ? GUIDANCE_STATE.TOPIC : GUIDANCE_STATE.FORUM_HOME;
 }

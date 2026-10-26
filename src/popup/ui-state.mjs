@@ -80,7 +80,7 @@ export function retentionCopy(retention) {
 // guidance (page-guidance.mjs) says what to do, so no status competes.
 export function resolveIdleStatus({
   isForumTopic = false,
-  isDiscourse = false,
+  isSupportedSite = false,
   needsSetup = false,
   accessPending = false,
   guidanceShown = false,
@@ -89,7 +89,7 @@ export function resolveIdleStatus({
   if (needsSetup || accessPending || guidanceShown) {
     return null;
   }
-  if (!isForumTopic && isDiscourse) {
+  if (!isForumTopic && isSupportedSite) {
     return agentPanelShown ? null : { message: t('idle.askForum'), type: 'info' };
   }
   if (!isForumTopic) {

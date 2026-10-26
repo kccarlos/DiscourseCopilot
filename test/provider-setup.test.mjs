@@ -191,15 +191,15 @@ test('the settings header only claims a saved configuration when it is usable', 
 });
 
 test('setup success copy adapts to the current page', () => {
-  assert.equal(setupSuccessMessage({ isForumTopic: true, isDiscourse: true }), 'You’re set — press Create summary above.');
-  assert.match(setupSuccessMessage({ isDiscourse: true }), /Ask the forum above/);
+  assert.equal(setupSuccessMessage({ isForumTopic: true, isSupportedSite: true }), 'You’re set — press Create summary above.');
+  assert.match(setupSuccessMessage({ isSupportedSite: true }), /Ask the forum above/);
   assert.equal(setupSuccessMessage(null), 'You’re set. Open a topic on any Discourse forum to get started.');
   assert.equal(
     setupSuccessMessage({ pageHidden: true }),
     'You’re set. Next, click the DiscourseCopilot icon in your toolbar on a Discourse forum.'
   );
   assert.equal(
-    setupSuccessMessage({ isForumTopic: true, isDiscourse: true, forumAccess: 'missing' }),
+    setupSuccessMessage({ isForumTopic: true, isSupportedSite: true, forumAccess: 'missing' }),
     'You’re set. Next, allow access to this forum below.'
   );
 });

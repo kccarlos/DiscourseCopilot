@@ -34,7 +34,7 @@ export class OperationTracker {
    * @param {object} snapshot provider, settings, prompt, language, limit
    */
   begin(kind, context, snapshot = {}) {
-    if (this.active || (kind !== 'agent' && !context?.isForumTopic) || (kind === 'agent' && !context?.isDiscourse)) {
+    if (this.active || (kind !== 'agent' && !context?.isForumTopic) || (kind === 'agent' && !context?.isSupportedSite)) {
       return null;
     }
     const revision = ++this.revision;

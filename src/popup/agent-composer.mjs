@@ -72,7 +72,7 @@ export class AgentComposer {
   }
 
   show({ question = '' } = {}) {
-    if (!this.state.pageContext?.isDiscourse) {
+    if (!this.state.pageContext?.isSupportedSite) {
       this.status.show(t('agent.openForumPage'), 'warning');
       return;
     }

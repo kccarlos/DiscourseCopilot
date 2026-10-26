@@ -23,7 +23,7 @@ export function probeDiscoursePage() {
   const setup = document.getElementById('data-discourse-setup');
   return {
     url: window.location.href,
-    isDiscourse: /\bDiscourse\b/i.test(generator) || Boolean(baseUriMeta) || Boolean(setup),
+    isSupportedSite: /\bDiscourse\b/i.test(generator) || Boolean(baseUriMeta) || Boolean(setup),
     basePath: setup?.dataset?.baseUri || baseUriMeta?.getAttribute('content') || '',
     forumName: metaContent('meta[property="og:site_name"]')
   };
@@ -34,8 +34,8 @@ export function pageStateFromProbe(result) {
   if (!result || typeof result !== 'object' || typeof result.url !== 'string') {
     return null;
   }
-  if (result.isDiscourse !== true) {
-    return { url: result.url, isDiscourse: false, detectedBy: 'probe' };
+  if (result.isSupportedSite !== true) {
+    return { url: result.url, isSupportedSite: false, detectedBy: 'probe' };
   }
   const basePath = normalizeBasePath(result.basePath);
   const siteUrl = siteUrlFromPageUrl(result.url, basePath);
@@ -43,7 +43,7 @@ export function pageStateFromProbe(result) {
   const postId = buildTopicKey(siteUrl, topicId) ? topicId : null;
   return {
     url: result.url,
-    isDiscourse: true,
+    isSupportedSite: true,
     isForumPage: Boolean(siteUrl),
     isForumTopic: Boolean(postId),
     postId,
