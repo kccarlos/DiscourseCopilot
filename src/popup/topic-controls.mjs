@@ -26,7 +26,7 @@ export function getSummaryActionLabel({
  * @param {boolean} input.backgroundAvailable
  * @param {boolean} input.configReady the provider settings are usable
  * @param {boolean} input.hasTopic
- * @param {boolean} input.hasForumPage
+ * @param {boolean} input.agentAvailable the page's site can host Agent research and is readable
  * @param {boolean} input.hasSummary
  * @param {boolean} input.hasSource
  * @param {number} input.historyLength
@@ -49,7 +49,7 @@ export function deriveTopicControls(input) {
   const summaryTask = input.activeSummaryTask;
   const topicTasksRunning = input.activeTopicTaskCount > 0;
   const chatEditLocked = busy || input.chatEditSaving || topicTasksRunning;
-  const agentInputDisabled = !background || submitting('agent') || !input.hasForumPage;
+  const agentInputDisabled = !background || submitting('agent') || !input.agentAvailable;
   const contextLimitDisabled = !input.hasSummary || submitting('chat') || input.hasActiveChatTask;
 
   return {
@@ -65,7 +65,7 @@ export function deriveTopicControls(input) {
       busy: Boolean(summaryTask) || submitting('summary')
     },
     agentLaunch: {
-      disabled: busy || !background || !input.hasForumPage || !input.configReady || input.agentRequestPending,
+      disabled: busy || !background || !input.agentAvailable || !input.configReady || input.agentRequestPending,
       busy: submitting('agent')
     },
     agentInput: { disabled: agentInputDisabled },
@@ -119,7 +119,7 @@ export function deriveTopicControls(input) {
 // The hero shows only on a forum the panel can read (and while the page
 // loads); every other page state has its own guidance card.
 export function deriveTopicHelper({ pageContext, configReady, summaryRunning, hasSummary }) {
-  if (!pageContext?.isForumTopic && pageContext?.isDiscourse) {
+  if (!pageContext?.isForumTopic && pageContext?.isSupportedSite) {
     return configReady ? t('helper.forumOpenTopic') : t('helper.forumConnect');
   }
   if (!pageContext?.isForumTopic) {

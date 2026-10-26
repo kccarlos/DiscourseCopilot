@@ -557,7 +557,7 @@ class DiscourseCopilotPopup {
 
     const idleStatus = resolveIdleStatus({
       isForumTopic: Boolean(state.pageContext?.isForumTopic),
-      isDiscourse: Boolean(state.pageContext?.isDiscourse),
+      isSupportedSite: Boolean(state.pageContext?.isSupportedSite),
       // The setup success message already says what to do next.
       needsSetup: !settingsValid || this.setupCard.showsSuccess,
       // The page guidance (card or forum hero) already says what to do.
@@ -620,7 +620,7 @@ class DiscourseCopilotPopup {
       backgroundAvailable: this.state.backgroundAvailable,
       configReady,
       hasTopic: Boolean(pageContext?.isForumTopic) && accessReady,
-      hasForumPage: Boolean(pageContext?.isDiscourse) && accessReady,
+      agentAvailable: Boolean(pageContext?.supportsAgent) && accessReady,
       forumAccessMissing: !accessReady,
       hasSummary: Boolean(session?.summary),
       hasSource: Boolean(session?.source),

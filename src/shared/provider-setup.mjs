@@ -318,7 +318,7 @@ export function setupSuccessMessage(pageContext = {}) {
   if (pageContext?.isForumTopic) {
     return t('providerSetup.success.topic');
   }
-  if (pageContext?.isDiscourse) {
+  if (pageContext?.isSupportedSite) {
     return t('providerSetup.success.forum');
   }
   if (pageContext?.pageHidden) {

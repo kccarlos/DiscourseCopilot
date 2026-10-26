@@ -21,7 +21,7 @@ export function pageStateFor(forum, topicId, slug) {
   const url = `${forum.siteUrl}/t/${slug}/${topicId}`;
   return {
     url,
-    isDiscourse: true,
+    isSupportedSite: true,
     isForumPage: true,
     isForumTopic: true,
     postId: String(topicId),

@@ -28,13 +28,13 @@ export class OperationTracker {
 
   /**
    * Starts an operation, or returns null while another is active or the page
-   * can't host it (topic work needs a topic; Agent questions a forum page).
+   * can't host it (topic work needs a topic; Agent questions a site with Agent tools).
    * @param {'summary'|'chat'|'agent'} kind
    * @param {object} context the page context
    * @param {object} snapshot provider, settings, prompt, language, limit
    */
   begin(kind, context, snapshot = {}) {
-    if (this.active || (kind !== 'agent' && !context?.isForumTopic) || (kind === 'agent' && !context?.isDiscourse)) {
+    if (this.active || (kind !== 'agent' && !context?.isForumTopic) || (kind === 'agent' && !context?.supportsAgent)) {
       return null;
     }
     const revision = ++this.revision;
@@ -47,6 +47,7 @@ export class OperationTracker {
       postId: context.postId,
       topicKey: context.topicKey,
       siteUrl: context.siteUrl,
+      siteType: context.siteType,
       forumName: context.forumName || '',
       ...snapshot
     };

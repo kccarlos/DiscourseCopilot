@@ -1139,7 +1139,7 @@ scenario(
     store: {},
     tabUrl: 'https://example.com/',
     tabTitle: 'Example',
-    pageState: { url: 'https://example.com/', isDiscourse: false },
+    pageState: { url: 'https://example.com/', isSupportedSite: false },
     // Opened with the toolbar icon (activeTab): the panel probes the page.
     activeTab: true,
     probe: { url: 'https://example.com/', isDiscourse: false, basePath: '', forumName: '' }
@@ -1176,7 +1176,7 @@ scenario(
     store: configuredStore,
     tabUrl: 'https://example.com/',
     tabTitle: 'Example',
-    pageState: { url: 'https://example.com/', isDiscourse: false },
+    pageState: { url: 'https://example.com/', isSupportedSite: false },
     activeTab: true,
     probe: { url: 'https://example.com/', isDiscourse: false, basePath: '', forumName: '' }
   },
@@ -1801,7 +1801,7 @@ scenario(
       ];
       chrome.tabs.sendMessage = async () => ({
         url: 'https://forum.example.com/t/other/9',
-        isDiscourse: true,
+        isSupportedSite: true,
         isForumPage: true,
         isForumTopic: true,
         postId: '9',
@@ -2715,7 +2715,7 @@ scenario(
 const LAUNCHER = '#discourse-copilot-page-launcher';
 const launcherPresent = page => page.evaluate(sel => Boolean(document.querySelector(sel)?.shadowRoot?.querySelector('button')), LAUNCHER);
 const pageChangedTo = (page, topicId) =>
-  page.evaluate(id => window.__sent.some(m => m.action === 'pageChanged' && m.postId === id && m.isDiscourse === true), topicId);
+  page.evaluate(id => window.__sent.some(m => m.action === 'pageChanged' && m.postId === id && m.isSupportedSite === true), topicId);
 // The launcher's labels come from _locales through chrome.i18n.getMessage;
 // hand the stub the messages Chrome would pick for the page's language.
 const LOCALE_MESSAGES = Object.fromEntries(
@@ -3041,7 +3041,7 @@ zhScenario(
     store: configuredStore,
     tabUrl: 'https://example.com/',
     tabTitle: 'Example',
-    pageState: { url: 'https://example.com/', isDiscourse: false },
+    pageState: { url: 'https://example.com/', isSupportedSite: false },
     activeTab: true,
     probe: { url: 'https://example.com/', isDiscourse: false, basePath: '', forumName: '' }
   },

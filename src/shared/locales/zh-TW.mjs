@@ -183,6 +183,7 @@ export default {
   'guide.step2': '第 2 步，共 2 步',
   'guide.maybeEyebrow': '看起來像 Discourse 話題',
   'guide.foundEyebrow': '發現 Discourse 論壇',
+  'guide.foundEyebrow.wordpress': '發現 WordPress 網站',
   'guide.maybeTitle': '這是 Discourse 論壇嗎？',
   'guide.allowTitle': '在 {forum} 上啟用 DiscourseCopilot',
   'guide.maybeText':
@@ -200,6 +201,7 @@ export default {
   'guide.notForum.title': '此頁面不是 Discourse 論壇',
   'guide.notForum.text': 'DiscourseCopilot 適用於以 Discourse 架設的論壇。開啟其中任意話題即可開始，例如：',
   'guide.hero.eyebrow': 'Discourse 論壇',
+  'guide.hero.eyebrow.wordpress': 'WordPress 網站',
   'guide.hero.title': '你正在瀏覽 {forum}',
   'guide.checklist.step2': '第 2 步，共 2 步：允許存取此論壇',
   'guide.checklist.step1': '第 1 步，共 2 步：連線 AI 供應商',
@@ -369,6 +371,7 @@ export default {
   'agent.askAbout': '就 {forum} 提個問題…',
   'agent.askAboutThis': '就此論壇提個問題…',
   'agent.openForumPage': '請先開啟 Discourse 論壇頁面，再使用全站搜尋',
+  'agent.notOnThisSite': '這類網站暫不支援全站搜尋，但仍可總結本頁並圍繞它提問',
   'agent.submitting': '正在提交論壇研究任務…',
   'agent.queueFailed': '無法將論壇研究加入佇列',
   'agent.pill.running': '正在研究 {forum}…',

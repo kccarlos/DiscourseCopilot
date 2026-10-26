@@ -305,18 +305,18 @@ test('groups activity by forum with the current forum first', () => {
 });
 
 test('idle status stays out of the way of the setup card', () => {
-  assert.equal(resolveIdleStatus({ isForumTopic: true, isDiscourse: true, needsSetup: true }), null);
+  assert.equal(resolveIdleStatus({ isForumTopic: true, isSupportedSite: true, needsSetup: true }), null);
   assert.equal(resolveIdleStatus({ needsSetup: true }), null);
-  assert.equal(resolveIdleStatus({ isForumTopic: true, isDiscourse: true }), null);
+  assert.equal(resolveIdleStatus({ isForumTopic: true, isSupportedSite: true }), null);
   assert.deepEqual(resolveIdleStatus({}), {
     message: 'Open a Discourse forum topic to get started',
     type: 'info'
   });
-  assert.deepEqual(resolveIdleStatus({ isDiscourse: true }), {
+  assert.deepEqual(resolveIdleStatus({ isSupportedSite: true }), {
     message: 'Ask the forum to search across discussions',
     type: 'info'
   });
-  assert.equal(resolveIdleStatus({ isDiscourse: true, agentPanelShown: true }), null);
+  assert.equal(resolveIdleStatus({ isSupportedSite: true, agentPanelShown: true }), null);
 });
 
 test('quiet re-renders re-derive the status when provider validity changes', () => {

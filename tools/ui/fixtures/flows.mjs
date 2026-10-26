@@ -9,7 +9,7 @@ export const configuredStore = { selectedProvider: 'openai', openaiApiKey: 'sk-t
 
 export const topicPageState = {
   url: TOPIC_URL,
-  isDiscourse: true,
+  isSupportedSite: true,
   isForumPage: true,
   isForumTopic: true,
   postId: '12345',
@@ -89,7 +89,7 @@ export const OAI = 'https://community.openai.com';
 export const OAI_TOPIC = `${OAI}/t/rate-limits-explained/4242`;
 export const oaiState = {
   url: OAI_TOPIC,
-  isDiscourse: true,
+  isSupportedSite: true,
   isForumPage: true,
   isForumTopic: true,
   postId: '4242',

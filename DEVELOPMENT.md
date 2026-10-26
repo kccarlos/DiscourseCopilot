@@ -27,6 +27,7 @@ pnpm test          # run unit tests (node --test)
 pnpm test:ui       # build, then run the UI flows in Chromium (light and dark)
 pnpm test:settings-panel  # build, then check Settings inside the side panel in real Chromium (extension loaded)
 pnpm test:local-models  # build, then check Ollama / LM Studio for real (local only, see Local model servers)
+pnpm test:wordpress  # build, then read a fixture WordPress post in real Chromium with a fixture model (self-contained, see WordPress sites)
 pnpm shots:readme  # build, then render the README screenshots into tools/ui/out/readme/
 pnpm shots:store   # build, then render the Chrome Web Store images into tools/ui/out/store/
 pnpm shots:demo    # build, then record the animated README demo into tools/ui/out/demo/demo.gif
@@ -84,17 +85,19 @@ src/
     agent-loop.mjs        The agent loop for one turn (plan → tool → observation → answer)
     agent-tools.mjs       The agent's read-only tools, bound to the run's forum
     agent-activity-store.mjs  Agent activity records: ordered saves + broadcasts, follow-up turns
-    topic-fetcher.mjs     Reads a topic's raw posts page by page (cache reuse, rate-limit retries)
+    topic-fetcher.mjs     Reads a Discourse topic's raw posts page by page (cache reuse, rate-limit retries)
+    sites/                Site adapters: index.mjs (registry), discourse.mjs, wordpress.mjs (REST reader);
+                          see docs/adding-a-site.md
     job-queue.mjs, forum-tools.mjs  Queue engine, forum request client (search, latest, topic, raw page)
-  content/          Content script on enabled forums (registered at runtime): detects Discourse,
-                    topic IDs, in-page launcher (hidden when the
+  content/          Content script on enabled sites (registered at runtime): detects Discourse or
+                    WordPress, topic / post IDs, in-page launcher (hidden when the
                     `showForumButton` preference is off; follows storage changes live)
   popup/            Side panel (popup.html/css)
     popup.js              Entry: composes the modules below; page changes, broadcast routing,
                           panel-wide render (updateUI)
     background-link.mjs   Reaching the background worker: task list, restart banner
     page-context.mjs      Active tab → page context (forum, topic, access, hidden page)
-    page-probe.mjs        One-off Discourse check of a page not enabled yet (activeTab)
+    page-probe.mjs        One-off Discourse / WordPress check of a page not enabled yet (activeTab)
     page-guidance.mjs     One guidance state per page (loading, unchecked, not-forum, allow,
                           maybe, forum-home, topic), its copy and the "Get started" checklist
     forum-access-card.mjs Renders that guidance card + checklist; the Allow access request
@@ -404,6 +407,16 @@ Deleting a saved summary or an Agent answer removes it at once, from IndexedDB t
 The panel shows one of three views: the topic view, Activity (`#savedView`) or Settings (`#settingsView`). Settings hosts `src/settings/settings.html?embedded=1` (optionally `&section=forumAccess`, `provider`, …) in an iframe of the same extension, so Save, `chrome.permissions.request` and `chrome.storage.onChanged` behave as on the options page and the panel's `ConfigStore` follows a save without a reload. In embedded mode the page hides its own header; the standalone options page (`options_page`) is unchanged. `SettingsView.leave(then)` is the one way out (Back, the header's Activity and Settings buttons, "Not set up"): with unsaved edits (`window.settingsInstance.form.edited`, read through the same-origin frame) it shows the inline question instead of leaving. The frame is dropped on close, so each visit starts from what is saved. `pnpm test:settings-panel` checks all of this in real Chromium with the built extension loaded (Chrome's permission prompt itself cannot be answered in automation, so only that the request is accepted from a click inside the frame is verified).
 
 `ReadingFocus` (`reading-focus.mjs`) decides which result card is open. `start(card)` (a chat question was queued, a summary was requested, Ask the forum or a follow-up was queued) opens that card, folds the others and scrolls it into view. `finish(card)` (the task completed) does the same only if the user pressed, typed or used the keyboard in no other card since `start` and the keyboard focus is not inside another card; programmatic focus does not count. `mayExpand()` stops a streaming summary from reopening a card the user folded. A page change clears pending starts. `clamp.mjs` cuts content taller than about 60% of the viewport (summary) or 180 px + 64 px (earlier answers, older chat answers) behind a Show all button, never while streaming and never the newest answer; focus or a citation click inside clamped content expands it first.
+
+## WordPress sites
+
+A WordPress post (or page) is read like a topic: the article is the opening post and its comments are the replies. `background/sites/wordpress.mjs` calls the site's public REST API (`/wp-json/wp/v2/posts/<id>` and `/wp-json/wp/v2/comments?post=<id>`, 100 comments per page, oldest first, the total from the `X-WP-Total` header), turns the HTML into text (`shared/html-text.mjs`) and shapes it like a Discourse thread, so summaries, chat, caching and the page limit work unchanged. Page 1 holds the article and the first 100 comments; a second read asks the site for the article and the first comment page, and for later pages only when the comment count says they can have changed (the article's `Updated:` time covers edits).
+
+The page itself says what it is: `<link rel="https://api.w.org/">` (the REST root) and the shortlink / `<body>` class (`postid-N`) give the site and the post id, since WordPress URLs are slugs. `shared/wordpress-page.mjs` turns those facts into page state for both the content script and the side panel's probe. A topic key is `host/t/<id>` for every site type, which is safe because one host is one platform.
+
+The Agent does not research WordPress sites yet (`shared/site-types.mjs`, `siteTypeSupportsAgent`).
+
+**Real check.** `pnpm test:wordpress` (`tools/ui/wordpress-e2e.mjs`) loads `dist/` into Playwright's Chromium and serves a fixture WordPress post (slug URL, REST root and shortlink in the markup, 250 comments over three REST pages) and a fixture Ollama-shaped model from localhost. It checks the probe and the content script recognize the post, a summary hands the model the article and all 250 comments, a follow-up is answered from the saved text, a second read asks the site for two things only, a Discourse topic still works, and an Agent run on WordPress is refused. It needs no external service, so it can run anywhere Chromium can; it is not part of CI.
 
 ## Interface language (i18n)
 

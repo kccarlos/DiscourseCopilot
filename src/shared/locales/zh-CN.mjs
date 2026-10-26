@@ -183,6 +183,7 @@ export default {
   'guide.step2': '第 2 步，共 2 步',
   'guide.maybeEyebrow': '看起来像 Discourse 话题',
   'guide.foundEyebrow': '发现 Discourse 论坛',
+  'guide.foundEyebrow.wordpress': '发现 WordPress 网站',
   'guide.maybeTitle': '这是 Discourse 论坛吗？',
   'guide.allowTitle': '在 {forum} 上启用 DiscourseCopilot',
   'guide.maybeText':
@@ -200,6 +201,7 @@ export default {
   'guide.notForum.title': '此页面不是 Discourse 论坛',
   'guide.notForum.text': 'DiscourseCopilot 适用于基于 Discourse 搭建的论坛。打开其中任意话题即可开始，例如：',
   'guide.hero.eyebrow': 'Discourse 论坛',
+  'guide.hero.eyebrow.wordpress': 'WordPress 网站',
   'guide.hero.title': '你正在浏览 {forum}',
   'guide.checklist.step2': '第 2 步，共 2 步：允许访问此论坛',
   'guide.checklist.step1': '第 1 步，共 2 步：连接 AI 服务商',
@@ -369,6 +371,7 @@ export default {
   'agent.askAbout': '就 {forum} 提个问题…',
   'agent.askAboutThis': '就此论坛提个问题…',
   'agent.openForumPage': '请先打开 Discourse 论坛页面，再使用全站搜索',
+  'agent.notOnThisSite': '这类网站暂不支持全站搜索，但仍可总结本页并围绕它提问',
   'agent.submitting': '正在提交论坛研究任务…',
   'agent.queueFailed': '无法将论坛研究加入队列',
   'agent.pill.running': '正在研究 {forum}…',

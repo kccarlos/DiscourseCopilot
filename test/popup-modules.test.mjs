@@ -17,7 +17,7 @@ const idleTopic = {
   backgroundAvailable: true,
   configReady: true,
   hasTopic: true,
-  hasForumPage: true,
+  agentAvailable: true,
   hasSummary: false,
   hasSource: false,
   historyLength: 0,
@@ -54,7 +54,7 @@ test('setup, a missing background or a missing topic disable topic actions', () 
   const forumHome = deriveTopicControls({ ...idleTopic, hasTopic: false });
   assert.equal(forumHome.summarize.disabled, true);
   assert.equal(forumHome.agentLaunch.disabled, false);
-  assert.equal(deriveTopicControls({ ...idleTopic, hasForumPage: false }).agentLaunch.disabled, true);
+  assert.equal(deriveTopicControls({ ...idleTopic, agentAvailable: false }).agentLaunch.disabled, true);
   assert.equal(deriveTopicControls({ ...idleTopic, isHydrating: true }).summarize.label, 'Loading saved summary');
 });
 
@@ -117,8 +117,8 @@ test('chat controls follow the summary, question, running tasks and edit saves',
 });
 
 test('the topic helper line explains the next step', () => {
-  const topic = { isForumTopic: true, isDiscourse: true, siteUrl: 'https://meta.example', forumName: 'Meta' };
-  const home = { isForumTopic: false, isDiscourse: true, siteUrl: 'https://meta.example', forumName: 'Meta' };
+  const topic = { isForumTopic: true, isSupportedSite: true, siteUrl: 'https://meta.example', forumName: 'Meta' };
+  const home = { isForumTopic: false, isSupportedSite: true, siteUrl: 'https://meta.example', forumName: 'Meta' };
   assert.equal(deriveTopicHelper({ pageContext: null, configReady: false }), 'Open a Discourse forum topic to get started.');
   assert.equal(
     deriveTopicHelper({ pageContext: home, configReady: false }),
@@ -144,7 +144,9 @@ function createTracker() {
   const context = {
     pageKey: '1:t/1',
     isForumTopic: true,
-    isDiscourse: true,
+    isSupportedSite: true,
+    siteType: 'discourse',
+    supportsAgent: true,
     postId: '1',
     topicKey: 't/1',
     siteUrl: 'https://f.example',
@@ -178,7 +180,7 @@ test('an operation snapshots the page and settings and allows one at a time', ()
 test('topic operations need a topic; Agent operations a forum page', () => {
   const { tracker, context } = createTracker();
   assert.equal(tracker.begin('summary', { ...context, isForumTopic: false }), null);
-  assert.equal(tracker.begin('agent', { ...context, isDiscourse: false }), null);
+  assert.equal(tracker.begin('agent', { ...context, supportsAgent: false }), null);
   const agent = tracker.begin('agent', { ...context, isForumTopic: false });
   assert.equal(agent.pageKey, null, 'Agent questions survive navigation');
 });

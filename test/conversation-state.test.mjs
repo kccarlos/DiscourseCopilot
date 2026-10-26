@@ -21,7 +21,9 @@ test('falls back to URL parsing when no content script answered', () => {
       tabId: 7,
       url: 'https://www.uscardforum.com/t/a-useful-slug/12345/88',
       title: 'A useful topic',
-      isDiscourse: false,
+      isSupportedSite: false,
+      siteType: 'discourse',
+      supportsAgent: false,
       detectedBy: 'url',
       siteUrl: 'https://www.uscardforum.com',
       forumName: 'www.uscardforum.com',
@@ -40,7 +42,7 @@ test('prefers content-script state, including subfolder forums', () => {
     { id: 3, url: 'https://example.com/forum/t/slug/42/5', title: 'Topic' },
     {
       url: 'https://example.com/forum/t/slug/42/5',
-      isDiscourse: true,
+      isSupportedSite: true,
       isForumPage: true,
       isForumTopic: true,
       postId: '42',
@@ -52,7 +54,7 @@ test('prefers content-script state, including subfolder forums', () => {
     }
   );
 
-  assert.equal(context.isDiscourse, true);
+  assert.equal(context.isSupportedSite, true);
   assert.equal(context.detectedBy, 'content');
   assert.equal(context.siteUrl, 'https://example.com/forum');
   assert.equal(context.forumName, 'Example Community');
@@ -64,10 +66,10 @@ test('prefers content-script state, including subfolder forums', () => {
 test('content-script state overrides URL guesses on non-Discourse pages', () => {
   const context = getTopicContext(
     { id: 1, url: 'https://blog.example/t/topic/12' },
-    { url: 'https://blog.example/t/topic/12', isDiscourse: false }
+    { url: 'https://blog.example/t/topic/12', isSupportedSite: false }
   );
 
-  assert.equal(context.isDiscourse, false);
+  assert.equal(context.isSupportedSite, false);
   assert.equal(context.isForumTopic, false);
   assert.equal(context.topicKey, '');
   assert.equal(context.pageKey, '1:none');
@@ -78,7 +80,7 @@ test('ignores a stale content-script answer from the previous page', () => {
     { id: 1, url: 'https://community.openai.com/t/new-topic/99' },
     {
       url: 'https://community.openai.com/t/old-topic/12',
-      isDiscourse: true,
+      isSupportedSite: true,
       topicId: '12',
       postId: '12',
       siteUrl: 'https://community.openai.com'

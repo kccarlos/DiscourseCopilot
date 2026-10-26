@@ -11,6 +11,7 @@
 import { TASK_STATUS, TASK_TYPE, createTaskRecord, isActiveTaskStatus, isTerminalTaskStatus } from '../shared/task-record.mjs';
 import { agentActivityFromTask } from '../shared/agent-activity.mjs';
 import { buildTopicKey, forumDisplayName, normalizeSiteUrl } from '../shared/forum-site.mjs';
+import { normalizeSiteType } from '../shared/site-types.mjs';
 import { loadConfig, providerSettingsOf } from '../shared/config-state.mjs';
 import { normalizeTaskLimits, resolveRetention, retentionEqual, snapshotTaskLimits } from '../shared/preferences.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
@@ -27,7 +28,7 @@ const PERSIST_INTERVAL_MS = 1000;
 
 /**
  * Checks an enqueue request; throws with a user-facing message.
- * @returns {{ type: string, siteUrl: string, topicKey: string }}
+ * @returns {{ type: string, siteType: string, siteUrl: string, topicKey: string }}
  */
 export function validateEnqueueRequest(request) {
   const type = request?.taskType;
@@ -48,7 +49,7 @@ export function validateEnqueueRequest(request) {
   if ((type === TASK_TYPE.CHAT || type === TASK_TYPE.AGENT) && !String(request.question || '').trim()) {
     throw new Error(type === TASK_TYPE.AGENT ? 'An Agent question is required' : 'A follow-up question is required');
   }
-  return { type, siteUrl, topicKey };
+  return { type, siteType: normalizeSiteType(request.siteType), siteUrl, topicKey };
 }
 
 function createTaskId() {
@@ -260,7 +261,7 @@ export class TaskService {
 
   async enqueue(request) {
     await this.ready;
-    const { type, siteUrl, topicKey } = validateEnqueueRequest(request);
+    const { type, siteType, siteUrl, topicKey } = validateEnqueueRequest(request);
     // Nothing is queued for a forum the extension may not read; the panel
     // shows its Allow access button for the FORUM_ACCESS_NOT_GRANTED code.
     if (!(await this.hasForumAccess(siteUrl))) {
@@ -304,6 +305,7 @@ export class TaskService {
       id,
       type,
       topicId: request.topicId ? String(request.topicId) : '',
+      siteType,
       siteUrl,
       agentRunId,
       clientRequestId: request.clientRequestId,

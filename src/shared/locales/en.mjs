@@ -186,6 +186,7 @@ export default {
   'guide.step2': 'Step 2 of 2',
   'guide.maybeEyebrow': 'Looks like a Discourse topic',
   'guide.foundEyebrow': 'Discourse forum found',
+  'guide.foundEyebrow.wordpress': 'WordPress site found',
   'guide.maybeTitle': 'Is this a Discourse forum?',
   'guide.allowTitle': 'Allow DiscourseCopilot on {forum}',
   'guide.maybeText':
@@ -203,6 +204,7 @@ export default {
   'guide.notForum.title': 'This page isn’t a Discourse forum',
   'guide.notForum.text': 'DiscourseCopilot works on forums built with Discourse. Open a topic on one to get started, for example:',
   'guide.hero.eyebrow': 'Discourse forum',
+  'guide.hero.eyebrow.wordpress': 'WordPress site',
   'guide.hero.title': 'You’re on {forum}',
   'guide.checklist.step2': 'Step 2 of 2: Allow access to this forum',
   'guide.checklist.step1': 'Step 1 of 2: Connect an AI provider',
@@ -373,6 +375,8 @@ export default {
   'agent.askAbout': 'Ask a question about {forum}…',
   'agent.askAboutThis': 'Ask a question about this forum…',
   'agent.openForumPage': 'Open a Discourse forum page to ask the forum',
+  'agent.notOnThisSite':
+    'Asking the whole site isn’t available on this kind of site yet; you can still summarize this page and chat about it',
   'agent.submitting': 'Submitting Agent research task…',
   'agent.queueFailed': 'Unable to queue Agent research',
   'agent.pill.running': 'Researching on {forum}…',

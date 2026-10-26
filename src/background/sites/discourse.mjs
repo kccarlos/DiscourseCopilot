@@ -4,8 +4,9 @@
 // file only presents them under the shared adapter shape (see index.mjs).
 import { createTopicFetcher } from '../topic-fetcher.mjs';
 import { ForumToolClient } from '../forum-tools.mjs';
+import { SITE_TYPE } from '../../shared/site-types.mjs';
 
-export const DISCOURSE_SITE_TYPE = 'discourse';
+export const DISCOURSE_SITE_TYPE = SITE_TYPE.DISCOURSE;
 
 /**
  * @param {object} [options]

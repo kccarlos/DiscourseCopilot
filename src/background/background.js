@@ -225,7 +225,7 @@ chrome.runtime.onMessage.addListener(
         chrome.sidePanel.setOptions({
           tabId: sender.tab.id,
           path: SIDE_PANEL_PATH,
-          enabled: request.isDiscourse === true || request.isForumPage === true || Boolean(request.postId)
+          enabled: request.isSupportedSite === true || request.isForumPage === true || Boolean(request.postId)
         })
       )(request, sender, sendResponse);
     },

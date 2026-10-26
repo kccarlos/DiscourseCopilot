@@ -49,7 +49,8 @@ test('the probe detects Discourse from server-rendered tags', () => {
     url: TOPIC_URL,
     isDiscourse: true,
     basePath: '',
-    forumName: 'OpenAI Developer Community'
+    forumName: 'OpenAI Developer Community',
+    wordpress: { restRoot: '', shortlink: '', bodyClass: '', siteName: 'OpenAI Developer Community' }
   });
   const subfolder = withDocument(
     {
@@ -77,7 +78,7 @@ test('a probe result becomes page state; the forum is marked as needing access',
   const context = getTopicContext({ id: 4, url: TOPIC_URL, title: 'Some topic - OpenAI Developer Community' }, pageState, {
     forumAccess: false
   });
-  assert.equal(context.isDiscourse, true);
+  assert.equal(context.isSupportedSite, true);
   assert.equal(context.detectedBy, 'probe');
   assert.equal(context.forumAccess, 'missing');
   assert.equal(context.topicKey, 'community.openai.com/t/12345');
@@ -85,7 +86,7 @@ test('a probe result becomes page state; the forum is marked as needing access',
 
   assert.deepEqual(pageStateFromProbe({ url: 'https://example.com/', isDiscourse: false }), {
     url: 'https://example.com/',
-    isDiscourse: false,
+    isSupportedSite: false,
     detectedBy: 'probe'
   });
   assert.equal(pageStateFromProbe(null), null);
@@ -114,7 +115,7 @@ test('without access nothing that reads the forum can start', () => {
     backgroundAvailable: true,
     configReady: true,
     hasTopic: false,
-    hasForumPage: false,
+    agentAvailable: false,
     hasSummary: true,
     hasSource: true,
     historyLength: 1,
@@ -133,15 +134,15 @@ test('without access nothing that reads the forum can start', () => {
   assert.equal(locked.agentLaunch.disabled, true);
   assert.equal(locked.sendChat.disabled, true);
   assert.equal(locked.copySummary.disabled, false, 'saved history stays usable');
-  const open = deriveTopicControls({ ...base, hasTopic: true, hasForumPage: true });
+  const open = deriveTopicControls({ ...base, hasTopic: true, agentAvailable: true });
   assert.equal(open.summarize.disabled, false);
   assert.equal(open.sendChat.disabled, false);
 });
 
 test('idle status defers to the page guidance', () => {
-  assert.equal(resolveIdleStatus({ isForumTopic: false, isDiscourse: false, accessPending: true }), null);
-  assert.equal(resolveIdleStatus({ isForumTopic: false, isDiscourse: true, guidanceShown: true }), null);
-  assert.ok(resolveIdleStatus({ isForumTopic: false, isDiscourse: false }));
+  assert.equal(resolveIdleStatus({ isForumTopic: false, isSupportedSite: false, accessPending: true }), null);
+  assert.equal(resolveIdleStatus({ isForumTopic: false, isSupportedSite: true, guidanceShown: true }), null);
+  assert.ok(resolveIdleStatus({ isForumTopic: false, isSupportedSite: false }));
 });
 
 // ---------- settings list ----------
