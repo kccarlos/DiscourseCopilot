@@ -1,11 +1,14 @@
-// Content script for enabled Discourse forums (registered at runtime, see
-// shared/forum-access.mjs): detects Discourse and the current topic, tells the
+// Content script for enabled sites (registered at runtime, see
+// shared/forum-access.mjs): detects Discourse or WordPress and the current
+// topic or post, tells the
 // side panel when the page changes, answers its page-state requests, and adds
 // the floating launcher button unless the user turned it off in Settings.
 import { extractForumTopicId } from '../shared/topic-route.mjs';
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { readShowForumButton } from '../shared/forum-button-preference.mjs';
 import { buildTopicKey, forumDisplayName, normalizeBasePath, siteUrlFromPageUrl } from '../shared/forum-site.mjs';
+import { SITE_TYPE } from '../shared/site-types.mjs';
+import { collectWordPressFacts, wordPressPageFromFacts } from '../shared/wordpress-page.mjs';
 
 const { MESSAGES, STORAGE_KEYS } = DiscourseCopilotConstants;
 // The launcher's few labels come from _locales through chrome.i18n, so this
@@ -45,6 +48,9 @@ class DiscourseCopilotContent {
   constructor() {
     this.postId = null;
     this.isSupportedSite = false;
+    this.siteType = SITE_TYPE.DISCOURSE;
+    // A WordPress page names its post id in the document, not in the URL.
+    this.wordPressPostId = null;
     this.basePath = '';
     this.siteUrl = '';
     this.forumName = '';
@@ -71,13 +77,23 @@ class DiscourseCopilotContent {
   }
 
   detect() {
-    const detected = detectDiscoursePage();
-    if (!detected) {
-      return false;
+    const discourse = detectDiscoursePage();
+    if (discourse) {
+      this.siteType = SITE_TYPE.DISCOURSE;
+      this.basePath = discourse.basePath;
+      this.forumName = discourse.forumName;
+      this.wordPressPostId = null;
+    } else {
+      const wordpress = wordPressPageFromFacts(collectWordPressFacts(document), window.location.href);
+      if (!wordpress) {
+        return false;
+      }
+      this.siteType = SITE_TYPE.WORDPRESS;
+      this.basePath = wordpress.basePath;
+      this.forumName = wordpress.forumName;
+      this.wordPressPostId = wordpress.postId;
     }
     this.isSupportedSite = true;
-    this.basePath = detected.basePath;
-    this.forumName = detected.forumName;
     return true;
   }
 
@@ -152,7 +168,11 @@ class DiscourseCopilotContent {
     const previousSiteUrl = this.siteUrl;
     this.currentUrl = nextUrl;
     this.siteUrl = siteUrlFromPageUrl(nextUrl, this.basePath);
-    const topicId = this.siteUrl ? extractForumTopicId(nextUrl, this.basePath) : null;
+    const topicId = !this.siteUrl
+      ? null
+      : this.siteType === SITE_TYPE.WORDPRESS
+        ? this.wordPressPostId
+        : extractForumTopicId(nextUrl, this.basePath);
     this.postId = buildTopicKey(this.siteUrl, topicId) ? topicId : null;
     this.syncLauncher();
 
@@ -162,6 +182,7 @@ class DiscourseCopilotContent {
         postId: this.postId,
         url: nextUrl,
         isSupportedSite: true,
+        siteType: this.siteType,
         isForumPage: Boolean(this.siteUrl),
         siteUrl: this.siteUrl,
         topicKey: this.topicKey,
@@ -364,6 +385,7 @@ class DiscourseCopilotContent {
     return {
       url: window.location.href,
       isSupportedSite: this.isSupportedSite,
+      siteType: this.siteType,
       isForumPage,
       isForumTopic: Boolean(this.postId),
       postId: this.postId,

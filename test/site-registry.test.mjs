@@ -5,9 +5,10 @@ import { ForumToolClient } from '../src/background/forum-tools.mjs';
 
 const adapter = (type, extra = {}) => ({ type, label: type, fetchTopicContent: async () => ({}), createToolClient: () => ({}), ...extra });
 
-test('the default registry serves Discourse, including tasks saved before site types existed', () => {
+test('the default registry serves Discourse and WordPress, and tasks saved before site types existed are Discourse', () => {
   const sites = createDefaultSiteRegistry();
-  assert.deepEqual(sites.types, ['discourse']);
+  assert.deepEqual(sites.types, ['discourse', 'wordpress']);
+  assert.equal(sites.forTask({ siteType: 'wordpress' }).type, 'wordpress');
   assert.equal(DEFAULT_SITE_TYPE, 'discourse');
   assert.equal(sites.forTask({}).type, 'discourse');
   assert.equal(sites.forTask({ siteType: 'discourse' }).type, 'discourse');

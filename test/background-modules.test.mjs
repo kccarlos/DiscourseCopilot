@@ -69,6 +69,7 @@ test('respondAsync keeps the channel open and wraps results and errors', async (
 test('validateEnqueueRequest accepts each task type and derives the topic key', () => {
   assert.deepEqual(validateEnqueueRequest({ taskType: 'summary', topicId: '5', siteUrl: 'https://forum.example.com/' }), {
     type: 'summary',
+    siteType: 'discourse',
     siteUrl: 'https://forum.example.com',
     topicKey: 'forum.example.com/t/5'
   });
@@ -78,6 +79,7 @@ test('validateEnqueueRequest accepts each task type and derives the topic key', 
   );
   assert.deepEqual(validateEnqueueRequest({ taskType: 'agent', siteUrl: 'https://f.example', question: 'What?' }), {
     type: 'agent',
+    siteType: 'discourse',
     siteUrl: 'https://f.example',
     topicKey: ''
   });

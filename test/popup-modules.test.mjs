@@ -17,7 +17,7 @@ const idleTopic = {
   backgroundAvailable: true,
   configReady: true,
   hasTopic: true,
-  hasForumPage: true,
+  agentAvailable: true,
   hasSummary: false,
   hasSource: false,
   historyLength: 0,
@@ -54,7 +54,7 @@ test('setup, a missing background or a missing topic disable topic actions', () 
   const forumHome = deriveTopicControls({ ...idleTopic, hasTopic: false });
   assert.equal(forumHome.summarize.disabled, true);
   assert.equal(forumHome.agentLaunch.disabled, false);
-  assert.equal(deriveTopicControls({ ...idleTopic, hasForumPage: false }).agentLaunch.disabled, true);
+  assert.equal(deriveTopicControls({ ...idleTopic, agentAvailable: false }).agentLaunch.disabled, true);
   assert.equal(deriveTopicControls({ ...idleTopic, isHydrating: true }).summarize.label, 'Loading saved summary');
 });
 
@@ -145,6 +145,8 @@ function createTracker() {
     pageKey: '1:t/1',
     isForumTopic: true,
     isSupportedSite: true,
+    siteType: 'discourse',
+    supportsAgent: true,
     postId: '1',
     topicKey: 't/1',
     siteUrl: 'https://f.example',
@@ -178,7 +180,7 @@ test('an operation snapshots the page and settings and allows one at a time', ()
 test('topic operations need a topic; Agent operations a forum page', () => {
   const { tracker, context } = createTracker();
   assert.equal(tracker.begin('summary', { ...context, isForumTopic: false }), null);
-  assert.equal(tracker.begin('agent', { ...context, isSupportedSite: false }), null);
+  assert.equal(tracker.begin('agent', { ...context, supportsAgent: false }), null);
   const agent = tracker.begin('agent', { ...context, isForumTopic: false });
   assert.equal(agent.pageKey, null, 'Agent questions survive navigation');
 });

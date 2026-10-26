@@ -8,9 +8,11 @@
 //   fetchTopicContent    (siteUrl, topicId, onProgress, signal, options) => content result
 //   createToolClient     ({ siteUrl, signal, governor }) => client the agent tools call
 // docs/adding-a-site.md describes each in full.
-import { DISCOURSE_SITE_TYPE, createDiscourseAdapter } from './discourse.mjs';
+import { DEFAULT_SITE_TYPE } from '../../shared/site-types.mjs';
+import { createDiscourseAdapter } from './discourse.mjs';
+import { createWordPressSiteAdapter } from './wordpress.mjs';
 
-export const DEFAULT_SITE_TYPE = DISCOURSE_SITE_TYPE;
+export { DEFAULT_SITE_TYPE };
 
 const REQUIRED_MEMBERS = ['type', 'label', 'fetchTopicContent', 'createToolClient'];
 
@@ -45,5 +47,5 @@ export function createSiteRegistry(adapters) {
 }
 
 export function createDefaultSiteRegistry(options) {
-  return createSiteRegistry([createDiscourseAdapter(options)]);
+  return createSiteRegistry([createDiscourseAdapter(options), createWordPressSiteAdapter(options)]);
 }

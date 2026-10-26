@@ -1,6 +1,7 @@
 import { normalizeForumContextLimit } from './chat-context-limit.mjs';
 import { DEFAULT_RETENTION_MS, normalizeTaskLimits } from './preferences.mjs';
 import { buildTopicKey, forumDisplayName, normalizeSiteUrl, siteUrlFromPageUrl } from './forum-site.mjs';
+import { normalizeSiteType } from './site-types.mjs';
 import { t } from './i18n.mjs';
 
 // Default lifetime of a finished task entry: the default history retention
@@ -68,6 +69,9 @@ export function createTaskRecord(value, now = Date.now()) {
     id,
     type,
     topicId: topicId || null,
+    // Which site adapter reads this task's site; records from before site
+    // types existed are Discourse.
+    siteType: normalizeSiteType(value?.siteType),
     siteUrl,
     topicKey,
     resourceKey: type === TASK_TYPE.AGENT ? `agent:${agentRunId}` : `topic:${topicKey}`,

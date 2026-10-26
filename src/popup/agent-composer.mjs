@@ -72,8 +72,9 @@ export class AgentComposer {
   }
 
   show({ question = '' } = {}) {
-    if (!this.state.pageContext?.isSupportedSite) {
-      this.status.show(t('agent.openForumPage'), 'warning');
+    const context = this.state.pageContext;
+    if (!context?.supportsAgent) {
+      this.status.show(t(context?.isSupportedSite ? 'agent.notOnThisSite' : 'agent.openForumPage'), 'warning');
       return;
     }
     this.open = true;

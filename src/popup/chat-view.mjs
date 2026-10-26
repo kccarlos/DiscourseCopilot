@@ -325,6 +325,7 @@ export class ChatView {
           taskType: TASK_TYPE.CHAT,
           topicId: operation.postId,
           siteUrl: operation.siteUrl,
+          siteType: operation.siteType,
           topicKey: operation.topicKey,
           title: session.title,
           url: session.url,

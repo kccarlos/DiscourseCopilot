@@ -265,6 +265,7 @@ export class SummaryView {
           taskType: TASK_TYPE.SUMMARY,
           topicId: operation.postId,
           siteUrl: operation.siteUrl,
+          siteType: operation.siteType,
           topicKey: operation.topicKey,
           title: session?.title || this.state.pageContext.title,
           url: session?.url || this.state.pageContext.url,

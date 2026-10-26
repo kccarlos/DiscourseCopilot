@@ -22,6 +22,8 @@ test('falls back to URL parsing when no content script answered', () => {
       url: 'https://www.uscardforum.com/t/a-useful-slug/12345/88',
       title: 'A useful topic',
       isSupportedSite: false,
+      siteType: 'discourse',
+      supportsAgent: false,
       detectedBy: 'url',
       siteUrl: 'https://www.uscardforum.com',
       forumName: 'www.uscardforum.com',

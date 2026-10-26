@@ -8,6 +8,7 @@ import {
   parseSiteUrl,
   siteUrlFromPageUrl
 } from '../shared/forum-site.mjs';
+import { SITE_TYPE, normalizeSiteType, siteTypeSupportsAgent } from '../shared/site-types.mjs';
 import { t } from '../shared/i18n.mjs';
 
 function pageOrigin(value) {
@@ -33,7 +34,8 @@ function describesTab(pageState, tabUrl) {
   if (!tabUrl || typeof pageState.url !== 'string' || !pageState.url) {
     return true;
   }
-  if (pageState.isSupportedSite !== true) {
+  if (pageState.isSupportedSite !== true || normalizeSiteType(pageState.siteType) === SITE_TYPE.WORDPRESS) {
+    // A WordPress post has one fixed address.
     return pageLocation(pageState.url) === pageLocation(tabUrl);
   }
   // Discourse rewrites the post number while scrolling, so compare topics.
@@ -52,6 +54,7 @@ function contextFromPageState(pageState, tabUrl) {
   if (pageState.isSupportedSite !== true || !site) {
     return {
       isSupportedSite: false,
+      siteType: SITE_TYPE.DISCOURSE,
       siteUrl: '',
       forumName: '',
       topicId: null,
@@ -59,9 +62,16 @@ function contextFromPageState(pageState, tabUrl) {
     };
   }
   const siteUrl = normalizeSiteUrl(pageState.siteUrl);
-  const topicId = pageState.topicId ? String(pageState.topicId) : extractForumTopicId(tabUrl || pageState.url, site.basePath);
+  const siteType = normalizeSiteType(pageState.siteType);
+  // A WordPress page's id comes from its document; only Discourse has it in the URL.
+  const topicId = pageState.topicId
+    ? String(pageState.topicId)
+    : siteType === SITE_TYPE.DISCOURSE
+      ? extractForumTopicId(tabUrl || pageState.url, site.basePath)
+      : null;
   return {
     isSupportedSite: true,
+    siteType,
     siteUrl,
     forumName: forumDisplayName(siteUrl, pageState.forumName),
     topicId: buildTopicKey(siteUrl, topicId) ? topicId : null,
@@ -76,6 +86,7 @@ function contextFromUrl(tabUrl, siteUrlHint = '') {
   const siteUrl = topicId ? siteUrlFromPageUrl(tabUrl, basePath) : '';
   return {
     isSupportedSite: false,
+    siteType: SITE_TYPE.DISCOURSE,
     siteUrl,
     forumName: siteUrl ? forumDisplayName(siteUrl) : '',
     topicId: siteUrl ? topicId : null,
@@ -108,6 +119,9 @@ export function getTopicContext(tab = {}, pageState = null, { siteUrlHint = '', 
     url,
     title: tab.title || (url ? t('page.unknown') : ''),
     isSupportedSite: detected.isSupportedSite,
+    siteType: detected.siteType,
+    // Whether the Agent can research this kind of site (site-types.mjs).
+    supportsAgent: detected.isSupportedSite && siteTypeSupportsAgent(detected.siteType),
     detectedBy: detected.detectedBy,
     siteUrl: detected.siteUrl,
     forumName: detected.forumName,

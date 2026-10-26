@@ -620,7 +620,7 @@ class DiscourseCopilotPopup {
       backgroundAvailable: this.state.backgroundAvailable,
       configReady,
       hasTopic: Boolean(pageContext?.isForumTopic) && accessReady,
-      hasForumPage: Boolean(pageContext?.isSupportedSite) && accessReady,
+      agentAvailable: Boolean(pageContext?.supportsAgent) && accessReady,
       forumAccessMissing: !accessReady,
       hasSummary: Boolean(session?.summary),
       hasSource: Boolean(session?.source),

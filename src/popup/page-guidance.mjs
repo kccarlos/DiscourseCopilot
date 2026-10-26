@@ -12,6 +12,7 @@
 // Provider setup comes first: while it is pending the setup card is the
 // primary action, and on a forum without access a "Get started" checklist
 // marks the access card as step 2.
+import { SITE_TYPE } from '../shared/site-types.mjs';
 import { forumAccessHost } from '../shared/forum-access.mjs';
 import { t } from '../shared/i18n.mjs';
 
@@ -42,6 +43,8 @@ export function splitEmphasis(text) {
     .filter(part => part.text);
 }
 
+const isWordPress = context => context?.siteType === SITE_TYPE.WORDPRESS;
+
 function pageState(context) {
   if (!context) return GUIDANCE_STATE.LOADING;
   if (context.pageHidden) return GUIDANCE_STATE.UNCHECKED;
@@ -56,7 +59,11 @@ function accessCard(state, context, { forumName, host, nextStep }) {
   const finalStep = context.isForumTopic ? t('guide.access.finalTopic') : t('guide.access.finalForum');
   const maybe = state === GUIDANCE_STATE.MAYBE;
   return {
-    eyebrow: nextStep ? t('guide.step2Next') : maybe ? t('guide.maybeEyebrow') : t('guide.foundEyebrow'),
+    eyebrow: nextStep
+      ? t('guide.step2Next')
+      : maybe
+        ? t('guide.maybeEyebrow')
+        : t(isWordPress(context) ? 'guide.foundEyebrow.wordpress' : 'guide.foundEyebrow'),
     title: maybe ? t('guide.maybeTitle') : t('guide.allowTitle', { forum: forumName }),
     text: maybe ? t('guide.maybeText', { host }) : t('guide.allowText'),
     steps: [
@@ -128,7 +135,10 @@ export function derivePageGuidance(
     card = accessCard(state, context, { forumName: name, host, nextStep: !providerReady });
   } else if (state === GUIDANCE_STATE.FORUM_HOME) {
     // The helper line comes from deriveTopicHelper (topic-controls.mjs).
-    hero = { eyebrow: t('guide.hero.eyebrow'), title: t('guide.hero.title', { forum: name }) };
+    hero = {
+      eyebrow: t(isWordPress(context) ? 'guide.hero.eyebrow.wordpress' : 'guide.hero.eyebrow'),
+      title: t('guide.hero.title', { forum: name })
+    };
   }
   if (card) {
     card.nextStep = needsAccess && !providerReady;

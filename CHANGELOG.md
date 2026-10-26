@@ -4,6 +4,9 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+- WordPress posts: summarize a post and its comments, and chat about them, on any WordPress site that leaves its public REST API open (for example doctorofcredit.com). The article is read as the opening post and every comment as a reply, 100 per page; reading it again asks the site only for what could have changed. Asking the whole site (the Agent) is not available on WordPress yet.
+
 ## [2.6.0] - 2026-10-26
 
 ### Added
