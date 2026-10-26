@@ -1142,7 +1142,7 @@ scenario(
     pageState: { url: 'https://example.com/', isSupportedSite: false },
     // Opened with the toolbar icon (activeTab): the panel probes the page.
     activeTab: true,
-    probe: { url: 'https://example.com/', isSupportedSite: false, basePath: '', forumName: '' }
+    probe: { url: 'https://example.com/', isDiscourse: false, basePath: '', forumName: '' }
   },
   async ({ page, check, shot }) => {
     check('not a forum', (await text(page, '#forumBarName')) === 'Not a Discourse forum');
@@ -1178,7 +1178,7 @@ scenario(
     tabTitle: 'Example',
     pageState: { url: 'https://example.com/', isSupportedSite: false },
     activeTab: true,
-    probe: { url: 'https://example.com/', isSupportedSite: false, basePath: '', forumName: '' }
+    probe: { url: 'https://example.com/', isDiscourse: false, basePath: '', forumName: '' }
   },
   async ({ page, check, shot }) => {
     check(
@@ -3043,7 +3043,7 @@ zhScenario(
     tabTitle: 'Example',
     pageState: { url: 'https://example.com/', isSupportedSite: false },
     activeTab: true,
-    probe: { url: 'https://example.com/', isSupportedSite: false, basePath: '', forumName: '' }
+    probe: { url: 'https://example.com/', isDiscourse: false, basePath: '', forumName: '' }
   },
   async ({ page, check, shot }) => {
     await zhScreen(page, check, 'not a forum', ['不是 Discourse 论坛', '此页面不是 Discourse 论坛']);

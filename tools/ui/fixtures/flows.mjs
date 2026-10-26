@@ -99,7 +99,7 @@ export const oaiState = {
   forumName: 'OpenAI Developer Community',
   topicKey: 'community.openai.com/t/4242'
 };
-export const oaiProbe = { url: OAI_TOPIC, isSupportedSite: true, basePath: '', forumName: 'OpenAI Developer Community' };
+export const oaiProbe = { url: OAI_TOPIC, isDiscourse: true, basePath: '', forumName: 'OpenAI Developer Community' };
 export const accessOptions = {
   store: configuredStore,
   granted: [],
