@@ -294,7 +294,10 @@ scenario(
     await shot('fetching');
     check('copy post waits for the read', await page.$eval('#copyPostBtn', b => b.disabled));
     // The background saves the post once it is read, before the AI is asked.
-    await seedHistory(page, savedSessionHistory({ ...savedSession, summary: '', summaryUpdatedAt: 0, history: [], source: 'Full post text' }));
+    await seedHistory(
+      page,
+      savedSessionHistory({ ...savedSession, summary: '', summaryUpdatedAt: 0, history: [], source: 'Full post text' })
+    );
     await page.evaluate(() => {
       const task = {
         id: 'sum-1',
