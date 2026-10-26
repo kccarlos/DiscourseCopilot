@@ -9,6 +9,7 @@ import {
   siteUrlFromPageUrl
 } from '../shared/forum-site.mjs';
 import { SITE_TYPE, normalizeSiteType, siteTypeSupportsAgent } from '../shared/site-types.mjs';
+import { redditPostFromUrl } from '../shared/reddit-page.mjs';
 import { t } from '../shared/i18n.mjs';
 
 function pageOrigin(value) {
@@ -33,6 +34,10 @@ function pageLocation(value) {
 function describesTab(pageState, tabUrl) {
   if (!tabUrl || typeof pageState.url !== 'string' || !pageState.url) {
     return true;
+  }
+  if (normalizeSiteType(pageState.siteType) === SITE_TYPE.REDDIT && pageState.isSupportedSite === true) {
+    // A Reddit post is the same post whatever host or comment permalink shows it.
+    return redditPostFromUrl(tabUrl)?.topicId === (pageState.topicId ? String(pageState.topicId) : undefined);
   }
   if (pageState.isSupportedSite !== true || normalizeSiteType(pageState.siteType) === SITE_TYPE.WORDPRESS) {
     // A WordPress post has one fixed address.

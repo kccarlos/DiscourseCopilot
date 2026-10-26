@@ -11,6 +11,7 @@
 import { DEFAULT_SITE_TYPE } from '../../shared/site-types.mjs';
 import { createDiscourseAdapter } from './discourse.mjs';
 import { createWordPressSiteAdapter } from './wordpress.mjs';
+import { createRedditSiteAdapter } from './reddit.mjs';
 
 export { DEFAULT_SITE_TYPE };
 
@@ -47,5 +48,5 @@ export function createSiteRegistry(adapters) {
 }
 
 export function createDefaultSiteRegistry(options) {
-  return createSiteRegistry([createDiscourseAdapter(options), createWordPressSiteAdapter(options)]);
+  return createSiteRegistry([createDiscourseAdapter(options), createWordPressSiteAdapter(options), createRedditSiteAdapter(options)]);
 }

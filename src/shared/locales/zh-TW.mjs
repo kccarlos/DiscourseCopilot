@@ -189,6 +189,7 @@ export default {
   'guide.maybeEyebrow': '看起來像 Discourse 話題',
   'guide.foundEyebrow': '發現 Discourse 論壇',
   'guide.foundEyebrow.wordpress': '發現 WordPress 網站',
+  'guide.foundEyebrow.reddit': '發現 Reddit',
   'guide.maybeTitle': '這是 Discourse 論壇嗎？',
   'guide.allowTitle': '在 {forum} 上啟用 DiscourseCopilot',
   'guide.maybeText':
@@ -207,6 +208,7 @@ export default {
   'guide.notForum.text': 'DiscourseCopilot 適用於以 Discourse 架設的論壇。開啟其中任意話題即可開始，例如：',
   'guide.hero.eyebrow': 'Discourse 論壇',
   'guide.hero.eyebrow.wordpress': 'WordPress 網站',
+  'guide.hero.eyebrow.reddit': 'Reddit',
   'guide.hero.title': '你正在瀏覽 {forum}',
   'guide.checklist.step2': '第 2 步，共 2 步：允許存取此論壇',
   'guide.checklist.step1': '第 1 步，共 2 步：連線 AI 供應商',

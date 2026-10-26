@@ -5,7 +5,8 @@
 
 export const SITE_TYPE = Object.freeze({
   DISCOURSE: 'discourse',
-  WORDPRESS: 'wordpress'
+  WORDPRESS: 'wordpress',
+  REDDIT: 'reddit'
 });
 
 export const DEFAULT_SITE_TYPE = SITE_TYPE.DISCOURSE;

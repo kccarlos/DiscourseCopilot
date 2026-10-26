@@ -193,6 +193,7 @@ export default {
   'guide.maybeEyebrow': 'Looks like a Discourse topic',
   'guide.foundEyebrow': 'Discourse forum found',
   'guide.foundEyebrow.wordpress': 'WordPress site found',
+  'guide.foundEyebrow.reddit': 'Reddit found',
   'guide.maybeTitle': 'Is this a Discourse forum?',
   'guide.allowTitle': 'Allow DiscourseCopilot on {forum}',
   'guide.maybeText':
@@ -211,6 +212,7 @@ export default {
   'guide.notForum.text': 'DiscourseCopilot works on forums built with Discourse. Open a topic on one to get started, for example:',
   'guide.hero.eyebrow': 'Discourse forum',
   'guide.hero.eyebrow.wordpress': 'WordPress site',
+  'guide.hero.eyebrow.reddit': 'Reddit',
   'guide.hero.title': 'You’re on {forum}',
   'guide.checklist.step2': 'Step 2 of 2: Allow access to this forum',
   'guide.checklist.step1': 'Step 1 of 2: Connect an AI provider',

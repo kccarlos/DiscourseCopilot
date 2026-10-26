@@ -9,6 +9,7 @@ import { extractForumTopicId } from '../shared/topic-route.mjs';
 import { buildTopicKey, forumDisplayName, normalizeBasePath, siteUrlFromPageUrl } from '../shared/forum-site.mjs';
 import { SITE_TYPE } from '../shared/site-types.mjs';
 import { wordPressPageFromFacts } from '../shared/wordpress-page.mjs';
+import { redditPageFromUrl } from '../shared/reddit-page.mjs';
 
 /**
  * Runs in the page (serialized by executeScript): must not reference
@@ -44,6 +45,23 @@ export function probeDiscoursePage() {
 export function pageStateFromProbe(result) {
   if (!result || typeof result !== 'object' || typeof result.url !== 'string') {
     return null;
+  }
+  const reddit = redditPageFromUrl(result.url);
+  if (reddit) {
+    return {
+      url: result.url,
+      isSupportedSite: true,
+      siteType: reddit.siteType,
+      isForumPage: true,
+      isForumTopic: Boolean(reddit.postId),
+      postId: reddit.postId,
+      topicId: reddit.postId,
+      siteUrl: reddit.siteUrl,
+      basePath: '',
+      forumName: forumDisplayName(reddit.siteUrl, reddit.forumName),
+      topicKey: reddit.postId ? buildTopicKey(reddit.siteUrl, reddit.postId) : '',
+      detectedBy: 'probe'
+    };
   }
   if (result.isDiscourse !== true) {
     const wordpress = wordPressPageFromFacts(result.wordpress, result.url);
