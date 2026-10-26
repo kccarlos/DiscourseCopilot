@@ -18,6 +18,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
   <img src="https://img.shields.io/badge/Manifest-V3-4285F4?logo=googlechrome&logoColor=white" alt="Chrome extension, Manifest V3">
   <a href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac"><img src="https://img.shields.io/chrome-web-store/users/dpngnaiiofobfjleabbhnfmdflddnhac?label=Chrome%20users&logo=googlechrome&logoColor=white" alt="Chrome Web Store users"></a>
+  <a href="https://linux.do/t/topic/3078486"><img src="https://img.shields.io/badge/LinuxDO-community-FFB003?logo=discourse&logoColor=white" alt="LinuxDO community"></a>
   <a href="https://github.com/kccarlos/DiscourseCopilot/stargazers"><img src="https://img.shields.io/github/stars/kccarlos/DiscourseCopilot?style=social" alt="GitHub stars"></a>
 </p>
 
