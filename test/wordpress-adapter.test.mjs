@@ -166,6 +166,13 @@ test('an article with no comments is one page', async () => {
   assert.equal(result.truncated, false);
 });
 
+test('an article with no comments counts as unchanged on a second read', async () => {
+  const site = fakeSite({ commentCount: 0 });
+  const first = await read(site);
+  const again = await read(site, { cachedPages: first.rawPages, knownTotalPosts: first.totalPosts });
+  assert.equal(again.unchanged, true);
+});
+
 test('nothing new: only the article and the first comment page are read again', async () => {
   const site = fakeSite();
   const first = await read(site);

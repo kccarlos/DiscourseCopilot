@@ -50,8 +50,17 @@ function attribute(tag, name) {
   return match ? decodeEntities(match[2] ?? match[3] ?? match[4] ?? '') : '';
 }
 
-/** Plain text of an HTML fragment. Blank-line runs are capped at one blank line. */
-export function htmlToText(html) {
+function tidy(text) {
+  return text
+    .replace(/[\t\f\v\u00a0 ]+/g, ' ')
+    .replace(/ ?\n ?/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// Tags become text structure; entities stay encoded so a literal "<" (as
+// "&lt;") is never mistaken for a tag by a later pass.
+function convert(html) {
   let text = String(html ?? '');
   text = text.replace(/<!--[\s\S]*?-->/g, '');
   text = text.replace(/<(script|style|noscript|template)\b[\s\S]*?<\/\1\s*>/gi, '');
@@ -70,7 +79,7 @@ export function htmlToText(html) {
   text = text.replace(/<br\s*\/?>/gi, '\n');
   text = text.replace(/<li\b[^>]*>/gi, '\n- ');
   text = text.replace(/<blockquote\b[^>]*>([\s\S]*?)<\/blockquote\s*>/gi, (_match, inner) => {
-    const quoted = htmlToText(inner)
+    const quoted = tidy(convert(inner).replace(/<[^>]*>/g, ''))
       .split('\n')
       .map(line => (line ? `> ${line}` : '>'))
       .join('\n');
@@ -79,11 +88,10 @@ export function htmlToText(html) {
   text = text.replace(/<\/(p|div|h[1-6]|ul|ol|table|tr|pre|figure|section|article)\s*>/gi, '\n\n');
   text = text.replace(/<(p|div|h[1-6]|ul|ol|table|tr|pre|figure|section|article)\b[^>]*>/gi, '\n\n');
   text = text.replace(/<\/(td|th)\s*>/gi, ' | ');
-  text = text.replace(/<[^>]*>/g, '');
-  text = decodeEntities(text);
-  return text
-    .replace(/[\t\f\v  ]+/g, ' ')
-    .replace(/ ?\n ?/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+  return text.replace(/<[^>]*>/g, '');
+}
+
+/** Plain text of an HTML fragment. Blank-line runs are capped at one blank line. */
+export function htmlToText(html) {
+  return tidy(decodeEntities(convert(html)));
 }

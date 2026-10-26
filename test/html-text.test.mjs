@@ -29,6 +29,7 @@ test('links keep their address unless the text already is the address', () => {
 
 test('quotes are prefixed, images named, scripts and comments dropped', () => {
   assert.equal(htmlToText('<blockquote><p>quoted</p><p>more</p></blockquote><p>reply</p>'), '> quoted\n>\n> more\n\nreply');
+  assert.equal(htmlToText('<blockquote><p>I &lt;3 this -&gt; that</p></blockquote>'), '> I <3 this -> that');
   assert.equal(htmlToText('<img src="a.png" alt="the card"><img src="b.png">'), '[image: the card][image]');
   assert.equal(htmlToText('a<script>evil()</script><style>p{}</style><!-- hidden -->b'), 'ab');
 });

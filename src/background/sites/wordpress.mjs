@@ -210,7 +210,7 @@ export function createWordPressFetcher({ fetchImpl, config = WORDPRESS_FETCH_CON
     // re-read. Without one, fewer comments than before means deletions.
     const cached = normalizeRawPages(cachedPages);
     const cachedByPage = new Map(cached.map(entry => [entry.page, entry]));
-    const knownComments = Number.isInteger(knownTotalPosts) && knownTotalPosts > 1 ? knownTotalPosts - 1 : null;
+    const knownComments = Number.isInteger(knownTotalPosts) && knownTotalPosts >= 1 ? knownTotalPosts - 1 : null;
     const knownCovered = knownComments === null ? null : truncated ? Math.min(knownComments, coveredComments) : knownComments;
     const articleUnchanged = UPDATED_LINE.exec(cachedByPage.get(1)?.content ?? '')?.[1] === (timestamp(article.modified_gmt) || 'unknown');
     const haveEveryPage = Array.from({ length: pagesToRead }, (_, index) => cachedByPage.has(index + 1)).every(Boolean);
