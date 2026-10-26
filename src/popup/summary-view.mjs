@@ -31,7 +31,7 @@ export class SummaryView {
    * @param {Map<string, string>} deps.streams streamed text per topic task ID
    * @param {object} deps.hooks updateControls, beginOperation, promptSetup,
    *   dismissSetupSuccess, markBackgroundUnavailable, handleBackgroundError,
-   *   reloadCurrentSession
+   *   reloadCurrentSession, loadPostSource
    */
   constructor({ state, tasks, config, status, markdown, operations, streams, hooks }) {
     this.state = state;
@@ -229,6 +229,9 @@ export class SummaryView {
     }
     if (task.phase === 'generating' && task.type === TASK_TYPE.SUMMARY) {
       this.revealSummaryCard();
+      if (!this.state.session?.source) {
+        void this.hooks.loadPostSource?.();
+      }
       if (!this.state.session?.summary && !this.streams.get(task.id)) {
         $('summaryDisplay').innerHTML = `<p class="streaming-placeholder">${t('summary.waitingAi')}</p>`;
       }

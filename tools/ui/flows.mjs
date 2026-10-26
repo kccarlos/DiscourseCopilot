@@ -292,6 +292,12 @@ scenario(
     check('progress label', (await text(page, '#fetchProgressLabel')).includes('10 of 40'), await text(page, '#fetchProgressLabel'));
     check('summarize busy', await page.$eval('#summarizeBtn', b => b.disabled));
     await shot('fetching');
+    check('copy post waits for the read', await page.$eval('#copyPostBtn', b => b.disabled));
+    // The background saves the post once it is read, before the AI is asked.
+    await seedHistory(
+      page,
+      savedSessionHistory({ ...savedSession, summary: '', summaryUpdatedAt: 0, history: [], source: 'Full post text' })
+    );
     await page.evaluate(() => {
       const task = {
         id: 'sum-1',
@@ -323,6 +329,7 @@ scenario(
     await page.waitForTimeout(300);
     check('summary streamed', (await text(page, '#summaryDisplay')).includes('caching'), await text(page, '#summaryDisplay'));
     check('generating status', (await text(page, '#status')).includes('creating your summary'), await text(page, '#status'));
+    check('copy post enabled while the AI writes', await page.$eval('#copyPostBtn', b => !b.disabled));
     await shot('streaming');
     // Rich markdown and hostile HTML/URLs from the model go through marked and the sanitizer.
     await page.evaluate(() => {

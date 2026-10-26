@@ -185,6 +185,7 @@ class DiscourseCopilotPopup {
       markBackgroundUnavailable: error => this.background.markUnavailable(error),
       handleBackgroundError: error => this.background.handleError(error),
       reloadCurrentSession: () => this.topic.reload(),
+      loadPostSource: () => this.topic.refreshSource(),
       renderTaskState: task => this.topic.renderTaskState(task),
       persistSession: () => this.topic.persist(),
       cancelTask: (taskId, options) => this.cancelTask(taskId, options),
