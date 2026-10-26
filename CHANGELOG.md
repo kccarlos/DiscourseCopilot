@@ -4,6 +4,8 @@ Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-10-26
+
 ### Added
 - LM Studio settings take an optional API key, for LM Studio or another OpenAI-compatible server that requires one. It is sent as `Authorization: Bearer <key>` with the connection test, the model list and every request; left empty, nothing changes. ([#14](https://github.com/kccarlos/DiscourseCopilot/issues/14))
 
@@ -136,7 +138,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.2...v2.4.0
 [2.3.2]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.1...v2.3.2

@@ -1,6 +1,6 @@
 {
   "name": "discourse-copilot",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "private": true,
   "type": "module",
   "description": "Chrome extension that provides AI summaries and a research copilot for any Discourse forum",
