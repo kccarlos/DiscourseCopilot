@@ -4,9 +4,14 @@ Notable changes to Forumind (formerly DiscourseCopilot). The format follows [Kee
 
 ## [Unreleased]
 
+DiscourseCopilot is now Forumind: it also reads WordPress posts and Reddit threads, and asks the forum on them.
+
 ### Changed
 - The privacy policy and the store's permission notes now cover WordPress sites and Reddit: what is read there, which addresses are requested, and that Reddit is read with your signed-in session.
-- Renamed to Forumind (formerly DiscourseCopilot). The extension ID, your settings and your saved history stay as they are.
+- Renamed to Forumind (formerly DiscourseCopilot). The extension ID, your settings and your saved history stay as they are. The button on forum pages says Forumind, and downloaded summaries are named `forumind-<site>-<id>.txt`.
+- In an Ask the forum answer, a source that is one of your saved summaries opens in the side panel instead of on the site.
+- Chat answers are laid out like summaries: headings, lists and quotes.
+- Pages Forumind can't read say so ("Not a supported site") instead of "Not a Discourse forum".
 
 ### Added
 - WordPress posts: summarize a post and its comments, and chat about them, on any WordPress site that leaves its public REST API open (for example doctorofcredit.com). The article is read as the opening post and every comment as a reply, 100 per page; reading it again asks the site only for what could have changed. The Agent works on WordPress too: it searches posts (by keyword, category and date), searches reader comments, lists the newest posts and reads a post with its comments, and its answers cite the posts it read.

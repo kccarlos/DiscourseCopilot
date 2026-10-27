@@ -206,7 +206,7 @@ export default {
   'guide.allowButton': 'Allow access to {host}',
   'guide.currentPage': 'Current page',
   'guide.unchecked.title': 'Check this page',
-  'guide.unchecked.text': 'Click the **Forumind** icon in your toolbar to check whether this page is a Discourse forum.',
+  'guide.unchecked.text': 'Click the **Forumind** icon in your toolbar to check whether Forumind can read this page.',
   'guide.unchecked.tip': 'Tip: pin Forumind from the puzzle-piece menu so the icon is always in reach.',
   'guide.notForum.title': 'Forumind can’t read this page',
   'guide.notForum.text':
@@ -326,9 +326,9 @@ export default {
   'forumBar.unknown': 'Unknown forum',
   'forumBar.switched': 'Switched to {forum}',
   'forumBar.notChecked': 'Page not checked yet',
-  'forumBar.notForum': 'Not a Discourse forum',
+  'forumBar.notForum': 'Not a supported site',
   'forumBar.clickIcon': 'Click the Forumind icon in the toolbar to check this page',
-  'forumBar.pageNotForum': 'This page is not a Discourse forum',
+  'forumBar.pageNotForum': 'Forumind can’t read this page',
   'forumBar.thisPage': 'This page',
   // Summary view
   'summary.metaEmpty': 'Your saved overview',
@@ -383,7 +383,7 @@ export default {
   'agent.searchThisForum': 'Search this forum',
   'agent.askAbout': 'Ask a question about {forum}…',
   'agent.askAboutThis': 'Ask a question about this forum…',
-  'agent.openForumPage': 'Open a Discourse forum page to ask the forum',
+  'agent.openForumPage': 'Open a Discourse forum, WordPress post or Reddit page to ask the forum',
   'agent.notOnThisSite':
     'Asking the whole site isn’t available on this kind of site yet; you can still summarize this page and chat about it',
   'agent.submitting': 'Submitting Agent research task…',
