@@ -1,4 +1,4 @@
-// The "show the DiscourseCopilot button on forum pages" preference, kept out
+// The "show the Forumind button on forum pages" preference, kept out
 // of preferences.mjs so the content script (injected into every allowed forum
 // page) doesn't bundle the interface strings that module imports.
 

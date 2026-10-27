@@ -92,7 +92,7 @@ for (const page of ['popup/popup.html', 'settings/settings.html']) {
       .replace(/<(script|style|svg)[\s\S]*?<\/\1>/g, '')
       // Markup inside a data-i18n-html element belongs to its message.
       .replace(/<(\w+)[^>]*data-i18n-html[^>]*>[\s\S]*?<\/\1>/g, '');
-    const allowed = new Set(['DiscourseCopilot', 'Discourse', 'Copilot', '?', '↗', '×', '✓', '–', '·', '1', '2', '3', '4']);
+    const allowed = new Set(['Forumind', 'Discourse', 'Copilot', '?', '↗', '×', '✓', '–', '·', '1', '2', '3', '4']);
     const leaks = [];
     // A text node belongs to the closest opening tag before it.
     for (const match of html.matchAll(/<([a-z][\w-]*)([^>]*)>([^<]+)/gi)) {

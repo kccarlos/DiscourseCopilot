@@ -336,7 +336,7 @@ export class SummaryView {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `discourse-copilot-${exportHostLabel(pageContext?.siteUrl || session.siteUrl)}-${pageContext.postId}.txt`;
+    anchor.download = `forumind-${exportHostLabel(pageContext?.siteUrl || session.siteUrl)}-${pageContext.postId}.txt`;
     anchor.click();
     URL.revokeObjectURL(url);
   }

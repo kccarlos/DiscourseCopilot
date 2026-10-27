@@ -73,7 +73,7 @@ jobs:
         id: zip
         run: |
           test -f dist/manifest.json
-          ZIP="discourse-copilot-${{ steps.version.outputs.version }}.zip"
+          ZIP="forumind-${{ steps.version.outputs.version }}.zip"
           (cd dist && zip -r -X "../$ZIP" .)
           unzip -l "$ZIP" | grep -E '\smanifest\.json$'
           echo "zip=$ZIP" >> "$GITHUB_OUTPUT"

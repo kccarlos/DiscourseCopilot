@@ -1,6 +1,6 @@
 // Whether the side panel can reach the background worker: the initial task
 // list, errors that mean the worker (or its database) must be restarted, and
-// the "Restart DiscourseCopilot" banner (#backgroundRecovery).
+// the "Restart Forumind" banner (#backgroundRecovery).
 import { DiscourseCopilotLogger } from '../shared/logger.js';
 import { isDatabaseCompatibilityError, isMissingRuntimeResponse, isRuntimeDisconnectedError } from './runtime-state.mjs';
 import { t } from '../shared/i18n.mjs';

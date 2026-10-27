@@ -164,7 +164,7 @@ test('the access error carries a code and an actionable message', () => {
   const error = createForumAccessError('https://forum.example.com/sub');
   assert.equal(error.code, FORUM_ACCESS_ERROR_CODE);
   assert.equal(error.needsUserAction, true);
-  assert.equal(error.message, 'Allow DiscourseCopilot on forum.example.com in the side panel, then try again.');
+  assert.equal(error.message, 'Allow Forumind on forum.example.com in the side panel, then try again.');
   assert.ok(isForumAccessError(error));
   assert.ok(isForumAccessError({ code: FORUM_ACCESS_ERROR_CODE, message: 'stored' }));
   assert.ok(!isForumAccessError(new Error('other')));

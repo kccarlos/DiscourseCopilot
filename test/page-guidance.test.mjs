@@ -46,8 +46,8 @@ test('each page gets exactly one state', () => {
 test('a page Chrome hides asks for the toolbar icon, with the pin tip', () => {
   const view = derivePageGuidance(contexts.unchecked);
   assert.equal(view.card.title, 'Check this page');
-  assert.match(view.card.text, /Click the \*\*DiscourseCopilot\*\* icon in your toolbar/);
-  assert.match(view.card.tip, /pin DiscourseCopilot from the puzzle-piece menu/);
+  assert.match(view.card.text, /Click the \*\*Forumind\*\* icon in your toolbar/);
+  assert.match(view.card.tip, /pin Forumind from the puzzle-piece menu/);
   assert.equal(view.card.button, '');
   assert.equal(view.primary, 'none');
   assert.equal(view.showHero, false);
@@ -57,7 +57,7 @@ test('a page Chrome hides asks for the toolbar icon, with the pin tip', () => {
 test('a page that is not a forum explains Discourse and offers two examples, no actions', () => {
   const view = derivePageGuidance(contexts.notForum);
   assert.equal(view.card.title, 'This page isn’t a Discourse forum');
-  assert.match(view.card.text, /forums built with Discourse/);
+  assert.match(view.card.text, /Discourse forums, WordPress sites .* and Reddit/);
   assert.deepEqual(view.card.links, [
     { label: 'meta.discourse.org', href: 'https://meta.discourse.org/' },
     { label: 'community.openai.com', href: 'https://community.openai.com/' }
@@ -70,7 +70,7 @@ test('a page that is not a forum explains Discourse and offers two examples, no 
 
 test('a Discourse topic without access: allow card with a 3-step guide ending in Create summary', () => {
   const view = derivePageGuidance(contexts.allowTopic, { forumName: FORUM });
-  assert.equal(view.card.title, `Allow DiscourseCopilot on ${FORUM}`);
+  assert.equal(view.card.title, `Allow Forumind on ${FORUM}`);
   assert.match(view.card.text, /read topics and search this forum using your current login/);
   assert.deepEqual(view.card.steps, [
     'Click **Allow access** below.',
@@ -89,13 +89,13 @@ test('a Discourse topic without access: allow card with a 3-step guide ending in
 
 test('a forum home page without access ends the guide with opening a topic or asking', () => {
   const view = derivePageGuidance(contexts.allowHome);
-  assert.equal(view.card.title, `Allow DiscourseCopilot on ${FORUM}`, 'falls back to the reported forum name');
+  assert.equal(view.card.title, `Allow Forumind on ${FORUM}`, 'falls back to the reported forum name');
   assert.equal(view.card.steps[2], 'Then open a topic, or ask the forum a question.');
 });
 
 test('the forum name falls back to the host', () => {
   const context = { ...contexts.allowTopic, forumName: '' };
-  assert.equal(derivePageGuidance(context).card.title, 'Allow DiscourseCopilot on community.openai.com');
+  assert.equal(derivePageGuidance(context).card.title, 'Allow Forumind on community.openai.com');
 });
 
 test('a topic URL that could not be checked asks "Is this a Discourse forum?" with the same button', () => {

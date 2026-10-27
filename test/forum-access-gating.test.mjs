@@ -100,7 +100,7 @@ test('enqueue refuses a forum that is not enabled, before queuing anything', asy
   const request = { taskType: 'agent', siteUrl: `${SITE}/`, question: 'What changed?', provider: 'openai', settings: {} };
   await assert.rejects(service.enqueue(request), error => {
     assert.equal(error.code, FORUM_ACCESS_ERROR_CODE);
-    assert.equal(error.message, 'Allow DiscourseCopilot on forum.example.com in the side panel, then try again.');
+    assert.equal(error.message, 'Allow Forumind on forum.example.com in the side panel, then try again.');
     return true;
   });
   assert.equal(service.list().length, 0);
@@ -140,7 +140,7 @@ test('a summary for a forum without access fails fast with the actionable error'
   });
   await assert.rejects(
     executeSummaryTask(summaryTask, { signal: new AbortController().signal, report: noopReport }),
-    error => error.code === FORUM_ACCESS_ERROR_CODE && /Allow DiscourseCopilot on forum\.example\.com/.test(error.message)
+    error => error.code === FORUM_ACCESS_ERROR_CODE && /Allow Forumind on forum\.example\.com/.test(error.message)
   );
   assert.equal(fetched, 0, 'the forum is never requested');
 });
@@ -223,7 +223,7 @@ test('an Agent run waits for access, then Continue finishes it', async () => {
     const waiting = queue.list().find(task => task.id === 'a1');
     assert.equal(waiting.status, TASK_STATUS.WAITING_USER_ACTION);
     assert.equal(waiting.statusText, FORUM_ACCESS_REQUIRED_TEXT);
-    assert.match(waiting.error, /Allow DiscourseCopilot on forum\.example\.com/);
+    assert.match(waiting.error, /Allow Forumind on forum\.example\.com/);
     const activity = await activities.get('a1');
     assert.equal(activity.status, AGENT_ACTIVITY_STATUS.WAITING_USER_ACTION);
     assert.equal(activity.error.code, FORUM_ACCESS_ERROR_CODE);

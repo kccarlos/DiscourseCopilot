@@ -1,6 +1,6 @@
 // The page guidance card (#pageGuide) and the "Get started" checklist: one
 // card per page state, derived by page-guidance.mjs. On a Discourse forum
-// without access it is the "Allow DiscourseCopilot on {forum}" card, whose
+// without access it is the "Allow Forumind on {forum}" card, whose
 // button asks Chrome for access to the forum's origin.
 // chrome.permissions.request() only works inside the click, so the handler
 // calls it before anything else.

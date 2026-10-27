@@ -1,22 +1,22 @@
 {
   "extName": {
-    "message": "DiscourseCopilot",
+    "message": "Forumind",
     "description": "Extension name shown in the Chrome Web Store and chrome://extensions."
   },
   "extDescription": {
-    "message": "AI summaries and research copilot for any Discourse forum",
+    "message": "Your AI assistant for the comment section. Formerly DiscourseCopilot.",
     "description": "Short description (max 132 characters)."
   },
   "actionTitle": {
-    "message": "DiscourseCopilot",
+    "message": "Forumind",
     "description": "Tooltip of the toolbar button."
   },
   "launcherAriaLabel": {
-    "message": "Open DiscourseCopilot panel",
+    "message": "Open Forumind panel",
     "description": "Accessible name of the in-page button."
   },
   "launcherTitle": {
-    "message": "Open DiscourseCopilot",
+    "message": "Open Forumind",
     "description": "Tooltip of the in-page button."
   },
   "launcherOpening": {
@@ -32,7 +32,7 @@
     "description": "In-page button label after opening failed."
   },
   "launcherOpenFailed": {
-    "message": "Unable to open DiscourseCopilot",
+    "message": "Unable to open Forumind",
     "description": "Tooltip when the side panel could not be opened."
   }
 }

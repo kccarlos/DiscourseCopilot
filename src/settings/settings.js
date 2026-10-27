@@ -82,7 +82,7 @@ class DiscourseCopilotSettings {
     try {
       await this.store.load();
     } catch (error) {
-      console.error('DiscourseCopilot Settings: Failed to initialize:', error);
+      console.error('Forumind Settings: Failed to initialize:', error);
       loadError = error;
     }
     this.store.selectProvider(this.store.config.provider);
@@ -375,7 +375,7 @@ class DiscourseCopilotSettings {
         this.notify(t('settings.status.savedServerDenied', { detail: serverAccessDeniedText(server.serverUrl) }), 'warning', false);
       }
     } else {
-      console.error('DiscourseCopilot Settings: Error saving settings:', result.error);
+      console.error('Forumind Settings: Error saving settings:', result.error);
       this.dispatch({ type: 'save-failed', message: result.error?.message || t('settings.unknownError') });
     }
   }
@@ -392,7 +392,7 @@ class DiscourseCopilotSettings {
     if (result.ok) {
       this.dispatch({ type: 'test-passed', providerName });
     } else {
-      console.error(`DiscourseCopilot Settings: ${provider} connection test failed:`, result.error);
+      console.error(`Forumind Settings: ${provider} connection test failed:`, result.error);
       this.dispatch({
         type: 'test-failed',
         message: serverAllowed ? result.error?.message || t('settings.unknownError') : serverAccessDeniedText(server.serverUrl)
@@ -407,7 +407,7 @@ class DiscourseCopilotSettings {
     this.dispatch({ type: 'reset-started' });
     const result = await this.store.reset();
     if (!result.ok) {
-      console.error('DiscourseCopilot Settings: Error resetting settings:', result.error);
+      console.error('Forumind Settings: Error resetting settings:', result.error);
       this.dispatch({ type: 'reset-failed', message: result.error?.message || t('settings.unknownError') });
       $('resetBtn').focus();
       return;

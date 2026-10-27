@@ -1,6 +1,6 @@
 // Settings page messages (keys start with `settings.`).
 export default {
-  'settings.title': 'DiscourseCopilot 设置',
+  'settings.title': 'Forumind 设置',
   'settings.heading': '设置',
   'settings.loading': '加载中…',
   'settings.unknownError': '未知错误',
@@ -63,7 +63,7 @@ export default {
   'settings.prompt.languageHelp':
     '总结、追问回答和“全站搜索”回答所使用的语言。选择“自动”时，总结使用讨论所用的语言，回答则使用你提问时的语言。',
   'settings.prompt.customLabel': '自定义指令：',
-  'settings.prompt.customPlaceholder': '留空则使用 DiscourseCopilot 内置的总结指令。',
+  'settings.prompt.customPlaceholder': '留空则使用 Forumind 内置的总结指令。',
   'settings.prompt.customHelp': '此提示词适用于新的总结、对话和“全站搜索”回答。留空则使用内置提示词；上方的回答语言设置仍然有效。',
   'settings.research.lede': '每次全站搜索时，智能体最多可以做多少工作。',
   'settings.research.restoreAria': '恢复“全站搜索”的默认值',
@@ -127,9 +127,9 @@ export default {
   'settings.restore.fallbackSection': '此部分',
   'settings.restore.done': '{section}已恢复为默认值。保存后生效。',
   'settings.forumAccess.lede':
-    '你已启用的论坛。DiscourseCopilot 只会读取这些论坛，并使用你在这些论坛上的登录状态。移除访问权限不会删除已保存的总结和回答；之后可以在侧边栏中重新启用论坛。',
+    '你已启用的论坛。Forumind 只会读取这些论坛，并使用你在这些论坛上的登录状态。移除访问权限不会删除已保存的总结和回答；之后可以在侧边栏中重新启用论坛。',
   'settings.forumAccess.empty': '你还没有启用任何论坛。请打开一个 Discourse 论坛，并在侧边栏中点击“允许访问”。',
-  'settings.forumAccess.showButton': '在论坛页面上显示 DiscourseCopilot 按钮',
+  'settings.forumAccess.showButton': '在论坛页面上显示 Forumind 按钮',
   'settings.forumAccess.showButtonHelp':
     '已启用论坛页面上的悬浮按钮，点击即可打开侧边栏。你始终可以通过工具栏图标打开侧边栏。保存后会立即应用到已打开的论坛标签页。',
   'settings.forumAccess.saved.one': '{count} 项已保存内容',
@@ -147,7 +147,7 @@ export default {
   'settings.reset.button': '重置所有设置',
   'settings.reset.confirmText': '这会清除此页面上的所有服务商、API 密钥、模型、常用模型、提示词和偏好设置。已保存的总结和回答不会被删除。',
   'settings.reset.confirmButton': '全部重置',
-  'settings.footer.text': 'DiscourseCopilot 免费且开源。',
+  'settings.footer.text': 'Forumind 免费且开源。',
   'settings.footer.star': '★ 在 GitHub 上点星',
   'settings.footer.rate': '给它评分',
   'settings.actionBar.label': '保存设置',

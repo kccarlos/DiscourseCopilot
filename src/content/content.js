@@ -352,9 +352,9 @@ class DiscourseCopilotContent {
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.setAttribute('aria-label', message('launcherAriaLabel', 'Open DiscourseCopilot panel'));
-    button.title = message('launcherTitle', 'Open DiscourseCopilot');
-    button.innerHTML = `${LAUNCHER_LOGO_SVG}<span class="label">DiscourseCopilot</span>`;
+    button.setAttribute('aria-label', message('launcherAriaLabel', 'Open Forumind panel'));
+    button.title = message('launcherTitle', 'Open Forumind');
+    button.innerHTML = `${LAUNCHER_LOGO_SVG}<span class="label">Forumind</span>`;
     button.addEventListener('click', () => {
       void this.openPanel(button);
     });
@@ -374,12 +374,12 @@ class DiscourseCopilotContent {
         postId: this.postId
       });
       if (!response?.success) {
-        throw new Error(response?.error || message('launcherOpenFailed', 'Unable to open DiscourseCopilot'));
+        throw new Error(response?.error || message('launcherOpenFailed', 'Unable to open Forumind'));
       }
       label.textContent = message('launcherOpened', 'Opened');
     } catch (error) {
       label.textContent = message('launcherTryAgain', 'Try again');
-      button.title = error?.message || message('launcherOpenFailed', 'Unable to open DiscourseCopilot');
+      button.title = error?.message || message('launcherOpenFailed', 'Unable to open Forumind');
     } finally {
       window.setTimeout(() => {
         if (!button.isConnected) return;

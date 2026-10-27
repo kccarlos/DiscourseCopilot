@@ -4266,6 +4266,13 @@ select.model-switcher:hover:not(:disabled) {
     background: currentColor;
 }
 
+.whats-new .whats-new-support {
+    margin: 0 0 8px;
+    color: var(--dc-muted);
+    font-size: 12px;
+    line-height: 17px;
+}
+
 .whats-new-actions {
     display: flex;
     flex-wrap: wrap;

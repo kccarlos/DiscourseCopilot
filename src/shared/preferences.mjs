@@ -1,7 +1,7 @@
 // User preferences that tune how much work the extension does and how long it
 // remembers things: the Ask-the-forum agent's budget, how many raw pages of a
 // topic are read, and history retention; plus whether forum pages show the
-// DiscourseCopilot button. Pure functions only; the persisted
+// Forumind button. Pure functions only; the persisted
 // copy lives in the configuration model (config-state.mjs), which normalizes
 // it with normalizePreferences() on every read.
 //

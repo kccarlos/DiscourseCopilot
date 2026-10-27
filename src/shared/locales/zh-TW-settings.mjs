@@ -1,6 +1,6 @@
 // Settings page messages (keys start with `settings.`).
 export default {
-  'settings.title': 'DiscourseCopilot 設定',
+  'settings.title': 'Forumind 設定',
   'settings.heading': '設定',
   'settings.loading': '載入中…',
   'settings.unknownError': '未知錯誤',
@@ -63,7 +63,7 @@ export default {
   'settings.prompt.languageHelp':
     '摘要、追問回答和「全站搜尋」回答所使用的語言。選擇「自動」時，摘要使用討論所用的語言，回答則使用你提問時的語言。',
   'settings.prompt.customLabel': '自訂指令：',
-  'settings.prompt.customPlaceholder': '留空則使用 DiscourseCopilot 內建的摘要指令。',
+  'settings.prompt.customPlaceholder': '留空則使用 Forumind 內建的摘要指令。',
   'settings.prompt.customHelp': '此提示詞適用於新的摘要、對話和「全站搜尋」回答。留空則使用內建提示詞；上方的回答語言設定仍然有效。',
   'settings.research.lede': '每次全站搜尋時，AI 代理最多可以做多少工作。',
   'settings.research.restoreAria': '還原「全站搜尋」的預設值',
@@ -127,9 +127,9 @@ export default {
   'settings.restore.fallbackSection': '此部分',
   'settings.restore.done': '{section}已還原為預設值。儲存後生效。',
   'settings.forumAccess.lede':
-    '你已啟用的論壇。DiscourseCopilot 只會讀取這些論壇，並使用你在這些論壇上的登入狀態。移除存取權限不會刪除已儲存的摘要和回答；之後可以在側邊欄中重新啟用論壇。',
+    '你已啟用的論壇。Forumind 只會讀取這些論壇，並使用你在這些論壇上的登入狀態。移除存取權限不會刪除已儲存的摘要和回答；之後可以在側邊欄中重新啟用論壇。',
   'settings.forumAccess.empty': '你還沒有啟用任何論壇。請開啟一個 Discourse 論壇，並在側邊欄中點選「允許存取」。',
-  'settings.forumAccess.showButton': '在論壇頁面上顯示 DiscourseCopilot 按鈕',
+  'settings.forumAccess.showButton': '在論壇頁面上顯示 Forumind 按鈕',
   'settings.forumAccess.showButtonHelp':
     '已啟用論壇頁面上的浮動按鈕，點選即可開啟側邊欄。你始終可以透過工具列圖示開啟側邊欄。儲存後會立即套用到已開啟的論壇分頁。',
   'settings.forumAccess.saved.one': '{count} 項已儲存內容',
@@ -147,7 +147,7 @@ export default {
   'settings.reset.button': '重設所有設定',
   'settings.reset.confirmText': '這會清除此頁面上的所有供應商、API 金鑰、模型、常用模型、提示詞和偏好設定。已儲存的摘要和回答不會被刪除。',
   'settings.reset.confirmButton': '全部重設',
-  'settings.footer.text': 'DiscourseCopilot 免費且開源。',
+  'settings.footer.text': 'Forumind 免費且開源。',
   'settings.footer.star': '★ 在 GitHub 上給星',
   'settings.footer.rate': '給它評分',
   'settings.actionBar.label': '儲存設定',

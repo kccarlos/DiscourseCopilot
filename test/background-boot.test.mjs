@@ -296,7 +296,7 @@ test('background service registers queue and action listeners during startup', a
   const denied = await deniedResponse;
   assert.equal(denied.success, false);
   assert.equal(denied.code, 'FORUM_ACCESS_NOT_GRANTED');
-  assert.match(denied.error, /Allow DiscourseCopilot on forum\.example\.org/);
+  assert.match(denied.error, /Allow Forumind on forum\.example\.org/);
 
   const rejectedResponse = new Promise(resolve => {
     listener(

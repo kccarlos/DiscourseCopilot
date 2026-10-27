@@ -64,13 +64,13 @@ export function buildReleaseNotes(changelog, version) {
 
 ## Install
 
-- **Chrome Web Store (recommended):** [Add DiscourseCopilot to Chrome](${STORE_URL}). Store updates appear only after Google's review, which can take from a few hours to several days.
-- **Microsoft Edge Add-ons:** [Add DiscourseCopilot to Edge](${EDGE_URL}). Updates appear after Microsoft's review.
+- **Chrome Web Store (recommended):** [Add Forumind to Chrome](${STORE_URL}). Store updates appear only after Google's review, which can take from a few hours to several days.
+- **Microsoft Edge Add-ons:** [Add Forumind to Edge](${EDGE_URL}). Updates appear after Microsoft's review.
 - **From this release:** download the zip below, unzip it, open \`chrome://extensions\` (\`edge://extensions\` in Edge), turn on **Developer mode** and click **Load unpacked**. Disable the store copy first if you have it, so the two don't conflict.
 
 **Full changelog:** ${links.join(' · ')}
 
-If DiscourseCopilot saves you time, a [rating on the Chrome Web Store](${STORE_URL}/reviews) or a [star on GitHub](${REPO_URL}) helps other forum readers find it.
+If Forumind saves you time, a [rating on the Chrome Web Store](${STORE_URL}/reviews) or a [star on GitHub](${REPO_URL}) helps other forum readers find it.
 `;
 }
 

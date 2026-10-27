@@ -5,11 +5,11 @@ const TRACE_ENABLED = Boolean(import.meta.env?.DEV);
 
 export const DiscourseCopilotLogger = {
   error(message, ...args) {
-    console.error(`[DiscourseCopilot ERROR] ${message}`, ...args);
+    console.error(`[Forumind ERROR] ${message}`, ...args);
   },
 
   warn(message, ...args) {
-    console.warn(`[DiscourseCopilot WARN] ${message}`, ...args);
+    console.warn(`[Forumind WARN] ${message}`, ...args);
   },
 
   // Diagnostic trace, printed as given (callers add their own prefix, e.g. "AI Service:").

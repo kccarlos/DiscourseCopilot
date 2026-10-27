@@ -96,10 +96,10 @@ test('Anthropic requests leave sampling parameters to the model', () => {
 });
 
 test('connection tests use each provider’s cheapest request shape', () => {
-  const openrouter = buildConnectionTest('openrouter', { apiKey: 'k', model: 'm' }, configs, { TITLE: 'DiscourseCopilot' });
+  const openrouter = buildConnectionTest('openrouter', { apiKey: 'k', model: 'm' }, configs, { TITLE: 'Forumind' });
   assert.equal(openrouter.url, 'https://openrouter.ai/api/v1/chat/completions');
   assert.equal(openrouter.options.headers.Authorization, 'Bearer k');
-  assert.equal(openrouter.options.headers['X-Title'], 'DiscourseCopilot');
+  assert.equal(openrouter.options.headers['X-Title'], 'Forumind');
   assert.equal('HTTP-Referer' in openrouter.options.headers, false, 'no "undefined" referer header');
 
   const anthropic = buildConnectionTest('anthropic', { apiKey: 'k', model: 'claude' }, configs);
@@ -193,10 +193,10 @@ test('the settings header only claims a saved configuration when it is usable', 
 test('setup success copy adapts to the current page', () => {
   assert.equal(setupSuccessMessage({ isForumTopic: true, isSupportedSite: true }), 'You’re set — press Create summary above.');
   assert.match(setupSuccessMessage({ isSupportedSite: true }), /Ask the forum above/);
-  assert.equal(setupSuccessMessage(null), 'You’re set. Open a topic on any Discourse forum to get started.');
+  assert.equal(setupSuccessMessage(null), 'You’re set. Open a post on a Discourse forum, WordPress site or Reddit to get started.');
   assert.equal(
     setupSuccessMessage({ pageHidden: true }),
-    'You’re set. Next, click the DiscourseCopilot icon in your toolbar on a Discourse forum.'
+    'You’re set. Next, click the Forumind icon in your toolbar on a Discourse forum.'
   );
   assert.equal(
     setupSuccessMessage({ isForumTopic: true, isSupportedSite: true, forumAccess: 'missing' }),
