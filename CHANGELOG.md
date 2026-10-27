@@ -4,6 +4,8 @@ Notable changes to Forumind (formerly DiscourseCopilot). The format follows [Kee
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-10-27
+
 DiscourseCopilot is now Forumind: it also reads WordPress posts and Reddit threads, and asks the forum on them.
 
 ### Changed
@@ -17,14 +19,10 @@ DiscourseCopilot is now Forumind: it also reads WordPress posts and Reddit threa
 - WordPress posts: summarize a post and its comments, and chat about them, on any WordPress site that leaves its public REST API open (for example doctorofcredit.com). The article is read as the opening post and every comment as a reply, 100 per page; reading it again asks the site only for what could have changed. The Agent works on WordPress too: it searches posts (by keyword, category and date), searches reader comments, lists the newest posts and reads a post with its comments, and its answers cite the posts it read.
 - Reddit posts: summarize a post and all its comments, and chat about them, while you're signed in to Reddit (comments hidden behind "more replies" are read too). The Agent searches a subreddit's posts and comments, lists its newest posts and reads a post with its comments.
 - After an update, the side panel shows a short "What's new" card at the top until you close it. Fresh installs don't see it.
+- LM Studio settings take an optional API key, for LM Studio or another OpenAI-compatible server that requires one. It is sent as `Authorization: Bearer <key>` with the connection test, the model list and every request; left empty, nothing changes. ([#14](https://github.com/kccarlos/DiscourseCopilot/issues/14))
 
 ### Fixed
 - Copy full post is available as soon as the post has been read, instead of only after the summary finishes.
-
-## [2.6.0] - 2026-10-26
-
-### Added
-- LM Studio settings take an optional API key, for LM Studio or another OpenAI-compatible server that requires one. It is sent as `Authorization: Bearer <key>` with the connection test, the model list and every request; left empty, nothing changes. ([#14](https://github.com/kccarlos/DiscourseCopilot/issues/14))
 
 ## [2.5.0] - 2026-10-21
 
@@ -155,8 +153,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.6.0...HEAD
-[2.6.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.5.0...v2.6.0
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.5.0...v3.0.0
 [2.5.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.2...v2.4.0
 [2.3.2]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.1...v2.3.2
