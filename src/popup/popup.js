@@ -28,6 +28,7 @@
 //   background-link   reaching the background worker, restart banner
 //   undo-toast        Undo for deletes (saved summaries, Agent answers)
 //   star-prompt-card  the one-time rating / GitHub star card
+//   whats-new-card    the "What's new" card after an update
 import { DiscourseCopilotConstants } from '../shared/constants.js';
 import { subscribeForumAccess } from '../shared/forum-access.mjs';
 import { DiscourseCopilotLogger } from '../shared/logger.js';
@@ -59,6 +60,7 @@ import { ForumAccessCard } from './forum-access-card.mjs';
 import { BackgroundLink } from './background-link.mjs';
 import { UndoToast } from './undo-toast.mjs';
 import { StarPromptCard } from './star-prompt-card.mjs';
+import { WhatsNewCard } from './whats-new-card.mjs';
 import { GUIDANCE_STATE, derivePageGuidance } from './page-guidance.mjs';
 import { applyTopicControls, deriveTopicControls, deriveTopicHelper } from './topic-controls.mjs';
 import { localizeDocument, t, tn } from '../shared/i18n.mjs';
@@ -111,6 +113,7 @@ class DiscourseCopilotPopup {
     });
     this.settings = new SettingsView({ state });
     this.starPrompt = new StarPromptCard({ element: $('starPrompt') });
+    this.whatsNew = new WhatsNewCard({ element: $('whatsNew') });
     this.undo = new UndoToast({
       element: $('undoToast'),
       onError: error => {
@@ -306,6 +309,7 @@ class DiscourseCopilotPopup {
     this.background.mount();
     this.undo.mount();
     this.starPrompt.mount();
+    this.whatsNew.mount();
   }
 
   listen() {

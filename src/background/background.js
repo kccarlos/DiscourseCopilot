@@ -8,6 +8,7 @@ import { TASK_TYPE } from '../shared/task-record.mjs';
 import { CONFIG_STORAGE_KEYS, ConfigStore, readConfig } from '../shared/config-state.mjs';
 import { resolveRetention } from '../shared/preferences.mjs';
 import { recordSummaryCompleted } from '../shared/star-prompt.mjs';
+import { recordInstallEvent } from '../shared/whats-new.mjs';
 import { ForumRequestGovernor } from './forum-tools.mjs';
 import { AgentActivityStore } from './agent-activity-store.mjs';
 import { TaskService } from './task-service.mjs';
@@ -179,6 +180,9 @@ async function dropLegacyWildcardAccess() {
 // First install: Chrome opens the side panel only on a user action, so open
 // a welcome tab whose button opens the panel, where setup starts.
 chrome.runtime.onInstalled?.addListener(details => {
+  recordInstallEvent(chrome.storage.local, details?.reason).catch(error => {
+    console.warn("Background: Unable to record the What's new note:", error);
+  });
   if (details?.reason === 'update') {
     void dropLegacyWildcardAccess()
       .catch(error => console.warn('Background: Unable to drop legacy site access:', error))

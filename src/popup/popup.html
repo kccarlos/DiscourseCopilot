@@ -55,6 +55,22 @@
     <div id="forumSwitchAnnouncer" class="sr-only" role="status" aria-live="polite"></div>
 
     <div id="topicView">
+      <aside id="whatsNew" class="whats-new hidden" aria-labelledby="whatsNewTitle">
+        <div class="whats-new-copy">
+          <strong data-i18n="popup.whatsNew.title" id="whatsNewTitle">What’s new</strong>
+          <ul class="whats-new-list">
+            <li data-i18n="popup.whatsNew.sites">Now works beyond Discourse: WordPress posts with their comments (like Doctor of Credit), and Reddit posts while you’re signed in to Reddit.</li>
+            <li data-i18n="popup.whatsNew.agent">Ask the forum works on those sites too: it searches posts and comments, reads them and cites what it read.</li>
+            <li data-i18n="popup.whatsNew.copy">Copy full post works as soon as the post is read, without waiting for the summary.</li>
+          </ul>
+          <div class="whats-new-actions">
+            <button data-i18n="popup.whatsNew.ok" class="text-btn whats-new-ok" type="button" data-whats-new-action="ok">Got it</button>
+            <a data-i18n="popup.whatsNew.all" class="whats-new-link" href="https://github.com/kccarlos/DiscourseCopilot/releases" target="_blank" rel="noopener noreferrer" data-whats-new-action="all">All changes</a>
+          </div>
+        </div>
+        <button data-i18n-attr="aria-label:popup.dismiss" class="text-btn whats-new-close" type="button" aria-label="Dismiss" data-whats-new-action="dismiss">×</button>
+      </aside>
+
       <section class="topic-hero">
         <div class="topic-copy">
           <span data-i18n="popup.currentPost" id="heroEyebrow" class="eyebrow">Current post</span>

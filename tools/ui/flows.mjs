@@ -26,6 +26,7 @@ import {
 } from './fixtures/flows.mjs';
 import en from '../../src/shared/locales/en.mjs';
 import zhCN from '../../src/shared/locales/zh-CN.mjs';
+import { WHATS_NEW_NOTE } from '../../src/shared/whats-new.mjs';
 import { RATE_LIMIT_QUESTION, RATE_LIMIT_SOURCES, RATE_LIMIT_STEPS, agentActivity, agentAnswer } from './fixtures/forums.mjs';
 
 const args = parseArgs();
@@ -463,6 +464,52 @@ scenario(
   { store: { ...configuredStore, starPrompt: { summaries: 5, shownAt: 1 } } },
   async ({ page, check }) => {
     check('a card another panel showed is not shown again', !(await visible(page, '#starPrompt')));
+  }
+);
+
+// The "What's new" card after an update, until it is closed.
+scenario(
+  'popup-whats-new',
+  'src/popup/popup.html',
+  { store: { ...configuredStore, whatsNew: { pending: WHATS_NEW_NOTE, seen: '' } } },
+  async ({ page, check, shot }) => {
+    check('shown after an update', await visible(page, '#whatsNew'));
+    check('lists three changes', (await page.$$eval('#whatsNew li', items => items.length)) === 3);
+    check(
+      'links to the releases',
+      JSON.stringify(await page.$$eval('#whatsNew a', links => links.map(a => [a.target, new URL(a.href).pathname])))
+        === '[["_blank","/kccarlos/DiscourseCopilot/releases"]]'
+    );
+    await shot('shown');
+    await page.click('#whatsNew [data-whats-new-action="ok"]');
+    await page.waitForTimeout(100);
+    check('closed', !(await visible(page, '#whatsNew')));
+    check('saved as seen', await page.evaluate(note => window.__store.whatsNew.seen === note, WHATS_NEW_NOTE));
+  }
+);
+
+scenario('popup-whats-new-none', 'src/popup/popup.html', { store: { ...configuredStore } }, async ({ page, check }) => {
+  check('no card without an update', !(await visible(page, '#whatsNew')));
+});
+
+scenario(
+  'popup-whats-new-seen',
+  'src/popup/popup.html',
+  { store: { ...configuredStore, whatsNew: { pending: '', seen: WHATS_NEW_NOTE } } },
+  async ({ page, check }) => {
+    check('a closed card is not shown again', !(await visible(page, '#whatsNew')));
+  }
+);
+
+scenario(
+  'popup-whats-new-other-panel',
+  'src/popup/popup.html',
+  { store: { ...configuredStore, whatsNew: { pending: WHATS_NEW_NOTE, seen: '' } } },
+  async ({ page, check }) => {
+    // Closed in another panel: this one hides it too.
+    await page.evaluate(note => chrome.storage.local.set({ whatsNew: { pending: '', seen: note } }), WHATS_NEW_NOTE);
+    await page.waitForTimeout(200);
+    check('hidden after another panel closed it', !(await visible(page, '#whatsNew')));
   }
 );
 
@@ -3820,6 +3867,18 @@ zhScenario('popup-activity-empty', 'src/popup/popup.html', { store: configuredSt
   await zhScreen(page, check, 'saved empty', ['还没有已保存的内容', '保留一个总结']);
   await shot('saved-empty');
 });
+
+zhScenario(
+  'popup-whats-new',
+  'src/popup/popup.html',
+  { store: { ...configuredStore, whatsNew: { pending: WHATS_NEW_NOTE, seen: '' } } },
+  async ({ page, check, shot }) => {
+    check('title says 新功能', (await text(page, '#whatsNewTitle')) === '新功能');
+    check('button says 知道了', (await text(page, '#whatsNew [data-whats-new-action="ok"]')) === '知道了');
+    await zhScreen(page, check, 'What’s new card', ['新功能', '知道了']);
+    await shot('shown');
+  }
+);
 
 zhScenario('popup-clamp', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
   await seedFocus(page);

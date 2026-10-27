@@ -4215,6 +4215,89 @@ select.model-switcher:hover:not(:disabled) {
     line-height: 1;
 }
 
+/* "What's new" after an update: the star card's look, at the top. */
+.whats-new {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 12px 16px 0;
+    padding: 12px 8px 12px 14px;
+    border: 1px solid var(--dc-line);
+    border-radius: 12px;
+    background: var(--dc-bg);
+    animation: enter-up 240ms ease both;
+}
+
+.whats-new-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.whats-new-copy strong {
+    color: var(--dc-ink);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.whats-new .whats-new-list {
+    margin: 6px 0 8px;
+    padding: 0;
+    color: var(--dc-muted);
+    font-size: 12px;
+    line-height: 17px;
+    list-style: none;
+}
+
+.whats-new .whats-new-list li {
+    position: relative;
+    margin: 0 0 4px;
+    padding: 0 0 0 12px;
+    list-style: none;
+}
+
+.whats-new .whats-new-list li::before {
+    content: "";
+    position: absolute;
+    top: 6.5px;
+    left: 2px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.whats-new-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 16px;
+}
+
+.whats-new-ok {
+    padding: 0;
+    color: var(--dc-aink);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.whats-new-link {
+    color: var(--dc-muted);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.whats-new-link:hover {
+    text-decoration: underline;
+}
+
+.whats-new-close {
+    width: 32px;
+    flex: none;
+    padding: 0;
+    font-size: 18px;
+    line-height: 1;
+}
+
 /* Undo after a delete: an inverted bar so it reads as a transient layer. */
 .undo-toast {
     position: fixed;
