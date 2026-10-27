@@ -1263,7 +1263,7 @@ scenario(
     probe: { url: 'https://example.com/', isDiscourse: false, basePath: '', forumName: '' }
   },
   async ({ page, check, shot }) => {
-    check('not a forum', (await text(page, '#forumBarName')) === 'Not a Discourse forum');
+    check('not a forum', (await text(page, '#forumBarName')) === 'Not a supported site');
     check(
       'no hero, no disabled actions',
       !(await visible(page, '#summarizeBtn')) && !(await visible(page, '#agentLaunchBtn')) && !(await visible(page, '#currentPageTitle'))
@@ -2606,7 +2606,7 @@ scenario('access-setup-both', 'src/popup/popup.html', { ...accessOptions, store:
 
 scenario('access-click-then-navigate', 'src/popup/popup.html', { ...accessOptions, activeTab: false }, async ({ page, check }) => {
   // A page Chrome never shows extensions (new tab page): clicking the icon
-  // records the tab, and the panel settles on "Not a Discourse forum".
+  // records the tab, and the panel settles on "Not a supported site".
   await page.evaluate(async () => {
     await chrome.storage.session.set({ actionClickedTabs: [1] });
     window.__fire('onMessage', { action: 'actionClicked', tabId: 1 }, {});
@@ -2614,7 +2614,7 @@ scenario('access-click-then-navigate', 'src/popup/popup.html', { ...accessOption
   await page.waitForTimeout(300);
   check(
     'clicked restricted page is not a forum',
-    (await text(page, '#forumBarName')) === 'Not a Discourse forum',
+    (await text(page, '#forumBarName')) === 'Not a supported site',
     await text(page, '#forumBarName')
   );
   // Then the tab goes to another site: activeTab is gone, so "not checked yet" again.
