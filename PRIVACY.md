@@ -39,8 +39,8 @@ Only from sites you enabled, and only the site of the current page or task. Text
 - Post and comment search, categories and the newest posts (`/posts`, `/comments`, `/categories`), for **Ask the forum** only
 
 **Reddit** (`www.reddit.com`, with your signed-in session)
-- The post you are reading with its comments (`/comments/{id}.json`), and comments hidden behind "more replies" (`/api/morechildren.json`)
-- Search results within a subreddit (`/svc/shreddit/r/{subreddit}/search/`) and a subreddit's newest posts (`/r/{subreddit}/new.json`), for **Ask the forum** only
+- The post you are reading with its comments (`/comments/{id}.json`, or `/comments/{id}/_/{comment}.json` for a "continue this thread" branch), and comments hidden behind "more replies" (`/api/morechildren.json`)
+- Post and comment search results, within a subreddit or across Reddit (`/svc/shreddit/r/{subreddit}/search/`, `/svc/shreddit/search/`), and the newest posts of a subreddit or the front page (`/r/{subreddit}/new.json`, `/new.json`), for **Ask the forum** only
 
 ### What the extension does NOT collect
 - **Personal information**: No names, email addresses, or other personal identifiers are collected by the developer.
