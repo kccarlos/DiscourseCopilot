@@ -14,7 +14,6 @@
 
 export const WHATS_NEW_KEY = 'whatsNew';
 export const WHATS_NEW_NOTE = 'sites-2026-10';
-export const RELEASES_URL = 'https://github.com/kccarlos/DiscourseCopilot/releases';
 
 /** @returns {{ pending: string, seen: string }} */
 export function normalizeWhatsNew(value) {
