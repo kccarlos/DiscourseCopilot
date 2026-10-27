@@ -5,6 +5,7 @@ Notable changes to Forumind (formerly DiscourseCopilot). The format follows [Kee
 ## [Unreleased]
 
 ### Changed
+- The privacy policy and the store's permission notes now cover WordPress sites and Reddit: what is read there, which addresses are requested, and that Reddit is read with your signed-in session.
 - Renamed to Forumind (formerly DiscourseCopilot). The extension ID, your settings and your saved history stay as they are.
 
 ### Added
