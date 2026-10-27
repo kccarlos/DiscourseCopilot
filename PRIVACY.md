@@ -1,18 +1,18 @@
-# Privacy Policy for DiscourseCopilot
+# Privacy Policy for Forumind
 
 **Last Updated:** October 3, 2026
 
 ## Overview
 
-DiscourseCopilot is a browser extension that summarizes and answers questions about discussions on Discourse forums you visit, using an AI provider you configure. It is made for Discourse forums (for example community.openai.com or meta.discourse.org). This policy explains what data the extension handles and where it goes.
+Forumind is a browser extension that summarizes and answers questions about discussions on Discourse forums you visit, using an AI provider you configure. It is made for Discourse forums (for example community.openai.com or meta.discourse.org). This policy explains what data the extension handles and where it goes.
 
 ## Permissions and site access
 
 Discourse forums are hosted on arbitrary domains, so the extension cannot list them in advance. Instead of asking for access to all websites, it asks for access **one forum at a time**, when you choose **Allow access** in the side panel. Chrome shows its own prompt, and nothing is read from a forum before you allow it.
 
-- **Forums you enable** (optional host permission, per forum): the extension reads topics and search results from that forum, using your existing browser session there (so login-required forums work when you are logged in). A small content script runs on that forum's pages to detect the topic you are viewing and show the in-page DiscourseCopilot button. You can see and remove every enabled forum under **Settings → Forum access**; removing access keeps your saved summaries and answers.
+- **Forums you enable** (optional host permission, per forum): the extension reads topics and search results from that forum, using your existing browser session there (so login-required forums work when you are logged in). A small content script runs on that forum's pages to detect the topic you are viewing and show the in-page Forumind button. You can see and remove every enabled forum under **Settings → Forum access**; removing access keeps your saved summaries and answers.
 - **AI provider hosts** (requested at install): the API addresses of the supported providers (OpenRouter, OpenAI, Anthropic, Groq, Google Gemini, xAI, DeepSeek) and `localhost` / `127.0.0.1` for Ollama and LM Studio. They are used only to send your requests to the provider you configured, and to read that provider's list of available models. A local model server on another computer is added (optional host permission for that one address) only when you enter its address and allow it.
-- **Checking the current page** (`activeTab` and `scripting`): when you click the DiscourseCopilot toolbar icon, the extension may look once at that tab to see whether it is a Discourse forum (the `generator` meta tag, the `discourse-base-uri` meta tag, or Discourse's setup element) and read its address and title. This happens only after your click and only for that tab. The result is not sent anywhere; the only thing remembered is that you clicked in that tab, kept in session storage (cleared when the browser closes).
+- **Checking the current page** (`activeTab` and `scripting`): when you click the Forumind toolbar icon, the extension may look once at that tab to see whether it is a Discourse forum (the `generator` meta tag, the `discourse-base-uri` meta tag, or Discourse's setup element) and read its address and title. This happens only after your click and only for that tab. The result is not sent anywhere; the only thing remembered is that you clicked in that tab, kept in session storage (cleared when the browser closes).
 - **Local model servers and request headers** (`declarativeNetRequestWithHostAccess`): Ollama refuses requests that carry a browser extension's `Origin` header. The extension therefore removes that one header from its own requests to `localhost`, `127.0.0.1` and a local model server address you entered and allowed. It changes nothing else, never touches requests from web pages or to any other address, and sends no additional data anywhere.
 - **Other permissions**: `storage` (settings on your device), `sidePanel` (the side panel), `alarms` (keeps background tasks running while you browse).
 - The extension does not read forums you have not enabled, and it cannot see which websites you visit. Two small things involve the page you are on: the one-time check described above (after you click the toolbar icon), and the side panel's forum bar, which loads that forum's own icon (`/favicon.ico`) directly from the forum, as any web page would; it is requested without a referrer and can happen before you allow access. Links to AI provider sites (for example "Get a key") open only when you click them.
@@ -24,7 +24,7 @@ Discourse forums are hosted on arbitrary domains, so the extension cannot list t
 - **Follow-up chat and Agent answers**: Recent questions, answers, search queries, and source references.
 - **Task status**: Queued, running, completed, failed, and cancelled task metadata so work can be restored and managed.
 - **API keys and settings**: Your AI provider credentials, model choices, favorite models, custom instructions, response language, and other preferences (research depth, pages read per topic, chat context, history settings), stored in Chrome local storage. Chrome does not encrypt this storage, so anyone who can use your Chrome profile on your computer could read your keys; remove them in Settings (or uninstall the extension) if you no longer want them there.
-- **Rating reminder**: How many summaries have completed (counted up to 5) and when the one-time "Enjoying DiscourseCopilot?" card was shown or closed, stored in Chrome local storage so the card appears only once. It never leaves your browser.
+- **Rating reminder**: How many summaries have completed (counted up to 5) and when the one-time "Enjoying Forumind?" card was shown or closed, stored in Chrome local storage so the card appears only once. It never leaves your browser.
 - **Model lists**: The list of models your provider offers, kept for about 10 minutes in Chrome session storage (cleared when the browser closes) so the model field doesn't ask again on every keystroke. It is stored under a one-way hash of your key, never the key itself.
 
 ### What the extension fetches from a forum
@@ -99,4 +99,4 @@ For questions about this policy or data handling, open an issue on the project's
 
 ## Summary
 
-**In simple terms**: DiscourseCopilot only works on Discourse forums you enable, reads topics from the forum you are on using your own session, stores everything locally, and sends forum content only to the AI provider you choose. It collects no personal data and does no tracking.
+**In simple terms**: Forumind only works on Discourse forums you enable, reads topics from the forum you are on using your own session, stores everything locally, and sends forum content only to the AI provider you choose. It collects no personal data and does no tracking.

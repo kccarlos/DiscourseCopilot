@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in improving DiscourseCopilot!
+Thanks for your interest in improving Forumind!
 
 - **Bugs and ideas:** open an [issue](https://github.com/kccarlos/DiscourseCopilot/issues) using one of the templates. For security problems, see [SECURITY.md](SECURITY.md) instead.
 - **Code changes:** see [DEVELOPMENT.md](DEVELOPMENT.md) for setup, the project structure, and how to run the tests and build.

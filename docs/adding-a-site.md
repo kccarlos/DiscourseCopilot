@@ -1,6 +1,6 @@
 # Adding support for a new kind of site
 
-DiscourseCopilot reads a site through a **site adapter**. The task executors (summaries, chat) and the Agent never call a platform's API themselves: they ask the registry in `src/background/sites/index.mjs` for the adapter of the task's site (`task.siteType`, Discourse when missing) and call its methods. Today there are two: `sites/discourse.mjs` and `sites/wordpress.mjs` (a post and its comments through the public REST API, see DEVELOPMENT.md). Add one adapter per **platform** (Discourse, WordPress, ...), not per website: one WordPress adapter covers every WordPress blog.
+Forumind reads a site through a **site adapter**. The task executors (summaries, chat) and the Agent never call a platform's API themselves: they ask the registry in `src/background/sites/index.mjs` for the adapter of the task's site (`task.siteType`, Discourse when missing) and call its methods. Today there are two: `sites/discourse.mjs` and `sites/wordpress.mjs` (a post and its comments through the public REST API, see DEVELOPMENT.md). Add one adapter per **platform** (Discourse, WordPress, ...), not per website: one WordPress adapter covers every WordPress blog.
 
 ## The adapter shape
 

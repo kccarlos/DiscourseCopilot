@@ -1,8 +1,11 @@
 # Changelog
 
-Notable changes to DiscourseCopilot. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each release is published on the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases) (with the installable zip) and submitted to the [Chrome Web Store](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac) and [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp). Each store offers a version only after its review, which can take from a few hours to several days, so it may lag behind the newest release.
+Notable changes to Forumind (formerly DiscourseCopilot). The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each release is published on the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases) (with the installable zip) and submitted to the [Chrome Web Store](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac) and [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp). Each store offers a version only after its review, which can take from a few hours to several days, so it may lag behind the newest release.
 
 ## [Unreleased]
+
+### Changed
+- Renamed to Forumind (formerly DiscourseCopilot). The extension ID, your settings and your saved history stay as they are.
 
 ### Added
 - WordPress posts: summarize a post and its comments, and chat about them, on any WordPress site that leaves its public REST API open (for example doctorofcredit.com). The article is read as the opening post and every comment as a reply, 100 per page; reading it again asks the site only for what could have changed. The Agent works on WordPress too: it searches posts (by keyword, category and date), searches reader comments, lists the newest posts and reads a post with its comments, and its answers cite the posts it read.
