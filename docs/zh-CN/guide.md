@@ -15,7 +15,7 @@
 
 每个新版本都要经过 Google 或微软审核，才能在 Chrome 应用商店或 Edge 加载项商店上架，耗时从几小时到几天不等，所以商店里的版本可能比最新的 [GitHub Release](https://github.com/kccarlos/DiscourseCopilot/releases/latest) 稍旧。想马上用最新版：
 
-1. 打开 [Releases 页面](https://github.com/kccarlos/DiscourseCopilot/releases)，下载最新的 `forumind-<version>.zip`。
+1. 打开 [Releases 页面](https://github.com/kccarlos/DiscourseCopilot/releases)，下载最新版本附带的 zip 文件。
 2. 解压。
 3. 在 Chrome 中打开 `chrome://extensions`（Edge 中是 `edge://extensions`），打开右上角的 **开发者模式**。
 4. 点 **加载已解压的扩展程序**，选择解压后的文件夹。

@@ -1270,7 +1270,7 @@ scenario(
     );
     check(
       'guide heading',
-      (await text(page, '#pageGuideHeading')) === 'This page isn’t a Discourse forum',
+      (await text(page, '#pageGuideHeading')) === 'Forumind can’t read this page',
       await text(page, '#pageGuideHeading')
     );
     check(
@@ -1301,7 +1301,7 @@ scenario(
   async ({ page, check, shot }) => {
     check(
       'guide heading',
-      (await text(page, '#pageGuideHeading')) === 'This page isn’t a Discourse forum',
+      (await text(page, '#pageGuideHeading')) === 'Forumind can’t read this page',
       await text(page, '#pageGuideHeading')
     );
     check(
@@ -3163,7 +3163,7 @@ zhScenario(
     probe: { url: 'https://example.com/', isDiscourse: false, basePath: '', forumName: '' }
   },
   async ({ page, check, shot }) => {
-    await zhScreen(page, check, 'not a forum', ['不是 Discourse 论坛', '此页面不是 Discourse 论坛']);
+    await zhScreen(page, check, 'not a forum', ['无法读取此页面', 'Forumind 无法读取此页面']);
     await shot('not-forum');
   }
 );

@@ -56,7 +56,7 @@ test('a page Chrome hides asks for the toolbar icon, with the pin tip', () => {
 
 test('a page that is not a forum explains Discourse and offers two examples, no actions', () => {
   const view = derivePageGuidance(contexts.notForum);
-  assert.equal(view.card.title, 'This page isn’t a Discourse forum');
+  assert.equal(view.card.title, 'Forumind can’t read this page');
   assert.match(view.card.text, /Discourse forums, WordPress sites .* and Reddit/);
   assert.deepEqual(view.card.links, [
     { label: 'meta.discourse.org', href: 'https://meta.discourse.org/' },

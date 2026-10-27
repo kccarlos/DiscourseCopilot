@@ -204,7 +204,7 @@ export default {
   'guide.unchecked.title': '检查此页面',
   'guide.unchecked.text': '点击工具栏中的 **Forumind** 图标，检查此页面是否为 Discourse 论坛。',
   'guide.unchecked.tip': '提示：在拼图图标菜单中固定 Forumind，方便随时点击。',
-  'guide.notForum.title': '此页面不是 Discourse 论坛',
+  'guide.notForum.title': 'Forumind 无法读取此页面',
   'guide.notForum.text':
     'Forumind 适用于 Discourse 论坛、WordPress 网站（比如 Doctor of Credit）和 Reddit。打开其中任意帖子即可开始，例如：',
   'guide.hero.eyebrow': 'Discourse 论坛',

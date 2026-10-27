@@ -208,7 +208,7 @@ export default {
   'guide.unchecked.title': 'Check this page',
   'guide.unchecked.text': 'Click the **Forumind** icon in your toolbar to check whether this page is a Discourse forum.',
   'guide.unchecked.tip': 'Tip: pin Forumind from the puzzle-piece menu so the icon is always in reach.',
-  'guide.notForum.title': 'This page isn’t a Discourse forum',
+  'guide.notForum.title': 'Forumind can’t read this page',
   'guide.notForum.text':
     'Forumind works on Discourse forums, WordPress sites (like Doctor of Credit) and Reddit. Open a post on one to get started, for example:',
   'guide.hero.eyebrow': 'Discourse forum',

@@ -15,7 +15,7 @@ The details behind the [README](../README.md): installing from GitHub, Ask the f
 
 New versions reach the Chrome Web Store and Edge Add-ons only after Google and Microsoft review them, which can take anywhere from a few hours to several days. So the store can be a little behind the newest [GitHub Release](https://github.com/kccarlos/DiscourseCopilot/releases/latest). To get it right away:
 
-1. Go to the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases) and download the latest `forumind-<version>.zip`.
+1. Go to the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases) and download the zip attached to the latest release.
 2. Unzip it.
 3. Open `chrome://extensions` in Chrome (`edge://extensions` in Edge) and turn on **Developer mode** (top right).
 4. Click **Load unpacked** and choose the unzipped folder.
