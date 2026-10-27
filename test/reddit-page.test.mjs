@@ -104,8 +104,8 @@ test('the panel context for a Reddit post, with and without access', () => {
   const context = getTopicContext({ id: 7, url: POST_URL, title: 'x' }, pageState);
   assert.equal(context.isSupportedSite, true);
   assert.equal(context.siteType, SITE_TYPE.REDDIT);
-  assert.equal(context.supportsAgent, false, 'the Agent is not offered on Reddit');
-  assert.equal(siteTypeSupportsAgent(SITE_TYPE.REDDIT), false);
+  assert.equal(context.supportsAgent, true, 'the Agent is offered on Reddit');
+  assert.equal(siteTypeSupportsAgent(SITE_TYPE.REDDIT), true);
   assert.equal(context.isForumTopic, true);
   assert.equal(context.postId, topicIdFromRedditId('1wv40pf'));
   assert.equal(context.forumAccess, 'granted');

@@ -1,7 +1,7 @@
 // The Reddit site adapter: reads a post and its whole comment tree through
 // Reddit's .json endpoints with the user's own Reddit login (anonymous
 // requests are refused by Reddit, so a logged-out user gets the usual "log in
-// to the site" message). Reading only; the Agent is not offered on Reddit.
+// to the site" message). The Agent's tools are in ../reddit-tools.mjs.
 //
 // A post is read like a topic: the post is the opening block and the comments
 // are the replies, in conversation order (each comment followed by its
@@ -20,6 +20,7 @@ import { FORUM_RESPONSE_KIND, classifyForumResponse, forumAccessError, readForum
 import { redditIdFromTopicId } from '../../shared/reddit-page.mjs';
 import { SITE_TYPE } from '../../shared/site-types.mjs';
 import { t } from '../../shared/i18n.mjs';
+import { RedditToolClient } from '../reddit-tools.mjs';
 import { buildContentResult, createRateLimitProgress } from '../topic-fetcher.mjs';
 
 export const REDDIT_SITE_TYPE = SITE_TYPE.REDDIT;
@@ -326,9 +327,6 @@ export function createRedditSiteAdapter({ fetchImpl } = {}) {
     type: REDDIT_SITE_TYPE,
     label: 'Reddit',
     fetchTopicContent: createRedditFetcher({ fetchImpl }),
-    // The Agent is not offered on Reddit yet (siteTypeSupportsAgent).
-    createToolClient: () => {
-      throw Object.assign(new Error('The Agent is not available on Reddit yet'), { retryable: false });
-    }
+    createToolClient: ({ siteUrl, signal, governor }) => new RedditToolClient({ siteUrl, signal, governor, fetchImpl })
   });
 }
