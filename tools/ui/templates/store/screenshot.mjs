@@ -62,7 +62,7 @@ export const screenshotPage = ({ lang = 'en', theme = 'light', url, forumHtml, p
 <div class="stage"><div class="window">
   <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
     <div class="url"><span class="lock">${ICON.lock}</span><span><span class="host">${host}</span>${rest}</span></div>
-    <div class="ext"><img src="/brand/icon/discoursecopilot-icon-on-light.svg" alt=""></div></div>
+    <div class="ext"><img src="/brand/icon/forumind-icon-on-light.svg" alt=""></div></div>
   <div class="content"><div class="forum">${forumHtml}<div class="veil"></div>
     <div class="caption"><h1>${title}</h1><p>${sub}</p></div></div>
     <div class="divider"></div><div class="panel"><img src="/panels/${panel}.png" alt=""></div></div>

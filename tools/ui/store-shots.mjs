@@ -189,7 +189,7 @@ const SHOTS = [
   },
   {
     id: '03',
-    file: '03-every-discourse-forum.png',
+    file: '03-works-on-every-site.png',
     panels: ['activity-light'],
     html: () =>
       screenshotPage({

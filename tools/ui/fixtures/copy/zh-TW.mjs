@@ -141,14 +141,17 @@ export default {
     captions: {
       '01': { title: '一鍵摘要 Discourse 長篇討論', sub: '一鍵爬文看重點，接著追問，連是哪一樓說的都告訴你。' },
       '02': { title: '全站搜尋，回答附帶來源', sub: 'AI 代理一步步搜尋、閱讀，並標出它引用的貼文。' },
-      '03': { title: '任何 Discourse 論壇都能用', sub: '用你自己的登入狀態讀文，要登入才看得到的貼文也能摘要和搜尋。' },
+      '03': {
+        title: 'Discourse 論壇、WordPress 留言和 Reddit 貼文都能用',
+        sub: '用你自己的登入狀態讀文，要登入才看得到的貼文也能摘要和搜尋。'
+      },
       '04': { title: 'AI 隨你選', sub: '連線你已經在用的 AI 供應商，被限速了一鍵換模型。金鑰只儲存在瀏覽器裡。' },
       '05': { title: '淺色和深色模式', sub: '側邊欄自動跟隨系統主題。' }
     },
     promo: {
-      tag: 'Discourse 論壇的 <span class="accent-text">AI 助理</span>',
-      headline: '逛 Discourse 論壇<br><span class="accent-text">不用再爬文</span>',
-      points: ['一鍵爬文摘要，追問到哪一樓', '全站搜尋，回答附帶來源', '登入才看得到的貼文也能讀'],
+      tag: '你的<span class="accent-text">留言區 AI 助手</span>',
+      headline: '你的留言區<br><span class="accent-text">AI 助手</span>',
+      points: ['一鍵爬文摘要，追問到哪一樓', '全站搜尋，回答附帶來源', 'Discourse、WordPress 和 Reddit'],
       foot: '免費開源的 Chrome 擴充功能'
     }
   },

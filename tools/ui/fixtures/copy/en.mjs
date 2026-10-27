@@ -173,8 +173,8 @@ A staff post answering the most common new-user questions: how trust levels work
         sub: 'An agent searches and reads step by step, then cites the posts it used.'
       },
       '03': {
-        title: 'Made for Discourse forums',
-        sub: 'One click enables each forum you use. Saved summaries and answers stay grouped by forum.'
+        title: 'Discourse forums, WordPress comments and Reddit threads',
+        sub: 'One click enables each site you use. Saved summaries and answers stay grouped by site.'
       },
       '04': {
         title: 'Bring your own AI',
@@ -184,9 +184,9 @@ A staff post answering the most common new-user questions: how trust levels work
     },
     // Promo tiles and the social preview (templates/store/*.html).
     promo: {
-      tag: 'AI copilot for <span class="accent-text">Discourse forums</span>',
-      headline: 'Catch up on any Discourse<br>forum <span class="accent-text">in seconds</span>',
-      points: ['Summaries and follow-up chat', 'Ask the forum, with cited sources', 'Bring your own AI provider'],
+      tag: 'Your AI assistant<br>for the <span class="accent-text">comment section</span>',
+      headline: 'Your AI assistant<br>for the <span class="accent-text">comment section</span>',
+      points: ['Summaries and follow-up chat', 'Ask the forum, with cited sources', 'Discourse, WordPress and Reddit'],
       foot: 'Free and open source Chrome extension'
     }
   },
