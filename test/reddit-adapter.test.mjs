@@ -261,7 +261,8 @@ test('the registry and task flow carry Reddit alongside the other sites', () => 
   assert.equal(registry.get('reddit').label, 'Reddit');
   assert.equal(registry.forTask({ siteType: 'reddit' }).type, 'reddit');
   assert.equal(registry.forTask({}).type, 'discourse', 'tasks without a site type still read as Discourse');
-  assert.throws(() => registry.get('reddit').createToolClient({}), /not available on Reddit/);
+  assert.throws(() => registry.get('reddit').createToolClient({}), /valid forum site URL/);
+  assert.ok(registry.get('reddit').createToolClient({ siteUrl: REDDIT_SITE_URL }).searchComments, 'the Agent gets a Reddit tool client');
 
   const request = { taskType: 'summary', topicId: TOPIC_ID, siteUrl: REDDIT_SITE_URL, siteType: 'reddit' };
   const validated = validateEnqueueRequest(request);

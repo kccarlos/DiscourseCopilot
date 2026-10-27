@@ -114,9 +114,63 @@ const WORDPRESS_AGENT_TOOLS = Object.freeze(
   ].map(tool => Object.freeze(tool))
 );
 
+// The same tools on Reddit, where a post is the "topic" and its comments are
+// the replies. Reddit's own search is scoped to one subreddit at a time, so
+// the tools take a subreddit name; ids are the decimal form of Reddit's
+// post ids (reddit-page.mjs).
+const REDDIT_AGENT_TOOLS = Object.freeze(
+  [
+    {
+      name: 'search_forum',
+      description:
+        'Search Reddit posts by keyword, within one subreddit when you give subreddit (recommended, for example churning or CreditCards). Returns up to about 10 posts per page with id, title, subreddit, comment count and date. Example: {"tool": "search_forum", "arguments": {"query": "chase sapphire bonus", "subreddit": "churning", "sort": "new"}}.',
+      parameters: [
+        { name: 'query', description: 'Plain words to search for (a "quoted phrase" works)', required: true },
+        { name: 'subreddit', description: 'Optional subreddit name without r/, to search within', required: false },
+        { name: 'sort', description: 'Optional: relevance (default), new or top', required: false },
+        { name: 'page', description: 'Result page, 1 to 3 (default 1)', required: false }
+      ],
+      requiresApproval: false
+    },
+    {
+      name: 'search_comments',
+      description:
+        'Search Reddit comments by keyword, within one subreddit when you give subreddit. Returns about 10 comments per page, each with the post id and title, author, date and a text excerpt. Use it to find what members report (data points, experiences, deals that worked); then read_topic the post to get a citable source. Example: {"tool": "search_comments", "arguments": {"query": "approved instantly", "subreddit": "CreditCards"}}.',
+      parameters: [
+        { name: 'query', description: 'Plain words to search for in comment text', required: true },
+        { name: 'subreddit', description: 'Optional subreddit name without r/, to search within', required: false },
+        { name: 'sort', description: 'Optional: relevance (default), new or top', required: false },
+        { name: 'page', description: 'Result page, 1 to 3 (default 1)', required: false }
+      ],
+      requiresApproval: false
+    },
+    {
+      name: 'list_latest',
+      description:
+        'List the newest posts of a subreddit (about 30). Example: {"tool": "list_latest", "arguments": {"subreddit": "churning"}}.',
+      parameters: [{ name: 'subreddit', description: 'Subreddit name without r/', required: false }],
+      requiresApproval: false
+    },
+    {
+      name: 'read_topic',
+      description:
+        'Read a post: its text, then its comments in thread order (each "Comment <id> · author · date · reply to comment <id>"). Long threads are trimmed to the post with the first comments and the newest comments. Returns a source number [S#] you cite in the answer. Counts toward the read budget the first time a post is read; pass page (100 comments each) to read another part. Example: {"tool": "read_topic", "arguments": {"topic_id": "123456789", "page": "2"}}.',
+      parameters: [
+        { name: 'topic_id', description: 'Numeric post id from a search or list result', required: true },
+        { name: 'page', description: 'Optional part of a long comment thread, in pages of 100 comments', required: false }
+      ],
+      requiresApproval: false
+    },
+    AGENT_TOOLS.find(tool => tool.name === 'saved_summaries'),
+    AGENT_TOOLS.find(tool => tool.name === FINAL_ANSWER_TOOL)
+  ].map(tool => Object.freeze(tool))
+);
+
 /** The tools the agent has on a kind of site. */
 export function agentToolsFor(siteType) {
-  return normalizeSiteType(siteType) === SITE_TYPE.WORDPRESS ? WORDPRESS_AGENT_TOOLS : AGENT_TOOLS;
+  const type = normalizeSiteType(siteType);
+  if (type === SITE_TYPE.REDDIT) return REDDIT_AGENT_TOOLS;
+  return type === SITE_TYPE.WORDPRESS ? WORDPRESS_AGENT_TOOLS : AGENT_TOOLS;
 }
 
 export function findAgentTool(name) {
@@ -140,7 +194,7 @@ function dateText(now) {
  * @param {string} options.forumName
  * @param {string} options.siteUrl
  * @param {{maxSteps: number, maxTopicReads: number, maxCharsPerRead: number}} options.budget
- * @param {string} [options.siteType] 'discourse' (default) or 'wordpress'
+ * @param {string} [options.siteType] 'discourse' (default), 'wordpress' or 'reddit'
  * @param {string} [options.responseLanguage]
  * @param {string} [options.customInstructions] the user's own system prompt
  */
@@ -153,11 +207,13 @@ export function buildAgentSystemPrompt({
   customInstructions = '',
   now = Date.now()
 }) {
-  const wordpress = normalizeSiteType(siteType) === SITE_TYPE.WORDPRESS;
+  const reddit = normalizeSiteType(siteType) === SITE_TYPE.REDDIT;
+  // Reddit reads like WordPress: posts with comments, ids in digits.
+  const wordpress = reddit || normalizeSiteType(siteType) === SITE_TYPE.WORDPRESS;
   const custom = String(customInstructions || '')
     .trim()
     .slice(0, AGENT_CONTEXT_LIMITS.maxSystemPromptChars);
-  return `You are a research agent for ${forumName || (wordpress ? 'a WordPress site' : 'a Discourse forum')} (${siteUrl}), ${wordpress ? 'a WordPress site: articles (posts) with reader comments' : 'a Discourse forum'}.
+  return `You are a research agent for ${forumName || (reddit ? 'Reddit' : wordpress ? 'a WordPress site' : 'a Discourse forum')} (${siteUrl}), ${reddit ? 'subreddit communities of posts with comment threads' : wordpress ? 'a WordPress site: articles (posts) with reader comments' : 'a Discourse forum'}.
 Today is ${dateText(now)}. Work toward the user's goal by calling tools one at a time, then finish with ${FINAL_ANSWER_TOOL}. Every tool works on this ${wordpress ? 'site' : 'forum'} only.
 
 Rules:
