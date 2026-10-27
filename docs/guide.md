@@ -1,4 +1,4 @@
-# DiscourseCopilot guide
+# Forumind guide
 
 **English** · [简体中文](zh-CN/guide.md) · [繁體中文](zh-TW/guide.md)
 
@@ -15,11 +15,11 @@ The details behind the [README](../README.md): installing from GitHub, Ask the f
 
 New versions reach the Chrome Web Store and Edge Add-ons only after Google and Microsoft review them, which can take anywhere from a few hours to several days. So the store can be a little behind the newest [GitHub Release](https://github.com/kccarlos/DiscourseCopilot/releases/latest). To get it right away:
 
-1. Go to the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases) and download the latest `discourse-copilot-<version>.zip`.
+1. Go to the [Releases page](https://github.com/kccarlos/DiscourseCopilot/releases) and download the zip attached to the latest release.
 2. Unzip it.
 3. Open `chrome://extensions` in Chrome (`edge://extensions` in Edge) and turn on **Developer mode** (top right).
 4. Click **Load unpacked** and choose the unzipped folder.
-5. Click the puzzle-piece icon in the toolbar and pin **DiscourseCopilot**.
+5. Click the puzzle-piece icon in the toolbar and pin **Forumind**.
 
 An unpacked install is not updated automatically. To update it, download the new zip, replace the files in that folder, and click the reload icon on the extension's card in `chrome://extensions`. Chrome may show a "Developer mode" reminder when it starts; that is normal for extensions installed this way. You can switch back to the store version later: the browser keeps it up to date once a release is approved.
 
@@ -42,7 +42,7 @@ The agent reads the forum with your login, so it can also find topics that only 
 
 ## Choosing an AI provider
 
-DiscourseCopilot doesn't come with its own AI. You connect one you already use, or sign up for one.
+Forumind doesn't come with its own AI. You connect one you already use, or sign up for one.
 
 | Provider | What you need | Good to know |
 | --- | --- | --- |
@@ -81,7 +81,7 @@ Open **Settings** from the side panel; it opens inside the panel, so there is no
 - **History & privacy: Keep conversations and Agent answers for.** Chats and answers you haven't kept are removed after **1 day** by default. You can choose 3, 7, or 30 days, or **Until I delete them**. Anything you **Keep** stays.
 - **History & privacy: Saved topics.** Up to 40 topic summaries are remembered by default (10 to 200). Past that, the oldest ones you haven't kept are removed.
 - **Forum access.** Every forum you allowed, with **Remove access**. Your saved summaries and answers stay.
-- **Forum access: Show the DiscourseCopilot button on forum pages.** On by default. Turn it off to hide the floating button on forums; it disappears from open forum tabs as soon as you save, and you can always open the side panel from the toolbar icon.
+- **Forum access: Show the Forumind button on forum pages.** On by default. Turn it off to hide the floating button on forums; it disappears from open forum tabs as soon as you save, and you can always open the side panel from the toolbar icon.
 - **Reset all settings.** Removes every provider, key, model, favorite, custom instructions, and preference after you confirm on the page. Saved summaries and answers are not deleted.
 
 The interface is in English, Simplified Chinese and Traditional Chinese, and follows your browser's language.
@@ -90,7 +90,7 @@ The interface is in English, Simplified Chinese and Traditional Chinese, and fol
 
 - **Your key and history stay in your browser.** Settings, API keys, summaries, chats, and answers are saved on your computer only (in the extension's own storage). Chrome stores them unencrypted, so anyone who can use your Chrome profile on your computer could read them. Remove them in Settings, or by uninstalling the extension.
 - **Forum posts go only to the AI you chose.** When you summarize or ask something, the topic text and your question are sent straight from your browser to your AI provider. Check your provider's privacy policy for what it does with them. With a local model on your own computer, they go nowhere else.
-- **No middleman.** There are no DiscourseCopilot servers, no accounts, and no analytics.
+- **No middleman.** There are no Forumind servers, no accounts, and no analytics.
 - **It only reads forums you enable.** Chrome gives it access to a forum only after you click **Allow access** for that forum, and you can remove access anytime in Settings. When you click the toolbar icon, it takes a one-time look at that page to see whether it is a Discourse forum; that is all it learns about other sites. The side panel also loads the forum icon (`/favicon.ico`) from the forum you are on.
 
 Read the full [privacy policy](../PRIVACY.md).

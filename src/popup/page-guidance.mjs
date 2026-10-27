@@ -4,7 +4,7 @@
 //   loading          no page yet                       hero "Loading page…"
 //   unchecked        Chrome hides the page             "Check this page" (click the toolbar icon)
 //   not-forum        not a Discourse forum             "This page isn't a Discourse forum" + examples
-//   allow            Discourse forum, no access        "Allow DiscourseCopilot on {forum}" + Allow button
+//   allow            Discourse forum, no access        "Allow Forumind on {forum}" + Allow button
 //   maybe            /t/slug/id URL, not checkable     "Is this a Discourse forum?" + Allow button
 //   forum-home       enabled forum, not a topic        hero "You're on {forum}" + Ask the forum
 //   topic            enabled forum topic               hero with Create summary / Ask the forum

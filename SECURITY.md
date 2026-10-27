@@ -1,6 +1,6 @@
 # Security Policy
 
-DiscourseCopilot can read the Discourse forums you allow it to (with your login there) and stores your AI provider API keys in your browser, so security reports are taken seriously.
+Forumind can read the Discourse forums you allow it to (with your login there) and stores your AI provider API keys in your browser, so security reports are taken seriously.
 
 ## Reporting a vulnerability
 

@@ -86,13 +86,13 @@ export class ForumAccessSection {
     try {
       origins = await listGrantedForums({ exclude: this.excludedPatterns() });
     } catch (error) {
-      console.warn('DiscourseCopilot Settings: Unable to list forum access:', error);
+      console.warn('Forumind Settings: Unable to list forum access:', error);
     }
     if (this.records === null) {
       try {
         this.records = await this.loadRecords();
       } catch (error) {
-        console.warn('DiscourseCopilot Settings: Unable to read saved forums:', error);
+        console.warn('Forumind Settings: Unable to read saved forums:', error);
         this.records = [];
       }
     }

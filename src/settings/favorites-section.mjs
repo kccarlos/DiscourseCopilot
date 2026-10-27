@@ -113,7 +113,7 @@ export class FavoritesSection {
       this.render();
       this.notify(t('settings.favorites.added'), 'success');
     } catch (error) {
-      console.error('DiscourseCopilot Settings: Unable to add favorite model:', error);
+      console.error('Forumind Settings: Unable to add favorite model:', error);
       this.render();
       this.notify(t('settings.favorites.addFailed', { error: error.message }), 'error', false);
     }
@@ -127,7 +127,7 @@ export class FavoritesSection {
       this.render();
       this.notify(t('settings.favorites.removed'), 'success');
     } catch (error) {
-      console.error('DiscourseCopilot Settings: Unable to remove favorite model:', error);
+      console.error('Forumind Settings: Unable to remove favorite model:', error);
       this.render();
       this.notify(t('settings.favorites.removeFailed', { error: error.message }), 'error', false);
     }

@@ -1,6 +1,6 @@
 // Settings page messages (keys start with `settings.`).
 export default {
-  'settings.title': 'DiscourseCopilot Settings',
+  'settings.title': 'Forumind Settings',
   'settings.heading': 'Settings',
   'settings.loading': 'Loading…',
   'settings.unknownError': 'unknown error',
@@ -63,7 +63,7 @@ export default {
   'settings.prompt.languageHelp':
     "Language for summaries, follow-up answers, and Agent answers. Auto answers summaries in the discussion's language and questions in the language you ask in.",
   'settings.prompt.customLabel': 'Custom instructions:',
-  'settings.prompt.customPlaceholder': "Leave empty to use DiscourseCopilot's built-in summarization instructions.",
+  'settings.prompt.customPlaceholder': "Leave empty to use Forumind's built-in summarization instructions.",
   'settings.prompt.customHelp':
     'This prompt applies to new summaries, chats, and Agent answers. Leave it empty to use the built-in prompt. The response language setting above is still applied.',
   'settings.research.lede': 'How much the agent may do for each question you ask a forum.',
@@ -129,9 +129,9 @@ export default {
   'settings.restore.fallbackSection': 'Section',
   'settings.restore.done': '{section} restored to defaults. Save to apply.',
   'settings.forumAccess.lede':
-    'Forums you enabled. DiscourseCopilot reads only these, using your login there. Removing access keeps your saved summaries and answers; you can enable a forum again from the side panel.',
+    'Forums you enabled. Forumind reads only these, using your login there. Removing access keeps your saved summaries and answers; you can enable a forum again from the side panel.',
   'settings.forumAccess.empty': 'You haven’t enabled any forums yet. Open a Discourse forum and click Allow access in the side panel.',
-  'settings.forumAccess.showButton': 'Show the DiscourseCopilot button on forum pages',
+  'settings.forumAccess.showButton': 'Show the Forumind button on forum pages',
   'settings.forumAccess.showButtonHelp':
     'The floating button on enabled forums that opens the side panel. You can always open the side panel from the toolbar icon. Applies to open forum tabs as soon as you save.',
   'settings.forumAccess.saved.one': '{count} saved item',
@@ -151,7 +151,7 @@ export default {
   'settings.reset.confirmText':
     'This removes every provider, API key, model, favorite, prompt and preference on this page. Saved summaries and answers are not deleted.',
   'settings.reset.confirmButton': 'Reset everything',
-  'settings.footer.text': 'DiscourseCopilot is free and open source.',
+  'settings.footer.text': 'Forumind is free and open source.',
   'settings.footer.star': '★ Star on GitHub',
   'settings.footer.rate': 'Rate it',
   'settings.actionBar.label': 'Save settings',

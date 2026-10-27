@@ -168,7 +168,7 @@ export const DiscourseCopilotConstants = {
 
   API_CONFIG: {
     HEADERS: {
-      TITLE: 'DiscourseCopilot'
+      TITLE: 'Forumind'
     }
   }
 };

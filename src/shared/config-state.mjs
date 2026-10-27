@@ -107,7 +107,7 @@ export class ConfigStore {
     apiHeaders = DiscourseCopilotConstants.API_CONFIG?.HEADERS || {},
     testConnection = runConnectionTest,
     reloadDelayMs = 0,
-    onError = error => console.error('DiscourseCopilot: Unable to reload settings:', error)
+    onError = error => console.error('Forumind: Unable to reload settings:', error)
   } = {}) {
     this.storageArea = storageArea;
     this.onChanged = onChanged;

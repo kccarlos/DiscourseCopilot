@@ -1,4 +1,4 @@
-// The one-time "Enjoying DiscourseCopilot?" card (shared/star-prompt.mjs has
+// The one-time "Enjoying Forumind?" card (shared/star-prompt.mjs has
 // the rule): shown under the summary once the fifth summary has completed,
 // and only in the first panel that shows it. Rating, starring or closing it
 // dismisses it for good.

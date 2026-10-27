@@ -1,16 +1,18 @@
 <h1 align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/wordmark/discoursecopilot-wordmark-horizontal-on-dark.svg">
-    <img src="assets/brand/wordmark/discoursecopilot-wordmark-horizontal-on-light.svg" alt="DiscourseCopilot" width="440">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/wordmark/forumind-wordmark-horizontal-on-dark.svg">
+    <img src="assets/brand/wordmark/forumind-wordmark-horizontal-on-light.svg" alt="Forumind" width="440">
   </picture>
 </h1>
 
-<h3 align="center">Catch up on any Discourse forum in seconds.</h3>
+<h3 align="center">Your AI assistant for the comment section</h3>
+
+<p align="center"><i>Forumind (formerly DiscourseCopilot)</i></p>
 
 <p align="center"><b>English</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a></p>
 
 <p align="center">
-  Summarize long topics, ask follow-up questions, and let AI search the whole forum for you, with links to the posts it used.
+  Summarize long discussions, ask follow-up questions, and let AI search the whole forum for you, with links to the posts it used. Works on Discourse forums, WordPress blog comments and Reddit threads.
 </p>
 
 <p align="center">
@@ -30,20 +32,30 @@
 
 <p align="center">
   <a href="https://github.com/kccarlos/DiscourseCopilot"><b>⭐ Star on GitHub</b></a>
-  to follow new releases. It is free, and it helps other forum readers find DiscourseCopilot.
+  to follow new releases. It is free, and it helps other forum readers find Forumind.
 </p>
 
-![DiscourseCopilot in action: summarizing a Discourse topic, asking a follow-up, and asking the whole forum for an answer with sources](docs/screenshots/demo.gif)
+![Forumind in action: summarizing a Discourse topic, asking a follow-up, and asking the whole forum for an answer with sources](docs/screenshots/demo.gif)
 
-DiscourseCopilot is a free, open-source Chrome extension. It opens in your browser's side panel next to a forum built on Discourse and reads it with your own login. You bring your own AI (a provider's API key, or a model on your own computer), and **it has no servers, accounts, or analytics of its own**.
+Forumind is a free, open-source Chrome extension. It opens in your browser's side panel next to a forum built on Discourse, a WordPress site (like Doctor of Credit) or a Reddit post and reads it with your own login. You bring your own AI (a provider's API key, or a model on your own computer), and **it has no servers, accounts, or analytics of its own**.
 
 ## Works with
+
+### Discourse forums
 
 Any forum built on [Discourse](https://www.discourse.org), on any domain, including private and login-only communities. Some well-known Discourse forums it works with:
 
 [Discourse Meta](https://meta.discourse.org), [OpenAI Developer Community](https://community.openai.com), [Cursor Forum](https://forum.cursor.com), [Hugging Face Forums](https://discuss.huggingface.co), [PyTorch Forums](https://discuss.pytorch.org), [Python Discourse](https://discuss.python.org), [Rust Users Forum](https://users.rust-lang.org), [Swift Forums](https://forums.swift.org), [Julia Discourse](https://discourse.julialang.org), [Obsidian Forum](https://forum.obsidian.md), [Home Assistant Community](https://community.home-assistant.io), [Docker Community Forums](https://forums.docker.com), [Let's Encrypt Community](https://community.letsencrypt.org), [freeCodeCamp Forum](https://forum.freecodecamp.org), [Godot Forum](https://forum.godotengine.org), [Unity Discussions](https://discussions.unity.com), [Elastic Discuss](https://discuss.elastic.co), [n8n Community](https://community.n8n.io), [Fly.io Community](https://community.fly.io), [Level1Techs Forums](https://forum.level1techs.com), [Ethereum Research](https://ethresear.ch), [US Card Forum (美卡论坛)](https://www.uscardforum.com), [LINUX DO](https://linux.do), and thousands more.
 
-Not sure whether a forum runs Discourse? Open it and click the DiscourseCopilot icon: the side panel tells you. These forums are listed only as examples; DiscourseCopilot is not affiliated with them. Each forum's own rules still apply, and a forum with strict bot checks can block some requests (see the [FAQ](docs/faq.md#does-it-work-on-every-discourse-forum-including-ones-where-i-have-to-log-in)).
+### WordPress sites
+
+WordPress sites that use WordPress's native comments and leave the public REST API open. Verified working: [Doctor of Credit](https://www.doctorofcredit.com), [美卡指南 US Credit Card Guide](https://www.uscreditcardguide.com), [Frequent Miler](https://frequentmiler.com), [View from the Wing](https://viewfromthewing.com), [One Mile at a Time](https://onemileatatime.com), [Miles to Memories](https://milestomemories.com), [9to5Mac](https://9to5mac.com). Sites whose comments come from a third-party system (Disqus and the like) or that close their REST API, such as The Points Guy or TechCrunch, aren't supported.
+
+### Reddit
+
+Reddit posts with all their comments, while you're signed in to Reddit. Ask the forum searches within a subreddit.
+
+Not sure whether a site is supported? Open it and click the Forumind icon: the side panel tells you. The sites above are listed only as examples; Forumind is not affiliated with them. Each forum's own rules still apply, and a forum with strict bot checks can block some requests (see the [FAQ](docs/faq.md#does-it-work-on-every-discourse-forum-including-ones-where-i-have-to-log-in)).
 
 ## Why you'll like it
 
@@ -100,19 +112,19 @@ Not sure whether a forum runs Discourse? Open it and click the DiscourseCopilot 
 ## Get started in 3 steps
 
 **1. Install the extension.**
-Open [DiscourseCopilot in the Chrome Web Store](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac) and click **Add to Chrome**, or [Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp) in Microsoft Edge. Pin **DiscourseCopilot** from the puzzle-piece icon in the toolbar. (Store versions arrive after review; for the newest one right away, [install from GitHub](docs/guide.md#install-the-newest-version-from-github).)
+Open [Forumind in the Chrome Web Store](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac) and click **Add to Chrome**, or [Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp) in Microsoft Edge. Pin **Forumind** from the puzzle-piece icon in the toolbar. (Store versions arrive after review; for the newest one right away, [install from GitHub](docs/guide.md#install-the-newest-version-from-github).)
 
 **2. Connect an AI provider.**
-Click the DiscourseCopilot icon to open the side panel, pick a provider, paste your API key, and click **Test & save**; a fast, low-cost model is picked for you. **No API key?** [Google AI Studio](https://aistudio.google.com/apikey) gives you a free Gemini key in a minute. See [Choosing an AI provider](docs/guide.md#choosing-an-ai-provider).
+Click the Forumind icon to open the side panel, pick a provider, paste your API key, and click **Test & save**; a fast, low-cost model is picked for you. **No API key?** [Google AI Studio](https://aistudio.google.com/apikey) gives you a free Gemini key in a minute. See [Choosing an AI provider](docs/guide.md#choosing-an-ai-provider).
 
 **3. Open a forum topic, allow access, then Create summary.**
-Open any Discourse topic (log in first if the forum needs it) and click the DiscourseCopilot icon. The first time, click **Allow access** and choose **Allow** when Chrome asks; each forum asks only once. Then click **Create summary**, and ask follow-ups in the box at the bottom.
+Open any Discourse topic (log in first if the forum needs it) and click the Forumind icon. The first time, click **Allow access** and choose **Allow** when Chrome asks; each forum asks only once. Then click **Create summary**, and ask follow-ups in the box at the bottom.
 
-<img src="docs/screenshots/feature-allow-access.png" alt="The side panel asking to allow DiscourseCopilot on a forum, with three short steps and an Allow access button" width="420">
+<img src="docs/screenshots/feature-allow-access.png" alt="The side panel asking to allow Forumind on a forum, with three short steps and an Allow access button" width="420">
 
 ## Privacy first
 
-- **No analytics, no tracking, no accounts, no DiscourseCopilot servers.** Nothing is sent to the developer, because there is nowhere to send it.
+- **No analytics, no tracking, no accounts, no Forumind servers.** Nothing is sent to the developer, because there is nowhere to send it.
 - **Your data stays in your browser.** Settings, API keys, and your saved summaries, chats, and answers are stored on your computer only.
 - **Only two kinds of network calls:** the forums you allow (one forum at a time, with your login there), and the AI provider you choose, with your own key. **With a local model (Ollama or LM Studio), nothing leaves your computer.**
 
@@ -134,4 +146,4 @@ The details are in [Privacy in plain words](docs/guide.md#privacy-in-plain-words
 
 Apache License 2.0. See [LICENSE](LICENSE). Made by [kccarlos](https://github.com/kccarlos).
 
-If DiscourseCopilot saves you time, a [⭐ star on GitHub](https://github.com/kccarlos/DiscourseCopilot) is a friendly way to say thanks. It helps other forum readers find the extension.
+If Forumind saves you time, a [⭐ star on GitHub](https://github.com/kccarlos/DiscourseCopilot) is a friendly way to say thanks. It helps other forum readers find the extension.

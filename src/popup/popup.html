@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DiscourseCopilot</title>
+  <title>Forumind</title>
   <link rel="icon" type="image/svg+xml" href="/brand/tab-icon-light.svg" media="(prefers-color-scheme: light)">
   <link rel="icon" type="image/svg+xml" href="/brand/tab-icon-dark.svg" media="(prefers-color-scheme: dark)">
 
@@ -59,12 +59,16 @@
         <div class="whats-new-copy">
           <strong data-i18n="popup.whatsNew.title" id="whatsNewTitle">What’s new</strong>
           <ul class="whats-new-list">
-            <li data-i18n="popup.whatsNew.sites">Now works beyond Discourse: WordPress posts with their comments (like Doctor of Credit), and Reddit posts while you’re signed in to Reddit.</li>
+            <li data-i18n="popup.whatsNew.rename">DiscourseCopilot is now Forumind. Your settings and saved items stay.</li>
+            <li data-i18n="popup.whatsNew.sites">Besides Discourse forums, it now works on WordPress sites (like Doctor of Credit) and Reddit (when signed in).</li>
             <li data-i18n="popup.whatsNew.agent">Ask the forum works on those sites too: it searches posts and comments, reads them and cites what it read.</li>
             <li data-i18n="popup.whatsNew.copy">Copy full post works as soon as the post is read, without waiting for the summary.</li>
           </ul>
+          <p data-i18n="popup.whatsNew.support" class="whats-new-support">If Forumind helps you, a rating or a GitHub star would mean a lot. Thank you!</p>
           <div class="whats-new-actions">
             <button data-i18n="popup.whatsNew.ok" class="text-btn whats-new-ok" type="button" data-whats-new-action="ok">Got it</button>
+            <a data-i18n="popup.star.rate" class="whats-new-link" href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac/reviews" target="_blank" rel="noopener noreferrer" data-whats-new-action="rate">Rate it</a>
+            <a data-i18n="popup.star.github" class="whats-new-link" href="https://github.com/kccarlos/DiscourseCopilot" target="_blank" rel="noopener noreferrer" data-whats-new-action="star">★ Star on GitHub</a>
             <a data-i18n="popup.whatsNew.all" class="whats-new-link" href="https://github.com/kccarlos/DiscourseCopilot/releases" target="_blank" rel="noopener noreferrer" data-whats-new-action="all">All changes</a>
           </div>
         </div>
@@ -102,7 +106,7 @@
         <div id="setupIntro" class="setup-card-header">
           <span data-i18n="setup.firstTime" id="setupEyebrow" class="eyebrow">First-time setup</span>
           <h2 data-i18n="guide.connectProvider" id="setupHeading" tabindex="-1">Connect an AI provider</h2>
-          <p data-i18n="popup.setup.intro">DiscourseCopilot uses your own AI provider to summarize and search any Discourse forum. Your key stays in this browser.</p>
+          <p data-i18n="popup.setup.intro">Forumind uses your own AI provider to summarize and search Discourse forums, WordPress sites and Reddit. Your key stays in this browser.</p>
         </div>
         <form id="setupForm" class="setup-form" novalidate>
           <fieldset class="setup-step setup-provider-step">
@@ -232,10 +236,10 @@
       <div id="agentAnnouncer" class="sr-only" role="status" aria-live="polite"></div>
       <section id="backgroundRecovery" class="recovery-card hidden" role="alert">
         <div>
-          <strong data-i18n="popup.recovery.title">Finish updating DiscourseCopilot</strong>
+          <strong data-i18n="popup.recovery.title">Finish updating Forumind</strong>
           <p data-i18n="popup.recovery.text">The interface is newer than its background service. Restart once, then reopen the side panel.</p>
         </div>
-        <button data-i18n="popup.recovery.button" id="restartExtensionBtn" type="button">Restart DiscourseCopilot</button>
+        <button data-i18n="popup.recovery.button" id="restartExtensionBtn" type="button">Restart Forumind</button>
       </section>
 
       <section id="fetchProgress" class="fetch-progress hidden">
@@ -279,7 +283,7 @@
         </div>
         <div>
           <h2 data-i18n="popup.welcome.title">Catch up without the scroll</h2>
-          <p data-i18n="popup.welcome.text">DiscourseCopilot reads the original post and its replies, then gives you a focused summary you can save, copy, or discuss with AI.</p>
+          <p data-i18n="popup.welcome.text">Forumind reads the original post and its replies, then gives you a focused summary you can save, copy, or discuss with AI.</p>
         </div>
       </section>
 
@@ -348,7 +352,7 @@
 
       <aside id="starPrompt" class="star-prompt hidden" aria-labelledby="starPromptTitle">
         <div class="star-prompt-copy">
-          <strong data-i18n="popup.star.title" id="starPromptTitle">Enjoying DiscourseCopilot?</strong>
+          <strong data-i18n="popup.star.title" id="starPromptTitle">Enjoying Forumind?</strong>
           <p data-i18n="popup.star.text">It’s free and open source. A rating or a GitHub star helps other forum readers find it.</p>
           <div class="star-prompt-actions">
             <a data-i18n="popup.star.rate" class="star-prompt-link" href="https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac/reviews" target="_blank" rel="noopener noreferrer" data-star-action="rate">Rate it</a>

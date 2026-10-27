@@ -1,4 +1,4 @@
-// Checking a page before the user enabled DiscourseCopilot on it.
+// Checking a page before the user enabled Forumind on it.
 //
 // The content script only runs on forums the user enabled. For any other
 // page the side panel can run probeDiscoursePage() once with

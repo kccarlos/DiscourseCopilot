@@ -141,14 +141,17 @@ export default {
     captions: {
       '01': { title: '一键总结 Discourse 长帖', sub: '一键爬楼看要点，接着追问，连是哪一层楼说的都告诉你。' },
       '02': { title: '全站搜索，回答附带来源', sub: '智能体一步步搜索、阅读，并标出它引用的帖子。' },
-      '03': { title: '任何 Discourse 论坛都能用', sub: '用你自己的登录状态读帖，登录才能看的帖子也能总结和搜索。' },
+      '03': {
+        title: 'Discourse 论坛、WordPress 评论和 Reddit 帖子都能用',
+        sub: '用你自己的登录状态读帖，登录才能看的帖子也能总结和搜索。'
+      },
       '04': { title: 'AI 随你选', sub: '连接你已经在用的 AI 服务商，被限速了一键换模型。密钥只保存在浏览器里。' },
       '05': { title: '浅色和深色模式', sub: '侧边栏自动跟随系统主题。' }
     },
     promo: {
-      tag: 'Discourse 论坛的 <span class="accent-text">AI 助手</span>',
-      headline: '逛 Discourse 论坛<br><span class="accent-text">不用再爬楼</span>',
-      points: ['一键爬楼总结，追问到哪一层楼', '全站搜索，回答附带来源', '登录可见的帖子也能读'],
+      tag: '你的<span class="accent-text">评论区 AI 助手</span>',
+      headline: '你的评论区<br><span class="accent-text">AI 助手</span>',
+      points: ['一键爬楼总结，追问到哪一层楼', '全站搜索，回答附带来源', 'Discourse、WordPress 和 Reddit'],
       foot: '免费开源的 Chrome 扩展'
     }
   },

@@ -1,11 +1,13 @@
 <h1 align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/wordmark/discoursecopilot-wordmark-horizontal-on-dark.svg">
-    <img src="assets/brand/wordmark/discoursecopilot-wordmark-horizontal-on-light.svg" alt="DiscourseCopilot" width="440">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/wordmark/forumind-wordmark-horizontal-on-dark.svg">
+    <img src="assets/brand/wordmark/forumind-wordmark-horizontal-on-light.svg" alt="Forumind" width="440">
   </picture>
 </h1>
 
-<h3 align="center">逛 Discourse 論壇，不用再爬文。</h3>
+<h3 align="center">你的留言區 AI 助手</h3>
+
+<p align="center"><i>Forumind（原 DiscourseCopilot）</i></p>
 
 <p align="center"><a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <b>繁體中文</b></p>
 
@@ -33,17 +35,27 @@
   ，第一時間收到新版本。不花錢，還能讓更多逛論壇的人發現它。
 </p>
 
-![DiscourseCopilot 示範：摘要 Discourse 貼文、追問、在全論壇搜尋並給出帶來源的回答](docs/screenshots/zh-TW/demo.gif)
+![Forumind 示範：摘要 Discourse 貼文、追問、在全論壇搜尋並給出帶來源的回答](docs/screenshots/zh-TW/demo.gif)
 
-DiscourseCopilot 是一個免費、開源的 Chrome 擴充功能。它在瀏覽器側邊欄裡開啟，配合任何以 Discourse 架設的論壇使用，並且**用你自己的論壇登入狀態讀文**。AI 由你自己提供（用你自己的 API 金鑰，或者跑在你電腦上的本機模型），**擴充功能本身沒有伺服器、沒有帳號、沒有任何分析**。
+Forumind 是一個免費、開源的 Chrome 擴充功能。它在瀏覽器側邊欄裡開啟，配合任何以 Discourse 架設的論壇、WordPress 網站（例如 Doctor of Credit）和 Reddit 貼文使用，並且**用你自己的論壇登入狀態讀文**。AI 由你自己提供（用你自己的 API 金鑰，或者跑在你電腦上的本機模型），**擴充功能本身沒有伺服器、沒有帳號、沒有任何分析**。
 
-## 支援哪些論壇
+## 支援哪些網站
+
+### Discourse 論壇
 
 所有基於 [Discourse](https://www.discourse.org) 架設的論壇都可以用，不管是什麼網域，也包括需要登入的私有社群。下面是一些常見的 Discourse 論壇：
 
 [美卡論壇 US Card Forum](https://www.uscardforum.com)、[LINUX DO](https://linux.do)、[Discourse Meta](https://meta.discourse.org)、[OpenAI 開發者社群](https://community.openai.com)、[Cursor 論壇](https://forum.cursor.com)、[Hugging Face 論壇](https://discuss.huggingface.co)、[PyTorch 論壇](https://discuss.pytorch.org)、[Python 社群](https://discuss.python.org)、[Rust 使用者論壇](https://users.rust-lang.org)、[Swift 論壇](https://forums.swift.org)、[Obsidian 論壇](https://forum.obsidian.md)、[Home Assistant 社群](https://community.home-assistant.io)、[Docker 社群論壇](https://forums.docker.com)、[Unity 討論區](https://discussions.unity.com)、[Godot 論壇](https://forum.godotengine.org)、[n8n 社群](https://community.n8n.io)，以及成千上萬個其他社群。
 
-不確定某個論壇是不是 Discourse？開啟它，點一下 DiscourseCopilot 圖示，側邊欄會告訴你。以上論壇僅作舉例，DiscourseCopilot 與它們沒有任何關聯。各論壇自己的規則仍然有效，機器人驗證比較嚴格的論壇可能會攔截部分請求（見[常見問題](docs/zh-TW/faq.md)）。
+### WordPress 網站
+
+使用 WordPress 原生留言、並且開放公開 REST API 的 WordPress 網站。已驗證可用：[Doctor of Credit](https://www.doctorofcredit.com)、[美卡指南 US Credit Card Guide](https://www.uscreditcardguide.com)、[Frequent Miler](https://frequentmiler.com)、[View from the Wing](https://viewfromthewing.com)、[One Mile at a Time](https://onemileatatime.com)、[Miles to Memories](https://milestomemories.com)、[9to5Mac](https://9to5mac.com)。留言由第三方系統（如 Disqus）提供，或者關閉了 REST API 的網站（例如 The Points Guy、TechCrunch）暫不支援。
+
+### Reddit
+
+在登入 Reddit 的狀態下，可以讀取貼文及其全部留言；「全站搜尋」會在某個看板（subreddit）內搜尋。
+
+不確定某個網站能不能用？開啟它，點一下 Forumind 圖示，側邊欄會告訴你。以上網站僅作舉例，Forumind 與它們沒有任何關聯。各論壇自己的規則仍然有效，機器人驗證比較嚴格的論壇可能會攔截部分請求（見[常見問題](docs/zh-TW/faq.md)）。
 
 ## 為什麼好用
 
@@ -100,19 +112,19 @@ DiscourseCopilot 是一個免費、開源的 Chrome 擴充功能。它在瀏覽�
 ## 三步上手
 
 **1. 安裝擴充功能。**
-開啟 [Chrome 線上應用程式商店裡的 DiscourseCopilot](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac)，點 **加到 Chrome**；用 Microsoft Edge 的話，開啟 [Edge 附加元件商店](https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp)。然後點工具列上的拼圖圖示，固定 **DiscourseCopilot**。（商店版本需要審核，想馬上用最新版可以[從 GitHub 安裝](docs/zh-TW/guide.md#從-github-安裝最新版)。）
+開啟 [Chrome 線上應用程式商店裡的 Forumind](https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac)，點 **加到 Chrome**；用 Microsoft Edge 的話，開啟 [Edge 附加元件商店](https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp)。然後點工具列上的拼圖圖示，固定 **Forumind**。（商店版本需要審核，想馬上用最新版可以[從 GitHub 安裝](docs/zh-TW/guide.md#從-github-安裝最新版)。）
 
 **2. 連線一個 AI 供應商。**
-點 DiscourseCopilot 圖示開啟側邊欄，選供應商、貼上 API 金鑰，點 **測試並儲存**，會自動選一個又快又便宜的模型。**沒有 API 金鑰？** 去 [Google AI Studio](https://aistudio.google.com/apikey) 一分鐘就能免費拿到一個 Gemini 金鑰。不知道選哪家，見[選擇 AI 供應商](docs/zh-TW/guide.md#選擇-ai-供應商)。
+點 Forumind 圖示開啟側邊欄，選供應商、貼上 API 金鑰，點 **測試並儲存**，會自動選一個又快又便宜的模型。**沒有 API 金鑰？** 去 [Google AI Studio](https://aistudio.google.com/apikey) 一分鐘就能免費拿到一個 Gemini 金鑰。不知道選哪家，見[選擇 AI 供應商](docs/zh-TW/guide.md#選擇-ai-供應商)。
 
 **3. 開啟一個論壇貼文，授權存取，然後點「產生摘要」。**
-開啟任意 Discourse 論壇的貼文（如果需要登入，先登入），點 DiscourseCopilot 圖示。第一次在某個論壇使用時，點 **允許存取**，再在 Chrome 彈出視窗裡選 **允許**，每個論壇只需授權一次。之後點 **產生摘要**，在底部的輸入框裡繼續追問就行。
+開啟任意 Discourse 論壇的貼文（如果需要登入，先登入），點 Forumind 圖示。第一次在某個論壇使用時，點 **允許存取**，再在 Chrome 彈出視窗裡選 **允許**，每個論壇只需授權一次。之後點 **產生摘要**，在底部的輸入框裡繼續追問就行。
 
-<img src="docs/screenshots/zh-TW/feature-allow-access.png" alt="側邊欄請求在某個論壇上啟用 DiscourseCopilot，有三個簡短步驟和一個「允許存取」按鈕" width="420">
+<img src="docs/screenshots/zh-TW/feature-allow-access.png" alt="側邊欄請求在某個論壇上啟用 Forumind，有三個簡短步驟和一個「允許存取」按鈕" width="420">
 
 ## 隱私優先
 
-- **沒有分析、沒有追蹤、沒有帳號，也沒有 DiscourseCopilot 伺服器。** 什麼都不會發給開發者，因為根本沒有地方可發。
+- **沒有分析、沒有追蹤、沒有帳號，也沒有 Forumind 伺服器。** 什麼都不會發給開發者，因為根本沒有地方可發。
 - **資料只存在你的瀏覽器裡。** 設定、API 金鑰、儲存的摘要、對話和回答都只儲存在你的電腦上，隨時可以刪除。
 - **只有兩類網路請求：** 你允許的論壇（按論壇逐個授權，用你在論壇上的登入狀態），以及你選的 AI 供應商（用你自己的金鑰）。**用本機模型（Ollama 或 LM Studio）時，資料完全不離開你的電腦。**
 
@@ -136,4 +148,4 @@ DiscourseCopilot 是一個免費、開源的 Chrome 擴充功能。它在瀏覽�
 
 Apache License 2.0，見 [LICENSE](LICENSE)。作者 [kccarlos](https://github.com/kccarlos)。
 
-如果 DiscourseCopilot 幫你省了時間，歡迎在 GitHub 上[點個 ⭐ Star](https://github.com/kccarlos/DiscourseCopilot)，這能幫助更多逛論壇的人發現它。
+如果 Forumind 幫你省了時間，歡迎在 GitHub 上[點個 ⭐ Star](https://github.com/kccarlos/DiscourseCopilot)，這能幫助更多逛論壇的人發現它。

@@ -24,10 +24,10 @@ test('trace logs stay silent outside development builds', () => {
 test('warnings and errors are always printed with the prefix', () => {
   assert.deepEqual(
     captureConsole('warn', () => DiscourseCopilotLogger.warn('careful', 1)),
-    [['[DiscourseCopilot WARN] careful', 1]]
+    [['[Forumind WARN] careful', 1]]
   );
   assert.deepEqual(
     captureConsole('error', () => DiscourseCopilotLogger.error('broken')),
-    [['[DiscourseCopilot ERROR] broken']]
+    [['[Forumind ERROR] broken']]
   );
 });

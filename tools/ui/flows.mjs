@@ -474,12 +474,13 @@ scenario(
   { store: { ...configuredStore, whatsNew: { pending: WHATS_NEW_NOTE, seen: '' } } },
   async ({ page, check, shot }) => {
     check('shown after an update', await visible(page, '#whatsNew'));
-    check('lists three changes', (await page.$$eval('#whatsNew li', items => items.length)) === 3);
+    check('lists four changes', (await page.$$eval('#whatsNew li', items => items.length)) === 4);
     check(
-      'links to the releases',
-      JSON.stringify(await page.$$eval('#whatsNew a', links => links.map(a => [a.target, new URL(a.href).pathname])))
-        === '[["_blank","/kccarlos/DiscourseCopilot/releases"]]'
+      'rate, star and releases links',
+      JSON.stringify(await page.$$eval('#whatsNew a', links => links.map(a => [a.target, new URL(a.href).host, a.dataset.whatsNewAction])))
+        === '[["_blank","chromewebstore.google.com","rate"],["_blank","github.com","star"],["_blank","github.com","all"]]'
     );
+    check('support line shown', (await text(page, '.whats-new-support')).includes('Forumind'));
     await shot('shown');
     await page.click('#whatsNew [data-whats-new-action="ok"]');
     await page.waitForTimeout(100);
@@ -1269,7 +1270,7 @@ scenario(
     );
     check(
       'guide heading',
-      (await text(page, '#pageGuideHeading')) === 'This page isn’t a Discourse forum',
+      (await text(page, '#pageGuideHeading')) === 'Forumind can’t read this page',
       await text(page, '#pageGuideHeading')
     );
     check(
@@ -1300,12 +1301,12 @@ scenario(
   async ({ page, check, shot }) => {
     check(
       'guide heading',
-      (await text(page, '#pageGuideHeading')) === 'This page isn’t a Discourse forum',
+      (await text(page, '#pageGuideHeading')) === 'Forumind can’t read this page',
       await text(page, '#pageGuideHeading')
     );
     check(
       'guide explains',
-      (await text(page, '#pageGuideText')).includes('forums built with Discourse'),
+      (await text(page, '#pageGuideText')).includes('Discourse forums, WordPress sites'),
       await text(page, '#pageGuideText')
     );
     const links = await page.$$eval('#pageGuideLinks a', as =>
@@ -2133,7 +2134,7 @@ scenario(
 // ---------- First install ----------
 // The welcome tab's button opens the side panel for this window, then closes the tab.
 scenario('welcome', 'src/welcome/welcome.html', { store: {} }, async ({ page, check, shot }) => {
-  check('heading', (await text(page, 'h1')) === 'Welcome to DiscourseCopilot', await text(page, 'h1'));
+  check('heading', (await text(page, 'h1')) === 'Welcome to Forumind', await text(page, 'h1'));
   await shot('fresh');
   await page.click('#openPanel');
   await page.waitForTimeout(150);
@@ -2325,8 +2326,7 @@ scenario('settings-forum-button', 'src/settings/settings.html', { store: configu
   check('on by default', await page.$eval(box, i => i.checked));
   check(
     'labelled',
-    (await page.$eval(box, i => i.closest('label').textContent.trim().replace(/\s+/g, ' ')))
-      === 'Show the DiscourseCopilot button on forum pages'
+    (await page.$eval(box, i => i.closest('label').textContent.trim().replace(/\s+/g, ' '))) === 'Show the Forumind button on forum pages'
   );
   check('help mentions the toolbar icon', (await text(page, '#showForumButtonHelp')).includes('toolbar icon'));
   check('bar saved', (await text(page, '#formStateText')) === 'All changes saved', await text(page, '#formStateText'));
@@ -2427,7 +2427,7 @@ scenario('access-enable', 'src/popup/popup.html', accessOptions, async ({ page, 
   check('allow card visible', await visible(page, '#pageGuide'));
   check(
     'card heading',
-    (await text(page, '#pageGuideHeading')) === 'Allow DiscourseCopilot on OpenAI Developer Community',
+    (await text(page, '#pageGuideHeading')) === 'Allow Forumind on OpenAI Developer Community',
     await text(page, '#pageGuideHeading')
   );
   check(
@@ -2471,7 +2471,7 @@ scenario('access-enable', 'src/popup/popup.html', accessOptions, async ({ page, 
   check('welcome panel on the topic', await visible(page, '#welcomePanel'));
   check(
     'grant announced',
-    (await text(page, '#status')) === 'DiscourseCopilot can now read OpenAI Developer Community',
+    (await text(page, '#status')) === 'Forumind can now read OpenAI Developer Community',
     await text(page, '#status')
   );
   await shot('granted');
@@ -2517,7 +2517,7 @@ scenario('access-hidden', 'src/popup/popup.html', { ...accessOptions, activeTab:
   check('guide title', (await text(page, '#pageGuideHeading')) === 'Check this page', await text(page, '#pageGuideHeading'));
   check(
     'guide explains the icon',
-    (await text(page, '#pageGuideText')).includes('Click the DiscourseCopilot icon in your toolbar'),
+    (await text(page, '#pageGuideText')).includes('Click the Forumind icon in your toolbar'),
     await text(page, '#pageGuideText')
   );
   check('pin tip', (await text(page, '#pageGuideTip')).includes('puzzle-piece menu'));
@@ -2537,12 +2537,12 @@ scenario('access-hidden', 'src/popup/popup.html', { ...accessOptions, activeTab:
   await page.waitForTimeout(400);
   check(
     'allow card after click',
-    (await text(page, '#pageGuideHeading')) === 'Allow DiscourseCopilot on OpenAI Developer Community',
+    (await text(page, '#pageGuideHeading')) === 'Allow Forumind on OpenAI Developer Community',
     await text(page, '#pageGuideHeading')
   );
   check(
     'state change announced',
-    (await text(page, '#guideAnnouncer')) === 'Allow DiscourseCopilot on OpenAI Developer Community',
+    (await text(page, '#guideAnnouncer')) === 'Allow Forumind on OpenAI Developer Community',
     await text(page, '#guideAnnouncer')
   );
   await shot('after-click');
@@ -2658,7 +2658,7 @@ scenario(
         phase: 'waiting_user_action',
         statusText: 'Waiting for forum access',
         progress: null,
-        error: 'Enable DiscourseCopilot on community.openai.com in the side panel, then try again.',
+        error: 'Enable Forumind on community.openai.com in the side panel, then try again.',
         createdAt: Date.now() - 5000,
         updatedAt: Date.now()
       }
@@ -2692,7 +2692,7 @@ scenario(
             progress: null,
             error: {
               code: 'FORUM_ACCESS_NOT_GRANTED',
-              message: 'Enable DiscourseCopilot on community.openai.com in the side panel, then try again.',
+              message: 'Enable Forumind on community.openai.com in the side panel, then try again.',
               retryable: false,
               needsUserAction: true,
               retryAfterAt: 0
@@ -2862,7 +2862,7 @@ scenario('content-forum-button', '__fixtures__/discourse-topic.html', { store: c
   check('button shown by default', await launcherPresent(page));
   check(
     'button names the extension',
-    await page.evaluate(sel => document.querySelector(sel).shadowRoot.querySelector('button').title === 'Open DiscourseCopilot', LAUNCHER)
+    await page.evaluate(sel => document.querySelector(sel).shadowRoot.querySelector('button').title === 'Open Forumind', LAUNCHER)
   );
   await shot('shown');
   await page.evaluate(() => chrome.storage.local.set({ preferences: { showForumButton: false } }));
@@ -2966,7 +2966,7 @@ const zhScreen = async (page, check, label, expected) => {
 
 zhScenario('popup-setup', 'src/popup/popup.html', { store: {} }, async ({ page, check, shot }) => {
   check('document language', (await page.evaluate(() => document.documentElement.lang)) === 'zh-CN');
-  check('tab title', (await page.title()) === 'DiscourseCopilot', await page.title());
+  check('tab title', (await page.title()) === 'Forumind', await page.title());
   await zhScreen(page, check, 'setup card', ['首次设置', '连接 AI 服务商', '选择服务商', '更多服务商…', '设置', '记录']);
   await shot('setup');
   await page.click('label.setup-provider-option[data-provider="openai"]');
@@ -3125,7 +3125,7 @@ zhScenario('popup-agent', 'src/popup/popup.html', { store: configuredStore }, as
 zhScenario('popup-guidance', 'src/popup/popup.html', accessOptions, async ({ page, check, shot }) => {
   check(
     'heading',
-    (await text(page, '#pageGuideHeading')) === '在 OpenAI Developer Community 上启用 DiscourseCopilot',
+    (await text(page, '#pageGuideHeading')) === '在 OpenAI Developer Community 上启用 Forumind',
     await text(page, '#pageGuideHeading')
   );
   check('button', (await text(page, '#forumAccessBtn')) === '允许访问 community.openai.com', await text(page, '#forumAccessBtn'));
@@ -3163,7 +3163,7 @@ zhScenario(
     probe: { url: 'https://example.com/', isDiscourse: false, basePath: '', forumName: '' }
   },
   async ({ page, check, shot }) => {
-    await zhScreen(page, check, 'not a forum', ['不是 Discourse 论坛', '此页面不是 Discourse 论坛']);
+    await zhScreen(page, check, 'not a forum', ['无法读取此页面', 'Forumind 无法读取此页面']);
     await shot('not-forum');
   }
 );
@@ -3187,7 +3187,7 @@ zhScenario('settings', 'src/settings/settings.html', { store: configuredStore },
 });
 
 zhScenario('welcome', 'src/welcome/welcome.html', { store: {} }, async ({ page, check, shot }) => {
-  await zhScreen(page, check, 'welcome page', ['欢迎使用 DiscourseCopilot', '打开 DiscourseCopilot']);
+  await zhScreen(page, check, 'welcome page', ['欢迎使用 Forumind', '打开 Forumind']);
   await shot();
 });
 
@@ -3260,7 +3260,7 @@ twScenario('settings', 'src/settings/settings.html', { store: configuredStore },
 });
 
 twScenario('welcome', 'src/welcome/welcome.html', { store: {} }, async ({ page, check, shot }) => {
-  await twScreen(page, check, 'welcome page', ['歡迎使用 DiscourseCopilot', '開啟 DiscourseCopilot']);
+  await twScreen(page, check, 'welcome page', ['歡迎使用 Forumind', '開啟 Forumind']);
   await shot();
 });
 
@@ -3270,11 +3270,7 @@ zhScenario('content-forum-button', '__fixtures__/discourse-topic.html', { store:
     const button = document.querySelector(sel).shadowRoot.querySelector('button');
     return [button.title, button.getAttribute('aria-label')];
   }, LAUNCHER);
-  check(
-    'button title and name are Chinese',
-    label[0] === '打开 DiscourseCopilot' && label[1] === '打开 DiscourseCopilot 面板',
-    label.join(' | ')
-  );
+  check('button title and name are Chinese', label[0] === '打开 Forumind' && label[1] === '打开 Forumind 面板', label.join(' | '));
   await shot('launcher');
 });
 
@@ -3286,7 +3282,7 @@ twScenario('content-forum-button', '__fixtures__/discourse-topic.html', { store:
   }, LAUNCHER);
   check(
     'button title and name are Traditional Chinese',
-    label[0] === '開啟 DiscourseCopilot' && label[1] === '開啟 DiscourseCopilot 面板',
+    label[0] === '開啟 Forumind' && label[1] === '開啟 Forumind 面板',
     label.join(' | ')
   );
 });
@@ -3875,6 +3871,7 @@ zhScenario(
   async ({ page, check, shot }) => {
     check('title says 新功能', (await text(page, '#whatsNewTitle')) === '新功能');
     check('button says 知道了', (await text(page, '#whatsNew [data-whats-new-action="ok"]')) === '知道了');
+    check('rename bullet', (await text(page, '#whatsNew li')).includes('Forumind'));
     await zhScreen(page, check, 'What’s new card', ['新功能', '知道了']);
     await shot('shown');
   }

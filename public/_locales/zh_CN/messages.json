@@ -1,22 +1,22 @@
 {
   "extName": {
-    "message": "DiscourseCopilot",
+    "message": "Forumind",
     "description": "Extension name shown in the Chrome Web Store and chrome://extensions."
   },
   "extDescription": {
-    "message": "为任意 Discourse 论坛提供 AI 助手：一键总结贴文，全站搜索并获得带来源的回答。",
+    "message": "你的评论区 AI 助手。原名 DiscourseCopilot。",
     "description": "Short description (max 132 characters)."
   },
   "actionTitle": {
-    "message": "DiscourseCopilot",
+    "message": "Forumind",
     "description": "Tooltip of the toolbar button."
   },
   "launcherAriaLabel": {
-    "message": "打开 DiscourseCopilot 面板",
+    "message": "打开 Forumind 面板",
     "description": "Accessible name of the in-page button."
   },
   "launcherTitle": {
-    "message": "打开 DiscourseCopilot",
+    "message": "打开 Forumind",
     "description": "Tooltip of the in-page button."
   },
   "launcherOpening": {
@@ -32,7 +32,7 @@
     "description": "In-page button label after opening failed."
   },
   "launcherOpenFailed": {
-    "message": "无法打开 DiscourseCopilot",
+    "message": "无法打开 Forumind",
     "description": "Tooltip when the side panel could not be opened."
   }
 }
