@@ -600,6 +600,13 @@ export default {
   'popup.star.text': 'It’s free and open source. A rating or a GitHub star helps other forum readers find it.',
   'popup.star.rate': 'Rate it',
   'popup.star.github': '★ Star on GitHub',
+  'popup.whatsNew.title': 'What’s new',
+  'popup.whatsNew.sites':
+    'Now works beyond Discourse: WordPress posts with their comments (like Doctor of Credit), and Reddit posts while you’re signed in to Reddit.',
+  'popup.whatsNew.agent': 'Ask the forum works on those sites too: it searches posts and comments, reads them and cites what it read.',
+  'popup.whatsNew.copy': 'Copy full post works as soon as the post is read, without waiting for the summary.',
+  'popup.whatsNew.ok': 'Got it',
+  'popup.whatsNew.all': 'All changes',
   'popup.dismiss': 'Dismiss',
   'popup.chat.title': 'Ask about this post',
   'popup.chat.clear': 'Clear conversation',

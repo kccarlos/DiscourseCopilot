@@ -589,6 +589,13 @@ export default {
   'popup.star.text': '它免費且開源。一個評分或一顆 GitHub Star，能幫助更多論壇讀者發現它。',
   'popup.star.rate': '前往評分',
   'popup.star.github': '★ 在 GitHub 上加星',
+  'popup.whatsNew.title': '新功能',
+  'popup.whatsNew.sites':
+    '不再只支援 Discourse：現在也能讀 WordPress 文章及其留言（例如 Doctor of Credit），登入 Reddit 後也能讀 Reddit 貼文。',
+  'popup.whatsNew.agent': '「全站搜尋」在這些網站上也能用：搜尋貼文和留言、閱讀內容，並註明出處。',
+  'popup.whatsNew.copy': '貼文讀完就能「複製完整貼文」，不用等摘要寫完。',
+  'popup.whatsNew.ok': '知道了',
+  'popup.whatsNew.all': '所有更新',
   'popup.dismiss': '關閉',
   'popup.chat.title': '針對此貼文提問',
   'popup.chat.clear': '清除對話',
