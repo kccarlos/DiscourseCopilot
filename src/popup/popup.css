@@ -130,6 +130,8 @@ body {
 
 html {
     background: var(--dc-bg);
+    /* Set from the composer's height (composer-dock.mjs). */
+    scroll-padding-bottom: var(--composer-height, 0px);
 }
 
 body {
@@ -1365,14 +1367,14 @@ progress:indeterminate::-webkit-progress-bar {
     color: var(--dc-ink);
 }
 
+/* The conversation scrolls with the panel, not in a box of its own: a fixed
+   max-height can't know how tall the hero and the composer are, so the last
+   reply ended up behind the composer. In the page flow it ends right above
+   the sticky composer once the panel is scrolled to the bottom. */
 .chat-messages {
     display: flex;
-    max-height: max(260px, calc(100vh - 360px));
     flex-direction: column;
     gap: 16px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scroll-behavior: smooth;
 }
 
 .chat-message {

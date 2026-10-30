@@ -27,6 +27,12 @@ export class ComposerDock {
 
   mount() {
     this.menu.mount();
+    // The page scrolls under the sticky composer: its height is the bottom
+    // scroll padding, so scrollIntoView stops above the box, not behind it.
+    new ResizeObserver(([entry]) => {
+      const height = Math.ceil(entry.borderBoxSize?.[0]?.blockSize ?? entry.target.offsetHeight);
+      document.documentElement.style.setProperty('--composer-height', `${height}px`);
+    }).observe($('composerDock'));
     for (const option of $('composerScopeMenu').querySelectorAll('[data-scope]')) {
       option.addEventListener('click', () => {
         this.menu.close();

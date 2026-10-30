@@ -4,6 +4,9 @@ Notable changes to Forumind (formerly DiscourseCopilot). The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+- In the Chat tab, the newest message and a reply that is streaming in are no longer hidden behind the question box at the bottom. The conversation now scrolls with the panel and stops right above the box.
+
 ## [3.0.0] - 2026-10-27
 
 DiscourseCopilot is now Forumind: it also reads WordPress posts and Reddit threads, and asks the forum on them.

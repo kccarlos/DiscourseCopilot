@@ -1416,6 +1416,101 @@ scenario('popup-chat', 'src/popup/popup.html', { store: configuredStore }, async
   check('limit shown', (await text(page, '#forumContextLimitValue')).startsWith('200,000'), await text(page, '#forumContextLimitValue'));
 });
 
+// A long conversation scrolls with the panel: its last message ends above the
+// sticky composer, on opening the tab and while a reply streams in.
+scenario('popup-chat-long', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
+  const filler = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(12);
+  const history = Array.from({ length: 6 }, (_, i) => [
+    { role: 'user', content: `Question ${i}?`, taskId: `c${i}`, createdAt: Date.now() - 60000 + i },
+    { role: 'assistant', content: `Answer ${i}. ${filler}`, taskId: `c${i}`, createdAt: Date.now() - 50000 + i }
+  ]).flat();
+  await seedHistory(page, savedSessionHistory({ ...savedSession, history }));
+  await page.reload();
+  await page.waitForTimeout(700);
+  // How far the last message reaches past the top of the composer (<= 0 is clear of it).
+  const overlap = () =>
+    page.evaluate(() => {
+      const last = [...document.querySelectorAll('#chatMessages .chat-message')].at(-1).getBoundingClientRect();
+      return Math.round(last.bottom - document.getElementById('composerDock').getBoundingClientRect().top);
+    });
+  await page.click('#summaryTab');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.click('#chatTab');
+  await page.waitForTimeout(300);
+  check('last message clears the composer', (await overlap()) <= 0, String(await overlap()));
+  await page.fill('#chatInput', 'Any caveats?');
+  await page.click('#sendChatBtn');
+  await page.waitForTimeout(300);
+  check('new question clears the composer', (await overlap()) <= 0, String(await overlap()));
+  const taskId = await page.evaluate(() => document.querySelector('.chat-message.assistant.pending').dataset.taskId);
+  for (let i = 0; i < 8; i++) {
+    await page.evaluate(
+      ([taskId, i]) =>
+        window.__fire(
+          'onMessage',
+          { action: 'taskStream', taskId, topicKey: 'meta.discourse.org/t/12345', type: 'chat', chunk: `Line ${i} of a long reply.\n\n` },
+          {}
+        ),
+      [taskId, i]
+    );
+    await page.waitForTimeout(60);
+  }
+  await page.waitForTimeout(200);
+  check('streamed reply stays above the composer', (await overlap()) <= 0, String(await overlap()));
+  await shot();
+  // Scrolled up to reread: more of the reply, and its end, leave the page where it is.
+  await page.evaluate(() => window.scrollTo(0, 300));
+  await page.evaluate(
+    taskId =>
+      window.__fire(
+        'onMessage',
+        { action: 'taskStream', taskId, topicKey: 'meta.discourse.org/t/12345', type: 'chat', chunk: 'One more line.\n\n' },
+        {}
+      ),
+    taskId
+  );
+  await page.waitForTimeout(200);
+  check(
+    'no follow while scrolled up',
+    Math.abs((await page.evaluate(() => window.scrollY)) - 300) < 20,
+    String(await page.evaluate(() => window.scrollY))
+  );
+  await page.evaluate(
+    ([id, key, site]) =>
+      window.__fire(
+        'onMessage',
+        {
+          action: 'taskUpdated',
+          task: {
+            id,
+            type: 'chat',
+            topicId: '12345',
+            siteUrl: site,
+            topicKey: key,
+            agentRunId: '',
+            title: 'Some topic',
+            status: 'completed',
+            phase: 'completed',
+            statusText: 'Completed',
+            progress: null,
+            error: '',
+            createdAt: Date.now() - 5000,
+            updatedAt: Date.now()
+          }
+        },
+        {}
+      ),
+    [taskId, TOPIC_KEY, SITE]
+  );
+  await page.waitForTimeout(500);
+  // (The status line above the chat changes by a few pixels as the task ends.)
+  check(
+    'finished reply keeps the place',
+    Math.abs((await page.evaluate(() => window.scrollY)) - 300) < 20,
+    String(await page.evaluate(() => window.scrollY))
+  );
+});
+
 scenario('popup-chat-edit', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
   await seedHistory(page, savedSessionHistory());
   await page.reload();
