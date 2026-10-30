@@ -73,6 +73,12 @@ export class ChatView {
   }
 
   mount() {
+    // Opening the Chat tab shows the latest message.
+    $('chatContainer').addEventListener('toggle', event => {
+      if (event.currentTarget.open) {
+        this.scrollToBottom();
+      }
+    });
     $('clearChatBtn').addEventListener('click', () => {
       this.clear();
     });
@@ -126,14 +132,24 @@ export class ChatView {
     input.style.height = `${Math.min(input.scrollHeight, MAX_INPUT_HEIGHT_PX)}px`;
   }
 
+  // The chat scrolls with the panel, so "bottom" is the page's bottom, where
+  // the last message sits right above the composer. Only while Chat is the
+  // open tab: a reply arriving under the Summary tab leaves the page alone.
+  isChatOpen() {
+    const chatContainer = $('chatContainer');
+    return chatContainer.open && !chatContainer.classList.contains('hidden');
+  }
+
   isNearBottom() {
-    const messages = $('chatMessages');
-    return messages.scrollHeight - messages.scrollTop - messages.clientHeight < NEAR_BOTTOM_PX;
+    const page = document.scrollingElement;
+    return this.isChatOpen() && page.scrollHeight - page.scrollTop - page.clientHeight < NEAR_BOTTOM_PX;
   }
 
   scrollToBottom() {
-    const messages = $('chatMessages');
-    messages.scrollTop = messages.scrollHeight;
+    if (this.isChatOpen()) {
+      const page = document.scrollingElement;
+      page.scrollTop = page.scrollHeight;
+    }
   }
 
   // ---------- Conversation ----------
@@ -358,6 +374,7 @@ export class ChatView {
           await this.hooks.reloadCurrentSession();
         }
         this.hooks.renderTaskState(task);
+        this.scrollToBottom();
       }
     } catch (error) {
       if (this.hooks.handleBackgroundError(error)) {
