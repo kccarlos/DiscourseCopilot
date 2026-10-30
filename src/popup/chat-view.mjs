@@ -134,10 +134,11 @@ export class ChatView {
 
   // The chat scrolls with the panel, so "bottom" is the page's bottom, where
   // the last message sits right above the composer. Only while Chat is the
-  // open tab: a reply arriving under the Summary tab leaves the page alone.
+  // open tab: a reply arriving under the Summary tab, or while Activity or
+  // Settings covers the topic view, leaves the page alone.
   isChatOpen() {
     const chatContainer = $('chatContainer');
-    return chatContainer.open && !chatContainer.classList.contains('hidden');
+    return chatContainer.open && !chatContainer.closest('.hidden');
   }
 
   isNearBottom() {
@@ -157,6 +158,10 @@ export class ChatView {
   renderHistory(history) {
     const chatContainer = $('chatContainer');
     const messages = $('chatMessages');
+    // A rebuild (e.g. a reply finished) follows to the bottom only if the
+    // page was there; otherwise it keeps the place the user scrolled to.
+    const followBottom = this.isNearBottom();
+    const scrollTop = document.scrollingElement.scrollTop;
     messages.replaceChildren();
 
     if (!this.state.session?.summary) {
@@ -176,7 +181,7 @@ export class ChatView {
         message.role,
         message.content,
         [],
-        message.role === 'user' ? { onEdit: () => this.editMessage(index) } : {}
+        message.role === 'user' ? { onEdit: () => this.editMessage(index), scroll: false } : { scroll: false }
       );
       if (message.taskId) {
         bubble.dataset.taskId = message.taskId;
@@ -186,6 +191,11 @@ export class ChatView {
       }
     }
     this.clampOlderAnswers();
+    if (followBottom) {
+      this.scrollToBottom();
+    } else if (this.isChatOpen()) {
+      document.scrollingElement.scrollTop = scrollTop;
+    }
     this.hooks.updateControls();
   }
 
@@ -214,7 +224,7 @@ export class ChatView {
     });
   }
 
-  appendBubble(role, content, extraClasses = [], { onEdit = null } = {}) {
+  appendBubble(role, content, extraClasses = [], { onEdit = null, scroll = true } = {}) {
     const bubble = document.createElement('div');
     bubble.classList.add('chat-message', role, ...extraClasses);
     // An answer is Markdown laid out like the summary's (headings, lists, code, quotes).
@@ -241,7 +251,9 @@ export class ChatView {
       }
     }
     $('chatMessages').appendChild(bubble);
-    this.scrollToBottom();
+    if (scroll) {
+      this.scrollToBottom();
+    }
     return bubble;
   }
 

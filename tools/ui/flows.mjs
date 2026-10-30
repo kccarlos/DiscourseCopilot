@@ -1458,6 +1458,57 @@ scenario('popup-chat-long', 'src/popup/popup.html', { store: configuredStore }, 
   await page.waitForTimeout(200);
   check('streamed reply stays above the composer', (await overlap()) <= 0, String(await overlap()));
   await shot();
+  // Scrolled up to reread: more of the reply, and its end, leave the page where it is.
+  await page.evaluate(() => window.scrollTo(0, 300));
+  await page.evaluate(
+    taskId =>
+      window.__fire(
+        'onMessage',
+        { action: 'taskStream', taskId, topicKey: 'meta.discourse.org/t/12345', type: 'chat', chunk: 'One more line.\n\n' },
+        {}
+      ),
+    taskId
+  );
+  await page.waitForTimeout(200);
+  check(
+    'no follow while scrolled up',
+    Math.abs((await page.evaluate(() => window.scrollY)) - 300) < 20,
+    String(await page.evaluate(() => window.scrollY))
+  );
+  await page.evaluate(
+    ([id, key, site]) =>
+      window.__fire(
+        'onMessage',
+        {
+          action: 'taskUpdated',
+          task: {
+            id,
+            type: 'chat',
+            topicId: '12345',
+            siteUrl: site,
+            topicKey: key,
+            agentRunId: '',
+            title: 'Some topic',
+            status: 'completed',
+            phase: 'completed',
+            statusText: 'Completed',
+            progress: null,
+            error: '',
+            createdAt: Date.now() - 5000,
+            updatedAt: Date.now()
+          }
+        },
+        {}
+      ),
+    [taskId, TOPIC_KEY, SITE]
+  );
+  await page.waitForTimeout(500);
+  // (The status line above the chat changes by a few pixels as the task ends.)
+  check(
+    'finished reply keeps the place',
+    Math.abs((await page.evaluate(() => window.scrollY)) - 300) < 20,
+    String(await page.evaluate(() => window.scrollY))
+  );
 });
 
 scenario('popup-chat-edit', 'src/popup/popup.html', { store: configuredStore }, async ({ page, check, shot }) => {
