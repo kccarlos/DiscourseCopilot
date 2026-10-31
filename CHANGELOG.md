@@ -4,6 +4,8 @@ Notable changes to Forumind (formerly DiscourseCopilot). The format follows [Kee
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-10-31
+
 ### Fixed
 - In the Chat tab, the newest message and a reply that is streaming in are no longer hidden behind the question box at the bottom. The conversation now scrolls with the panel and stops right above the box.
 
@@ -156,7 +158,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.1...HEAD
+[3.0.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.5.0...v3.0.0
 [2.5.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.3.2...v2.4.0
