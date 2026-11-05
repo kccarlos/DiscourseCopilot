@@ -504,3 +504,48 @@ test('round-trips forum names through the session and index stores', async () =>
   assert.equal(restored.forumName, 'US Card Forum');
   assert.equal(entry.forumName, 'US Card Forum');
 });
+
+test('deduplicates session.source in IndexedDB when rawPages are present and reconstructs source on read', async () => {
+  const database = createDatabase(`topic-dedup-${crypto.randomUUID()}`, {
+    now: () => 1000
+  });
+  const session = {
+    ...savedSession('321', 1000),
+    source: 'page one body\n\npage two body',
+    rawPages: [
+      { page: 1, content: 'page one body' },
+      { page: 2, content: 'page two body' }
+    ]
+  };
+  const saved = await database.save(session);
+  assert.equal(saved.source, 'page one body\n\npage two body');
+
+  const rawStored = await database.take(key('321'));
+  assert.equal(rawStored.source, '', 'stored record on disk omits duplicate source text');
+  assert.equal(rawStored.rawPages.length, 2);
+
+  const restored = await database.restore(rawStored);
+  assert.equal(restored.source, 'page one body\n\npage two body');
+  const fetched = await database.get(key('321'));
+  assert.equal(fetched.source, 'page one body\n\npage two body');
+});
+
+test('buildSummaryExportMarkdown includes topic metadata header and summary markdown body', async () => {
+  const { buildSummaryExportMarkdown } = await import('../src/popup/summary-view.mjs');
+  const md = buildSummaryExportMarkdown(
+    {
+      title: 'Best Travel Cards 2026',
+      url: 'https://www.uscardforum.com/t/best-travel-cards/999',
+      summaryUpdatedAt: Date.UTC(2026, 4, 10, 12, 30, 0),
+      totalPosts: 250,
+      summaryCoveredPosts: 100,
+      summary: '## Key Takeaways\n\n- Point A\n- Point B'
+    },
+    null
+  );
+  assert.match(md, /^# Best Travel Cards 2026\n\n/);
+  assert.match(md, /- \*\*URL:\*\* https:\/\/www\.uscardforum\.com\/t\/best-travel-cards\/999/);
+  assert.match(md, /- \*\*Summarized:\*\* 2026-05-10T12:30:00\.000Z/);
+  assert.match(md, /- \*\*Coverage:\*\* 100 \/ 250 posts/);
+  assert.match(md, /---\n\n## Key Takeaways\n\n- Point A\n- Point B\n$/);
+});

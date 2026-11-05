@@ -42,6 +42,10 @@ test('builds validated forum topic links and rejects external URLs', () => {
     buildTopicUrl({ siteUrl: SITE, topicId: '123', slug: 'Referral bonuses', postId: '456' }),
     'https://community.openai.com/t/Referral-bonuses/123#post_456'
   );
+  assert.equal(
+    buildTopicUrl({ siteUrl: SITE, topicId: '123', slug: 'Referral bonuses', postNumber: 42 }),
+    'https://community.openai.com/t/Referral-bonuses/123/42'
+  );
   assert.equal(buildTopicUrl({ siteUrl: 'https://example.com/forum', topicId: '123' }), 'https://example.com/forum/t/123');
   assert.throws(
     () => buildTopicUrl({ siteUrl: SITE, topicId: 'not-a-number' }),

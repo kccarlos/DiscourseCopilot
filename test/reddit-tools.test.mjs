@@ -335,3 +335,15 @@ test('a login page served with status 200 is a login problem, not an empty searc
     error => error.needsUserAction === true
   );
 });
+
+test('parsePostSearch extracts scores and comment counts even when English "votes"/"comments" labels are localized', () => {
+  const context = attr({
+    post: { id: 't3_1x1o0he', title: 'Localized Post' },
+    subreddit: { name: 'churning' }
+  });
+  const localizedHtml = `<div data-testid="search-post-unit"><search-telemetry-tracker data-faceplate-tracking-context="${context}"><a data-testid="post-title" href="/r/churning/comments/1x1o0he/localized/">Localized Post</a></search-telemetry-tracker><div data-testid="search-counter-row"><span><faceplate-number number="85" pretty=""></faceplate-number> 票</span><span>·</span><span><faceplate-number number="23" pretty=""></faceplate-number> 則留言</span></div></div>`;
+  const { items } = parsePostSearch(localizedHtml);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].score, 85);
+  assert.equal(items[0].commentCount, 23);
+});

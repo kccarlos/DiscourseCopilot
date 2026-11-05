@@ -38,10 +38,11 @@ export const AGENT_TOOLS = Object.freeze(
     {
       name: 'read_topic',
       description:
-        "Read a topic's metadata and posts. Long topics are trimmed to the opening post and the newest replies. Returns a source number [S#] you cite in the answer. Counts toward the topic-read budget the first time a topic is read; pass page (100 posts each) to read another part of a long topic.",
+        "Read a topic's metadata and posts. Long topics are trimmed to the opening post and the newest replies. Returns a source number [S#] you cite in the answer. Counts toward the topic-read budget the first time a topic is read; pass page (100 posts each) to read another part of a long topic, or query to find matching posts inside the topic.",
       parameters: [
         { name: 'topic_id', description: 'Numeric topic id from a search or list result', required: true },
-        { name: 'page', description: 'Optional part of a long topic, in pages of 100 posts', required: false }
+        { name: 'page', description: 'Optional part of a long topic, in pages of 100 posts', required: false },
+        { name: 'query', description: 'Optional keywords to filter or find matching posts within this topic', required: false }
       ],
       requiresApproval: false
     },
@@ -102,10 +103,11 @@ const WORDPRESS_AGENT_TOOLS = Object.freeze(
     {
       name: 'read_topic',
       description:
-        'Read a post: the article, then its comments in order (each "Comment <id> · author · date · reply to comment <id>"). Long comment threads are trimmed to the article with the first comments and the newest comments. Returns a source number [S#] you cite in the answer. Counts toward the read budget the first time a post is read; pass page (100 comments each) to read another part. Example: {"tool": "read_topic", "arguments": {"topic_id": "123456", "page": "2"}}.',
+        'Read a post: the article, then its comments in order (each "Comment <id> · author · date · reply to comment <id>"). Long comment threads are trimmed to the article with the first comments and the newest comments. Returns a source number [S#] you cite in the answer. Counts toward the read budget the first time a post is read; pass page (100 comments each) to read another part, or query to filter matching comments. Example: {"tool": "read_topic", "arguments": {"topic_id": "123456", "page": "2"}}.',
       parameters: [
         { name: 'topic_id', description: 'Numeric post id from a search or list result', required: true },
-        { name: 'page', description: 'Optional part of a long comment thread, in pages of 100 comments', required: false }
+        { name: 'page', description: 'Optional part of a long comment thread, in pages of 100 comments', required: false },
+        { name: 'query', description: 'Optional keywords to filter matching comments within this post', required: false }
       ],
       requiresApproval: false
     },
@@ -154,10 +156,11 @@ const REDDIT_AGENT_TOOLS = Object.freeze(
     {
       name: 'read_topic',
       description:
-        'Read a post: its text, then its comments in thread order (each "Comment <id> · author · date · reply to comment <id>"). Long threads are trimmed to the post with the first comments and the newest comments. Returns a source number [S#] you cite in the answer. Counts toward the read budget the first time a post is read; pass page (100 comments each) to read another part. Example: {"tool": "read_topic", "arguments": {"topic_id": "123456789", "page": "2"}}.',
+        'Read a post: its text, then its comments in thread order (each "Comment <id> · author · date · reply to comment <id>"). Long threads are trimmed to the post with the first comments and the newest comments. Returns a source number [S#] you cite in the answer. Counts toward the read budget the first time a post is read; pass page (100 comments each) to read another part, or query to filter matching comments. Example: {"tool": "read_topic", "arguments": {"topic_id": "123456789", "page": "2"}}.',
       parameters: [
         { name: 'topic_id', description: 'Numeric post id from a search or list result', required: true },
-        { name: 'page', description: 'Optional part of a long comment thread, in pages of 100 comments', required: false }
+        { name: 'page', description: 'Optional part of a long comment thread, in pages of 100 comments', required: false },
+        { name: 'query', description: 'Optional keywords to filter matching comments within this post', required: false }
       ],
       requiresApproval: false
     },

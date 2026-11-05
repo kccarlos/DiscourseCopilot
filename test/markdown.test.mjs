@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { isAllowedHref, linkifyCitations, markdownToHtml } from '../src/popup/markdown.mjs';
+import { citedSourceIds, isAllowedHref, linkifyCitations, markdownToHtml } from '../src/popup/markdown.mjs';
 
 const hrefs = html => [...html.matchAll(/href="([^"]*)"/g)].map(match => match[1]);
 
@@ -85,13 +85,15 @@ test('isAllowedHref rejects script-like and relative URLs', () => {
   }
 });
 
-test('Agent citations are linked in text but not inside code', () => {
-  const html = linkifyCitations(markdownToHtml('Enable caching [S1]. See [S2, S9] and `[S1]`.\n\n```\n[S1] in code\n```'), ['S1', 'S2']);
+test('Agent citations are linked in text (including [S1#42] post deep-links) but not inside code', () => {
+  const md = 'Enable caching [S1#42]. See [S2, S9#10] and `[S1#42]`.\n\n```\n[S1#42] in code\n```';
+  assert.deepEqual(citedSourceIds(md), ['S1', 'S2', 'S9']);
+  const html = linkifyCitations(markdownToHtml(md), ['S1', 'S2']);
   assert.equal((html.match(/class="agent-citation"/g) || []).length, 2);
-  assert.match(html, /data-citation="S1"/);
-  assert.match(html, /data-citation="S2"[^>]*>S2<\/a> \[S9\]/);
-  assert.match(html, /<code>\[S1\]<\/code>/);
-  assert.match(html, /<pre><code>\[S1\] in code/);
+  assert.match(html, /data-citation="S1" data-post-number="42"[^>]*>S1#42<\/a>/);
+  assert.match(html, /data-citation="S2"[^>]*>S2<\/a> \[S9#10\]/);
+  assert.match(html, /<code>\[S1#42\]<\/code>/);
+  assert.match(html, /<pre><code>\[S1#42\] in code/);
 });
 
 test('empty and missing markdown render nothing', () => {

@@ -64,8 +64,11 @@ function topicPath(topicId, slug = '') {
   return normalizedSlug ? `/t/${encodeURIComponent(normalizedSlug)}/${normalizedId}` : `/t/${normalizedId}`;
 }
 
-export function buildTopicUrl({ siteUrl, topicId, slug = '', postId = '' } = {}) {
-  const url = new URL(`${requireSiteUrl(siteUrl)}${topicPath(topicId, slug)}`);
+export function buildTopicUrl({ siteUrl, topicId, slug = '', postNumber = null, postId = '' } = {}) {
+  const normalizedPostNumber =
+    postNumber !== null && postNumber !== undefined && String(postNumber).trim() !== '' ? positiveId(postNumber, 'postNumber') : '';
+  const suffix = normalizedPostNumber ? `/${normalizedPostNumber}` : '';
+  const url = new URL(`${requireSiteUrl(siteUrl)}${topicPath(topicId, slug)}${suffix}`);
   const normalizedPostId = postId ? positiveId(postId, 'postId') : '';
   if (normalizedPostId) {
     url.hash = `post_${normalizedPostId}`;

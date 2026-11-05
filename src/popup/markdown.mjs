@@ -4,22 +4,35 @@
 import { marked } from 'marked';
 import { t } from '../shared/i18n.mjs';
 
-const CITATION_PATTERN = /\[(S\d+(?:\s*[,;]\s*S\d+)*)\]/g;
+const CITATION_PATTERN = /\[(S\d+(?:#\d+)?(?:\s*[,;]\s*S\d+(?:#\d+)?)*)\]/g;
 
 const CITATION_SKIP_TAG = /^<(\/?)(a|code|pre)\b/i;
 
-// The source IDs an answer cites ([S1], [S1, S2]), in order of first use.
+function parseCitationToken(token) {
+  const [id, postNumber = ''] = String(token || '')
+    .trim()
+    .split('#');
+  return {
+    id,
+    postNumber: /^\d+$/.test(postNumber) ? postNumber : ''
+  };
+}
+
+// The source IDs an answer cites ([S1], [S1#42], [S1, S2]), in order of first use.
 export function citedSourceIds(markdown) {
   const ids = new Set();
   for (const match of String(markdown || '').matchAll(CITATION_PATTERN)) {
-    for (const id of match[1].split(/\s*[,;]\s*/)) {
-      ids.add(id);
+    for (const token of match[1].split(/\s*[,;]\s*/)) {
+      const { id } = parseCitationToken(token);
+      if (id) {
+        ids.add(id);
+      }
     }
   }
   return [...ids];
 }
 
-// Turns [S1] and [S1, S2] in sanitized answer HTML into in-panel source links.
+// Turns [S1], [S1#42], and [S1, S2] in sanitized answer HTML into in-panel source links.
 // Text inside links and code is left alone, as are unknown source IDs.
 export function linkifyCitations(html, sourceIds = []) {
   const known = new Set(sourceIds);
@@ -42,16 +55,19 @@ export function linkifyCitations(html, sourceIds = []) {
       }
       return chunk.replace(CITATION_PATTERN, (match, ids) => {
         const list = ids.split(/\s*[,;]\s*/);
-        if (!list.some(id => known.has(id))) {
+        if (!list.some(token => known.has(parseCitationToken(token).id))) {
           return match;
         }
         // Known sources become chips; an unknown ID keeps its brackets as text.
         return list
-          .map(id =>
-            known.has(id)
-              ? `<a href="#" class="agent-citation" data-citation="${id}" aria-label="${t('answer.sourceAria', { id })}">${id}</a>`
-              : `[${id}]`
-          )
+          .map(token => {
+            const { id, postNumber } = parseCitationToken(token);
+            if (!known.has(id)) {
+              return `[${token}]`;
+            }
+            const postAttr = postNumber ? ` data-post-number="${postNumber}"` : '';
+            return `<a href="#" class="agent-citation" data-citation="${id}"${postAttr} aria-label="${t('answer.sourceAria', { id })}">${token}</a>`;
+          })
           .join(' ');
       });
     })

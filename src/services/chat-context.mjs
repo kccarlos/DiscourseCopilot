@@ -1,5 +1,6 @@
 import { FORUM_CONTEXT_LIMIT, normalizeForumContextLimit } from '../shared/chat-context-limit.mjs';
 import { buildLanguageInstruction } from '../shared/response-language.mjs';
+import { parseForumContent } from './ai-errors.mjs';
 import { buildCoverageNote } from './prompts.js';
 
 export const CHAT_CONTEXT_LIMITS = Object.freeze({
@@ -13,30 +14,123 @@ export const CHAT_CONTEXT_LIMITS = Object.freeze({
 });
 
 const ALLOWED_HISTORY_ROLES = new Set(['user', 'assistant']);
+const OMISSION_MARKER = '\n\n[… content omitted to fit the AI context window …]\n\n';
 
 function asTrimmedString(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function queryTokens(query) {
+  const lower = String(query ?? '').toLowerCase();
+  const words = lower.match(/[a-z0-9_#-]{2,}/g) || [];
+  const cjk = lower.match(/[\u4e00-\u9fff]{2,}/g) || [];
+  const cjkBigrams = [];
+  for (const run of cjk) {
+    if (run.length === 2) {
+      cjkBigrams.push(run);
+    } else {
+      for (let i = 0; i < run.length - 1; i++) {
+        cjkBigrams.push(run.slice(i, i + 2));
+      }
+    }
+  }
+  return [...new Set([...words, ...cjkBigrams])];
+}
+
+function scorePostRelevance(postText, tokens) {
+  if (!tokens.length || !postText) return 0;
+  const lower = postText.toLowerCase();
+  let score = 0;
+  for (const token of tokens) {
+    let pos = lower.indexOf(token);
+    if (pos !== -1) {
+      score += token.length >= 4 ? 3 : 2;
+      let count = 1;
+      pos = lower.indexOf(token, pos + token.length);
+      while (count < 4 && pos !== -1) {
+        score += 1;
+        count++;
+        pos = lower.indexOf(token, pos + token.length);
+      }
+    }
+  }
+  return score;
+}
+
 /**
- * Keep the most useful beginning and ending of long source material.
- * The OP is normally at the beginning while recent replies are at the end.
+ * Keep the most useful beginning and ending of long source material, plus
+ * middle posts that match the user's question when the text has multiple posts.
  */
-export function truncateMiddle(value, maxChars) {
+export function truncateMiddle(value, maxChars, { question = '' } = {}) {
   const text = asTrimmedString(value);
   if (!Number.isFinite(maxChars) || maxChars <= 0 || text.length <= maxChars) {
     return text;
   }
 
-  const marker = '\n\n[… content omitted to fit the AI context window …]\n\n';
-  if (maxChars <= marker.length) {
+  if (maxChars <= OMISSION_MARKER.length) {
     return text.slice(0, maxChars);
   }
 
-  const available = maxChars - marker.length;
+  const tokens = queryTokens(question);
+  if (tokens.length > 0) {
+    const { op, comments } = parseForumContent(text);
+    if (comments.length >= 3) {
+      const joiner = /\n-{5,}[ \t]*(?:\n|$)/.test(text) ? '\n\n-------------------------\n\n' : '\n\n\n';
+      const available = maxChars - OMISSION_MARKER.length * 2;
+      if (available > 200) {
+        const opBudget = Math.ceil(available * 0.4);
+        const tailBudget = Math.floor(available * 0.3);
+        const headText = op.length <= opBudget ? op : op.slice(0, opBudget).trimEnd();
+        const tailPosts = [];
+        let tailChars = 0;
+        let tailStartIndex = comments.length;
+        for (let i = comments.length - 1; i >= 0; i--) {
+          const addition = comments[i].length + (tailPosts.length ? joiner.length : 0);
+          if (tailChars + addition > tailBudget && tailPosts.length > 0) break;
+          if (tailChars + addition > tailBudget) {
+            tailPosts.unshift(comments[i].slice(-(tailBudget - tailChars)).trimStart());
+            tailStartIndex = i;
+            break;
+          }
+          tailPosts.unshift(comments[i]);
+          tailChars += addition;
+          tailStartIndex = i;
+        }
+        const tailText = tailPosts.join(joiner);
+        const middleBudget = maxChars - headText.length - tailText.length - OMISSION_MARKER.length * 2;
+        if (middleBudget > 100 && tailStartIndex > 0) {
+          const scored = [];
+          for (let i = 0; i < tailStartIndex; i++) {
+            const score = scorePostRelevance(comments[i], tokens);
+            if (score > 0) {
+              scored.push({ index: i, score, text: comments[i] });
+            }
+          }
+          scored.sort((a, b) => b.score - a.score || a.index - b.index);
+          const picked = [];
+          let usedMiddle = 0;
+          for (const item of scored) {
+            const entry = item.text.length > middleBudget ? item.text.slice(0, middleBudget).trimEnd() : item.text;
+            const addition = entry.length + (picked.length ? joiner.length : 0);
+            if (usedMiddle + addition <= middleBudget) {
+              picked.push({ index: item.index, text: entry });
+              usedMiddle += addition;
+            }
+          }
+          if (picked.length > 0) {
+            picked.sort((a, b) => a.index - b.index);
+            const middleText = picked.map(p => p.text).join(joiner);
+            return `${headText}${OMISSION_MARKER}${middleText}${OMISSION_MARKER}${tailText}`;
+          }
+        }
+      }
+    }
+  }
+
+  const available = maxChars - OMISSION_MARKER.length;
   const headLength = Math.ceil(available * 0.67);
   const tailLength = available - headLength;
-  return text.slice(0, headLength) + marker + text.slice(-tailLength);
+  return text.slice(0, headLength) + OMISSION_MARKER + text.slice(-tailLength);
 }
 
 /**
@@ -85,12 +179,12 @@ export function normalizeChatHistory(history, limits = {}) {
   return bounded;
 }
 
-function requireText(value, fieldName, maxChars) {
+function requireText(value, fieldName, maxChars, options) {
   const text = asTrimmedString(value);
   if (!text) {
     throw new Error(`${fieldName} is required and must be a non-empty string`);
   }
-  return truncateMiddle(text, maxChars);
+  return truncateMiddle(text, maxChars, options);
 }
 
 /**
@@ -102,9 +196,9 @@ export function buildFollowUpMessages(
   limits = {}
 ) {
   const forumContextLimit = limits.maxPostChars ?? normalizeForumContextLimit(maxPostChars);
-  const originalPost = requireText(content, 'Original post content', forumContextLimit);
-  const existingSummary = requireText(summary, 'Existing summary', limits.maxSummaryChars ?? CHAT_CONTEXT_LIMITS.maxSummaryChars);
   const currentQuestion = requireText(question, 'Question', limits.maxQuestionChars ?? CHAT_CONTEXT_LIMITS.maxQuestionChars);
+  const originalPost = requireText(content, 'Original post content', forumContextLimit, { question: currentQuestion });
+  const existingSummary = requireText(summary, 'Existing summary', limits.maxSummaryChars ?? CHAT_CONTEXT_LIMITS.maxSummaryChars);
   const priorMessages = normalizeChatHistory(history, limits);
   const customInstructions = truncateMiddle(systemPrompt, limits.maxSystemPromptChars ?? CHAT_CONTEXT_LIMITS.maxSystemPromptChars);
   // Outside the reference material: it is ours, not forum text.

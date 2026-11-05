@@ -109,21 +109,63 @@ class DiscourseCopilotContent {
   }
 
   start() {
-    if (this.urlCheckTimer !== null) {
+    if (this.started) {
       return;
     }
+    this.started = true;
     this.watchLauncherPreference();
     this.refreshLocation();
-    window.addEventListener('popstate', () => this.refreshLocation());
-    window.addEventListener('hashchange', () => this.refreshLocation());
-    this.urlCheckTimer = window.setInterval(() => this.refreshLocation(), URL_CHECK_INTERVAL_MS);
+    this.onRouteEvent = () => this.refreshLocation();
+    this.onVisibilityChange = () => {
+      if (document.hidden) {
+        this.stopUrlPolling();
+      } else {
+        this.refreshLocation();
+        this.startUrlPolling();
+      }
+    };
+    window.addEventListener('popstate', this.onRouteEvent);
+    window.addEventListener('hashchange', this.onRouteEvent);
+    window.navigation?.addEventListener?.('navigate', this.onRouteEvent);
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+    if (!document.hidden) {
+      this.startUrlPolling();
+    }
   }
 
-  dispose() {
+  startUrlPolling() {
+    // When the Chromium Navigation API is present, 'navigate' covers pushState/replaceState
+    // transitions without a 500ms wakeup timer. Keep the interval only as a fallback.
+    if (this.urlCheckTimer !== null || typeof window.navigation?.addEventListener === 'function') {
+      return;
+    }
+    this.urlCheckTimer = window.setInterval(() => {
+      if (!document.hidden) {
+        this.refreshLocation();
+      }
+    }, URL_CHECK_INTERVAL_MS);
+  }
+
+  stopUrlPolling() {
     if (this.urlCheckTimer !== null) {
       window.clearInterval(this.urlCheckTimer);
       this.urlCheckTimer = null;
     }
+  }
+
+  dispose() {
+    this.stopUrlPolling();
+    if (this.onRouteEvent) {
+      window.removeEventListener('popstate', this.onRouteEvent);
+      window.removeEventListener('hashchange', this.onRouteEvent);
+      window.navigation?.removeEventListener?.('navigate', this.onRouteEvent);
+      this.onRouteEvent = null;
+    }
+    if (this.onVisibilityChange) {
+      document.removeEventListener('visibilitychange', this.onVisibilityChange);
+      this.onVisibilityChange = null;
+    }
+    this.started = false;
     if (this.onStorageChanged) {
       try {
         chrome.storage.onChanged.removeListener(this.onStorageChanged);

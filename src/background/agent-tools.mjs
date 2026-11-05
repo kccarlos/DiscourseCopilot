@@ -5,6 +5,7 @@
 // truncation markers, plus the facts the loop records about the step.
 import { buildTopicUrl, FORUM_TOOL_LIMITS, ForumToolError, isAllowedForumUrl } from './forum-tools.mjs';
 import { FINAL_ANSWER_TOOL, agentToolsFor } from '../services/agent-prompt.mjs';
+import { parseForumContent } from '../services/ai-errors.mjs';
 import { buildTopicKey, normalizeSiteUrl } from '../shared/forum-site.mjs';
 import { SITE_TYPE } from '../shared/site-types.mjs';
 import { redditIdFromTopicId } from '../shared/reddit-page.mjs';
@@ -96,6 +97,30 @@ export function trimHeadTail(content, budget, { headShare = HEAD_SHARE, unit = '
   return { text: value.slice(0, headChars).trimEnd() + marker + value.slice(value.length - tailChars).trimStart(), omitted };
 }
 
+function filterBlocksByQuery(content, query) {
+  const terms = String(query ?? '')
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!terms.length) return [];
+  const { op, comments } = parseForumContent(content);
+  return [op, ...comments].filter(block => {
+    const lower = block.toLowerCase();
+    return terms.some(term => lower.includes(term));
+  });
+}
+
+function formatFetchedPosts(posts) {
+  return posts
+    .map(post => {
+      const header = [post.username || 'user', post.createdAt ? dateOnly(post.createdAt) : '', post.postNumber ? `#${post.postNumber}` : '']
+        .filter(Boolean)
+        .join(' | ');
+      return `${header}\n\n${post.text || post.excerpt || ''}`.trim();
+    })
+    .filter(Boolean);
+}
+
 function formatTopicLine(topic, readSources) {
   const read = readSources.get(topic.topicId);
   let line = `- id ${topic.topicId}: ${topic.title}`;
@@ -133,7 +158,7 @@ function nextSourceId(sources) {
 }
 
 // Registers (or finds) the source card for a topic the agent read.
-function registerSource(ctx, { topicId, title, slug, url = '', excerpt, evidenceType }) {
+function registerSource(ctx, { topicId, title, slug, url = '', postNumber = null, excerpt, evidenceType }) {
   // A site that has its own permalinks (WordPress) supplies them; they are
   // checked against the run's site like every other link.
   const link = isAllowedForumUrl(url, ctx.siteUrl)
@@ -142,10 +167,16 @@ function registerSource(ctx, { topicId, title, slug, url = '', excerpt, evidence
       ? `${ctx.siteUrl}/?p=${topicId}`
       : ctx.siteType === SITE_TYPE.REDDIT
         ? `${ctx.siteUrl}/comments/${redditIdFromTopicId(topicId)}/`
-        : buildTopicUrl({ siteUrl: ctx.siteUrl, topicId, slug });
+        : buildTopicUrl({ siteUrl: ctx.siteUrl, topicId, slug, postNumber });
   const existing = ctx.sources.find(source => source.topicId === topicId);
   if (existing) {
     if (excerpt && !existing.excerpt) existing.excerpt = excerpt;
+    if (Number.isInteger(postNumber) && postNumber > 0 && !existing.postNumber) {
+      existing.postNumber = postNumber;
+      if (ctx.siteType !== SITE_TYPE.WORDPRESS && ctx.siteType !== SITE_TYPE.REDDIT) {
+        existing.url = buildTopicUrl({ siteUrl: ctx.siteUrl, topicId, slug, postNumber });
+      }
+    }
     // Reading the topic itself after its saved summary makes it a page source.
     if (evidenceType === 'topic' && existing.evidenceType === 'summary') {
       existing.evidenceType = 'topic';
@@ -160,7 +191,7 @@ function registerSource(ctx, { topicId, title, slug, url = '', excerpt, evidence
     topicKey: buildTopicKey(ctx.siteUrl, topicId),
     title: text(title, 300) || `Topic ${topicId}`,
     url: link,
-    postNumber: null,
+    postNumber: Number.isInteger(postNumber) && postNumber > 0 ? postNumber : null,
     excerpt: text(excerpt, SOURCE_EXCERPT_CHARS),
     evidenceType,
     retrievedAt: Date.now()
@@ -222,18 +253,63 @@ async function readTopic(args, ctx) {
   );
   const explicitPage = args.page !== undefined && String(args.page).trim() !== '';
   const page = integerArgument(args.page, 'page', { min: 1, max: totalPages, fallback: 1 });
+  const query = text(args.query ?? args.q, FORUM_TOOL_LIMITS.maxQueryChars);
   const budget = ctx.budget.maxCharsPerRead;
   const rawOptions = { topicId, maxChars: FORUM_TOOL_LIMITS.maxRawPageChars };
 
   const first = await ctx.toolClient.getRawPage({ ...rawOptions, page });
   let body = first.content;
   let showing;
-  if (explicitPage || totalPages === 1) {
+  let matchedPostNumber = null;
+
+  if (query && !explicitPage && totalPages > 1 && typeof ctx.toolClient.getPosts === 'function') {
+    const searchRes = await ctx.toolClient.searchForum({ query: `topic:${topicId} ${query}`, page: 1 });
+    const matchingPostIds = (searchRes.hits || [])
+      .filter(hit => hit.topicId === topicId && hit.postId)
+      .map(hit => hit.postId)
+      .slice(0, FORUM_TOOL_LIMITS.maxPostIds);
+    if (matchingPostIds.length > 0) {
+      const postsRes = await ctx.toolClient.getPosts({ topicId, postIds: matchingPostIds });
+      const formatted = formatFetchedPosts(postsRes.posts || []);
+      if (formatted.length > 0) {
+        const firstHit = (postsRes.posts || []).find(p => Number.isInteger(p.postNumber) && p.postNumber > 1);
+        if (firstHit) matchedPostNumber = firstHit.postNumber;
+        const opBlock = parseForumContent(first.content).op;
+        const combined = [opBlock, ...formatted.filter(b => b !== opBlock)].filter(Boolean).join('\n\n-------------------------\n\n');
+        const trimmed = trimHeadTail(combined, budget, { headShare: 0.7 });
+        body = trimmed.text;
+        showing = `${plural(formatted.length, 'matching post')} for "${query}" (of ${postsCount || 'many'} posts)`;
+      }
+    }
+  }
+
+  if (!showing && query) {
+    let allContent = first.content;
+    if (!explicitPage && totalPages > 1 && ctx.siteType === SITE_TYPE.REDDIT) {
+      const pagesContent = [first.content];
+      for (let p = 2; p <= totalPages; p++) {
+        const nextP = await ctx.toolClient.getRawPage({ ...rawOptions, page: p });
+        if (nextP.content) pagesContent.push(nextP.content);
+      }
+      allContent = pagesContent.join('\n\n\n');
+    }
+    const matches = filterBlocksByQuery(allContent, query);
+    if (matches.length > 0) {
+      const joiner = /\n-{5,}[ \t]*(?:\n|$)/.test(allContent) ? '\n\n-------------------------\n\n' : '\n\n\n';
+      const opBlock = parseForumContent(first.content).op;
+      const combined = [opBlock, ...matches.filter(b => b !== opBlock)].filter(Boolean).join(joiner);
+      const trimmed = trimHeadTail(combined, budget, { headShare: 0.7 });
+      body = trimmed.text;
+      showing = `${plural(matches.length, 'matching post')} for "${query}"`;
+    }
+  }
+
+  if (!showing && (explicitPage || totalPages === 1)) {
     const trimmed = trimHeadTail(body, budget, { headShare: 0.7 });
     body = trimmed.text;
     showing = totalPages > 1 ? `page ${page} of ${totalPages} (${POSTS_PER_RAW_PAGE} posts per page)` : 'all posts';
     if (trimmed.omitted) showing += ', trimmed to fit';
-  } else {
+  } else if (!showing) {
     // Long topic: the opening of page 1 and the end of the last page, the
     // newest replies, with the middle left out.
     const last = await ctx.toolClient.getRawPage({ ...rawOptions, page: totalPages });
@@ -242,7 +318,7 @@ async function readTopic(args, ctx) {
     const tailChars = budget - head.length;
     const tail = last.content.length > tailChars ? last.content.slice(last.content.length - tailChars).trimStart() : last.content;
     const middle = postsCount ? `posts roughly 2–${postsCount - 1}` : 'the posts in between';
-    body = `${head}\n\n[… the middle of the topic (${middle}) is omitted; pass page=2${totalPages > 2 ? ` to ${totalPages - 1}` : ''} to read other parts …]\n\n${tail}`;
+    body = `${head}\n\n[… the middle of the topic (${middle}) is omitted; pass page=2${totalPages > 2 ? ` to ${totalPages - 1}` : ''} or query="<keywords>" to read other parts …]\n\n${tail}`;
     showing = `the opening and the newest replies (${postsCount} posts; middle omitted)`;
   }
   if (!body.trim()) {
@@ -254,6 +330,7 @@ async function readTopic(args, ctx) {
     title: meta.title,
     slug: meta.slug,
     url: meta.url,
+    postNumber: matchedPostNumber,
     excerpt: firstPostExcerpt(first.content),
     evidenceType: 'topic'
   });

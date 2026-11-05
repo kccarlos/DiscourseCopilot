@@ -89,15 +89,18 @@ export function estimateTokens(text) {
   return Math.ceil(chineseTokens + otherTokens);
 }
 
+const DISCOURSE_POST_SEPARATOR = /\n-{5,}[ \t]*(?:\n|$)/;
+
 /**
  * Splits raw forum content into the OP and the replies. Posts in Discourse
- * raw output are separated by blank lines; the first post is the OP.
+ * raw output are separated by a line of dashes; WordPress and Reddit adapters
+ * separate blocks by two blank lines (\n\n\n). The first block is the OP.
  */
 export function parseForumContent(content) {
   if (!content) return { op: '', comments: [] };
 
-  // Split by double newlines which typically separate posts
-  const sections = content.split(/\n{3,}/);
+  const separator = DISCOURSE_POST_SEPARATOR.test(content) ? /\n-{5,}[ \t]*(?:\n|$)/ : /\n{3,}/;
+  const sections = content.split(separator);
 
   if (sections.length === 0) {
     return { op: content, comments: [] };

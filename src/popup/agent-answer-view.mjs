@@ -623,14 +623,15 @@ export class AgentAnswerView {
         // instead of piling up new tabs; fall back to the plain link.
         event.preventDefault();
         const siteUrl = activity.siteUrl || source.siteUrl;
+        const targetUrl = link.href || source.url;
         openForumTarget({
           siteUrl,
-          url: source.url,
-          topicKey: source.topicKey || topicKeyFromUrl(source.url, siteUrl),
+          url: targetUrl,
+          topicKey: source.topicKey || topicKeyFromUrl(targetUrl, siteUrl),
           navigateExisting: true
         }).catch(error => {
           DiscourseCopilotLogger.error('Popup: Unable to open source:', error);
-          window.open(source.url, '_blank', 'noopener');
+          window.open(targetUrl, '_blank', 'noopener');
         });
       });
       card.appendChild(link);
@@ -678,11 +679,23 @@ export class AgentAnswerView {
 
   // Follows a citation to its source: within the turn that cites it, else
   // anywhere in the card.
-  focusSource(root, sourceId, scope = root) {
+  focusSource(root, sourceId, scope = root, postNumber = null) {
     const selector = `.agent-source-card[data-source-id="${CSS.escape(sourceId)}"]`;
     const card = scope.querySelector(selector) || root.querySelector(selector);
     if (!card) {
       return;
+    }
+    if (postNumber && /^\d+$/.test(String(postNumber))) {
+      const link = card.querySelector('a.agent-source-open');
+      const currentHref = link?.getAttribute('href') || '';
+      if (link && /\/t\/(?:[^/]+\/)?\d+(?:\/\d+)?$/.test(currentHref)) {
+        const nextHref = currentHref.replace(/(\/t\/(?:[^/]+\/)?\d+)(?:\/\d+)?$/, `$1/${postNumber}`);
+        link.setAttribute('href', nextHref);
+        const titleText = card.querySelector('.agent-source-title')?.textContent || '';
+        const label = t('answer.openPost', { number: postNumber });
+        link.title = label;
+        link.setAttribute('aria-label', titleText ? `${label}: ${titleText}` : label);
+      }
     }
     const details = card.closest('details');
     if (details) {

@@ -316,7 +316,7 @@ export class AgentController {
     if (citation && root.contains(citation)) {
       event.preventDefault();
       expandClampAround(citation);
-      this.view.focusSource(root, citation.dataset.citation, citation.closest('.agent-turn') || root);
+      this.view.focusSource(root, citation.dataset.citation, citation.closest('.agent-turn') || root, citation.dataset.postNumber || null);
       return;
     }
     const button = event.target.closest('[data-agent-action]');
