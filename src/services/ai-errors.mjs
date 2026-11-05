@@ -27,31 +27,45 @@ export function isPromptTooLargeError(error) {
   return errorMsg.includes('initial prompt') || errorMsg.includes('prompt is greater than');
 }
 
+const NON_CONTEXT_LIMIT_PATTERN =
+  /\b(?:rate[-_ ]limit(?:ed|s)?|too many requests|quota|billing|insufficient_quota|requests per (?:min|minute|sec|second|day|hour)|rpm|tpm|unauthorized|invalid[-_ ]?(?:api[-_ ]?)?key|authentication|permission denied)\b/i;
+
+const TOKEN_LIMIT_PATTERN =
+  /\b(?:context[-_ ]?(?:length|limit|window|size)|max(?:imum)?[-_ ]?(?:context|tokens?|completion[-_ ]tokens|input[-_ ]tokens|output[-_ ]tokens|prompt)|token[-_ ]?(?:limit|count|maximum)|too many tokens|tokens?\s*(?:>|exceed(?:s|ed)?)|exceed(?:s|ed)?\s+(?:the\s+)?max(?:imum)?|(?:prompt|input|message|content|request|text|payload)\s+(?:is\s+)?too\s+(?:long|large)|reduce\s+the\s+length|initial prompt|prompt is greater than|shorter input|channel error|request entity too large|no content generated)\b/i;
+
 /**
  * Whether the error is related to token/context limits.
  */
 export function isTokenLimitError(error) {
+  if (!error) return false;
+
   // Check for explicit flag
   if (error.possibleTokenLimit) {
     DiscourseCopilotLogger.log('AI Service: Detected possible token limit (no content generated)');
     return true;
   }
 
-  const errorMsg = `${error.message?.toLowerCase() || ''} ${error.originalError?.message?.toLowerCase() || ''}`;
-  const isTokenError =
-    errorMsg.includes('context')
-    || errorMsg.includes('token')
-    || errorMsg.includes('length')
-    || errorMsg.includes('too long')
-    || errorMsg.includes('maximum')
-    || errorMsg.includes('limit')
-    || errorMsg.includes('exceeded')
-    || errorMsg.includes('channel') // LM Studio "Channel Error"
-    || errorMsg.includes('initial prompt') // LM Studio specific
-    || errorMsg.includes('shorter input') // LM Studio specific
-    || errorMsg.includes('bad request') // Often indicates payload too large
-    || errorMsg.includes('no content generated'); // Fallback when SDK doesn't propagate error
+  const status = Number(
+    error.status
+      || error.statusCode
+      || error.lastError?.status
+      || error.lastError?.statusCode
+      || error.originalError?.status
+      || error.originalError?.statusCode
+      || error.originalError?.lastError?.status
+      || error.originalError?.lastError?.statusCode
+      || 0
+  );
+  if (status === 401 || status === 403 || status === 429) {
+    return false;
+  }
 
+  const errorMsg = `${error.message?.toLowerCase() || ''} ${error.originalError?.message?.toLowerCase() || ''}`.trim();
+  if (!errorMsg || NON_CONTEXT_LIMIT_PATTERN.test(errorMsg)) {
+    return false;
+  }
+
+  const isTokenError = TOKEN_LIMIT_PATTERN.test(errorMsg);
   if (isTokenError) {
     DiscourseCopilotLogger.log('AI Service: Detected token limit error:', errorMsg.substring(0, 200));
   }

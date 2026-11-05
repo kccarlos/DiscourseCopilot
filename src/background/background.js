@@ -200,16 +200,43 @@ chrome.runtime.onInstalled?.addListener(details => {
 // side panel read its URL and check whether it is a Discourse forum before
 // the user enabled it. (sidePanel.setPanelBehavior({openPanelOnActionClick})
 // would skip this listener, so the panel is opened here instead.)
-async function rememberActionClick(tabId) {
+let actionClickSync = Promise.resolve();
+function updateActionClickedTabs(mutate) {
   const storage = chrome.storage?.session;
-  if (!Number.isInteger(tabId) || !storage) {
-    return;
+  if (!storage) {
+    return Promise.resolve();
   }
   const key = SESSION_KEYS.ACTION_CLICKED_TABS;
-  const stored = (await storage.get(key))?.[key];
-  const tabs = (Array.isArray(stored) ? stored : []).filter(id => id !== tabId);
-  await storage.set({ [key]: [...tabs, tabId].slice(-MAX_ACTION_CLICKED_TABS) });
+  actionClickSync = actionClickSync
+    .catch(() => {})
+    .then(async () => {
+      const stored = (await storage.get(key))?.[key];
+      const current = Array.isArray(stored) ? stored : [];
+      const next = mutate(current);
+      if (next) {
+        await storage.set({ [key]: next.slice(-MAX_ACTION_CLICKED_TABS) });
+      }
+    });
+  return actionClickSync;
 }
+
+function rememberActionClick(tabId) {
+  if (!Number.isInteger(tabId)) {
+    return Promise.resolve();
+  }
+  return updateActionClickedTabs(tabs => [...tabs.filter(id => id !== tabId), tabId]);
+}
+
+function forgetActionClick(tabId) {
+  if (!Number.isInteger(tabId)) {
+    return Promise.resolve();
+  }
+  return updateActionClickedTabs(tabs => (tabs.includes(tabId) ? tabs.filter(id => id !== tabId) : null));
+}
+
+chrome.tabs?.onRemoved?.addListener(tabId => {
+  void forgetActionClick(tabId).catch(() => {});
+});
 
 chrome.action.onClicked.addListener(tab => {
   chrome.sidePanel.open({ windowId: tab.windowId });

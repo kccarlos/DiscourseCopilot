@@ -161,6 +161,11 @@ export class TaskService {
         .then(() => this.onSummaryCompleted())
         .catch(error => console.warn('Background: Unable to count a completed summary:', error));
     }
+    if (durable && task.type === TASK_TYPE.AGENT && task.status === TASK_STATUS.CANCELLED) {
+      await this.agentActivities.markCancelled(task).catch(error => {
+        console.warn('Background: Unable to mark Agent activity cancelled:', error);
+      });
+    }
 
     const now = Date.now();
     const lastPersisted = this.persistedAt.get(task.id) || 0;

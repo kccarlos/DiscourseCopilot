@@ -47,10 +47,20 @@ function timestampFrom(text, from = 0) {
   return formatTimestamp(/<faceplate-timeago\b[^>]*\bts="([^"]*)"/.exec(text.slice(from))?.[1]);
 }
 
+const SEARCH_PATH_PATTERN = /^\/svc\/shreddit\/(?:r\/[A-Za-z0-9_]{2,21}\/)?search\/?$/;
+
 function nextPageUrl(html) {
   for (const match of String(html ?? '').matchAll(/<faceplate-partial\b[^>]*\bsrc="([^"]*)"/g)) {
-    const url = decodeEntities(match[1]);
-    if (url.startsWith('/svc/shreddit/') && /[?&]cursor=/.test(url)) return url;
+    const raw = decodeEntities(match[1]).trim();
+    if (!raw.startsWith('/') || raw.startsWith('//')) continue;
+    try {
+      const parsed = new URL(raw, 'https://www.reddit.com');
+      if (parsed.origin === 'https://www.reddit.com' && SEARCH_PATH_PATTERN.test(parsed.pathname) && parsed.searchParams.get('cursor')) {
+        return `${parsed.pathname}${parsed.search}`;
+      }
+    } catch {
+      // Ignore malformed partial URLs.
+    }
   }
   return '';
 }

@@ -168,6 +168,9 @@ export class JobQueue {
 
     try {
       await this.onTransition({ ...task }, { durable: true });
+      if (controller.signal.aborted) {
+        throw abortError();
+      }
       const report = async (patch, options = {}) => {
         if (controller.signal.aborted || isTerminalTaskStatus(task.status)) {
           throw abortError();

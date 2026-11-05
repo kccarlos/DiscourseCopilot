@@ -85,18 +85,23 @@ export class PageContextController {
 
   async forgetActionClick(tabId) {
     const storage = chrome.storage?.session;
-    if (!storage) {
+    if (!Number.isInteger(tabId) || !storage) {
       return;
     }
-    try {
-      const key = SESSION_KEYS.ACTION_CLICKED_TABS;
-      const tabs = (await storage.get(key))?.[key];
-      if (Array.isArray(tabs) && tabs.includes(tabId)) {
-        await storage.set({ [key]: tabs.filter(id => id !== tabId) });
-      }
-    } catch {
-      // Best effort: the record only picks "not a forum" over "not checked".
-    }
+    this.actionClickSync = (this.actionClickSync || Promise.resolve())
+      .catch(() => {})
+      .then(async () => {
+        try {
+          const key = SESSION_KEYS.ACTION_CLICKED_TABS;
+          const tabs = (await storage.get(key))?.[key];
+          if (Array.isArray(tabs) && tabs.includes(tabId)) {
+            await storage.set({ [key]: tabs.filter(id => id !== tabId) });
+          }
+        } catch {
+          // Best effort: the record only picks "not a forum" over "not checked".
+        }
+      });
+    return this.actionClickSync;
   }
 
   // Page state without a content-script answer: inject the content script
