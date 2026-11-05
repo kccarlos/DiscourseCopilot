@@ -78,13 +78,17 @@ function convert(html) {
   });
   text = text.replace(/<br\s*\/?>/gi, '\n');
   text = text.replace(/<li\b[^>]*>/gi, '\n- ');
-  text = text.replace(/<blockquote\b[^>]*>([\s\S]*?)<\/blockquote\s*>/gi, (_match, inner) => {
-    const quoted = tidy(convert(inner).replace(/<[^>]*>/g, ''))
-      .split('\n')
-      .map(line => (line ? `> ${line}` : '>'))
-      .join('\n');
-    return `\n\n${quoted}\n\n`;
-  });
+  const innermostBlockquote = /<blockquote\b[^>]*>((?:(?!<blockquote\b)[\s\S])*?)<\/blockquote\s*>/gi;
+  for (let depth = 0; depth < 10 && innermostBlockquote.test(text); depth++) {
+    innermostBlockquote.lastIndex = 0;
+    text = text.replace(innermostBlockquote, (_match, inner) => {
+      const quoted = tidy(convert(inner).replace(/<[^>]*>/g, ''))
+        .split('\n')
+        .map(line => (line ? (line.startsWith('>') ? `>${line}` : `> ${line}`) : '>'))
+        .join('\n');
+      return `\n\n${quoted}\n\n`;
+    });
+  }
   text = text.replace(/<\/(p|div|h[1-6]|ul|ol|table|tr|pre|figure|section|article)\s*>/gi, '\n\n');
   text = text.replace(/<(p|div|h[1-6]|ul|ol|table|tr|pre|figure|section|article)\b[^>]*>/gi, '\n\n');
   text = text.replace(/<\/(td|th)\s*>/gi, ' | ');

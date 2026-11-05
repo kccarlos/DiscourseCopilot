@@ -202,6 +202,16 @@ test('comment search markup is read into ids, authors, dates, text and the next 
   assert.equal(first.nextUrl, NEXT_COMMENTS, 'the cursor link is unescaped and kept as a site path');
   assert.equal(parseCommentSearch(COMMENT_PAGES[1]).nextUrl, '');
   assert.deepEqual(parseCommentSearch('<html>nothing here</html>'), { items: [], nextUrl: '' });
+  assert.equal(
+    parseCommentSearch(nextPartial('/svc/shreddit/../../api/me.json?cursor=abc')).nextUrl,
+    '',
+    'traversal out of the search route is rejected'
+  );
+  assert.equal(
+    parseCommentSearch(nextPartial('/svc/shreddit/community-hover-card/churning?cursor=abc')).nextUrl,
+    '',
+    'non-search shreddit endpoints with a cursor parameter are ignored'
+  );
 });
 
 test('post search markup is read into ids, titles, counts and links', () => {

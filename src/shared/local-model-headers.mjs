@@ -64,18 +64,29 @@ export function customServerHosts(config) {
 
 /** The custom hosts the user allowed (rules never cover a host without access). */
 export async function grantedCustomHosts(config, { permissions = globalThis.chrome?.permissions } = {}) {
-  const granted = [];
-  for (const host of customServerHosts(config)) {
-    const pattern = hostPatternForUrl(`http://${host}`);
-    if (!pattern || isRequiredHostPattern(pattern)) {
+  const patternsByHost = new Map();
+  for (const provider of LOCAL_MODEL_PROVIDERS) {
+    const url = config?.providers?.[provider]?.url;
+    const host = serverHost(url);
+    const pattern = hostPatternForUrl(url);
+    if (!host || LOOPBACK_HOSTS.includes(host) || !pattern || isRequiredHostPattern(pattern)) {
       continue;
     }
-    try {
-      if (await permissions?.contains?.({ origins: [pattern] })) {
-        granted.push(host);
+    const patterns = patternsByHost.get(host) || new Set();
+    patterns.add(pattern);
+    patternsByHost.set(host, patterns);
+  }
+  const granted = [];
+  for (const host of [...patternsByHost.keys()].sort()) {
+    for (const pattern of patternsByHost.get(host)) {
+      try {
+        if (await permissions?.contains?.({ origins: [pattern] })) {
+          granted.push(host);
+          break;
+        }
+      } catch {
+        // Treated as not granted.
       }
-    } catch {
-      // Treated as not granted.
     }
   }
   return granted;

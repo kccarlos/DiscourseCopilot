@@ -88,11 +88,17 @@ test('serverHost and customServerHosts pick out non-loopback server hosts', () =
   assert.deepEqual(customServerHosts(configWith({ ollama: 'http://b.local:1', lmstudio: 'http://a.local:2' })), ['a.local', 'b.local']);
 });
 
-test('a custom host joins the rule only while access to it is granted', async () => {
+test('a custom host joins the rule only while access to it is granted (HTTP or HTTPS)', async () => {
   const config = configWith({ ollama: 'http://192.168.1.20:11434' });
   assert.deepEqual(await grantedCustomHosts(config, { permissions: fakePermissions([]) }), []);
   assert.deepEqual(await grantedCustomHosts(config, { permissions: fakePermissions(['http://192.168.1.20/*']) }), ['192.168.1.20']);
   assert.deepEqual(await grantedCustomHosts(config, { permissions: { contains: async () => Promise.reject(new Error('x')) } }), []);
+
+  const httpsConfig = configWith({ ollama: 'https://ollama.example.internal:8443' });
+  assert.deepEqual(await grantedCustomHosts(httpsConfig, { permissions: fakePermissions(['http://ollama.example.internal/*']) }), []);
+  assert.deepEqual(await grantedCustomHosts(httpsConfig, { permissions: fakePermissions(['https://ollama.example.internal/*']) }), [
+    'ollama.example.internal'
+  ]);
 });
 
 test('sync writes the rule, is idempotent, adds and removes a custom host', async () => {

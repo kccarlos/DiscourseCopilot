@@ -178,6 +178,13 @@ class DiscourseCopilotContent {
     const previousTopicKey = this.topicKey;
     const previousSiteUrl = this.siteUrl;
     this.currentUrl = nextUrl;
+    if (this.siteType === SITE_TYPE.WORDPRESS) {
+      const wordpress = wordPressPageFromFacts(collectWordPressFacts(document), nextUrl);
+      this.wordPressPostId = wordpress?.postId || null;
+      if (wordpress?.forumName) {
+        this.forumName = wordpress.forumName;
+      }
+    }
     this.siteUrl = this.siteType === SITE_TYPE.REDDIT ? REDDIT_SITE_URL : siteUrlFromPageUrl(nextUrl, this.basePath);
     const topicId = !this.siteUrl
       ? null

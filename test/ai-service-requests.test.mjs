@@ -400,3 +400,35 @@ test('a provider error during a follow-up surfaces through onError and rejects',
   assert.equal(errors.length, 1);
   assert.match(errors[0].message, /Invalid API key/);
 });
+
+test('rate-limit, quota, and generic bad-request errors do not trigger hierarchical token-limit fallback', async () => {
+  const { isTokenLimitError } = await import('../src/services/ai-errors.mjs');
+  assert.equal(isTokenLimitError(Object.assign(new Error('Rate limit exceeded: 60 requests per minute'), { statusCode: 429 })), false);
+  assert.equal(isTokenLimitError(new Error('You exceeded your current quota, please check your plan and billing details')), false);
+  assert.equal(isTokenLimitError(new Error('Bad Request: temperature is not supported for this model')), false);
+  assert.equal(isTokenLimitError(Object.assign(new Error('Invalid API token'), { status: 401 })), false);
+  assert.equal(isTokenLimitError(new Error('This model maximum context length is 8192 tokens')), true);
+  assert.equal(isTokenLimitError(new Error('Channel Error')), true);
+
+  for (const [status, message] of [
+    [400, 'Rate limit exceeded: 60 requests per minute'],
+    [400, 'You exceeded your current quota, please check your plan and billing details'],
+    [400, 'Bad Request: temperature is not supported for this model'],
+    [401, 'Invalid API token']
+  ]) {
+    const { fetch, requests } = mockFetch(() => jsonResponse({ error: { message } }, status));
+    const service = new AIService({ fetch });
+    const progress = [];
+    await assert.rejects(
+      service.generateSummary(
+        'openai',
+        'Original post text.\n\n\n\nFirst reply.\n\n\n\nSecond reply.',
+        { apiKey: 'k', model: 'gpt-5' },
+        { onProgress: step => progress.push(step.step) }
+      ),
+      error => error.message.includes(message)
+    );
+    assert.equal(requests.length, 1, `should not retry or split on: ${message}`);
+    assert.equal(progress.includes('hierarchical'), false);
+  }
+});

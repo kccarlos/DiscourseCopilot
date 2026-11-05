@@ -544,3 +544,26 @@ test('isAbortError recognizes abort errors', () => {
   assert.equal(isAbortError(new Error('other')), false);
   assert.equal(isAbortError(null), false);
 });
+
+test('cancelling a running Agent task marks its activity record cancelled even if aborted before executor cleanup', async () => {
+  const { service, db } = createService({
+    execute: (_task, { signal }) =>
+      new Promise((_resolve, reject) => {
+        if (signal.aborted) {
+          reject(signal.reason);
+          return;
+        }
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+      })
+  });
+  const task = await service.enqueue({
+    taskType: 'agent',
+    siteUrl: 'https://f.example',
+    question: 'Running question?',
+    agentRunId: 'run-active',
+    forumName: 'F'
+  });
+  await service.cancel(task.id);
+  await service.queue.waitForIdle();
+  assert.equal(db.activities.get('run-active').status, 'cancelled');
+});
