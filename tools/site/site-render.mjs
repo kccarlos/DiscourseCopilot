@@ -585,10 +585,14 @@ function renderClientScript({ locale, page }) {
     '    });',
     '  }',
     '  document.querySelectorAll(".lang-link").forEach(link => {',
-    '    link.addEventListener("click", () => {',
+    '    const baseHref = link.getAttribute("href");',
+    '    const syncHref = () => {',
     '      const suffix = (window.location.search || "") + (window.location.hash || "");',
-    '      if (suffix) link.href = link.getAttribute("href") + suffix;',
-    '    });',
+    '      link.href = baseHref + suffix;',
+    '    };',
+    '    link.addEventListener("click", syncHref);',
+    '    link.addEventListener("auxclick", syncHref);',
+    '    link.addEventListener("contextmenu", syncHref);',
     '  });'
   ];
 

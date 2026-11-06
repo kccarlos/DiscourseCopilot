@@ -1304,11 +1304,15 @@ details.faq-item[open] summary .faq-chevron {
     width: 100%;
     justify-content: space-between;
     overflow-x: auto;
+    gap: 2px;
   }
   .nav-pill {
-    padding: 0 9px;
+    padding: 0 8px;
     font-size: 12px;
     gap: 4px;
+  }
+  .nav-count {
+    padding: 0 5px;
   }
 }
 `;
