@@ -6,6 +6,7 @@
   "description": "Chrome extension that provides AI summaries and a research copilot for Discourse forums, WordPress sites and Reddit",
   "scripts": {
     "build": "vite build",
+    "build:site": "node tools/site/build-site.mjs",
     "dev": "vite build --watch --mode development",
     "clean": "rm -rf dist/",
     "test": "node --test",

@@ -209,6 +209,8 @@ export default {
   'guide.notForum.title': 'Forumind 無法讀取此頁面',
   'guide.notForum.text':
     'Forumind 適用於 Discourse 論壇、WordPress 網站（例如 Doctor of Credit）和 Reddit。開啟其中任意貼文即可開始，例如：',
+  'guide.notForum.moreSites': '全部支援的網站',
+  'guide.notForum.moreSitesUrl': 'https://kccarlos.github.io/DiscourseCopilot/zh-TW/sites/',
   'guide.hero.eyebrow': 'Discourse 論壇',
   'guide.hero.eyebrow.wordpress': 'WordPress 網站',
   'guide.hero.eyebrow.reddit': 'Reddit',

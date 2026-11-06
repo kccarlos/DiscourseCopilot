@@ -12,6 +12,13 @@
 <p align="center"><b>English</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a></p>
 
 <p align="center">
+  <a href="https://kccarlos.github.io/DiscourseCopilot/"><b>🌐 Website</b></a> ·
+  <a href="https://kccarlos.github.io/DiscourseCopilot/sites/"><b>Supported Sites (32+)</b></a> ·
+  <a href="https://kccarlos.github.io/DiscourseCopilot/guide/"><b>Setup Guide</b></a> ·
+  <a href="https://kccarlos.github.io/DiscourseCopilot/faq/"><b>FAQ</b></a>
+</p>
+
+<p align="center">
   Summarize long discussions, ask follow-up questions, and let AI search the whole forum for you, with links to the posts it used. Works on Discourse forums, WordPress blog comments and Reddit threads.
 </p>
 

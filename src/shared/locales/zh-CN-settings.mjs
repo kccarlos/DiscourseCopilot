@@ -148,6 +148,8 @@ export default {
   'settings.reset.confirmText': '这会清除此页面上的所有服务商、API 密钥、模型、常用模型、提示词和偏好设置。已保存的总结和回答不会被删除。',
   'settings.reset.confirmButton': '全部重置',
   'settings.footer.text': 'Forumind 免费且开源。',
+  'settings.footer.guide': '指南与常见问题',
+  'settings.footer.guideUrl': 'https://kccarlos.github.io/DiscourseCopilot/zh-CN/guide/',
   'settings.footer.star': '★ 在 GitHub 上点星',
   'settings.footer.rate': '给它评分',
   'settings.actionBar.label': '保存设置',

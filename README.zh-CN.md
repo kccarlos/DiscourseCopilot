@@ -12,6 +12,13 @@
 <p align="center"><a href="README.md">English</a> · <b>简体中文</b> · <a href="README.zh-TW.md">繁體中文</a></p>
 
 <p align="center">
+  <a href="https://kccarlos.github.io/DiscourseCopilot/zh-CN/"><b>🌐 项目主页</b></a> ·
+  <a href="https://kccarlos.github.io/DiscourseCopilot/zh-CN/sites/"><b>支持的网站名录 (32+)</b></a> ·
+  <a href="https://kccarlos.github.io/DiscourseCopilot/zh-CN/guide/"><b>配置指南</b></a> ·
+  <a href="https://kccarlos.github.io/DiscourseCopilot/zh-CN/faq/"><b>常见问题</b></a>
+</p>
+
+<p align="center">
   一键爬楼总结，针对整栋楼追问（连是哪一层楼说的都告诉你），还能让 AI 帮你搜遍整个论坛，回答附带原帖链接。支持 Discourse 论坛、WordPress 博客评论区和 Reddit 帖子。
 </p>
 

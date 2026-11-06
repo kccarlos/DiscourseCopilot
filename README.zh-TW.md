@@ -12,6 +12,13 @@
 <p align="center"><a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <b>繁體中文</b></p>
 
 <p align="center">
+  <a href="https://kccarlos.github.io/DiscourseCopilot/zh-TW/"><b>🌐 專案首頁</b></a> ·
+  <a href="https://kccarlos.github.io/DiscourseCopilot/zh-TW/sites/"><b>支援的網站名錄 (32+)</b></a> ·
+  <a href="https://kccarlos.github.io/DiscourseCopilot/zh-TW/guide/"><b>設定指南</b></a> ·
+  <a href="https://kccarlos.github.io/DiscourseCopilot/zh-TW/faq/"><b>常見問題</b></a>
+</p>
+
+<p align="center">
   一鍵爬文摘要，針對整串討論追問（連是哪一樓說的都告訴你），還能讓 AI 幫你搜遍整個論壇，回答附帶原始貼文連結。支援 Discourse 論壇、WordPress 部落格留言區和 Reddit 貼文。
 </p>
 

@@ -153,6 +153,8 @@ export default {
     'This removes every provider, API key, model, favorite, prompt and preference on this page. Saved summaries and answers are not deleted.',
   'settings.reset.confirmButton': 'Reset everything',
   'settings.footer.text': 'Forumind is free and open source.',
+  'settings.footer.guide': 'Guide & FAQ',
+  'settings.footer.guideUrl': 'https://kccarlos.github.io/DiscourseCopilot/guide/',
   'settings.footer.star': '★ Star on GitHub',
   'settings.footer.rate': 'Rate it',
   'settings.actionBar.label': 'Save settings',
