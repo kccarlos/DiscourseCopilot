@@ -583,7 +583,13 @@ function renderClientScript({ locale, page }) {
     '      root.setAttribute("data-theme", next);',
     '      try { localStorage.setItem("forumind-site-theme", next); } catch {}',
     '    });',
-    '  }'
+    '  }',
+    '  document.querySelectorAll(".lang-link").forEach(link => {',
+    '    link.addEventListener("click", () => {',
+    '      const suffix = (window.location.search || "") + (window.location.hash || "");',
+    '      if (suffix) link.href = link.getAttribute("href") + suffix;',
+    '    });',
+    '  });'
   ];
 
   if (page === 'overview') {
@@ -659,7 +665,18 @@ function renderClientScript({ locale, page }) {
       '      applySitesFilter();',
       '    });',
       '  });',
-      '  if (searchInput) searchInput.addEventListener("input", applySitesFilter);'
+      '  if (searchInput) searchInput.addEventListener("input", applySitesFilter);',
+      '  try {',
+      '    const params = new URLSearchParams(window.location.search);',
+      '    const initCat = (params.get("category") || "").trim().toLowerCase();',
+      '    const initQ = (params.get("q") || "").trim();',
+      '    if (initCat && filterBtns.some(b => b.getAttribute("data-filter") === initCat)) {',
+      '      activeCategory = initCat;',
+      '      filterBtns.forEach(b => b.setAttribute("aria-pressed", String(b.getAttribute("data-filter") === initCat)));',
+      '    }',
+      '    if (initQ && searchInput) searchInput.value = initQ;',
+      '    if (initCat || initQ) applySitesFilter();',
+      '  } catch {}'
     );
   }
 
@@ -691,7 +708,13 @@ function renderClientScript({ locale, page }) {
       '    const id = getHashId();',
       '    if (!id) return;',
       '    const target = document.getElementById(id);',
-      '    if (target && target.tagName === "DETAILS") target.open = true;',
+      '    if (target && target.tagName === "DETAILS") {',
+      '      if (target.classList.contains("hidden") && faqSearch && faqSearch.value) {',
+      '        faqSearch.value = "";',
+      '        applyFaqFilter();',
+      '      }',
+      '      target.open = true;',
+      '    }',
       '  }',
       '  if (faqSearch) faqSearch.addEventListener("input", applyFaqFilter);',
       '  window.addEventListener("hashchange", openHashTarget);',

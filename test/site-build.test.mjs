@@ -163,6 +163,8 @@ test('buildSite generates all 12 localized HTML pages, 404.html, sitemap.xml, ro
         }
 
         // 5. Page-specific DOM assertions
+        assert.ok(html.includes('grid-template-columns: minmax(0, 1fr)'), `missing mobile minmax(0, 1fr) in ${relFile}`);
+        assert.ok(html.includes('document.querySelectorAll(".lang-link")'), `missing lang-link query/hash preservation in ${relFile}`);
         if (page === 'overview') {
           assert.match(html, /id="simStage"/);
           assert.match(html, /id="tab-summary"[^>]*aria-selected="true"[^>]*tabindex="0"/);
@@ -171,6 +173,7 @@ test('buildSite generates all 12 localized HTML pages, 404.html, sitemap.xml, ro
         } else if (page === 'sites') {
           const cardMatches = [...html.matchAll(/class="site-card"/g)];
           assert.equal(cardMatches.length, COMMUNITIES.length);
+          assert.ok(html.includes('URLSearchParams(window.location.search)'));
           assert.ok(html.includes('https://www.uscardforum.com'));
           assert.ok(html.includes('https://www.doctorofcredit.com'));
           assert.ok(html.includes('https://www.uscreditcardguide.com'));

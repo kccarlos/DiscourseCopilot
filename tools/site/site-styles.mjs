@@ -587,10 +587,11 @@ code {
 }
 
 .sim-header {
-  height: 48px;
-  padding: 0 14px;
+  min-height: 48px;
+  padding: 8px 14px;
   border-bottom: 1px solid var(--dc-line);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
@@ -694,6 +695,7 @@ code {
   border-radius: 9px;
   background: var(--dc-sunken);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -1118,6 +1120,7 @@ code {
 }
 
 .doc-block {
+  min-width: 0;
   border: 1px solid var(--dc-line);
   border-radius: 12px;
   padding: 16px 18px;
@@ -1138,6 +1141,7 @@ code {
   font-weight: 650;
   color: var(--dc-ink);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -1277,7 +1281,7 @@ details.faq-item[open] summary .faq-chevron {
   .usecase-grid,
   .platform-grid,
   .docs-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .walkthrough-nav {
     border-right: 0;
@@ -1300,6 +1304,11 @@ details.faq-item[open] summary .faq-chevron {
     width: 100%;
     justify-content: space-between;
     overflow-x: auto;
+  }
+  .nav-pill {
+    padding: 0 9px;
+    font-size: 12px;
+    gap: 4px;
   }
 }
 `;
