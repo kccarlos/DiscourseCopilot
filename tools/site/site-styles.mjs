@@ -1385,6 +1385,147 @@ details.faq-item[open] summary .faq-chevron {
   border-top: 1px solid var(--dc-line);
 }
 
+/* ---------- Page 5 & 6: Support & Privacy Policy ---------- */
+.support-section {
+  padding: 20px 24px 24px;
+  border-top: 1px solid var(--dc-line);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.support-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.support-head h2 {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--dc-ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.support-head p {
+  font-size: 12.5px;
+  color: var(--dc-ink2);
+}
+
+.support-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-field-wide {
+  grid-column: 1 / -1;
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dc-ink);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  border: 1px solid var(--dc-line);
+  border-radius: 9px;
+  background: var(--dc-bg);
+  color: var(--dc-ink);
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 8px 11px;
+  transition: border-color 0.14s, background-color 0.14s;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: var(--dc-muted);
+}
+
+.form-input:focus-visible,
+.form-select:focus-visible,
+.form-textarea:focus-visible {
+  outline: 2px solid var(--dc-fill);
+  outline-offset: 1px;
+  border-color: var(--dc-fill);
+}
+
+.form-textarea {
+  min-height: 92px;
+  resize: vertical;
+  line-height: 18px;
+}
+
+.support-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.privacy-body-wrap {
+  padding: 20px 24px 28px;
+  border-top: 1px solid var(--dc-line);
+}
+
+.markdown-prose {
+  color: var(--dc-ink2);
+  font-size: 13px;
+  line-height: 21px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.markdown-prose h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--dc-ink);
+  margin-top: 4px;
+}
+
+.markdown-prose h2 {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--dc-ink);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--dc-line);
+}
+
+.markdown-prose h3 {
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--dc-ink);
+  margin-top: 6px;
+}
+
+.markdown-prose ul {
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.markdown-prose strong {
+  color: var(--dc-ink);
+  font-weight: 600;
+}
+
 /* ---------- Footer ---------- */
 .site-footer {
   max-width: 1040px;
@@ -1410,7 +1551,8 @@ details.faq-item[open] summary .faq-chevron {
   .quickstart-grid,
   .usecase-grid,
   .platform-grid,
-  .docs-grid {
+  .docs-grid,
+  .support-form-grid {
     grid-template-columns: minmax(0, 1fr);
   }
   .walkthrough-nav {
