@@ -63,7 +63,8 @@ function listing(children) {
 }
 
 // A fake Reddit. `thread` is the first response; `moreById` answers morechildren.
-function fakeReddit({ thread, moreBatches = [], continues = {}, status = 200 } = {}) {
+function fakeReddit({ post = {}, thread, moreBatches = [], continues = {}, status = 200 } = {}) {
+  const postEntry = { ...POST, data: { ...POST.data, ...post } };
   const state = { requests: [], morePosts: [] };
   const json = (body, code = 200) =>
     new Response(JSON.stringify(body), {
@@ -82,10 +83,10 @@ function fakeReddit({ thread, moreBatches = [], continues = {}, status = 200 } =
     }
     const continued = /^\/comments\/[a-z0-9]+\/_\/([a-z0-9]+)\.json$/.exec(parsed.pathname);
     if (continued) {
-      return json([listing([POST]), listing(continues[continued[1]] || [])]);
+      return json([listing([postEntry]), listing(continues[continued[1]] || [])]);
     }
     if (/^\/comments\/[a-z0-9]+\.json$/.test(parsed.pathname)) {
-      return json([listing([POST]), listing(thread)]);
+      return json([listing([postEntry]), listing(thread)]);
     }
     return json({}, 404);
   };
@@ -272,4 +273,36 @@ test('the registry and task flow carry Reddit alongside the other sites', () => 
     createTaskRecord({ id: 't1', type: 'summary', topicId: TOPIC_ID, siteUrl: REDDIT_SITE_URL, siteType: 'reddit' }).siteType,
     'reddit'
   );
+});
+
+test('reuses cached pages when Reddit post num_comments is unchanged and refetches when new comments arrive', async () => {
+  const thread = [t1('a1', `t3_${REDDIT_ID}`), more(['h1', 'h2'])];
+  const site = fakeReddit({ thread, moreBatches: [[t1('h1', `t3_${REDDIT_ID}`), t1('h2', `t3_${REDDIT_ID}`)]] });
+  const initial = await read(site);
+  assert.equal(initial.unchanged, false);
+  assert.equal(site.state.requests.length, 2, 'initial read fetched listing + morechildren');
+
+  const cachedSite = fakeReddit({ thread, moreBatches: [[t1('h1', `t3_${REDDIT_ID}`), t1('h2', `t3_${REDDIT_ID}`)]] });
+  const second = await read(cachedSite, {
+    cachedPages: initial.rawPages,
+    knownTotalPosts: initial.totalPosts
+  });
+  assert.equal(second.unchanged, true);
+  assert.equal(second.newPosts, 0);
+  assert.equal(second.pagesFetched, 1);
+  assert.equal(second.networkPagesFetched, 1);
+  assert.equal(second.content, initial.content);
+  assert.equal(cachedSite.state.requests.length, 1, 'unchanged read only checked the root listing JSON');
+
+  const updatedSite = fakeReddit({
+    post: { num_comments: 9 },
+    thread,
+    moreBatches: [[t1('h1', `t3_${REDDIT_ID}`), t1('h2', `t3_${REDDIT_ID}`)]]
+  });
+  const third = await read(updatedSite, {
+    cachedPages: initial.rawPages,
+    knownTotalPosts: initial.totalPosts
+  });
+  assert.equal(third.unchanged, false);
+  assert.equal(updatedSite.state.requests.length, 2, 'changed comment count triggers full tree expansion');
 });

@@ -332,12 +332,42 @@ export class SummaryView {
     if (!session?.summary) {
       return;
     }
-    const blob = new Blob([session.summary], { type: 'text/plain' });
+    const markdown = buildSummaryExportMarkdown(session, pageContext);
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `forumind-${exportHostLabel(pageContext?.siteUrl || session.siteUrl)}-${pageContext.postId}.txt`;
+    const postId = pageContext?.postId || session.topicId || 'topic';
+    anchor.download = `forumind-${exportHostLabel(pageContext?.siteUrl || session.siteUrl)}-${postId}.md`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
+}
+
+export function buildSummaryExportMarkdown(session, pageContext = null) {
+  const title = (session?.title || pageContext?.title || '').trim();
+  const topicUrl = (session?.url || pageContext?.url || '').trim();
+  const timestamp = session?.summaryUpdatedAt || session?.updatedAt || Date.now();
+  const isoDate = Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp).toISOString() : '';
+  const totalPosts = session?.totalPosts || session?.summaryPostCount || null;
+  const coveredPosts = session?.summaryCoveredPosts || session?.coveredPosts || session?.summaryPostCount || totalPosts;
+
+  const metaLines = [];
+  if (title) {
+    metaLines.push(`# ${title}`, '');
+  }
+  if (topicUrl) {
+    metaLines.push(`- **URL:** ${topicUrl}`);
+  }
+  if (isoDate) {
+    metaLines.push(`- **Summarized:** ${isoDate}`);
+  }
+  if (coveredPosts) {
+    const coverage = totalPosts && coveredPosts < totalPosts ? `${coveredPosts} / ${totalPosts} posts` : `${coveredPosts} posts`;
+    metaLines.push(`- **Coverage:** ${coverage}`);
+  }
+  if (metaLines.length) {
+    metaLines.push('', '---', '', '');
+  }
+  return `${metaLines.join('\n')}${String(session?.summary || '').trim()}\n`;
 }

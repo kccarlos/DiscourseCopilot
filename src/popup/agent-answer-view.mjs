@@ -612,6 +612,8 @@ export class AgentAnswerView {
       const link = document.createElement('a');
       link.className = 'agent-source-open';
       link.href = source.url;
+      link.dataset.baseHref = source.url;
+      link.dataset.basePostNumber = source.postNumber ? String(source.postNumber) : '';
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       const label = source.postNumber ? t('answer.openPost', { number: source.postNumber }) : t('answer.openTopic');
@@ -623,14 +625,15 @@ export class AgentAnswerView {
         // instead of piling up new tabs; fall back to the plain link.
         event.preventDefault();
         const siteUrl = activity.siteUrl || source.siteUrl;
+        const targetUrl = link.href || source.url;
         openForumTarget({
           siteUrl,
-          url: source.url,
-          topicKey: source.topicKey || topicKeyFromUrl(source.url, siteUrl),
+          url: targetUrl,
+          topicKey: source.topicKey || topicKeyFromUrl(targetUrl, siteUrl),
           navigateExisting: true
         }).catch(error => {
           DiscourseCopilotLogger.error('Popup: Unable to open source:', error);
-          window.open(source.url, '_blank', 'noopener');
+          window.open(targetUrl, '_blank', 'noopener');
         });
       });
       card.appendChild(link);
@@ -678,11 +681,29 @@ export class AgentAnswerView {
 
   // Follows a citation to its source: within the turn that cites it, else
   // anywhere in the card.
-  focusSource(root, sourceId, scope = root) {
+  focusSource(root, sourceId, scope = root, postNumber = null) {
     const selector = `.agent-source-card[data-source-id="${CSS.escape(sourceId)}"]`;
     const card = scope.querySelector(selector) || root.querySelector(selector);
     if (!card) {
       return;
+    }
+    const link = card.querySelector('a.agent-source-open');
+    if (link) {
+      const titleText = card.querySelector('.agent-source-title')?.textContent || '';
+      const baseHref = link.dataset.baseHref || link.getAttribute('href') || '';
+      if (postNumber && /^\d+$/.test(String(postNumber)) && /\/t\/(?:[^/]+\/)?\d+(?:\/\d+)?$/.test(baseHref)) {
+        const nextHref = baseHref.replace(/(\/t\/(?:[^/]+\/)?\d+)(?:\/\d+)?$/, `$1/${postNumber}`);
+        link.setAttribute('href', nextHref);
+        const label = t('answer.openPost', { number: postNumber });
+        link.title = label;
+        link.setAttribute('aria-label', titleText ? `${label}: ${titleText}` : label);
+      } else if (baseHref) {
+        link.setAttribute('href', baseHref);
+        const basePostNumber = link.dataset.basePostNumber;
+        const label = basePostNumber ? t('answer.openPost', { number: basePostNumber }) : t('answer.openTopic');
+        link.title = label;
+        link.setAttribute('aria-label', titleText ? `${label}: ${titleText}` : label);
+      }
     }
     const details = card.closest('details');
     if (details) {

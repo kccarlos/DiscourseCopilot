@@ -138,9 +138,10 @@ export class TopicSessionDatabase {
       throw new Error('A forum site and topic ID are required to save a summary session');
     }
 
+    const storedRecord = session.rawPages.length ? { ...session, source: '' } : session;
     const database = await this.open();
     const transaction = database.transaction([SESSION_STORE, INDEX_STORE], 'readwrite');
-    transaction.objectStore(SESSION_STORE).put(session);
+    transaction.objectStore(SESSION_STORE).put(storedRecord);
     const indexEntry = buildTopicIndexEntry(session);
     transaction.objectStore(INDEX_STORE).put(indexEntry);
     await transactionComplete(transaction);
@@ -244,7 +245,8 @@ export class TopicSessionDatabase {
 
     const transaction = database.transaction([SESSION_STORE, INDEX_STORE], 'readwrite');
     for (const session of expiredSessions) {
-      transaction.objectStore(SESSION_STORE).put(session);
+      const storedRecord = session.rawPages.length ? { ...session, source: '' } : session;
+      transaction.objectStore(SESSION_STORE).put(storedRecord);
       const indexEntry = buildTopicIndexEntry(session);
       transaction.objectStore(INDEX_STORE).put(indexEntry);
     }

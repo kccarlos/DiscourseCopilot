@@ -197,3 +197,52 @@ test('combines custom instructions with each hierarchical phase', () => {
   assert.doesNotMatch(prompt, /LANGUAGE.*Chinese/);
   assert.equal(getHierarchicalPrompt('comments', ''), FULL_PROMPTS.comments);
 });
+
+test('parseForumContent splits Discourse raw separator as well as triple-newline blocks', async () => {
+  const { parseForumContent } = await import('../src/services/ai-errors.mjs');
+  const discourseRaw = [
+    'alice | 2026-01-01 00:00:00 UTC | #1\n\nOP paragraph 1\n\n\nOP paragraph 2 after triple newline',
+    'bob | 2026-01-01 01:00:00 UTC | #2\n\nReply 2',
+    'carol | 2026-01-01 02:00:00 UTC | #3\n\nReply 3'
+  ].join('\n\n-------------------------\n\n');
+
+  const parsedDiscourse = parseForumContent(discourseRaw);
+  assert.match(parsedDiscourse.op, /OP paragraph 2 after triple newline/);
+  assert.equal(parsedDiscourse.comments.length, 2);
+  assert.match(parsedDiscourse.comments[0], /^bob \|/);
+  assert.match(parsedDiscourse.comments[1], /^carol \|/);
+
+  const wpOrReddit = ['Post: Title\n\nOP body', 'Comment 1\nBody 1', 'Comment 2\nBody 2'].join('\n\n\n');
+  const parsedBlocks = parseForumContent(wpOrReddit);
+  assert.equal(parsedBlocks.op, 'Post: Title\n\nOP body');
+  assert.deepEqual(parsedBlocks.comments, ['Comment 1\nBody 1', 'Comment 2\nBody 2']);
+});
+
+test('buildFollowUpMessages preserves high-scoring middle posts that match the question when truncating', () => {
+  const filler = index => `user${index} | 2026-01-01 | #${index}\n\n${`Routine filler reply ${index}. `.repeat(15)}`;
+  const blocks = [
+    `op_user | 2026-01-01 | #1\n\nOpening post about general card application timelines. ${'o'.repeat(300)}`,
+    ...Array.from({ length: 10 }, (_, idx) => filler(idx + 2)),
+    'dp_author | 2026-01-02 | #12\n\nSpecific ErrorCode_E9421 workaround: call the backdoor recon number 888-555-0199 and ask for manual verification.',
+    ...Array.from({ length: 10 }, (_, idx) => filler(idx + 13)),
+    `latest_user | 2026-01-03 | #23\n\nLatest reply at the bottom of the thread. ${'z'.repeat(300)}`
+  ];
+  const content = blocks.join('\n\n-------------------------\n\n');
+  assert.ok(content.length > 4000);
+
+  const messages = buildFollowUpMessages(
+    {
+      content,
+      summary: 'Thread summary',
+      question: 'What is the ErrorCode_E9421 workaround?'
+    },
+    { maxPostChars: 2400 }
+  );
+  const originalPost = messages[1].content.match(/<original_post>\n([\s\S]*)\n<\/original_post>/)[1];
+
+  assert.ok(originalPost.length <= 2400);
+  assert.ok(originalPost.length >= 1800, `reclaimed unused budget for surrounding context (${originalPost.length} chars)`);
+  assert.match(originalPost, /Opening post about general card application timelines/);
+  assert.match(originalPost, /ErrorCode_E9421 workaround: call the backdoor recon number 888-555-0199/);
+  assert.match(originalPost, /Latest reply at the bottom of the thread/);
+});

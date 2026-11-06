@@ -55,6 +55,13 @@ function fakeForum(siteUrl = SITE) {
     assert.equal(parsed.origin + parsed.pathname.slice(0, siteUrl.length - parsed.origin.length), siteUrl, 'request stays on the forum');
     const path = parsed.pathname.slice(new URL(siteUrl).pathname.replace(/\/$/, '').length);
     if (path === '/search.json') {
+      const q = parsed.searchParams.get('q') || '';
+      if (q.includes('topic:12') && q.includes('E9421')) {
+        return reply({
+          posts: [{ id: 1500, topic_id: 12, blurb: 'Error E9421 fixed in post 142', post_number: 142 }],
+          topics: [{ id: 12, title: 'Long topic', slug: 'long-topic', posts_count: 250 }]
+        });
+      }
       return reply({
         posts: [{ id: 5, topic_id: 11, blurb: 'Use the CDN for caching.', post_number: 2 }],
         topics: [
@@ -63,6 +70,21 @@ function fakeForum(siteUrl = SITE) {
         ],
         grouped_search_result: { more_full_page_results: true },
         more_results: parsed.searchParams.get('page') !== '3'
+      });
+    }
+    if (path === '/t/12/posts.json') {
+      return reply({
+        post_stream: {
+          posts: [
+            {
+              id: 1500,
+              post_number: 142,
+              username: 'fixer',
+              created_at: '2026-01-02T12:00:00Z',
+              cooked: '<p>To fix Error E9421, clear the token cache and re-authenticate.</p>'
+            }
+          ]
+        }
       });
     }
     if (path === '/latest.json') {
@@ -257,6 +279,29 @@ test('the topic-read budget counts distinct topics; re-reading one is free', asy
     error => error instanceof AgentToolError && error.code === 'TOPIC_BUDGET' && /budget \(1\)/.test(error.message)
   );
   assert.equal(ctx.sources.length, 1);
+});
+
+test('read_topic can filter a topic by query using Discourse post search or local block matching', async () => {
+  const { ctx, forum } = context({ budget: { maxSteps: 15, maxTopicReads: 8, maxCharsPerRead: 5000 } });
+  const hit = await run('read_topic', { topic_id: '12', query: 'E9421' }, ctx);
+  const postsUrl = forum.urls.find(u => u.includes('/t/12/posts.json'));
+  assert.ok(postsUrl, 'fetched matching posts via /t/12/posts.json');
+  assert.deepEqual(new URL(postsUrl).searchParams.getAll('post_ids[]'), ['1500'], 'topicId is not mixed into post_ids[]');
+  assert.match(hit.observation, /Showing: 1 matching post for "E9421" \(of 250 posts\)/);
+  assert.match(hit.observation, /fixer \| 2026-01-02 \| #142/);
+  assert.match(hit.observation, /To fix Error E9421, clear the token cache/);
+  assert.doesNotMatch(hit.observation, /<p>/, 'cooked HTML tags are converted to plain text');
+  assert.equal(ctx.sources[0].postNumber, 142);
+  assert.equal(ctx.sources[0].url, 'https://forum.example.com/t/long-topic/12/142');
+
+  const shortHit = await run('read_topic', { topic_id: '11', query: 'CDN' }, ctx);
+  assert.match(shortHit.observation, /Showing: 1 matching post for "CDN"/);
+  assert.match(shortHit.observation, /Use the CDN\./);
+
+  // When a query only appears in the OP and no replies match, read_topic falls back to normal display instead of dropping all replies.
+  const opOnly = await run('read_topic', { topic_id: '11', query: 'How do I' }, ctx);
+  assert.match(opOnly.observation, /Showing: all posts/);
+  assert.match(opOnly.observation, /Thanks/);
 });
 
 test('source numbers continue after the topics already read, also across turns', async () => {

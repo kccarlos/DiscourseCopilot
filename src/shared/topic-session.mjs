@@ -116,6 +116,8 @@ export function normalizeTopicSession(value, now = Date.now()) {
   }
 
   const createdAt = finiteTimestamp(value.createdAt, now);
+  const rawPages = normalizeRawPages(value.rawPages);
+  const rawSource = typeof value.source === 'string' ? value.source : '';
   return {
     topicId,
     siteUrl,
@@ -123,8 +125,8 @@ export function normalizeTopicSession(value, now = Date.now()) {
     url: canonicalizeTopicUrl(value.url, topicId, siteUrl),
     title: trimmedString(value.title) || t('common.topicFallback', { id: topicId }),
     forumName: trimmedString(value.forumName).slice(0, 120),
-    source: typeof value.source === 'string' ? value.source : '',
-    rawPages: normalizeRawPages(value.rawPages),
+    source: rawSource || (rawPages.length ? rawPages.map(entry => entry.content).join('\n\n') : ''),
+    rawPages,
     summary: typeof value.summary === 'string' ? value.summary : '',
     history: normalizeSavedHistory(value.history),
     kept: value.kept === true,

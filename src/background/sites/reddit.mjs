@@ -71,6 +71,8 @@ export function joinBlocks(blocks) {
   return `${blocks.join('\n\n\n')}\n`;
 }
 
+const EXPECTED_COMMENTS_LINE = /\b(\d+) comments\b/;
+
 /** The post as the opening block. */
 export function formatPost(post, siteUrl = 'https://www.reddit.com') {
   const flair = cleanText(post.link_flair_text);
@@ -80,6 +82,7 @@ export function formatPost(post, siteUrl = 'https://www.reddit.com') {
     [
       post.subreddit_name_prefixed || (post.subreddit ? `r/${post.subreddit}` : ''),
       `u/${post.author || '[deleted]'}`,
+      Number.isInteger(post.num_comments) ? `${post.num_comments} comments` : '',
       timestamp(post.created_utc),
       Number.isFinite(post.score) ? `score ${post.score}` : '',
       flair ? `flair: ${flair}` : ''
@@ -222,7 +225,13 @@ export function createRedditFetcher({ fetchImpl, config = REDDIT_FETCH_CONFIG } 
    * the post's id as the extension keys it (shared/reddit-page.mjs);
    * `totalPosts` counts the post plus its comments.
    */
-  return async function fetchTopicContent(siteUrl, topicId, onProgress = () => {}, signal, { maxPages } = {}) {
+  return async function fetchTopicContent(
+    siteUrl,
+    topicId,
+    onProgress = () => {},
+    signal,
+    { cachedPages = [], knownTotalPosts = null, maxPages } = {}
+  ) {
     const site = requireSiteUrl(siteUrl);
     const redditId = requireRedditId(topicId);
     const limit = Number.isInteger(Number(maxPages)) && Number(maxPages) > 0 ? Number(maxPages) : null;
@@ -252,6 +261,41 @@ export function createRedditFetcher({ fetchImpl, config = REDDIT_FETCH_CONFIG } 
       throw Object.assign(new Error(t('forumResponse.postNotFound')), { status: 404, retryable: false });
     }
     expected = Number.isInteger(post.num_comments) ? post.num_comments : 0;
+
+    // If we have a complete cache and the thread's comment count has not grown,
+    // reuse the cached pages without re-fetching the comment tree.
+    const cached = normalizeRawPages(cachedPages);
+    const cachedByPage = new Map(cached.map(entry => [entry.page, entry]));
+    const hasKnownPosts = Number.isInteger(knownTotalPosts) && knownTotalPosts >= 1;
+    if (hasKnownPosts && cached.length > 0) {
+      const expectedPages = Math.max(1, Math.ceil(knownTotalPosts / BLOCKS_PER_PAGE));
+      const pagesNeeded = limit === null ? expectedPages : Math.min(expectedPages, limit);
+      const haveEveryPage = Array.from({ length: pagesNeeded }, (_, index) => cachedByPage.has(index + 1)).every(Boolean);
+      const openingHeader = (cachedByPage.get(1)?.content ?? '').split('\n\n')[0] || '';
+      const cachedExpectedMatch = EXPECTED_COMMENTS_LINE.exec(openingHeader);
+      const cachedExpected = cachedExpectedMatch ? Number(cachedExpectedMatch[1]) : knownTotalPosts - 1;
+      const unchangedCount = expected === cachedExpected || expected === knownTotalPosts - 1;
+      if (haveEveryPage && unchangedCount) {
+        const truncated = expectedPages > pagesNeeded;
+        const coveredPosts = truncated ? pagesNeeded * BLOCKS_PER_PAGE : knownTotalPosts;
+        const reusablePages = cached.filter(entry => entry.page <= pagesNeeded);
+        onProgress({
+          ...progressFor(Math.max(expected, knownTotalPosts - 1), pagesNeeded),
+          ...(truncated ? { truncatedFromPosts: knownTotalPosts } : {})
+        });
+        return buildContentResult(
+          reusablePages,
+          { totalPosts: knownTotalPosts },
+          {
+            truncated,
+            coveredPosts,
+            unchanged: true,
+            newPosts: 0,
+            networkPagesFetched: requests
+          }
+        );
+      }
+    }
 
     const tree = createCommentTree(`t3_${redditId}`);
     tree.add(thread[1].data.children, `t3_${redditId}`);
@@ -310,10 +354,18 @@ export function createRedditFetcher({ fetchImpl, config = REDDIT_FETCH_CONFIG } 
       ...(truncated ? { truncatedFromPosts: totalPosts } : {})
     });
 
+    const previousCovered = hasKnownPosts ? (limit === null ? knownTotalPosts : Math.min(knownTotalPosts, limit * BLOCKS_PER_PAGE)) : null;
+
     return buildContentResult(
       pages,
       { totalPosts },
-      { truncated, coveredPosts, unchanged: false, newPosts: null, networkPagesFetched: requests }
+      {
+        truncated,
+        coveredPosts,
+        unchanged: false,
+        newPosts: previousCovered === null ? null : Math.max(0, coveredPosts - previousCovered),
+        networkPagesFetched: requests
+      }
     );
   };
 }

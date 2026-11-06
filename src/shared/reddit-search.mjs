@@ -66,8 +66,19 @@ function nextPageUrl(html) {
 }
 
 function countBefore(unit, word) {
-  const match = new RegExp(`<faceplate-number\\b[^>]*\\bnumber="(\\d+)"[^>]*></faceplate-number>\\s*${word}`).exec(unit);
+  const match = new RegExp(`<faceplate-number\\b[^>]*\\bnumber="(-?\\d+)"[^>]*></faceplate-number>\\s*${word}`, 'i').exec(unit);
   return match ? Number(match[1]) : null;
+}
+
+function counterRowNumbers(unit) {
+  const rowAt = unit.indexOf('data-testid="search-counter-row"');
+  const scope = rowAt === -1 ? unit : unit.slice(rowAt);
+  return [...scope.matchAll(/<faceplate-number\b[^>]*\bnumber="(-?\d+)"/g)].map(match => Number(match[1]));
+}
+
+function finiteInteger(value) {
+  const number = Number(value);
+  return Number.isInteger(number) ? number : null;
 }
 
 function commentText(unit) {
@@ -110,14 +121,21 @@ export function parsePostSearch(html) {
     const context = trackingContext(unit);
     const redditId = stripPrefix(context.post?.id, 't3_');
     if (!redditId) continue;
+    const numbers = counterRowNumbers(unit);
+    const score =
+      finiteInteger(context.post?.score ?? context.post?.ups) ?? countBefore(unit, 'votes?') ?? (numbers.length >= 1 ? numbers[0] : null);
+    const commentCount =
+      finiteInteger(context.post?.number_of_comments ?? context.post?.num_comments ?? context.post?.comment_count)
+      ?? countBefore(unit, 'comments?')
+      ?? (numbers.length >= 2 ? numbers[1] : null);
     items.push({
       redditId,
       title: String(context.post?.title || ''),
       subreddit: String(context.subreddit?.name || ''),
       author: String(context.profile?.name || ''),
       date: timestampFrom(unit),
-      commentCount: countBefore(unit, 'comments?'),
-      score: countBefore(unit, 'votes?'),
+      commentCount,
+      score,
       url: /data-testid="post-title"\s+href="([^"]+)"/.exec(unit)?.[1] || ''
     });
   }
