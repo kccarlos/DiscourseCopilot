@@ -52,10 +52,16 @@ export function renderMarkdownToHtml(md) {
   const lines = String(md || '').split(/\r?\n/);
   const blocks = [];
   let listItems = [];
+  let skippedTopH1 = false;
 
   const flushList = () => {
     if (listItems.length) {
-      blocks.push(`<ul>\n${listItems.map(li => `  <li>${li}</li>`).join('\n')}\n</ul>`);
+      const renderedItems = listItems.map(item => {
+        if (!item.subItems.length) return `  <li>${item.text}</li>`;
+        const subHtml = item.subItems.map(sub => `      <li>${sub}</li>`).join('\n');
+        return `  <li>${item.text}\n    <ul>\n${subHtml}\n    </ul>\n  </li>`;
+      });
+      blocks.push(`<ul>\n${renderedItems.join('\n')}\n</ul>`);
       listItems = [];
     }
   };
@@ -74,9 +80,20 @@ export function renderMarkdownToHtml(md) {
       blocks.push(`<h2>${formatInline(trimmed.slice(3))}</h2>`);
     } else if (trimmed.startsWith('# ')) {
       flushList();
-      blocks.push(`<h1>${formatInline(trimmed.slice(2))}</h1>`);
+      if (!skippedTopH1 && blocks.length === 0) {
+        skippedTopH1 = true;
+        continue;
+      }
+      blocks.push(`<h2>${formatInline(trimmed.slice(2))}</h2>`);
+    } else if (/^\s{2,}-\s+/.test(rawLine)) {
+      const subText = formatInline(rawLine.replace(/^\s{2,}-\s+/, ''));
+      if (listItems.length) {
+        listItems[listItems.length - 1].subItems.push(subText);
+      } else {
+        listItems.push({ text: subText, subItems: [] });
+      }
     } else if (/^\s*-\s+/.test(rawLine)) {
-      listItems.push(formatInline(rawLine.replace(/^\s*-\s+/, '')));
+      listItems.push({ text: formatInline(rawLine.replace(/^\s*-\s+/, '')), subItems: [] });
     } else {
       flushList();
       blocks.push(`<p>${formatInline(trimmed)}</p>`);
@@ -282,6 +299,7 @@ function renderOverviewMain({ locale, dict }) {
   const sitesHref = getRelativeHref(locale, 'overview', locale, 'sites');
   const guideHref = getRelativeHref(locale, 'overview', locale, 'guide');
   const faqHref = getRelativeHref(locale, 'overview', locale, 'faq');
+  const supportHref = getRelativeHref(locale, 'overview', locale, 'support');
 
   return `<section class="surface-card hero-card">
   <div class="wordmark-wrap">
@@ -392,6 +410,7 @@ function renderOverviewMain({ locale, dict }) {
     <div class="quickstart-links">
       <a class="link-btn" href="${guideHref}">${escapeHtml(dict['qs.guideLink'])}</a>
       <a class="link-btn" href="${faqHref}">${escapeHtml(dict['qs.faqLink'])}</a>
+      <a class="link-btn" href="${supportHref}">${escapeHtml(dict['qs.supportLink'])}</a>
     </div>
   </div>
   <div class="quickstart-grid">
@@ -419,6 +438,7 @@ function renderPlatformBadge(platform) {
 
 function renderSitesMain({ locale, dict }) {
   const loginLabel = escapeHtml(dict['sites.loginBadge']);
+  const supportSiteHref = `${getRelativeHref(locale, 'sites', locale, 'support')}?type=site`;
   const cardsHtml = COMMUNITIES.map(site => {
     const name = site.name[locale] || site.name.en;
     const desc = site.desc[locale] || site.desc.en;
@@ -512,7 +532,7 @@ function renderSitesMain({ locale, dict }) {
   <div id="sitesGrid" class="sites-grid" role="list" data-login-label="${loginLabel}">
     ${cardsHtml}
   </div>
-  <div id="sitesEmptyState" class="empty-filter-msg hidden" role="status">${escapeHtml(dict['sites.emptyState'])}</div>
+  <div id="sitesEmptyState" class="empty-filter-msg hidden" role="status">${escapeHtml(dict['sites.emptyState'])} <a class="link-btn" href="${supportSiteHref}">${escapeHtml(dict['sites.requestLink'])}</a></div>
 
   <div class="platform-grid">
     <div class="platform-col">
@@ -549,7 +569,10 @@ function renderSitesMain({ locale, dict }) {
 
   <div class="directory-footer">
     <span>${dict['sites.howToCheck']}</span>
-    <span>${escapeHtml(dict['sites.disclaimer'])}</span>
+    <span style="display: inline-flex; flex-wrap: wrap; align-items: center; gap: 14px;">
+      <a class="link-btn" href="${supportSiteHref}">${escapeHtml(dict['sites.requestLink'])}</a>
+      <span>${escapeHtml(dict['sites.disclaimer'])}</span>
+    </span>
   </div>
 </section>`;
 }
@@ -735,10 +758,19 @@ function renderGuideMain({ locale, dict }) {
       </div>
     </div>
   </div>
+
+  <div class="directory-footer">
+    <span>${dict['guide.needHelp']}</span>
+    <span style="display: inline-flex; flex-wrap: wrap; align-items: center; gap: 14px;">
+      <a class="link-btn" href="${getRelativeHref(locale, 'guide', locale, 'faq')}">${escapeHtml(dict['guide.faqLink'])}</a>
+      <a class="link-btn" href="${getRelativeHref(locale, 'guide', locale, 'support')}">${escapeHtml(dict['guide.supportLink'])}</a>
+    </span>
+  </div>
 </section>`;
 }
 
 function renderFaqMain({ locale, dict }) {
+  const supportHref = getRelativeHref(locale, 'faq', locale, 'support');
   const faqItemsHtml = FAQ_ITEMS.map((item, idx) => {
     const q = item.q[locale] || item.q.en;
     const a = item.a[locale] || item.a.en;
@@ -767,7 +799,12 @@ function renderFaqMain({ locale, dict }) {
 
   <div id="faqList" class="faq-list">
     ${faqItemsHtml}
-    <div id="faqEmptyState" class="empty-filter-msg hidden" role="status">${escapeHtml(dict['faq.emptyState'])}</div>
+    <div id="faqEmptyState" class="empty-filter-msg hidden" role="status">${escapeHtml(dict['faq.emptyState'])} <a class="link-btn" href="${supportHref}">${escapeHtml(dict['faq.supportLink'])}</a></div>
+  </div>
+
+  <div class="directory-footer">
+    <span>${dict['faq.stillNeedHelp']}</span>
+    <a class="link-btn" href="${supportHref}">${escapeHtml(dict['faq.supportLink'])}</a>
   </div>
 </section>`;
 }
@@ -826,7 +863,7 @@ function renderSupportMain({ dict }) {
     </div>
   </div>
 
-  <div class="support-section" id="supportFormCard">
+  <form class="support-section" id="supportFormCard" novalidate>
     <div class="support-head">
       <h2>
         <span class="usecase-title-wrap">
@@ -874,11 +911,11 @@ function renderSupportMain({ dict }) {
     </div>
 
     <div class="support-actions">
-      <button type="button" id="supSubmitBtn" class="btn btn-primary">${escapeHtml(dict['sup.submitBtn'])}</button>
+      <button type="submit" id="supSubmitBtn" class="btn btn-primary">${escapeHtml(dict['sup.submitBtn'])}</button>
       <button type="button" id="supCopyBtn" class="btn btn-outline" data-default-label="${escapeHtml(dict['sup.copyBtn'])}" data-copied-label="${escapeHtml(dict['sup.copiedBtn'])}">${escapeHtml(dict['sup.copyBtn'])}</button>
       <a class="link-btn" href="${GITHUB_ISSUES_URL}" target="_blank" rel="noopener noreferrer">${escapeHtml(dict['sup.browseIssues'])}</a>
     </div>
-  </div>
+  </form>
 </section>`;
 }
 
@@ -913,10 +950,28 @@ function renderPrivacyMain({ dict }) {
       </div>
       <p>${dict['priv.f2.desc']}</p>
     </div>
+    <div class="usecase-card">
+      <div class="usecase-card-head">
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          <strong>${escapeHtml(dict['priv.f3.title'])}</strong>
+        </span>
+      </div>
+      <p>${dict['priv.f3.desc']}</p>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-card-head">
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <strong>${escapeHtml(dict['perm.f1.title'])}</strong>
+        </span>
+      </div>
+      <p>${dict['perm.f1.desc']}</p>
+    </div>
   </div>
 
   <div class="privacy-body-wrap">
-    <div id="privacyDocBody" class="markdown-prose">
+    <div id="privacyDocBody" class="markdown-prose" lang="en">
       ${staticPrivacyHtml}
     </div>
   </div>
@@ -1130,6 +1185,7 @@ function renderClientScript({ locale, page }) {
     lines.push(
       `  const NEW_ISSUE_URL = ${JSON.stringify(GITHUB_NEW_ISSUE_URL)};`,
       '  let activeType = "site";',
+      '  const formEl = document.getElementById("supportFormCard");',
       '  const typeBtns = Array.from(document.querySelectorAll("#supportTypeGroup .filter-chip"));',
       '  const titleEl = document.getElementById("supTitle");',
       '  const urlEl = document.getElementById("supUrl");',
@@ -1139,14 +1195,34 @@ function renderClientScript({ locale, page }) {
       '  const submitBtn = document.getElementById("supSubmitBtn");',
       '  const copyBtn = document.getElementById("supCopyBtn");',
       '  const TYPE_PREFIX = { site: "[Site Request]", bug: "[Bug]", feature: "[Feature]", question: "[Question]" };',
+      '  function setSupportType(typeKey) {',
+      '    if (!TYPE_PREFIX[typeKey]) return;',
+      '    activeType = typeKey;',
+      '    typeBtns.forEach(b => b.setAttribute("aria-pressed", String(b.getAttribute("data-type") === typeKey)));',
+      '    if (titleEl) titleEl.placeholder = titleEl.getAttribute("data-ph-" + activeType) || "";',
+      '    if (detailsEl) detailsEl.placeholder = detailsEl.getAttribute("data-ph-" + activeType) || "";',
+      '  }',
       '  typeBtns.forEach(btn => {',
       '    btn.addEventListener("click", () => {',
-      '      activeType = btn.getAttribute("data-type") || "site";',
-      '      typeBtns.forEach(b => b.setAttribute("aria-pressed", String(b === btn)));',
-      '      if (titleEl) titleEl.placeholder = titleEl.getAttribute("data-ph-" + activeType) || "";',
-      '      if (detailsEl) detailsEl.placeholder = detailsEl.getAttribute("data-ph-" + activeType) || "";',
+      '      setSupportType(btn.getAttribute("data-type") || "site");',
       '    });',
       '  });',
+      '  if (titleEl) {',
+      '    titleEl.addEventListener("input", () => titleEl.removeAttribute("aria-invalid"));',
+      '  }',
+      '  try {',
+      '    const params = new URLSearchParams(window.location.search);',
+      '    const qType = (params.get("type") || "").trim().toLowerCase();',
+      '    if (qType && TYPE_PREFIX[qType]) setSupportType(qType);',
+      '    const qTitle = (params.get("title") || "").trim();',
+      '    if (qTitle && titleEl) titleEl.value = qTitle;',
+      '    const qUrl = (params.get("url") || "").trim();',
+      '    if (qUrl && urlEl) urlEl.value = qUrl;',
+      '    const qEnv = (params.get("env") || "").trim();',
+      '    if (qEnv && envEl) envEl.value = qEnv;',
+      '    const qDetails = (params.get("details") || "").trim();',
+      '    if (qDetails && detailsEl) detailsEl.value = qDetails;',
+      '  } catch {}',
       '  function buildIssuePayload() {',
       '    const prefix = TYPE_PREFIX[activeType] || "[Feedback]";',
       '    const rawTitle = ((titleEl && titleEl.value) || "").trim();',
@@ -1165,14 +1241,23 @@ function renderClientScript({ locale, page }) {
       '      "### Details",',
       '      rawDetails || "_(Add details here)_"',
       '    ].filter(v => v !== null);',
-      '    return { title: finalTitle, body: bodyLines.join("\\n") };',
+      '    return { title: finalTitle, body: bodyLines.join("\\n"), hasInput: Boolean(rawTitle || rawUrl || rawDetails) };',
       '  }',
-      '  if (submitBtn) {',
-      '    submitBtn.addEventListener("click", () => {',
-      '      const payload = buildIssuePayload();',
-      '      const target = NEW_ISSUE_URL + "?title=" + encodeURIComponent(payload.title) + "&body=" + encodeURIComponent(payload.body);',
-      '      window.open(target, "_blank", "noopener,noreferrer");',
-      '    });',
+      '  function handleSupportSubmit(e) {',
+      '    if (e) e.preventDefault();',
+      '    const payload = buildIssuePayload();',
+      '    if (!payload.hasInput && titleEl) {',
+      '      titleEl.setAttribute("aria-invalid", "true");',
+      '      titleEl.focus();',
+      '      return;',
+      '    }',
+      '    const target = NEW_ISSUE_URL + "?title=" + encodeURIComponent(payload.title) + "&body=" + encodeURIComponent(payload.body);',
+      '    window.open(target, "_blank", "noopener,noreferrer");',
+      '  }',
+      '  if (formEl) {',
+      '    formEl.addEventListener("submit", handleSupportSubmit);',
+      '  } else if (submitBtn) {',
+      '    submitBtn.addEventListener("click", handleSupportSubmit);',
       '  }',
       '  if (copyBtn) {',
       '    copyBtn.addEventListener("click", () => {',
@@ -1206,16 +1291,33 @@ function renderClientScript({ locale, page }) {
       '    const rows = String(md || "").split(/\\r?\\n/);',
       '    const out = [];',
       '    let ul = [];',
+      '    let skippedH1 = false;',
       '    function flush() {',
-      '      if (ul.length) { out.push("<ul>" + ul.map(i => "<li>" + i + "</li>").join("") + "</ul>"); ul = []; }',
+      '      if (ul.length) {',
+      '        const items = ul.map(it => {',
+      '          if (!it.sub.length) return "<li>" + it.t + "</li>";',
+      '          return "<li>" + it.t + "<ul>" + it.sub.map(s => "<li>" + s + "</li>").join("") + "</ul></li>";',
+      '        });',
+      '        out.push("<ul>" + items.join("") + "</ul>");',
+      '        ul = [];',
+      '      }',
       '    }',
       '    rows.forEach(line => {',
       '      const tr = line.trim();',
       '      if (!tr) { flush(); return; }',
       '      if (tr.indexOf("### ") === 0) { flush(); out.push("<h3>" + fmtInline(tr.slice(4)) + "</h3>"); }',
       '      else if (tr.indexOf("## ") === 0) { flush(); out.push("<h2>" + fmtInline(tr.slice(3)) + "</h2>"); }',
-      '      else if (tr.indexOf("# ") === 0) { flush(); out.push("<h1>" + fmtInline(tr.slice(2)) + "</h1>"); }',
-      '      else if (/^\\s*-\\s+/.test(line)) { ul.push(fmtInline(line.replace(/^\\s*-\\s+/, ""))); }',
+      '      else if (tr.indexOf("# ") === 0) {',
+      '        flush();',
+      '        if (!skippedH1 && out.length === 0) { skippedH1 = true; return; }',
+      '        out.push("<h2>" + fmtInline(tr.slice(2)) + "</h2>");',
+      '      }',
+      '      else if (/^\\s{2,}-\\s+/.test(line)) {',
+      '        const s = fmtInline(line.replace(/^\\s{2,}-\\s+/, ""));',
+      '        if (ul.length) ul[ul.length - 1].sub.push(s);',
+      '        else ul.push({ t: s, sub: [] });',
+      '      }',
+      '      else if (/^\\s*-\\s+/.test(line)) { ul.push({ t: fmtInline(line.replace(/^\\s*-\\s+/, "")), sub: [] }); }',
       '      else { flush(); out.push("<p>" + fmtInline(tr) + "</p>"); }',
       '    });',
       '    flush();',
@@ -1433,6 +1535,7 @@ ${renderClientScript({ locale, page })}
 }
 
 export function renderNotFoundPage() {
+  const dict = UI_COPY.en;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1454,20 +1557,76 @@ ${SITE_CSS}
   </style>
 </head>
 <body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand-link" href="${SITE_BASE_URL}/">
+        <span class="brand-glyph" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 5h16v12H9l-5 4V5Z"/><path d="M8 9h8M8 13h5"/></svg>
+        </span>
+        <span>Forumind</span>
+      </a>
+
+      <nav class="nav-links" aria-label="${escapeHtml(dict['nav.ariaLabel'])}">
+        <a class="nav-pill" href="${SITE_BASE_URL}/">
+          <span>${escapeHtml(dict['nav.overview'])}</span>
+        </a>
+        <a class="nav-pill" href="${SITE_BASE_URL}/sites/">
+          <span>${escapeHtml(dict['nav.sites'])}</span>
+          <span class="nav-count">${COMMUNITIES.length}+</span>
+        </a>
+        <a class="nav-pill" href="${SITE_BASE_URL}/guide/">
+          <span>${escapeHtml(dict['nav.guide'])}</span>
+        </a>
+        <a class="nav-pill" href="${SITE_BASE_URL}/faq/">
+          <span>${escapeHtml(dict['nav.faq'])}</span>
+        </a>
+        <a class="nav-pill" href="${SITE_BASE_URL}/support/">
+          <span>${escapeHtml(dict['nav.support'])}</span>
+        </a>
+      </nav>
+
+      <div class="header-controls">
+        <button type="button" id="themeToggleBtn" class="icon-btn" title="${escapeHtml(dict['nav.themeLabel'])}" aria-label="${escapeHtml(dict['nav.themeLabel'])}">
+          <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
   <main class="page-wrap">
     <section class="surface-card hero-card">
       <h1 class="hero-tagline">Page not found (404)</h1>
       <p class="hero-description">
-        The page you requested does not exist. Jump back to the Forumind homepage or browse supported communities below.
+        The page you requested does not exist. Jump back to the Forumind homepage, browse supported communities, or visit Support below.
       </p>
       <div class="hero-cta-row">
         <a class="btn btn-primary" href="${SITE_BASE_URL}/">Overview (EN)</a>
         <a class="btn btn-outline" href="${SITE_BASE_URL}/sites/">Supported Sites</a>
+        <a class="btn btn-outline" href="${SITE_BASE_URL}/support/">Support &amp; Feedback</a>
         <a class="btn btn-outline" href="${SITE_BASE_URL}/zh-CN/">简体中文首页</a>
         <a class="btn btn-outline" href="${SITE_BASE_URL}/zh-TW/">繁體中文首頁</a>
       </div>
     </section>
   </main>
+
+  <footer class="site-footer">
+    <div>
+      <strong>Forumind</strong> · <span>${escapeHtml(dict['footer.copy'])}</span>
+    </div>
+    <div class="footer-links">
+      <a class="link-btn" href="${SITE_BASE_URL}/">${escapeHtml(dict['nav.overview'])}</a>
+      <a class="link-btn" href="${SITE_BASE_URL}/sites/">${escapeHtml(dict['nav.sites'])}</a>
+      <a class="link-btn" href="${SITE_BASE_URL}/guide/">${escapeHtml(dict['nav.guide'])}</a>
+      <a class="link-btn" href="${SITE_BASE_URL}/faq/">${escapeHtml(dict['nav.faq'])}</a>
+      <a class="link-btn" href="${SITE_BASE_URL}/support/">${escapeHtml(dict['nav.support'])}</a>
+      <a class="link-btn" href="${SITE_BASE_URL}/privacy/">${escapeHtml(dict['footer.privacy'])}</a>
+      <a href="${GITHUB_REPO_URL}" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </div>
+  </footer>
+
+  <script>
+${renderClientScript({ locale: 'en', page: '404' })}
+  </script>
 </body>
 </html>
 `;
