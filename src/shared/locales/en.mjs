@@ -64,7 +64,8 @@ export default {
   'providerSetup.success.missingAccess': 'You’re set. Next, allow access to this forum below.',
   'providerSetup.success.topic': 'You’re set — press Create summary above.',
   'providerSetup.success.forum': 'You’re set — press Ask the forum above, or open any topic and press Create summary.',
-  'providerSetup.success.hidden': 'You’re set. Next, click the Forumind icon in your toolbar on a Discourse forum.',
+  'providerSetup.success.hidden':
+    'You’re set. Next, click the Forumind icon in your toolbar on a Discourse forum, WordPress site or Reddit.',
   'providerSetup.success.default': 'You’re set. Open a post on a Discourse forum, WordPress site or Reddit to get started.',
   // Preferences
   'preferences.field.steps': 'Steps per question',
@@ -199,6 +200,8 @@ export default {
   'guide.maybeText':
     'Forumind couldn’t check {host} yet. If it’s a Discourse forum, allow access so it can read topics and search it using your current login.',
   'guide.allowText': 'So it can read topics and search this forum using your current login.',
+  'guide.allowText.wordpress': 'So it can read posts and comments and search this site.',
+  'guide.allowText.reddit': 'So it can read posts and comments and search Reddit using your current login.',
   'guide.access.step1': 'Click **Allow access** below.',
   'guide.access.step2': 'Chrome asks for permission. Choose **Allow**.',
   'guide.access.maybeTopic': 'If it’s a Discourse forum, click **Create summary**.',
@@ -240,7 +243,7 @@ export default {
   'controls.send': 'Send',
   'helper.forumOpenTopic': 'Open any topic to summarize it, or ask the forum a question.',
   'helper.forumConnect': 'Connect an AI provider below, then open a topic or ask the forum a question.',
-  'helper.openTopic': 'Open a Discourse forum topic to get started.',
+  'helper.openTopic': 'Open a post on a Discourse forum, WordPress site or Reddit to get started.',
   'helper.finishSetup': 'Finish setup below to create a summary.',
   'helper.running': 'Your summary is running safely in the background.',
   'helper.saved': 'Your saved summary and conversation are ready.',
@@ -308,7 +311,7 @@ export default {
   'retention.unkeepTopic.forever': 'Unkeep this summary and conversation',
   'retention.unkeepTopic.timed': 'Resume the {period} conversation expiry',
   'idle.askForum': 'Ask the forum to search across discussions',
-  'idle.openTopic': 'Open a Discourse forum topic to get started',
+  'idle.openTopic': 'Open a post on a Discourse forum, WordPress site or Reddit to get started',
   'time.justNow': 'just now',
   'time.minutesAgo': '{count}m ago',
   'time.hoursAgo': '{count}h ago',

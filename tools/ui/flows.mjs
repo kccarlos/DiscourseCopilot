@@ -1313,11 +1313,13 @@ scenario(
       as.map(a => ({ href: a.href, target: a.target, rel: a.rel, text: a.textContent }))
     );
     check(
-      'two example links in new tabs',
-      links.length === 2
+      'four example links in new tabs',
+      links.length === 4
         && links.every(l => l.target === '_blank' && l.rel.includes('noopener'))
         && links[0].href === 'https://meta.discourse.org/'
-        && links[1].href === 'https://community.openai.com/',
+        && links[1].href === 'https://community.openai.com/'
+        && links[2].href === 'https://www.doctorofcredit.com/'
+        && links[3].href === 'https://www.reddit.com/',
       JSON.stringify(links)
     );
     check('no action button', !(await visible(page, '#forumAccessBtn')));
@@ -2915,7 +2917,7 @@ scenario(
     await page.waitForTimeout(300);
     check(
       'empty state',
-      (await text(page, '#forumAccessEmpty')).includes('You haven’t enabled any forums yet') && (await visible(page, '#forumAccessEmpty'))
+      (await text(page, '#forumAccessEmpty')).includes('You haven’t enabled any sites yet') && (await visible(page, '#forumAccessEmpty'))
     );
     await section.screenshot({ path: path.join(outDir, `settings-forum-access-empty.png`) });
   }

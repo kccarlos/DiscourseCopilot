@@ -309,7 +309,7 @@ test('idle status stays out of the way of the setup card', () => {
   assert.equal(resolveIdleStatus({ needsSetup: true }), null);
   assert.equal(resolveIdleStatus({ isForumTopic: true, isSupportedSite: true }), null);
   assert.deepEqual(resolveIdleStatus({}), {
-    message: 'Open a Discourse forum topic to get started',
+    message: 'Open a post on a Discourse forum, WordPress site or Reddit to get started',
     type: 'info'
   });
   assert.deepEqual(resolveIdleStatus({ isSupportedSite: true }), {

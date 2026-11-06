@@ -12,7 +12,7 @@
 <p align="center"><a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <b>繁體中文</b></p>
 
 <p align="center">
-  一鍵爬文摘要，針對整串討論追問（連是哪一樓說的都告訴你），還能讓 AI 幫你搜遍整個論壇，回答附帶原始貼文連結。
+  一鍵爬文摘要，針對整串討論追問（連是哪一樓說的都告訴你），還能讓 AI 幫你搜遍整個論壇，回答附帶原始貼文連結。支援 Discourse 論壇、WordPress 部落格留言區和 Reddit 貼文。
 </p>
 
 <p align="center">
