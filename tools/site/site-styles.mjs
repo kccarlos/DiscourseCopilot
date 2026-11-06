@@ -130,6 +130,7 @@ button, input, select {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
+select:focus-visible,
 summary:focus-visible {
   outline: 2px solid var(--dc-fill);
   outline-offset: 2px;
@@ -247,38 +248,57 @@ code {
   flex: 0 0 auto;
 }
 
-.lang-switcher {
+.lang-select-wrap {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  padding: 2px;
-  border: 1px solid var(--dc-line);
-  border-radius: 999px;
-  background: var(--dc-sunken);
 }
 
-.lang-link {
-  display: inline-flex;
-  align-items: center;
-  height: 26px;
-  padding: 0 9px;
-  border-radius: 999px;
-  background: transparent;
+.lang-globe {
+  position: absolute;
+  left: 9px;
+  width: 13px;
+  height: 13px;
   color: var(--dc-muted);
-  font-size: 12px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background-color 0.14s, color 0.14s;
+  pointer-events: none;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.lang-link:hover {
-  color: var(--dc-ink);
-}
-
-.lang-link[aria-current="true"] {
+.lang-select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 30px;
+  padding: 0 24px 0 26px;
+  border: 1px solid var(--dc-line);
+  border-radius: 8px;
   background: var(--dc-bg);
   color: var(--dc-ink);
+  font-size: 12px;
   font-weight: 600;
-  box-shadow: 0 0 0 1px var(--dc-line);
+  cursor: pointer;
+  transition: background-color 0.14s, border-color 0.14s;
+}
+
+.lang-select:hover {
+  background: var(--dc-hover);
+}
+
+.lang-caret {
+  position: absolute;
+  right: 8px;
+  width: 11px;
+  height: 11px;
+  color: var(--dc-muted);
+  pointer-events: none;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .icon-btn {

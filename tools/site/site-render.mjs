@@ -801,9 +801,8 @@ function renderClientScript({ locale, page }) {
       '      const name = (site.name && (site.name[PAGE_LOCALE] || site.name.en)) || site.id;',
       '      const desc = (site.desc && (site.desc[PAGE_LOCALE] || site.desc.en)) || "";',
       '      const cats = Array.isArray(site.categories) ? site.categories.join(" ") : "";',
-      '      const kwObj = site.keywords && typeof site.keywords === "object" ? Object.values(site.keywords).join(" ") : (site.keywords || "");',
-      '      const namesAll = site.name && typeof site.name === "object" ? Object.values(site.name).join(" ") : name;',
-      '      const kw = [kwObj, namesAll, site.host || ""].join(" ").toLowerCase();',
+      '      const kwObj = site.keywords && typeof site.keywords === "object" ? (site.keywords[PAGE_LOCALE] || site.keywords.en || "") : (site.keywords || "");',
+      '      const kw = [kwObj, name, site.host || ""].join(" ").toLowerCase();',
       '      const loginPill = site.requiresLogin ? \'<span class="badge">\' + esc(loginLabel) + "</span>" : "";',
       '      return \'<a class="site-card" data-id="\' + esc(site.id) + \'" data-categories="\' + esc(cats) + \'" data-keywords="\' + esc(kw) + \'" href="\' + esc(site.url) + \'" target="_blank" rel="noopener noreferrer" role="listitem">\' +',
       '        \'<div class="site-card-top">\' +',
@@ -1058,13 +1057,13 @@ ${SITE_CSS}
 
       <div class="header-controls">
         <div class="lang-select-wrap">
-          <svg class="lang-globe" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14.5 14.5 0 0 1 0 18 14.5 14.5 0 0 1 0-18Z"/></svg>
+          <svg class="lang-globe" width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14.5 14.5 0 0 1 0 18 14.5 14.5 0 0 1 0-18Z"/></svg>
           <select id="langSelect" class="lang-select" aria-label="${escapeHtml(dict['nav.langLabel'])}">
             <option value="en" data-href="${enHref}"${locale === 'en' ? ' selected' : ''}>English</option>
             <option value="zh-CN" data-href="${zhCnHref}"${locale === 'zh-CN' ? ' selected' : ''}>简体中文</option>
             <option value="zh-TW" data-href="${zhTwHref}"${locale === 'zh-TW' ? ' selected' : ''}>繁體中文</option>
           </select>
-          <svg class="lang-caret" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          <svg class="lang-caret" width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <button type="button" id="themeToggleBtn" class="icon-btn" title="${escapeHtml(dict['nav.themeLabel'])}" aria-label="${escapeHtml(dict['nav.themeLabel'])}">
           <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>

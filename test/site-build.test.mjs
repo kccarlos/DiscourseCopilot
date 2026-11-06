@@ -198,6 +198,13 @@ test('buildSite generates all 12 localized HTML pages, data/sites.json, 404.html
 
         // 5. Language dropdown & browser language auto-detection
         assert.ok(html.includes('grid-template-columns: minmax(0, 1fr)'), `missing mobile minmax(0, 1fr) in ${relFile}`);
+        assert.ok(
+          html.includes('.lang-select-wrap')
+            && html.includes('.lang-select')
+            && html.includes('.lang-globe')
+            && html.includes('.lang-caret'),
+          `missing language dropdown CSS rules in ${relFile}`
+        );
         assert.match(html, /<select id="langSelect" class="lang-select"/);
         assert.ok(html.includes('forumind-site-locale'), `missing browser locale detection in ${relFile}`);
 
