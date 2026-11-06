@@ -6,8 +6,11 @@ import test from 'node:test';
 
 import { buildSite } from '../tools/site/build-site.mjs';
 import {
+  CHROME_STORE_URL,
   COMMUNITIES,
+  EDGE_ADDONS_URL,
   FAQ_ITEMS,
+  GITHUB_RELEASES_URL,
   LOCALES,
   PAGE_META,
   PAGES,
@@ -19,6 +22,7 @@ import {
 import { getPageDir, getPageFilePath, getPageUrl, getRelativeHref } from '../tools/site/site-render.mjs';
 
 const SIMPLIFIED_ONLY = /[这个为么说时们会发对开关问题论坛页设请过还没点显与历应选择网络链译输简检数据记录总结话复删务读语码图标签]/;
+const CJK_PATTERN = /[\u4e00-\u9fff]/;
 
 test('site-data: all 3 locales define identical UI_COPY keys and non-empty strings', () => {
   const enKeys = Object.keys(UI_COPY.en).sort();
@@ -38,6 +42,26 @@ test('site-data: all 3 locales define identical UI_COPY keys and non-empty strin
       UI_COPY[locale]['strip.cta'].includes(`${COMMUNITIES.length}+`),
       `strip.cta in ${locale} should reflect COMMUNITIES.length (${COMMUNITIES.length}+)`
     );
+  }
+});
+
+test('site-data: English (en) copy, metadata, communities, and FAQs contain zero Chinese characters', () => {
+  for (const [key, val] of Object.entries(UI_COPY.en)) {
+    assert.ok(!CJK_PATTERN.test(val), `Chinese character found in UI_COPY.en['${key}']: ${val}`);
+  }
+  for (const [page, meta] of Object.entries(PAGE_META)) {
+    assert.ok(!CJK_PATTERN.test(meta.title.en), `Chinese character in PAGE_META.${page}.title.en: ${meta.title.en}`);
+    assert.ok(!CJK_PATTERN.test(meta.description.en), `Chinese character in PAGE_META.${page}.description.en: ${meta.description.en}`);
+  }
+  for (const site of COMMUNITIES) {
+    assert.ok(!CJK_PATTERN.test(site.avatar), `Chinese character in COMMUNITIES(${site.id}).avatar: ${site.avatar}`);
+    assert.ok(!CJK_PATTERN.test(site.name.en), `Chinese character in COMMUNITIES(${site.id}).name.en: ${site.name.en}`);
+    assert.ok(!CJK_PATTERN.test(site.desc.en), `Chinese character in COMMUNITIES(${site.id}).desc.en: ${site.desc.en}`);
+    assert.ok(!CJK_PATTERN.test(site.keywords.en), `Chinese character in COMMUNITIES(${site.id}).keywords.en: ${site.keywords.en}`);
+  }
+  for (const item of FAQ_ITEMS) {
+    assert.ok(!CJK_PATTERN.test(item.q.en), `Chinese character in FAQ_ITEMS(${item.id}).q.en: ${item.q.en}`);
+    assert.ok(!CJK_PATTERN.test(item.a.en), `Chinese character in FAQ_ITEMS(${item.id}).a.en: ${item.a.en}`);
   }
 });
 
@@ -76,7 +100,7 @@ test('site-data: Traditional Chinese (zh-TW) contains no Simplified-only charact
   }
 });
 
-test('buildSite generates all 12 localized HTML pages, 404.html, sitemap.xml, robots.txt, and resolves all relative links', () => {
+test('buildSite generates all 12 localized HTML pages, data/sites.json, 404.html, sitemap.xml, robots.txt, and resolves all relative links', () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forumind-site-test-'));
   try {
     const { writtenFiles } = buildSite({ outDir: tmpDir });
@@ -97,6 +121,10 @@ test('buildSite generates all 12 localized HTML pages, 404.html, sitemap.xml, ro
     assert.ok(writtenFiles.includes('robots.txt'));
     assert.ok(writtenFiles.includes('.nojekyll'));
     assert.ok(writtenFiles.includes('assets/icon128.png'));
+    assert.ok(writtenFiles.includes('data/sites.json'));
+
+    const sitesJsonData = JSON.parse(fs.readFileSync(path.join(tmpDir, 'data/sites.json'), 'utf8'));
+    assert.equal(sitesJsonData.length, COMMUNITIES.length);
 
     for (const locale of LOCALES) {
       for (const page of PAGES) {
@@ -125,6 +153,12 @@ test('buildSite generates all 12 localized HTML pages, 404.html, sitemap.xml, ro
         );
         const ogAltMatches = [...html.matchAll(/property="og:locale:alternate"/g)];
         assert.equal(ogAltMatches.length, 2, `expected 2 og:locale:alternate tags in ${relFile}`);
+
+        // 1b. English pages contain zero Chinese characters outside #langSelect
+        if (locale === 'en') {
+          const withoutLangSelect = html.replace(/<select id="langSelect"[\s\S]*?<\/select>/, '');
+          assert.ok(!CJK_PATTERN.test(withoutLangSelect), `unexpected Chinese characters found in ${relFile}`);
+        }
 
         // 2. JSON-LD parses cleanly and matches page schema
         const ldMatch = html.match(/<script type="application\/ld\+json">\s*([\s\S]*?)\s*<\/script>/);
@@ -162,18 +196,30 @@ test('buildSite generates all 12 localized HTML pages, 404.html, sitemap.xml, ro
           assert.match(match[0], /rel="noopener noreferrer"/, `missing rel="noopener noreferrer" in ${relFile}: ${match[0]}`);
         }
 
-        // 5. Page-specific DOM assertions
+        // 5. Language dropdown & browser language auto-detection
         assert.ok(html.includes('grid-template-columns: minmax(0, 1fr)'), `missing mobile minmax(0, 1fr) in ${relFile}`);
-        assert.ok(html.includes('document.querySelectorAll(".lang-link")'), `missing lang-link query/hash preservation in ${relFile}`);
+        assert.ok(
+          html.includes('.lang-select-wrap')
+            && html.includes('.lang-select')
+            && html.includes('.lang-globe')
+            && html.includes('.lang-caret'),
+          `missing language dropdown CSS rules in ${relFile}`
+        );
+        assert.match(html, /<select id="langSelect" class="lang-select"/);
+        assert.ok(html.includes('forumind-site-locale'), `missing browser locale detection in ${relFile}`);
+
+        // 6. Page-specific DOM assertions
         if (page === 'overview') {
           assert.match(html, /id="simStage"/);
           assert.match(html, /id="tab-summary"[^>]*aria-selected="true"[^>]*tabindex="0"/);
           assert.match(html, /id="tab-chat"[^>]*aria-selected="false"[^>]*tabindex="-1"/);
           assert.match(html, /id="tab-agent"[^>]*aria-selected="false"[^>]*tabindex="-1"/);
         } else if (page === 'sites') {
-          const cardMatches = [...html.matchAll(/class="site-card"/g)];
+          const cardMatches = [...html.matchAll(/<a class="site-card" data-id="[a-z0-9]+"/g)];
           assert.equal(cardMatches.length, COMMUNITIES.length);
           assert.ok(html.includes('URLSearchParams(window.location.search)'));
+          assert.ok(html.includes('fetch(SITES_DATA_URL)'));
+          assert.ok(html.includes('data/sites.json'));
           assert.ok(html.includes('https://www.uscardforum.com'));
           assert.ok(html.includes('https://www.doctorofcredit.com'));
           assert.ok(html.includes('https://www.uscreditcardguide.com'));
@@ -185,6 +231,14 @@ test('buildSite generates all 12 localized HTML pages, 404.html, sitemap.xml, ro
           assert.match(html, /id="permissions"/);
           assert.match(html, /id="privacy"/);
           assert.match(html, /id="github-install"/);
+          assert.match(html, /class="icon-feature-list"/);
+          assert.ok(!html.includes('strips the extension <code>Origin</code> header'));
+          assert.ok(html.includes('OpenAI'));
+          // Store links appear before GitHub Releases in the install section
+          const storeIdx = html.indexOf(CHROME_STORE_URL);
+          const edgeIdx = html.indexOf(EDGE_ADDONS_URL);
+          const ghReleaseIdx = html.indexOf(GITHUB_RELEASES_URL);
+          assert.ok(storeIdx > 0 && edgeIdx > 0 && ghReleaseIdx > storeIdx, 'Store install links should appear before GitHub Releases');
         } else if (page === 'faq') {
           for (const item of FAQ_ITEMS) {
             assert.ok(html.includes(`id="${item.id}"`), `missing FAQ item ${item.id} in ${relFile}`);

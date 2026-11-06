@@ -130,6 +130,7 @@ button, input, select {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
+select:focus-visible,
 summary:focus-visible {
   outline: 2px solid var(--dc-fill);
   outline-offset: 2px;
@@ -247,38 +248,57 @@ code {
   flex: 0 0 auto;
 }
 
-.lang-switcher {
+.lang-select-wrap {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  padding: 2px;
-  border: 1px solid var(--dc-line);
-  border-radius: 999px;
-  background: var(--dc-sunken);
 }
 
-.lang-link {
-  display: inline-flex;
-  align-items: center;
-  height: 26px;
-  padding: 0 9px;
-  border-radius: 999px;
-  background: transparent;
+.lang-globe {
+  position: absolute;
+  left: 9px;
+  width: 13px;
+  height: 13px;
   color: var(--dc-muted);
-  font-size: 12px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background-color 0.14s, color 0.14s;
+  pointer-events: none;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.lang-link:hover {
-  color: var(--dc-ink);
-}
-
-.lang-link[aria-current="true"] {
+.lang-select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 30px;
+  padding: 0 24px 0 26px;
+  border: 1px solid var(--dc-line);
+  border-radius: 8px;
   background: var(--dc-bg);
   color: var(--dc-ink);
+  font-size: 12px;
   font-weight: 600;
-  box-shadow: 0 0 0 1px var(--dc-line);
+  cursor: pointer;
+  transition: background-color 0.14s, border-color 0.14s;
+}
+
+.lang-select:hover {
+  background: var(--dc-hover);
+}
+
+.lang-caret {
+  position: absolute;
+  right: 8px;
+  width: 11px;
+  height: 11px;
+  color: var(--dc-muted);
+  pointer-events: none;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .icon-btn {
@@ -1163,6 +1183,116 @@ code {
   color: var(--dc-ink2);
   font-size: 12.5px;
   line-height: 19px;
+}
+
+.icon-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.icon-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.feat-icon-box {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--dc-asoft);
+  color: var(--dc-aink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.feat-icon-box svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.feat-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.feat-item-text strong {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--dc-ink);
+  line-height: 17px;
+}
+
+.feat-item-text span {
+  font-size: 12px;
+  color: var(--dc-ink2);
+  line-height: 17px;
+}
+
+.install-split {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.install-option {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--dc-line);
+  background: var(--dc-sunken);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.install-option-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.install-option-head strong {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--dc-ink);
+}
+
+.store-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.usecase-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.usecase-title-wrap svg {
+  width: 15px;
+  height: 15px;
+  color: var(--dc-aink);
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: 0 0 auto;
 }
 
 .table-wrap {
