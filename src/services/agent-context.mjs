@@ -16,6 +16,14 @@ export function normalizeAgentQuestion(value) {
 
 export function extractCitationIds(answer, sourceRefs = []) {
   const available = new Set(sourceRefs.map(source => text(source?.sourceId, 20)).filter(Boolean));
-  const matches = String(answer || '').match(/\[S\d+\]/g) || [];
-  return [...new Set(matches.map(match => match.slice(1, -1)).filter(id => available.has(id)))];
+  const ids = [];
+  for (const match of String(answer || '').matchAll(/\[(S\d+(?:#\d+)?(?:\s*[,;]\s*S\d+(?:#\d+)?)*)\]/g)) {
+    for (const token of match[1].split(/\s*[,;]\s*/)) {
+      const id = token.split('#')[0].trim();
+      if (available.has(id)) {
+        ids.push(id);
+      }
+    }
+  }
+  return [...new Set(ids)];
 }

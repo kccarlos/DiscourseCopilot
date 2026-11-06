@@ -78,50 +78,73 @@ export function truncateMiddle(value, maxChars, { question = '' } = {}) {
       const joiner = /\n-{5,}[ \t]*(?:\n|$)/.test(text) ? '\n\n-------------------------\n\n' : '\n\n\n';
       const available = maxChars - OMISSION_MARKER.length * 2;
       if (available > 200) {
-        const opBudget = Math.ceil(available * 0.4);
-        const tailBudget = Math.floor(available * 0.3);
-        const headText = op.length <= opBudget ? op : op.slice(0, opBudget).trimEnd();
-        const tailPosts = [];
-        let tailChars = 0;
-        let tailStartIndex = comments.length;
-        for (let i = comments.length - 1; i >= 0; i--) {
-          const addition = comments[i].length + (tailPosts.length ? joiner.length : 0);
-          if (tailChars + addition > tailBudget && tailPosts.length > 0) break;
-          if (tailChars + addition > tailBudget) {
-            tailPosts.unshift(comments[i].slice(-(tailBudget - tailChars)).trimStart());
-            tailStartIndex = i;
-            break;
+        const maxMiddleBudget = Math.floor(available * 0.35);
+        // Reserve at least the last comment for the tail section.
+        const candidateEnd = comments.length - 1;
+        const scored = [];
+        for (let i = 0; i < candidateEnd; i++) {
+          const score = scorePostRelevance(comments[i], tokens);
+          if (score > 0) {
+            scored.push({ index: i, score, text: comments[i] });
           }
-          tailPosts.unshift(comments[i]);
-          tailChars += addition;
-          tailStartIndex = i;
         }
-        const tailText = tailPosts.join(joiner);
-        const middleBudget = maxChars - headText.length - tailText.length - OMISSION_MARKER.length * 2;
-        if (middleBudget > 100 && tailStartIndex > 0) {
-          const scored = [];
-          for (let i = 0; i < tailStartIndex; i++) {
-            const score = scorePostRelevance(comments[i], tokens);
-            if (score > 0) {
-              scored.push({ index: i, score, text: comments[i] });
+        scored.sort((a, b) => b.score - a.score || a.index - b.index);
+        const picked = [];
+        let usedMiddle = 0;
+        for (const item of scored) {
+          const entry = item.text.length > maxMiddleBudget ? item.text.slice(0, maxMiddleBudget).trimEnd() : item.text;
+          const addition = entry.length + (picked.length ? joiner.length : 0);
+          if (usedMiddle + addition <= maxMiddleBudget) {
+            picked.push({ index: item.index, text: entry });
+            usedMiddle += addition;
+          }
+        }
+        if (picked.length > 0) {
+          picked.sort((a, b) => a.index - b.index);
+          const middleText = picked.map(p => p.text).join(joiner);
+          const firstPicked = picked[0].index;
+          const lastPicked = picked[picked.length - 1].index;
+          const remaining = available - middleText.length;
+          let headBudget = Math.ceil(remaining * 0.57);
+          let tailBudget = remaining - headBudget;
+
+          const headParts = [op.length <= headBudget ? op : op.slice(0, headBudget).trimEnd()];
+          let headChars = headParts[0].length;
+          for (let i = 0; i < firstPicked; i++) {
+            const addition = joiner.length + comments[i].length;
+            if (headChars + addition > headBudget) break;
+            headParts.push(comments[i]);
+            headChars += addition;
+          }
+          const headText = headParts.join(joiner);
+          // Reclaim any budget unused by the head section for the tail section.
+          tailBudget = remaining - headText.length;
+
+          const tailPosts = [];
+          let tailChars = 0;
+          for (let i = comments.length - 1; i > lastPicked; i--) {
+            const addition = comments[i].length + (tailPosts.length ? joiner.length : 0);
+            if (tailChars + addition > tailBudget && tailPosts.length > 0) break;
+            if (tailChars + addition > tailBudget) {
+              tailPosts.unshift(comments[i].slice(-(tailBudget - tailChars)).trimStart());
+              break;
+            }
+            tailPosts.unshift(comments[i]);
+            tailChars += addition;
+          }
+          const tailText = tailPosts.join(joiner);
+          // If the tail also didn't use its full budget, allow early posts before firstPicked to fill what's left.
+          const leftover = remaining - headText.length - tailText.length;
+          if (leftover > joiner.length && headParts.length - 1 < firstPicked) {
+            headBudget = headText.length + leftover;
+            for (let i = headParts.length - 1; i < firstPicked; i++) {
+              const addition = joiner.length + comments[i].length;
+              if (headChars + addition > headBudget) break;
+              headParts.push(comments[i]);
+              headChars += addition;
             }
           }
-          scored.sort((a, b) => b.score - a.score || a.index - b.index);
-          const picked = [];
-          let usedMiddle = 0;
-          for (const item of scored) {
-            const entry = item.text.length > middleBudget ? item.text.slice(0, middleBudget).trimEnd() : item.text;
-            const addition = entry.length + (picked.length ? joiner.length : 0);
-            if (usedMiddle + addition <= middleBudget) {
-              picked.push({ index: item.index, text: entry });
-              usedMiddle += addition;
-            }
-          }
-          if (picked.length > 0) {
-            picked.sort((a, b) => a.index - b.index);
-            const middleText = picked.map(p => p.text).join(joiner);
-            return `${headText}${OMISSION_MARKER}${middleText}${OMISSION_MARKER}${tailText}`;
-          }
+          return `${headParts.join(joiner)}${OMISSION_MARKER}${middleText}${OMISSION_MARKER}${tailText}`;
         }
       }
     }

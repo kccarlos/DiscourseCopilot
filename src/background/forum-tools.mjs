@@ -1,6 +1,7 @@
 import { abortableDelay, fetchWithRateLimitRetry, parseRetryAfter } from '../shared/rate-limit-retry.mjs';
 import { isSameForumUrl, normalizeSiteUrl } from '../shared/forum-site.mjs';
 import { FORUM_RESPONSE_KIND, classifyForumResponse, forumAccessMessage, readForumResponse } from '../shared/forum-response.mjs';
+import { htmlToText } from '../shared/html-text.mjs';
 
 export const FORUM_TOOL_LIMITS = Object.freeze({
   maxQueryChars: 240,
@@ -132,6 +133,7 @@ function normalizePost(post, fallbackTopicId = '') {
     return null;
   }
   const postId = String(post.id || '').trim();
+  const bodyText = post.raw || (post.cooked ? htmlToText(post.cooked) : '');
   return {
     postId: /^\d+$/.test(postId) ? postId : '',
     topicId,
@@ -140,8 +142,8 @@ function normalizePost(post, fallbackTopicId = '') {
     topicTitle: cleanText(post.topic_title || post.title, 500),
     username: cleanText(post.username || post.name, 120),
     createdAt: cleanText(post.created_at, 80),
-    excerpt: cleanText(post.blurb || post.excerpt || post.cooked || post.raw, FORUM_TOOL_LIMITS.maxExcerptChars),
-    text: cleanText(post.raw || post.cooked || post.blurb || post.excerpt, FORUM_TOOL_LIMITS.maxPostChars)
+    excerpt: cleanText(post.blurb || post.excerpt || bodyText, FORUM_TOOL_LIMITS.maxExcerptChars),
+    text: cleanText(bodyText || post.blurb || post.excerpt, FORUM_TOOL_LIMITS.maxPostChars)
   };
 }
 

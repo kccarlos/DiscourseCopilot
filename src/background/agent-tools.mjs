@@ -103,8 +103,8 @@ function filterBlocksByQuery(content, query) {
     .split(/\s+/)
     .filter(Boolean);
   if (!terms.length) return [];
-  const { op, comments } = parseForumContent(content);
-  return [op, ...comments].filter(block => {
+  const { comments } = parseForumContent(content);
+  return comments.filter(block => {
     const lower = block.toLowerCase();
     return terms.some(term => lower.includes(term));
   });
@@ -264,18 +264,21 @@ async function readTopic(args, ctx) {
 
   if (query && !explicitPage && totalPages > 1 && typeof ctx.toolClient.getPosts === 'function') {
     const searchRes = await ctx.toolClient.searchForum({ query: `topic:${topicId} ${query}`, page: 1 });
-    const matchingPostIds = (searchRes.hits || [])
-      .filter(hit => hit.topicId === topicId && hit.postId)
-      .map(hit => hit.postId)
-      .slice(0, FORUM_TOOL_LIMITS.maxPostIds);
+    const matchingPostIds = [
+      ...new Set(
+        (searchRes.hits || [])
+          .filter(hit => hit.topicId === topicId && hit.postId && Number.isInteger(hit.postNumber) && hit.postNumber > 1)
+          .map(hit => hit.postId)
+      )
+    ].slice(0, FORUM_TOOL_LIMITS.maxPostIds);
     if (matchingPostIds.length > 0) {
       const postsRes = await ctx.toolClient.getPosts({ topicId, postIds: matchingPostIds });
-      const formatted = formatFetchedPosts(postsRes.posts || []);
+      const formatted = formatFetchedPosts((postsRes.posts || []).filter(p => p.postNumber !== 1));
       if (formatted.length > 0) {
         const firstHit = (postsRes.posts || []).find(p => Number.isInteger(p.postNumber) && p.postNumber > 1);
         if (firstHit) matchedPostNumber = firstHit.postNumber;
         const opBlock = parseForumContent(first.content).op;
-        const combined = [opBlock, ...formatted.filter(b => b !== opBlock)].filter(Boolean).join('\n\n-------------------------\n\n');
+        const combined = [opBlock, ...formatted].filter(Boolean).join('\n\n-------------------------\n\n');
         const trimmed = trimHeadTail(combined, budget, { headShare: 0.7 });
         body = trimmed.text;
         showing = `${plural(formatted.length, 'matching post')} for "${query}" (of ${postsCount || 'many'} posts)`;

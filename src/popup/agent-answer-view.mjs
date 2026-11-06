@@ -612,6 +612,8 @@ export class AgentAnswerView {
       const link = document.createElement('a');
       link.className = 'agent-source-open';
       link.href = source.url;
+      link.dataset.baseHref = source.url;
+      link.dataset.basePostNumber = source.postNumber ? String(source.postNumber) : '';
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       const label = source.postNumber ? t('answer.openPost', { number: source.postNumber }) : t('answer.openTopic');
@@ -685,14 +687,20 @@ export class AgentAnswerView {
     if (!card) {
       return;
     }
-    if (postNumber && /^\d+$/.test(String(postNumber))) {
-      const link = card.querySelector('a.agent-source-open');
-      const currentHref = link?.getAttribute('href') || '';
-      if (link && /\/t\/(?:[^/]+\/)?\d+(?:\/\d+)?$/.test(currentHref)) {
-        const nextHref = currentHref.replace(/(\/t\/(?:[^/]+\/)?\d+)(?:\/\d+)?$/, `$1/${postNumber}`);
+    const link = card.querySelector('a.agent-source-open');
+    if (link) {
+      const titleText = card.querySelector('.agent-source-title')?.textContent || '';
+      const baseHref = link.dataset.baseHref || link.getAttribute('href') || '';
+      if (postNumber && /^\d+$/.test(String(postNumber)) && /\/t\/(?:[^/]+\/)?\d+(?:\/\d+)?$/.test(baseHref)) {
+        const nextHref = baseHref.replace(/(\/t\/(?:[^/]+\/)?\d+)(?:\/\d+)?$/, `$1/${postNumber}`);
         link.setAttribute('href', nextHref);
-        const titleText = card.querySelector('.agent-source-title')?.textContent || '';
         const label = t('answer.openPost', { number: postNumber });
+        link.title = label;
+        link.setAttribute('aria-label', titleText ? `${label}: ${titleText}` : label);
+      } else if (baseHref) {
+        link.setAttribute('href', baseHref);
+        const basePostNumber = link.dataset.basePostNumber;
+        const label = basePostNumber ? t('answer.openPost', { number: basePostNumber }) : t('answer.openTopic');
         link.title = label;
         link.setAttribute('aria-label', titleText ? `${label}: ${titleText}` : label);
       }

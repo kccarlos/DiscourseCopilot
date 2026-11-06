@@ -90,7 +90,7 @@ function commentText(unit) {
     .trim();
 }
 
-/** Comment hits: [{commentId, postRedditId, postTitle, subreddit, author, date, commentCount, score, url}] and the next page's path. */
+/** Comment hits: [{commentId, postRedditId, postTitle, subreddit, author, date, text, url}] and the next page's path. */
 export function parseCommentSearch(html) {
   const items = [];
   for (const unit of splitUnits(html, COMMENT_UNIT)) {

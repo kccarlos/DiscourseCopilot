@@ -282,17 +282,26 @@ test('the topic-read budget counts distinct topics; re-reading one is free', asy
 });
 
 test('read_topic can filter a topic by query using Discourse post search or local block matching', async () => {
-  const { ctx } = context({ budget: { maxSteps: 15, maxTopicReads: 8, maxCharsPerRead: 5000 } });
+  const { ctx, forum } = context({ budget: { maxSteps: 15, maxTopicReads: 8, maxCharsPerRead: 5000 } });
   const hit = await run('read_topic', { topic_id: '12', query: 'E9421' }, ctx);
+  const postsUrl = forum.urls.find(u => u.includes('/t/12/posts.json'));
+  assert.ok(postsUrl, 'fetched matching posts via /t/12/posts.json');
+  assert.deepEqual(new URL(postsUrl).searchParams.getAll('post_ids[]'), ['1500'], 'topicId is not mixed into post_ids[]');
   assert.match(hit.observation, /Showing: 1 matching post for "E9421" \(of 250 posts\)/);
   assert.match(hit.observation, /fixer \| 2026-01-02 \| #142/);
   assert.match(hit.observation, /To fix Error E9421, clear the token cache/);
+  assert.doesNotMatch(hit.observation, /<p>/, 'cooked HTML tags are converted to plain text');
   assert.equal(ctx.sources[0].postNumber, 142);
   assert.equal(ctx.sources[0].url, 'https://forum.example.com/t/long-topic/12/142');
 
   const shortHit = await run('read_topic', { topic_id: '11', query: 'CDN' }, ctx);
   assert.match(shortHit.observation, /Showing: 1 matching post for "CDN"/);
   assert.match(shortHit.observation, /Use the CDN\./);
+
+  // When a query only appears in the OP and no replies match, read_topic falls back to normal display instead of dropping all replies.
+  const opOnly = await run('read_topic', { topic_id: '11', query: 'How do I' }, ctx);
+  assert.match(opOnly.observation, /Showing: all posts/);
+  assert.match(opOnly.observation, /Thanks/);
 });
 
 test('source numbers continue after the topics already read, also across turns', async () => {

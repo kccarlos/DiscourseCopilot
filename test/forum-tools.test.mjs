@@ -289,3 +289,28 @@ test('a raw page keeps up to the requested characters, and no more than the page
   assert.equal((await tools.getRawPage({ topicId: '1', maxChars: 45000 })).content.length, 45000);
   assert.equal((await tools.getRawPage({ topicId: '1', maxChars: 10_000_000 })).content.length, 50000);
 });
+
+test('getPosts converts cooked HTML to plain text when raw is absent', async () => {
+  const tools = client(async () =>
+    response({
+      body: {
+        post_stream: {
+          posts: [
+            {
+              id: 501,
+              topic_id: 12,
+              post_number: 42,
+              username: 'alice',
+              created_at: '2026-01-01T00:00:00Z',
+              cooked: '<p>Hello <strong>world</strong> &amp; friends!</p>'
+            }
+          ]
+        }
+      }
+    })
+  );
+  const { posts } = await tools.getPosts({ topicId: '12', postIds: ['501'] });
+  assert.equal(posts.length, 1);
+  assert.equal(posts[0].postNumber, 42);
+  assert.equal(posts[0].text, 'Hello world & friends!');
+});

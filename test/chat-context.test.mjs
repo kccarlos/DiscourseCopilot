@@ -230,15 +230,18 @@ test('buildFollowUpMessages preserves high-scoring middle posts that match the q
   const content = blocks.join('\n\n-------------------------\n\n');
   assert.ok(content.length > 4000);
 
-  const messages = buildFollowUpMessages({
-    content,
-    summary: 'Thread summary',
-    question: 'What is the ErrorCode_E9421 workaround?',
-    maxPostChars: 2400
-  });
+  const messages = buildFollowUpMessages(
+    {
+      content,
+      summary: 'Thread summary',
+      question: 'What is the ErrorCode_E9421 workaround?'
+    },
+    { maxPostChars: 2400 }
+  );
   const originalPost = messages[1].content.match(/<original_post>\n([\s\S]*)\n<\/original_post>/)[1];
 
   assert.ok(originalPost.length <= 2400);
+  assert.ok(originalPost.length >= 1800, `reclaimed unused budget for surrounding context (${originalPost.length} chars)`);
   assert.match(originalPost, /Opening post about general card application timelines/);
   assert.match(originalPost, /ErrorCode_E9421 workaround: call the backdoor recon number 888-555-0199/);
   assert.match(originalPost, /Latest reply at the bottom of the thread/);
