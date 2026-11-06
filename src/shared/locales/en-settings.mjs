@@ -129,8 +129,9 @@ export default {
   'settings.restore.fallbackSection': 'Section',
   'settings.restore.done': '{section} restored to defaults. Save to apply.',
   'settings.forumAccess.lede':
-    'Forums you enabled. Forumind reads only these, using your login there. Removing access keeps your saved summaries and answers; you can enable a forum again from the side panel.',
-  'settings.forumAccess.empty': 'You haven’t enabled any forums yet. Open a Discourse forum and click Allow access in the side panel.',
+    'Forums and sites you enabled. Forumind reads only these, using your login there. Removing access keeps your saved summaries and answers; you can enable a site again from the side panel.',
+  'settings.forumAccess.empty':
+    'You haven’t enabled any sites yet. Open a Discourse forum, WordPress site or Reddit and click Allow access in the side panel.',
   'settings.forumAccess.showButton': 'Show the Forumind button on forum pages',
   'settings.forumAccess.showButtonHelp':
     'The floating button on enabled forums that opens the side panel. You can always open the side panel from the toolbar icon. Applies to open forum tabs as soon as you save.',

@@ -127,8 +127,8 @@ export default {
   'settings.restore.fallbackSection': '此部分',
   'settings.restore.done': '{section}已恢复为默认值。保存后生效。',
   'settings.forumAccess.lede':
-    '你已启用的论坛。Forumind 只会读取这些论坛，并使用你在这些论坛上的登录状态。移除访问权限不会删除已保存的总结和回答；之后可以在侧边栏中重新启用论坛。',
-  'settings.forumAccess.empty': '你还没有启用任何论坛。请打开一个 Discourse 论坛，并在侧边栏中点击“允许访问”。',
+    '你已启用的论坛和网站。Forumind 只会读取这些网站，并使用你在那里的登录状态。移除访问权限不会删除已保存的总结和回答；之后可以在侧边栏中重新启用。',
+  'settings.forumAccess.empty': '你还没有启用任何网站。请打开 Discourse 论坛、WordPress 网站或 Reddit，并在侧边栏中点击“允许访问”。',
   'settings.forumAccess.showButton': '在论坛页面上显示 Forumind 按钮',
   'settings.forumAccess.showButtonHelp':
     '已启用论坛页面上的悬浮按钮，点击即可打开侧边栏。你始终可以通过工具栏图标打开侧边栏。保存后会立即应用到已打开的论坛标签页。',

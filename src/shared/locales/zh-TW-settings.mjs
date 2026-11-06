@@ -127,8 +127,8 @@ export default {
   'settings.restore.fallbackSection': '此部分',
   'settings.restore.done': '{section}已還原為預設值。儲存後生效。',
   'settings.forumAccess.lede':
-    '你已啟用的論壇。Forumind 只會讀取這些論壇，並使用你在這些論壇上的登入狀態。移除存取權限不會刪除已儲存的摘要和回答；之後可以在側邊欄中重新啟用論壇。',
-  'settings.forumAccess.empty': '你還沒有啟用任何論壇。請開啟一個 Discourse 論壇，並在側邊欄中點選「允許存取」。',
+    '你已啟用的論壇和網站。Forumind 只會讀取這些網站，並使用你在那裡的登入狀態。移除存取權限不會刪除已儲存的摘要和回答；之後可以在側邊欄中重新啟用。',
+  'settings.forumAccess.empty': '你還沒有啟用任何網站。請開啟 Discourse 論壇、WordPress 網站或 Reddit，並在側邊欄中點選「允許存取」。',
   'settings.forumAccess.showButton': '在論壇頁面上顯示 Forumind 按鈕',
   'settings.forumAccess.showButtonHelp':
     '已啟用論壇頁面上的浮動按鈕，點選即可開啟側邊欄。你始終可以透過工具列圖示開啟側邊欄。儲存後會立即套用到已開啟的論壇分頁。',

@@ -196,7 +196,7 @@ test('setup success copy adapts to the current page', () => {
   assert.equal(setupSuccessMessage(null), 'You’re set. Open a post on a Discourse forum, WordPress site or Reddit to get started.');
   assert.equal(
     setupSuccessMessage({ pageHidden: true }),
-    'You’re set. Next, click the Forumind icon in your toolbar on a Discourse forum.'
+    'You’re set. Next, click the Forumind icon in your toolbar on a Discourse forum, WordPress site or Reddit.'
   );
   assert.equal(
     setupSuccessMessage({ isForumTopic: true, isSupportedSite: true, forumAccess: 'missing' }),

@@ -26,10 +26,12 @@ export const GUIDANCE_STATE = Object.freeze({
   TOPIC: 'topic'
 });
 
-// Well-known public Discourse forums offered on pages that aren't one.
+// Well-known public Discourse forums, WordPress sites and Reddit offered on pages that aren't one.
 export const EXAMPLE_FORUMS = Object.freeze([
   Object.freeze({ label: 'meta.discourse.org', href: 'https://meta.discourse.org/' }),
-  Object.freeze({ label: 'community.openai.com', href: 'https://community.openai.com/' })
+  Object.freeze({ label: 'community.openai.com', href: 'https://community.openai.com/' }),
+  Object.freeze({ label: 'www.doctorofcredit.com', href: 'https://www.doctorofcredit.com/' }),
+  Object.freeze({ label: 'www.reddit.com', href: 'https://www.reddit.com/' })
 ]);
 
 export const ACCESS_FOOTNOTE = t('guide.footnote');
@@ -63,7 +65,7 @@ function accessCard(state, context, { forumName, host, nextStep }) {
   return {
     eyebrow: nextStep ? t('guide.step2Next') : maybe ? t('guide.maybeEyebrow') : t(siteKey('guide.foundEyebrow', context)),
     title: maybe ? t('guide.maybeTitle') : t('guide.allowTitle', { forum: forumName }),
-    text: maybe ? t('guide.maybeText', { host }) : t('guide.allowText'),
+    text: maybe ? t('guide.maybeText', { host }) : t(siteKey('guide.allowText', context)),
     steps: [
       t('guide.access.step1'),
       t('guide.access.step2'),

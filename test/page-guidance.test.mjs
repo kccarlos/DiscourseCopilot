@@ -54,13 +54,15 @@ test('a page Chrome hides asks for the toolbar icon, with the pin tip', () => {
   assert.equal(view.showWelcome, false);
 });
 
-test('a page that is not a forum explains Discourse and offers two examples, no actions', () => {
+test('a page that is not a forum explains supported sites and offers four examples, no actions', () => {
   const view = derivePageGuidance(contexts.notForum);
   assert.equal(view.card.title, 'Forumind can’t read this page');
   assert.match(view.card.text, /Discourse forums, WordPress sites .* and Reddit/);
   assert.deepEqual(view.card.links, [
     { label: 'meta.discourse.org', href: 'https://meta.discourse.org/' },
-    { label: 'community.openai.com', href: 'https://community.openai.com/' }
+    { label: 'community.openai.com', href: 'https://community.openai.com/' },
+    { label: 'www.doctorofcredit.com', href: 'https://www.doctorofcredit.com/' },
+    { label: 'www.reddit.com', href: 'https://www.reddit.com/' }
   ]);
   assert.equal(view.card.links.length, EXAMPLE_FORUMS.length);
   assert.equal(view.card.button, '');
@@ -196,4 +198,10 @@ test('**bold** runs split for DOM rendering', () => {
 test('step 2 after setup names the step on the card too', () => {
   assert.equal(derivePageGuidance(contexts.allowTopic, { setupShowsSuccess: true }).card.eyebrow, 'Step 2 of 2');
   assert.equal(derivePageGuidance(contexts.allowTopic).card.eyebrow, 'Discourse forum found');
+  const wpAllow = derivePageGuidance({ ...contexts.allowTopic, siteType: 'wordpress' });
+  assert.equal(wpAllow.card.eyebrow, 'WordPress site found');
+  assert.equal(wpAllow.card.text, 'So it can read posts and comments and search this site.');
+  const redditAllow = derivePageGuidance({ ...contexts.allowTopic, siteType: 'reddit' });
+  assert.equal(redditAllow.card.eyebrow, 'Reddit found');
+  assert.equal(redditAllow.card.text, 'So it can read posts and comments and search Reddit using your current login.');
 });
