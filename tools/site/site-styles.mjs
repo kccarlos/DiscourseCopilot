@@ -143,6 +143,7 @@ code {
   border: 1px solid var(--dc-line);
   font-family: var(--dc-mono);
   font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .hidden {
@@ -597,6 +598,7 @@ code {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-width: 0;
 }
 
 .sim-frame {
@@ -725,6 +727,7 @@ code {
 
 .sim-composer-chips {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 5px;
 }
@@ -961,10 +964,12 @@ code {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .usecase-card-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -1463,6 +1468,10 @@ details.faq-item[open] summary .faq-chevron {
   border-color: var(--dc-fill);
 }
 
+.form-input[aria-invalid="true"] {
+  border-color: var(--dc-bad);
+}
+
 .form-textarea {
   min-height: 92px;
   resize: vertical;
@@ -1489,6 +1498,7 @@ details.faq-item[open] summary .faq-chevron {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow-wrap: anywhere;
 }
 
 .markdown-prose h1 {
@@ -1519,6 +1529,11 @@ details.faq-item[open] summary .faq-chevron {
   display: flex;
   flex-direction: column;
   gap: 5px;
+}
+
+.markdown-prose ul ul {
+  margin-top: 4px;
+  padding-left: 18px;
 }
 
 .markdown-prose strong {
@@ -1566,25 +1581,59 @@ details.faq-item[open] summary .faq-chevron {
   .platform-col:last-child {
     border-bottom: 0;
   }
+  .support-section,
+  .privacy-body-wrap,
+  .faq-list,
+  .docs-grid,
+  .section-header,
+  .walkthrough-stage,
+  .usecase-grid {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .support-actions .btn,
+  .hero-cta-row .btn {
+    max-width: 100%;
+    height: auto;
+    min-height: 38px;
+    padding: 8px 14px;
+    white-space: normal;
+    text-align: center;
+    line-height: 18px;
+  }
   .site-header-inner {
     height: auto;
-    padding: 10px 16px;
+    padding: 10px 14px;
     flex-wrap: wrap;
+    gap: 8px;
   }
   .nav-links {
     order: 3;
     width: 100%;
-    justify-content: space-between;
-    overflow-x: auto;
-    gap: 2px;
+    flex-wrap: wrap;
+    justify-content: center;
+    border-radius: 14px;
+    gap: 3px;
+    padding: 4px;
   }
   .nav-pill {
-    padding: 0 8px;
+    height: 28px;
+    padding: 0 9px;
     font-size: 12px;
     gap: 4px;
   }
   .nav-count {
     padding: 0 5px;
+  }
+}
+
+@media (max-width: 440px) {
+  .nav-count {
+    display: none;
+  }
+  .nav-pill {
+    padding: 0 8px;
+    font-size: 11.5px;
   }
 }
 `;

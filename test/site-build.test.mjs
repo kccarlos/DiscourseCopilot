@@ -100,7 +100,7 @@ test('site-data: Traditional Chinese (zh-TW) contains no Simplified-only charact
   }
 });
 
-test('buildSite generates all 12 localized HTML pages, data/sites.json, 404.html, sitemap.xml, robots.txt, and resolves all relative links', () => {
+test('buildSite generates all 18 localized HTML pages, data/sites.json, 404.html, sitemap.xml, robots.txt, and resolves all relative links', () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forumind-site-test-'));
   try {
     const { writtenFiles } = buildSite({ outDir: tmpDir });
@@ -108,14 +108,20 @@ test('buildSite generates all 12 localized HTML pages, data/sites.json, 404.html
     assert.ok(writtenFiles.includes('sites/index.html'));
     assert.ok(writtenFiles.includes('guide/index.html'));
     assert.ok(writtenFiles.includes('faq/index.html'));
+    assert.ok(writtenFiles.includes('support/index.html'));
+    assert.ok(writtenFiles.includes('privacy/index.html'));
     assert.ok(writtenFiles.includes('zh-CN/index.html'));
     assert.ok(writtenFiles.includes('zh-CN/sites/index.html'));
     assert.ok(writtenFiles.includes('zh-CN/guide/index.html'));
     assert.ok(writtenFiles.includes('zh-CN/faq/index.html'));
+    assert.ok(writtenFiles.includes('zh-CN/support/index.html'));
+    assert.ok(writtenFiles.includes('zh-CN/privacy/index.html'));
     assert.ok(writtenFiles.includes('zh-TW/index.html'));
     assert.ok(writtenFiles.includes('zh-TW/sites/index.html'));
     assert.ok(writtenFiles.includes('zh-TW/guide/index.html'));
     assert.ok(writtenFiles.includes('zh-TW/faq/index.html'));
+    assert.ok(writtenFiles.includes('zh-TW/support/index.html'));
+    assert.ok(writtenFiles.includes('zh-TW/privacy/index.html'));
     assert.ok(writtenFiles.includes('404.html'));
     assert.ok(writtenFiles.includes('sitemap.xml'));
     assert.ok(writtenFiles.includes('robots.txt'));
@@ -161,6 +167,18 @@ test('buildSite generates all 12 localized HTML pages, data/sites.json, 404.html
           const withoutLangSelect = html.replace(/<select id="langSelect"[\s\S]*?<\/select>/, '');
           assert.ok(!CJK_PATTERN.test(withoutLangSelect), `unexpected Chinese characters found in ${relFile}`);
         }
+
+        // 1c. Every page has all 5 top navigation tabs (Overview, Supported Sites, Guide, FAQ, Support) and exactly 1 <h1>
+        const navBlockMatch = html.match(/<nav class="nav-links"[\s\S]*?<\/nav>/);
+        assert.ok(navBlockMatch, `missing <nav class="nav-links"> in ${relFile}`);
+        const navPills = [...navBlockMatch[0].matchAll(/<a class="nav-pill"/g)];
+        assert.equal(navPills.length, 5, `expected 5 nav-pill links in ${relFile}`);
+        for (const navPage of ['overview', 'sites', 'guide', 'faq', 'support']) {
+          const navHref = getRelativeHref(locale, page, locale, navPage);
+          assert.ok(navBlockMatch[0].includes(`href="${navHref}"`), `missing nav link to ${navPage} (${navHref}) in ${relFile}`);
+        }
+        const h1Matches = [...html.matchAll(/<h1\b/g)];
+        assert.equal(h1Matches.length, 1, `expected exactly 1 <h1> in ${relFile}, found ${h1Matches.length}`);
 
         // 2. JSON-LD parses cleanly and matches page schema
         const ldMatch = html.match(/<script type="application\/ld\+json">\s*([\s\S]*?)\s*<\/script>/);
@@ -226,6 +244,7 @@ test('buildSite generates all 12 localized HTML pages, data/sites.json, 404.html
           assert.ok(html.includes('URLSearchParams(window.location.search)'));
           assert.ok(html.includes('fetch(SITES_DATA_URL)'));
           assert.ok(html.includes('data/sites.json'));
+          assert.ok(html.includes('?type=site'));
           assert.ok(html.includes('https://www.uscardforum.com'));
           assert.ok(html.includes('https://www.doctorofcredit.com'));
           assert.ok(html.includes('https://www.uscreditcardguide.com'));
@@ -250,13 +269,15 @@ test('buildSite generates all 12 localized HTML pages, data/sites.json, 404.html
             assert.ok(html.includes(`id="${item.id}"`), `missing FAQ item ${item.id} in ${relFile}`);
           }
         } else if (page === 'support') {
-          assert.match(html, /id="supportFormCard"/);
+          assert.match(html, /<form class="support-section" id="supportFormCard"/);
           assert.match(html, /id="supSubmitBtn"/);
           assert.match(html, /id="supCopyBtn"/);
+          assert.ok(html.includes('URLSearchParams(window.location.search)'));
           assert.ok(html.includes('https://github.com/kccarlos/DiscourseCopilot/issues/new'));
         } else if (page === 'privacy') {
-          assert.match(html, /id="privacyDocBody"/);
-          assert.ok(html.includes('<h1>Privacy Policy for Forumind</h1>'));
+          assert.match(html, /id="privacyDocBody" class="markdown-prose" lang="en"/);
+          assert.ok(html.includes('<h2>Overview</h2>'));
+          assert.ok(html.includes('<ul>\n      <li><a href="https://openrouter.ai/privacy"'));
           assert.ok(html.includes('https://raw.githubusercontent.com/kccarlos/DiscourseCopilot/refs/heads/main/PRIVACY.md'));
         }
       }
@@ -265,7 +286,9 @@ test('buildSite generates all 12 localized HTML pages, data/sites.json, 404.html
     // Check 404.html, sitemap.xml, and robots.txt
     const notFound = fs.readFileSync(path.join(tmpDir, '404.html'), 'utf8');
     assert.ok(notFound.includes('forumind-site-theme'));
-    assert.ok(notFound.includes(`${SITE_BASE_URL}/assets/icon128.png`));
+    assert.ok(notFound.includes('href="/assets/icon128.png"'));
+    assert.ok(notFound.includes('href="/support/"'));
+    assert.match(notFound, /<select id="langSelect"/);
     const sitemap = fs.readFileSync(path.join(tmpDir, 'sitemap.xml'), 'utf8');
     for (const locale of LOCALES) {
       for (const page of PAGES) {
