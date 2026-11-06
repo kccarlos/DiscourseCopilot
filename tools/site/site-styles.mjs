@@ -598,6 +598,7 @@ code {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-width: 0;
 }
 
 .sim-frame {
@@ -726,6 +727,7 @@ code {
 
 .sim-composer-chips {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 5px;
 }
@@ -962,10 +964,12 @@ code {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .usecase-card-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -1581,7 +1585,9 @@ details.faq-item[open] summary .faq-chevron {
   .privacy-body-wrap,
   .faq-list,
   .docs-grid,
-  .section-header {
+  .section-header,
+  .walkthrough-stage,
+  .usecase-grid {
     padding-left: 16px;
     padding-right: 16px;
   }
