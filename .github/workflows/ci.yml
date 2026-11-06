@@ -71,8 +71,13 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Build static site
+        run: pnpm build:site
+
       - name: Verify build output
-        run: test -f dist/manifest.json || { echo "::error::dist/manifest.json missing"; exit 1; }
+        run: |
+          test -f dist/manifest.json || { echo "::error::dist/manifest.json missing"; exit 1; }
+          test -f build/site/index.html || { echo "::error::build/site/index.html missing"; exit 1; }
 
       - name: Upload dist
         uses: actions/upload-artifact@v7

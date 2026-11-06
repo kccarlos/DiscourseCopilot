@@ -54,7 +54,7 @@ test('a page Chrome hides asks for the toolbar icon, with the pin tip', () => {
   assert.equal(view.showWelcome, false);
 });
 
-test('a page that is not a forum explains supported sites and offers four examples, no actions', () => {
+test('a page that is not a forum explains supported sites and offers four examples plus the directory link, no actions', () => {
   const view = derivePageGuidance(contexts.notForum);
   assert.equal(view.card.title, 'Forumind can’t read this page');
   assert.match(view.card.text, /Discourse forums, WordPress sites .* and Reddit/);
@@ -62,9 +62,10 @@ test('a page that is not a forum explains supported sites and offers four exampl
     { label: 'meta.discourse.org', href: 'https://meta.discourse.org/' },
     { label: 'community.openai.com', href: 'https://community.openai.com/' },
     { label: 'www.doctorofcredit.com', href: 'https://www.doctorofcredit.com/' },
-    { label: 'www.reddit.com', href: 'https://www.reddit.com/' }
+    { label: 'www.reddit.com', href: 'https://www.reddit.com/' },
+    { label: 'All supported sites', href: 'https://kccarlos.github.io/DiscourseCopilot/sites/' }
   ]);
-  assert.equal(view.card.links.length, EXAMPLE_FORUMS.length);
+  assert.equal(view.card.links.length, EXAMPLE_FORUMS.length + 1);
   assert.equal(view.card.button, '');
   assert.equal(view.showHero, false, 'no page-title hero, no disabled actions');
   assert.equal(view.primary, 'none');

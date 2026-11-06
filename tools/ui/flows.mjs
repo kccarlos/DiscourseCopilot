@@ -1313,13 +1313,14 @@ scenario(
       as.map(a => ({ href: a.href, target: a.target, rel: a.rel, text: a.textContent }))
     );
     check(
-      'four example links in new tabs',
-      links.length === 4
+      'four example links plus supported sites directory in new tabs',
+      links.length === 5
         && links.every(l => l.target === '_blank' && l.rel.includes('noopener'))
         && links[0].href === 'https://meta.discourse.org/'
         && links[1].href === 'https://community.openai.com/'
         && links[2].href === 'https://www.doctorofcredit.com/'
-        && links[3].href === 'https://www.reddit.com/',
+        && links[3].href === 'https://www.reddit.com/'
+        && links[4].href === 'https://kccarlos.github.io/DiscourseCopilot/sites/',
       JSON.stringify(links)
     );
     check('no action button', !(await visible(page, '#forumAccessBtn')));

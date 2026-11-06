@@ -127,7 +127,10 @@ export function derivePageGuidance(
       text: t('guide.notForum.text'),
       steps: [],
       button: '',
-      links: EXAMPLE_FORUMS.map(link => ({ ...link })),
+      links: [
+        ...EXAMPLE_FORUMS.map(link => ({ ...link })),
+        { label: t('guide.notForum.moreSites'), href: t('guide.notForum.moreSitesUrl') }
+      ],
       tip: '',
       footnote: ''
     };
