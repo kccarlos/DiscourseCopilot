@@ -115,7 +115,10 @@ class DiscourseCopilotContent {
     this.started = true;
     this.watchLauncherPreference();
     this.refreshLocation();
-    this.onRouteEvent = () => this.refreshLocation();
+    this.onRouteEvent = () => {
+      this.refreshLocation();
+      queueMicrotask(() => this.refreshLocation());
+    };
     this.onVisibilityChange = () => {
       if (document.hidden) {
         this.stopUrlPolling();
@@ -126,7 +129,8 @@ class DiscourseCopilotContent {
     };
     window.addEventListener('popstate', this.onRouteEvent);
     window.addEventListener('hashchange', this.onRouteEvent);
-    window.navigation?.addEventListener?.('navigate', this.onRouteEvent);
+    window.navigation?.addEventListener?.('currententrychange', this.onRouteEvent);
+    window.navigation?.addEventListener?.('navigatesuccess', this.onRouteEvent);
     document.addEventListener('visibilitychange', this.onVisibilityChange);
     if (!document.hidden) {
       this.startUrlPolling();
@@ -134,8 +138,9 @@ class DiscourseCopilotContent {
   }
 
   startUrlPolling() {
-    // When the Chromium Navigation API is present, 'navigate' covers pushState/replaceState
-    // transitions without a 500ms wakeup timer. Keep the interval only as a fallback.
+    // When the Chromium Navigation API is present, 'currententrychange' and 'navigatesuccess'
+    // fire after history.pushState/replaceState updates window.location.href without a 500ms
+    // wakeup timer. Keep the interval only as a fallback when Navigation API is unavailable.
     if (this.urlCheckTimer !== null || typeof window.navigation?.addEventListener === 'function') {
       return;
     }
@@ -158,7 +163,8 @@ class DiscourseCopilotContent {
     if (this.onRouteEvent) {
       window.removeEventListener('popstate', this.onRouteEvent);
       window.removeEventListener('hashchange', this.onRouteEvent);
-      window.navigation?.removeEventListener?.('navigate', this.onRouteEvent);
+      window.navigation?.removeEventListener?.('currententrychange', this.onRouteEvent);
+      window.navigation?.removeEventListener?.('navigatesuccess', this.onRouteEvent);
       this.onRouteEvent = null;
     }
     if (this.onVisibilityChange) {
