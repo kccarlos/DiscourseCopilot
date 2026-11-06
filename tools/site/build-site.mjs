@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LOCALES, PAGES } from './site-data.mjs';
+import { LOCALES, PAGES, SITE_DOMAIN } from './site-data.mjs';
 import { getPageFilePath, renderNotFoundPage, renderRobotsTxt, renderSitemapXml, renderSitePage } from './site-render.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -43,6 +43,10 @@ export function buildSite({ outDir = path.join(REPO_ROOT, 'build/site') } = {}) 
   const noJekyllPath = path.join(outDir, '.nojekyll');
   fs.writeFileSync(noJekyllPath, '', 'utf8');
   writtenFiles.push('.nojekyll');
+
+  const cnamePath = path.join(outDir, 'CNAME');
+  fs.writeFileSync(cnamePath, `${SITE_DOMAIN}\n`, 'utf8');
+  writtenFiles.push('CNAME');
 
   const assetsDir = path.join(outDir, 'assets');
   fs.mkdirSync(assetsDir, { recursive: true });

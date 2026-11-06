@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 
-export const SITE_BASE_URL = 'https://kccarlos.github.io/DiscourseCopilot';
+export const SITE_DOMAIN = 'forumind.top';
+export const SITE_BASE_URL = `https://${SITE_DOMAIN}`;
 export const CHROME_STORE_URL = 'https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac';
 export const EDGE_ADDONS_URL = 'https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp';
 export const GITHUB_REPO_URL = 'https://github.com/kccarlos/DiscourseCopilot';

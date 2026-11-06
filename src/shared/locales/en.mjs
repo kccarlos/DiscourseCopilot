@@ -215,7 +215,7 @@ export default {
   'guide.notForum.text':
     'Forumind works on Discourse forums, WordPress sites (like Doctor of Credit) and Reddit. Open a post on one to get started, for example:',
   'guide.notForum.moreSites': 'All supported sites',
-  'guide.notForum.moreSitesUrl': 'https://kccarlos.github.io/DiscourseCopilot/sites/',
+  'guide.notForum.moreSitesUrl': 'https://forumind.top/sites/',
   'guide.hero.eyebrow': 'Discourse forum',
   'guide.hero.eyebrow.wordpress': 'WordPress site',
   'guide.hero.eyebrow.reddit': 'Reddit',

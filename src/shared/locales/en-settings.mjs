@@ -154,7 +154,7 @@ export default {
   'settings.reset.confirmButton': 'Reset everything',
   'settings.footer.text': 'Forumind is free and open source.',
   'settings.footer.guide': 'Guide & FAQ',
-  'settings.footer.guideUrl': 'https://kccarlos.github.io/DiscourseCopilot/guide/',
+  'settings.footer.guideUrl': 'https://forumind.top/guide/',
   'settings.footer.star': '★ Star on GitHub',
   'settings.footer.rate': 'Rate it',
   'settings.actionBar.label': 'Save settings',

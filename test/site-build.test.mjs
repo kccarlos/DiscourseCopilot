@@ -120,6 +120,8 @@ test('buildSite generates all 12 localized HTML pages, data/sites.json, 404.html
     assert.ok(writtenFiles.includes('sitemap.xml'));
     assert.ok(writtenFiles.includes('robots.txt'));
     assert.ok(writtenFiles.includes('.nojekyll'));
+    assert.ok(writtenFiles.includes('CNAME'));
+    assert.equal(fs.readFileSync(path.join(tmpDir, 'CNAME'), 'utf8').trim(), 'forumind.top');
     assert.ok(writtenFiles.includes('assets/icon128.png'));
     assert.ok(writtenFiles.includes('data/sites.json'));
 
