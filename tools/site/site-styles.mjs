@@ -1165,6 +1165,116 @@ code {
   line-height: 19px;
 }
 
+.icon-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.icon-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.feat-icon-box {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--dc-asoft);
+  color: var(--dc-aink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.feat-icon-box svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.feat-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.feat-item-text strong {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--dc-ink);
+  line-height: 17px;
+}
+
+.feat-item-text span {
+  font-size: 12px;
+  color: var(--dc-ink2);
+  line-height: 17px;
+}
+
+.install-split {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.install-option {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--dc-line);
+  background: var(--dc-sunken);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.install-option-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.install-option-head strong {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--dc-ink);
+}
+
+.store-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.usecase-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.usecase-title-wrap svg {
+  width: 15px;
+  height: 15px;
+  color: var(--dc-aink);
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: 0 0 auto;
+}
+
 .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--dc-line);

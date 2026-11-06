@@ -1,0 +1,882 @@
+[
+  {
+    "id": "uscardforum",
+    "url": "https://www.uscardforum.com",
+    "host": "www.uscardforum.com",
+    "avatar": "UC",
+    "hue": 225,
+    "categories": [
+      "finance"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "us card forum uscardforum credit card dp retention miles points",
+      "zh-CN": "us card forum 美卡论坛 uscardforum 信用卡 申卡 dp 羊毛 泥潭 retention",
+      "zh-TW": "us card forum 美卡論壇 uscardforum 信用卡 申卡 dp 羊毛 泥潭 retention"
+    },
+    "name": {
+      "en": "US Card Forum",
+      "zh-CN": "美卡论坛 US Card Forum",
+      "zh-TW": "美卡論壇 US Card Forum"
+    },
+    "desc": {
+      "en": "Summarize 500-reply credit card DP, retention, and miles threads.",
+      "zh-CN": "一键爬楼总结几百楼申卡 DP、开卡奖励、Retention 与里程讨论。",
+      "zh-TW": "一鍵爬文摘要數百樓申卡 DP、開卡獎勵、Retention 與哩程討論。"
+    }
+  },
+  {
+    "id": "doctorofcredit",
+    "url": "https://www.doctorofcredit.com",
+    "host": "www.doctorofcredit.com",
+    "avatar": "DoC",
+    "hue": 150,
+    "categories": [
+      "finance",
+      "wordpress"
+    ],
+    "platform": "WordPress",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "doctor of credit doc bank bonus credit card data points wordpress comments",
+      "zh-CN": "doctor of credit doc 北美 银行 开户 信用卡 优惠 评论 dp wordpress",
+      "zh-TW": "doctor of credit doc 北美 銀行 開戶 信用卡 優惠 留言 dp wordpress"
+    },
+    "name": {
+      "en": "Doctor of Credit (DoC)",
+      "zh-CN": "Doctor of Credit (DoC)",
+      "zh-TW": "Doctor of Credit (DoC)"
+    },
+    "desc": {
+      "en": "Summarize hundreds of reader comment DPs on bank bonuses and card deals.",
+      "zh-CN": "北美银行开户与信用卡优惠博客，一键汇总评论区数百条真实 DP。",
+      "zh-TW": "北美銀行開戶與信用卡優惠部落格，一鍵彙整留言區數百則真實 DP。"
+    }
+  },
+  {
+    "id": "uscreditcardguide",
+    "url": "https://www.uscreditcardguide.com",
+    "host": "www.uscreditcardguide.com",
+    "avatar": "CG",
+    "hue": 210,
+    "categories": [
+      "finance",
+      "wordpress"
+    ],
+    "platform": "WordPress",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "us credit card guide uscreditcardguide card reviews approval comments dp wordpress",
+      "zh-CN": "us credit card guide 美卡指南 评论 留言 总结 dp wordpress",
+      "zh-TW": "us credit card guide 美卡指南 評論 留言 摘要 dp wordpress"
+    },
+    "name": {
+      "en": "US Credit Card Guide",
+      "zh-CN": "美卡指南 US Credit Card Guide",
+      "zh-TW": "美卡指南 US Credit Card Guide"
+    },
+    "desc": {
+      "en": "Summarize card guides and hundreds of reader approval comments.",
+      "zh-CN": "总结美卡指南评测文章底部上百条读者原生评论与最新申请 DP。",
+      "zh-TW": "摘要美卡指南評測文章底部上百則讀者原生留言與最新申請 DP。"
+    }
+  },
+  {
+    "id": "reddit",
+    "url": "https://www.reddit.com",
+    "host": "www.reddit.com",
+    "avatar": "r/",
+    "hue": 16,
+    "categories": [
+      "reddit",
+      "finance",
+      "ai",
+      "tech"
+    ],
+    "platform": "Reddit",
+    "requiresLogin": true,
+    "keywords": {
+      "en": "reddit churning creditcards localllama selfhosted homelab subreddit megathread",
+      "zh-CN": "reddit churning creditcards localllama selfhosted homelab 版块 长帖 评论",
+      "zh-TW": "reddit churning creditcards localllama selfhosted homelab 看板 長文 留言"
+    },
+    "name": {
+      "en": "Reddit (r/churning, r/LocalLLaMA…)",
+      "zh-CN": "Reddit（r/churning、r/LocalLLaMA 等）",
+      "zh-TW": "Reddit（r/churning、r/LocalLLaMA 等）"
+    },
+    "desc": {
+      "en": "Summarize megathreads and nested comment trees or search any subreddit.",
+      "zh-CN": "登录状态下总结 Reddit 长帖与折叠评论，或在任意 Subreddit 内搜索。",
+      "zh-TW": "登入狀態下摘要 Reddit 長文與折疊留言，或在任意 Subreddit 內搜尋。"
+    }
+  },
+  {
+    "id": "linuxdo",
+    "url": "https://linux.do",
+    "host": "linux.do",
+    "avatar": "L",
+    "hue": 32,
+    "categories": [
+      "ai",
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": true,
+    "keywords": {
+      "en": "linux do linux.do ai tech community discourse",
+      "zh-CN": "linux do linux.do 社区 l站 ai 教程 福利",
+      "zh-TW": "linux do linux.do 社群 l站 ai 教學 福利"
+    },
+    "name": {
+      "en": "LINUX DO",
+      "zh-CN": "LINUX DO 社区",
+      "zh-TW": "LINUX DO 社群"
+    },
+    "desc": {
+      "en": "Active AI & tech community—reads topics with your logged-in trust level.",
+      "zh-CN": "高活跃技术与 AI 社区，携带你的登录态与信任等级爬楼和搜索。",
+      "zh-TW": "高活躍技術與 AI 社群，攜帶你的登入態與信任等級爬文與搜尋。"
+    }
+  },
+  {
+    "id": "openai",
+    "url": "https://community.openai.com",
+    "host": "community.openai.com",
+    "avatar": "OA",
+    "hue": 170,
+    "categories": [
+      "ai"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "openai developer community gpt api chatgpt prompt responses",
+      "zh-CN": "openai 开发者社区 gpt api chatgpt",
+      "zh-TW": "openai 開發者社群 gpt api chatgpt"
+    },
+    "name": {
+      "en": "OpenAI Developer Community",
+      "zh-CN": "OpenAI 开发者社区",
+      "zh-TW": "OpenAI 開發者社群"
+    },
+    "desc": {
+      "en": "Official forum for OpenAI API, GPT models, and developer debugging.",
+      "zh-CN": "OpenAI 官方开发者论坛，API 排错、模型更新与工程实践。",
+      "zh-TW": "OpenAI 官方開發者論壇，API 除錯、模型更新與工程實踐。"
+    }
+  },
+  {
+    "id": "cursor",
+    "url": "https://forum.cursor.com",
+    "host": "forum.cursor.com",
+    "avatar": "C",
+    "hue": 250,
+    "categories": [
+      "ai"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "cursor forum ai editor rules mcp bug",
+      "zh-CN": "cursor 论坛 ai 编辑器 rules mcp",
+      "zh-TW": "cursor 論壇 ai 編輯器 rules mcp"
+    },
+    "name": {
+      "en": "Cursor Forum",
+      "zh-CN": "Cursor 论坛",
+      "zh-TW": "Cursor 論壇"
+    },
+    "desc": {
+      "en": "Bug reports, rules workflows, and releases for the Cursor AI editor.",
+      "zh-CN": "Cursor AI 编辑器官方论坛，Rules 配置、版本更新与问题排查。",
+      "zh-TW": "Cursor AI 編輯器官方論壇，Rules 設定、版本更新與問題排查。"
+    }
+  },
+  {
+    "id": "huggingface",
+    "url": "https://discuss.huggingface.co",
+    "host": "discuss.huggingface.co",
+    "avatar": "HF",
+    "hue": 42,
+    "categories": [
+      "ai"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "hugging face discuss transformers diffusers llm fine-tuning",
+      "zh-CN": "hugging face 论坛 开源模型 transformers 微调",
+      "zh-TW": "hugging face 論壇 開源模型 transformers 微調"
+    },
+    "name": {
+      "en": "Hugging Face Forums",
+      "zh-CN": "Hugging Face 论坛",
+      "zh-TW": "Hugging Face 論壇"
+    },
+    "desc": {
+      "en": "Open-weight models, Transformers, Diffusers, and fine-tuning threads.",
+      "zh-CN": "开源大模型、Transformers、微调与推理部署讨论区。",
+      "zh-TW": "開源大模型、Transformers、微調與推論部署討論區。"
+    }
+  },
+  {
+    "id": "pytorch",
+    "url": "https://discuss.pytorch.org",
+    "host": "discuss.pytorch.org",
+    "avatar": "PT",
+    "hue": 14,
+    "categories": [
+      "ai"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "pytorch discuss cuda deep learning tensor",
+      "zh-CN": "pytorch 论坛 深度学习 cuda",
+      "zh-TW": "pytorch 論壇 深度學習 cuda"
+    },
+    "name": {
+      "en": "PyTorch Forums",
+      "zh-CN": "PyTorch 论坛",
+      "zh-TW": "PyTorch 論壇"
+    },
+    "desc": {
+      "en": "Deep learning research, CUDA debugging, and distributed training.",
+      "zh-CN": "深度学习研发、CUDA 报错排查与分布式训练讨论。",
+      "zh-TW": "深度學習研發、CUDA 除錯與分散式訓練討論。"
+    }
+  },
+  {
+    "id": "homeassistant",
+    "url": "https://community.home-assistant.io",
+    "host": "community.home-assistant.io",
+    "avatar": "HA",
+    "hue": 198,
+    "categories": [
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "home assistant smart home zigbee matter yaml automation",
+      "zh-CN": "home assistant 智能家居 zigbee matter 自动化",
+      "zh-TW": "home assistant 智慧家庭 zigbee matter 自動化"
+    },
+    "name": {
+      "en": "Home Assistant Community",
+      "zh-CN": "Home Assistant 社区",
+      "zh-TW": "Home Assistant 社群"
+    },
+    "desc": {
+      "en": "Smart home YAML blueprints and 500-reply Zigbee/Matter hardware threads.",
+      "zh-CN": "智能家居自动化与硬件排错，轻松读完几百楼设备兼容长帖。",
+      "zh-TW": "智慧家庭自動化與硬體除錯，輕鬆讀完數百樓設備相容長文。"
+    }
+  },
+  {
+    "id": "obsidian",
+    "url": "https://forum.obsidian.md",
+    "host": "forum.obsidian.md",
+    "avatar": "Ob",
+    "hue": 270,
+    "categories": [
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "obsidian forum pkm markdown dataview plugin notes",
+      "zh-CN": "obsidian 论坛 笔记 插件 markdown",
+      "zh-TW": "obsidian 論壇 筆記 外掛 markdown"
+    },
+    "name": {
+      "en": "Obsidian Forum",
+      "zh-CN": "Obsidian 论坛",
+      "zh-TW": "Obsidian 論壇"
+    },
+    "desc": {
+      "en": "PKM workflows, CSS snippets, Dataview queries, and plugins.",
+      "zh-CN": "知识管理工作流、CSS 片段与插件生态讨论。",
+      "zh-TW": "知識管理工作流、CSS 片段與外掛生態討論。"
+    }
+  },
+  {
+    "id": "frequentmiler",
+    "url": "https://frequentmiler.com",
+    "host": "frequentmiler.com",
+    "avatar": "FM",
+    "hue": 200,
+    "categories": [
+      "finance",
+      "wordpress"
+    ],
+    "platform": "WordPress",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "frequent miler award travel miles points wordpress comments",
+      "zh-CN": "frequent miler 常旅客 里程 转点 wordpress",
+      "zh-TW": "frequent miler 常旅客 哩程 轉點 wordpress"
+    },
+    "name": {
+      "en": "Frequent Miler",
+      "zh-CN": "Frequent Miler",
+      "zh-TW": "Frequent Miler"
+    },
+    "desc": {
+      "en": "Award travel sweet spots, transfer bonuses, and reader comment DPs.",
+      "zh-CN": "常旅客里程甜点、转点活动与读者评论区真实 DP。",
+      "zh-TW": "常旅客哩程亮點、轉點活動與讀者留言區真實 DP。"
+    }
+  },
+  {
+    "id": "omaat",
+    "url": "https://onemileatatime.com",
+    "host": "onemileatatime.com",
+    "avatar": "OM",
+    "hue": 190,
+    "categories": [
+      "finance",
+      "wordpress"
+    ],
+    "platform": "WordPress",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "one mile at a time omaat airline hotel loyalty wordpress comments",
+      "zh-CN": "one mile at a time omaat 航空 酒店 常旅客 wordpress",
+      "zh-TW": "one mile at a time omaat 航空 飯店 常旅客 wordpress"
+    },
+    "name": {
+      "en": "One Mile at a Time (OMAAT)",
+      "zh-CN": "One Mile at a Time (OMAAT)",
+      "zh-TW": "One Mile at a Time (OMAAT)"
+    },
+    "desc": {
+      "en": "Airline & hotel loyalty news, flight reviews, and reader comments.",
+      "zh-CN": "航空与酒店常旅客新闻、两舱评测与读者评论区。",
+      "zh-TW": "航空與飯店常旅客新聞、兩艙評測與讀者留言區。"
+    }
+  },
+  {
+    "id": "viewfromthewing",
+    "url": "https://viewfromthewing.com",
+    "host": "viewfromthewing.com",
+    "avatar": "VW",
+    "hue": 235,
+    "categories": [
+      "finance",
+      "wordpress"
+    ],
+    "platform": "WordPress",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "view from the wing travel loyalty wordpress comments",
+      "zh-CN": "view from the wing 常旅客 旅行 wordpress",
+      "zh-TW": "view from the wing 常旅客 旅行 wordpress"
+    },
+    "name": {
+      "en": "View from the Wing",
+      "zh-CN": "View from the Wing",
+      "zh-TW": "View from the Wing"
+    },
+    "desc": {
+      "en": "Frequent flyer analysis and travel commentary with native WP comments.",
+      "zh-CN": "常旅客深度分析与旅行行业评论。",
+      "zh-TW": "常旅客深度分析與旅行產業評論。"
+    }
+  },
+  {
+    "id": "milestomemories",
+    "url": "https://milestomemories.com",
+    "host": "milestomemories.com",
+    "avatar": "MM",
+    "hue": 135,
+    "categories": [
+      "finance",
+      "wordpress"
+    ],
+    "platform": "WordPress",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "miles to memories deals rewards credit card wordpress comments",
+      "zh-CN": "miles to memories 信用卡 返现 促销 wordpress",
+      "zh-TW": "miles to memories 信用卡 回饋 促銷 wordpress"
+    },
+    "name": {
+      "en": "Miles to Memories",
+      "zh-CN": "Miles to Memories",
+      "zh-TW": "Miles to Memories"
+    },
+    "desc": {
+      "en": "Deals, credit card rewards, buyer groups, and travel comment threads.",
+      "zh-CN": "信用卡返现、促销活动与旅行省钱技巧评论区。",
+      "zh-TW": "信用卡回饋、促銷活動與旅行省錢技巧留言區。"
+    }
+  },
+  {
+    "id": "9to5mac",
+    "url": "https://9to5mac.com",
+    "host": "9to5mac.com · 9to5google.com",
+    "avatar": "95",
+    "hue": 265,
+    "categories": [
+      "tech",
+      "wordpress"
+    ],
+    "platform": "WordPress",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "9to5mac 9to5google apple google news comments wordpress",
+      "zh-CN": "9to5mac 9to5google 苹果 科技 新闻 评论 wordpress",
+      "zh-TW": "9to5mac 9to5google 蘋果 科技 新聞 留言 wordpress"
+    },
+    "name": {
+      "en": "9to5Mac & 9to5Google",
+      "zh-CN": "9to5Mac & 9to5Google",
+      "zh-TW": "9to5Mac & 9to5Google"
+    },
+    "desc": {
+      "en": "Apple & Google news articles with hundreds of reader comments.",
+      "zh-CN": "Apple 与 Google 科技新闻博客，快速总结文章底部上百条读者评论。",
+      "zh-TW": "Apple 與 Google 科技新聞部落格，快速摘要文章底部上百則讀者留言。"
+    }
+  },
+  {
+    "id": "shuiyuan",
+    "url": "https://shuiyuan.sjtu.edu.cn",
+    "host": "shuiyuan.sjtu.edu.cn",
+    "avatar": "SY",
+    "hue": 212,
+    "categories": [
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": true,
+    "keywords": {
+      "en": "shuiyuan sjtu university campus discourse forum",
+      "zh-CN": "shuiyuan sjtu 上海交大 水源社区 高校 论坛",
+      "zh-TW": "shuiyuan sjtu 上海交大 水源社群 大學 論壇"
+    },
+    "name": {
+      "en": "SJTU Shuiyuan",
+      "zh-CN": "上海交大水源社区 (Shuiyuan)",
+      "zh-TW": "上海交大水源社群 (Shuiyuan)"
+    },
+    "desc": {
+      "en": "Private university Discourse community—reads with your campus login.",
+      "zh-CN": "高校私有 Discourse 社区代表，复用校园账号登录态爬楼总结与搜索。",
+      "zh-TW": "大學私有 Discourse 社群代表，重用校園帳號登入態爬文摘要與搜尋。"
+    }
+  },
+  {
+    "id": "anki",
+    "url": "https://forums.ankiweb.net",
+    "host": "forums.ankiweb.net",
+    "avatar": "Ak",
+    "hue": 208,
+    "categories": [
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "anki forums fsrs spaced repetition flashcards",
+      "zh-CN": "anki 官方论坛 fsrs 记忆卡",
+      "zh-TW": "anki 官方論壇 fsrs 記憶卡"
+    },
+    "name": {
+      "en": "Anki Forums",
+      "zh-CN": "Anki 官方论坛",
+      "zh-TW": "Anki 官方論壇"
+    },
+    "desc": {
+      "en": "FSRS scheduling parameters, deck templates, add-ons, and Q&A.",
+      "zh-CN": "FSRS 算法参数、记忆卡片模板与插件问答社区。",
+      "zh-TW": "FSRS 演算法參數、記憶卡片範本與外掛問答社群。"
+    }
+  },
+  {
+    "id": "nixos",
+    "url": "https://discourse.nixos.org",
+    "host": "discourse.nixos.org",
+    "avatar": "Nx",
+    "hue": 218,
+    "categories": [
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "nixos discourse nix flakes linux",
+      "zh-CN": "nixos 官方社区 nix flakes linux",
+      "zh-TW": "nixos 官方社群 nix flakes linux"
+    },
+    "name": {
+      "en": "NixOS Discourse",
+      "zh-CN": "NixOS 官方社区",
+      "zh-TW": "NixOS 官方社群"
+    },
+    "desc": {
+      "en": "Nix flakes, reproducible configs, Home Manager, and nixpkgs threads.",
+      "zh-CN": "Nix Flakes、可复现系统配置与 Home Manager 讨论区。",
+      "zh-TW": "Nix Flakes、可重現系統設定與 Home Manager 討論區。"
+    }
+  },
+  {
+    "id": "cloudflare",
+    "url": "https://community.cloudflare.com",
+    "host": "community.cloudflare.com",
+    "avatar": "CF",
+    "hue": 26,
+    "categories": [
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "cloudflare community workers dns zero trust waf",
+      "zh-CN": "cloudflare 开发者社区 workers dns zero trust waf",
+      "zh-TW": "cloudflare 開發者社群 workers dns zero trust waf"
+    },
+    "name": {
+      "en": "Cloudflare Community",
+      "zh-CN": "Cloudflare 开发者社区",
+      "zh-TW": "Cloudflare 開發者社群"
+    },
+    "desc": {
+      "en": "Workers, DNS, Zero Trust tunnels, and WAF troubleshooting.",
+      "zh-CN": "Cloudflare Workers、DNS、Zero Trust 与 WAF 规则排错社区。",
+      "zh-TW": "Cloudflare Workers、DNS、Zero Trust 與 WAF 規則除錯社群。"
+    }
+  },
+  {
+    "id": "rust",
+    "url": "https://users.rust-lang.org",
+    "host": "users.rust-lang.org",
+    "avatar": "Rs",
+    "hue": 24,
+    "categories": [
+      "ai",
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "rust users forum cargo async",
+      "zh-CN": "rust 用户论坛 cargo async",
+      "zh-TW": "rust 使用者論壇 cargo async"
+    },
+    "name": {
+      "en": "Rust Users Forum",
+      "zh-CN": "Rust 用户论坛",
+      "zh-TW": "Rust 使用者論壇"
+    },
+    "desc": {
+      "en": "Borrow checker questions, crate design, and async Rust architecture.",
+      "zh-CN": "Rust 语言进阶、生命周期与异步架构讨论。",
+      "zh-TW": "Rust 語言進階、生命週期與非同步架構討論。"
+    }
+  },
+  {
+    "id": "python",
+    "url": "https://discuss.python.org",
+    "host": "discuss.python.org",
+    "avatar": "Py",
+    "hue": 215,
+    "categories": [
+      "ai",
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "python discourse pep packaging",
+      "zh-CN": "python 官方社区 pep packaging",
+      "zh-TW": "python 官方社群 pep packaging"
+    },
+    "name": {
+      "en": "Python Discourse",
+      "zh-CN": "Python 官方社区",
+      "zh-TW": "Python 官方社群"
+    },
+    "desc": {
+      "en": "PEP discussions, packaging, core development, and Python help.",
+      "zh-CN": "PEP 提案讨论、打包工具与核心开发交流。",
+      "zh-TW": "PEP 提案討論、打包工具與核心開發交流。"
+    }
+  },
+  {
+    "id": "swift",
+    "url": "https://forums.swift.org",
+    "host": "forums.swift.org",
+    "avatar": "Sw",
+    "hue": 12,
+    "categories": [
+      "ai",
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "swift forums apple ios concurrency",
+      "zh-CN": "swift 论坛 apple ios 并发",
+      "zh-TW": "swift 論壇 apple ios 並行"
+    },
+    "name": {
+      "en": "Swift Forums",
+      "zh-CN": "Swift 论坛",
+      "zh-TW": "Swift 論壇"
+    },
+    "desc": {
+      "en": "Swift Evolution proposals, strict concurrency, and Apple tooling.",
+      "zh-CN": "Swift Evolution 演进提案与并发编程讨论。",
+      "zh-TW": "Swift Evolution 演進提案與並行程式設計討論。"
+    }
+  },
+  {
+    "id": "julia",
+    "url": "https://discourse.julialang.org",
+    "host": "discourse.julialang.org",
+    "avatar": "Jl",
+    "hue": 280,
+    "categories": [
+      "ai",
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "julia discourse scientific computing",
+      "zh-CN": "julia 官方社区 科学计算",
+      "zh-TW": "julia 官方社群 科學計算"
+    },
+    "name": {
+      "en": "Julia Discourse",
+      "zh-CN": "Julia 官方社区",
+      "zh-TW": "Julia 官方社群"
+    },
+    "desc": {
+      "en": "Scientific computing, numerical optimization, and Julia packages.",
+      "zh-CN": "科学计算、数值优化与 Julia 包生态讨论。",
+      "zh-TW": "科學計算、數值最佳化與 Julia 套件生態討論。"
+    }
+  },
+  {
+    "id": "docker",
+    "url": "https://forums.docker.com",
+    "host": "forums.docker.com",
+    "avatar": "Dk",
+    "hue": 205,
+    "categories": [
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "docker community forums container compose",
+      "zh-CN": "docker 社区论坛 容器 compose",
+      "zh-TW": "docker 社群論壇 容器 compose"
+    },
+    "name": {
+      "en": "Docker Community Forums",
+      "zh-CN": "Docker 社区论坛",
+      "zh-TW": "Docker 社群論壇"
+    },
+    "desc": {
+      "en": "Container networking, Compose configs, and Docker troubleshooting.",
+      "zh-CN": "容器网络、Docker Compose 配置与故障排查。",
+      "zh-TW": "容器網路、Docker Compose 設定與故障排查。"
+    }
+  },
+  {
+    "id": "n8n",
+    "url": "https://community.n8n.io",
+    "host": "community.n8n.io",
+    "avatar": "n8",
+    "hue": 350,
+    "categories": [
+      "ai",
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "n8n community automation workflow agent",
+      "zh-CN": "n8n 自动化社区 工作流 agent",
+      "zh-TW": "n8n 自動化社群 工作流 agent"
+    },
+    "name": {
+      "en": "n8n Community",
+      "zh-CN": "n8n 自动化社区",
+      "zh-TW": "n8n 自動化社群"
+    },
+    "desc": {
+      "en": "AI agent workflows, self-hosted automation nodes, and webhooks.",
+      "zh-CN": "AI 工作流编排、自托管节点与 Webhook 调试问答。",
+      "zh-TW": "AI 工作流編排、自託管節點與 Webhook 除錯問答。"
+    }
+  },
+  {
+    "id": "level1techs",
+    "url": "https://forum.level1techs.com",
+    "host": "forum.level1techs.com",
+    "avatar": "L1",
+    "hue": 28,
+    "categories": [
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "level1techs linux zfs homelab vfio hardware",
+      "zh-CN": "level1techs 硬件论坛 linux zfs homelab",
+      "zh-TW": "level1techs 硬體論壇 linux zfs homelab"
+    },
+    "name": {
+      "en": "Level1Techs Forums",
+      "zh-CN": "Level1Techs 硬件论坛",
+      "zh-TW": "Level1Techs 硬體論壇"
+    },
+    "desc": {
+      "en": "Linux, ZFS storage, VFIO passthrough, homelab & workstation builds.",
+      "zh-CN": "Linux、ZFS 存储、虚拟化直通与工作站硬件讨论。",
+      "zh-TW": "Linux、ZFS 儲存、虛擬化直通與工作站硬體討論。"
+    }
+  },
+  {
+    "id": "blender",
+    "url": "https://blenderartists.org",
+    "host": "blenderartists.org",
+    "avatar": "Bl",
+    "hue": 22,
+    "categories": [
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "blender artists 3d modeling cycles geometry nodes",
+      "zh-CN": "blender artists 社区 3d 建模 渲染",
+      "zh-TW": "blender artists 社群 3d 建模 渲染"
+    },
+    "name": {
+      "en": "Blender Artists Community",
+      "zh-CN": "Blender Artists 社区",
+      "zh-TW": "Blender Artists 社群"
+    },
+    "desc": {
+      "en": "3D modeling, Geometry Nodes, Cycles rendering, and add-ons.",
+      "zh-CN": "3D 建模、几何节点、Cycles 渲染与 Blender 插件讨论。",
+      "zh-TW": "3D 建模、幾何節點、Cycles 渲染與 Blender 外掛討論。"
+    }
+  },
+  {
+    "id": "godot",
+    "url": "https://forum.godotengine.org",
+    "host": "forum.godotengine.org",
+    "avatar": "Gd",
+    "hue": 202,
+    "categories": [
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "godot engine forum gdscript gamedev",
+      "zh-CN": "godot 引擎论坛 游戏开发 gdscript",
+      "zh-TW": "godot 引擎論壇 遊戲開發 gdscript"
+    },
+    "name": {
+      "en": "Godot Engine Forum",
+      "zh-CN": "Godot 引擎论坛",
+      "zh-TW": "Godot 引擎論壇"
+    },
+    "desc": {
+      "en": "GDScript, shaders, 2D/3D game architecture & engine Q&A.",
+      "zh-CN": "Godot 游戏开发、GDScript 与着色器问答。",
+      "zh-TW": "Godot 遊戲開發、GDScript 與著色器問答。"
+    }
+  },
+  {
+    "id": "unity",
+    "url": "https://discussions.unity.com",
+    "host": "discussions.unity.com",
+    "avatar": "Un",
+    "hue": 240,
+    "categories": [
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "unity discussions gamedev csharp urp hdrp",
+      "zh-CN": "unity 官方讨论区 游戏开发 c#",
+      "zh-TW": "unity 官方討論區 遊戲開發 c#"
+    },
+    "name": {
+      "en": "Unity Discussions",
+      "zh-CN": "Unity 官方讨论区",
+      "zh-TW": "Unity 官方討論區"
+    },
+    "desc": {
+      "en": "URP/HDRP rendering, C# scripting, and game optimization threads.",
+      "zh-CN": "Unity 渲染管线、C# 脚本与性能优化问答。",
+      "zh-TW": "Unity 渲染管線、C# 腳本與效能最佳化問答。"
+    }
+  },
+  {
+    "id": "ethresearch",
+    "url": "https://ethresear.ch",
+    "host": "ethresear.ch",
+    "avatar": "ETH",
+    "hue": 230,
+    "categories": [
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "ethereum research ethresear.ch rollup consensus",
+      "zh-CN": "ethereum research 以太坊 密码学 l2",
+      "zh-TW": "ethereum research 以太坊 密碼學 l2"
+    },
+    "name": {
+      "en": "Ethereum Research",
+      "zh-CN": "Ethereum Research",
+      "zh-TW": "Ethereum Research"
+    },
+    "desc": {
+      "en": "Cryptography, consensus protocol design, and L2 rollup research.",
+      "zh-CN": "以太坊协议设计、密码学与 Layer 2 研究讨论。",
+      "zh-TW": "以太坊協定設計、密碼學與 Layer 2 研究討論。"
+    }
+  },
+  {
+    "id": "discoursemeta",
+    "url": "https://meta.discourse.org",
+    "host": "meta.discourse.org",
+    "avatar": "DM",
+    "hue": 255,
+    "categories": [
+      "tech"
+    ],
+    "platform": "Discourse",
+    "requiresLogin": false,
+    "keywords": {
+      "en": "discourse meta official plugin theme",
+      "zh-CN": "discourse meta 官方社区 插件 主题",
+      "zh-TW": "discourse meta 官方社群 外掛 主題"
+    },
+    "name": {
+      "en": "Discourse Meta",
+      "zh-CN": "Discourse Meta 官方社区",
+      "zh-TW": "Discourse Meta 官方社群"
+    },
+    "desc": {
+      "en": "The official Discourse support, plugin, and theme community.",
+      "zh-CN": "Discourse 官方社区，非常适合作为测试 Forumind 的第一站。",
+      "zh-TW": "Discourse 官方社群，非常適合作為測試 Forumind 的第一站。"
+    }
+  }
+]

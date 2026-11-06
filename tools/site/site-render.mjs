@@ -74,13 +74,20 @@ export function buildJsonLd({ locale, page, version = '3.0.2' }) {
   const description = meta.description[locale] || meta.description.en;
 
   if (page === 'overview') {
+    const alternateName =
+      locale === 'en'
+        ? ['DiscourseCopilot', 'Forumind AI Comment Assistant']
+        : locale === 'zh-TW'
+          ? ['DiscourseCopilot', 'Forumind AI Comment Assistant', 'Forumind 留言區 AI 助手']
+          : ['DiscourseCopilot', 'Forumind AI Comment Assistant', 'Forumind 评论区 AI 助手'];
+
     return {
       '@context': 'https://schema.org',
       '@graph': [
         {
           '@type': 'SoftwareApplication',
           name: 'Forumind',
-          alternateName: ['DiscourseCopilot', 'Forumind AI Comment Assistant', 'Forumind 评论区 AI 助手', 'Forumind 留言區 AI 助手'],
+          alternateName,
           applicationCategory: 'BrowserApplication',
           operatingSystem: 'Chrome, Microsoft Edge, Brave, Arc',
           softwareVersion: version,
@@ -298,9 +305,9 @@ function renderOverviewMain({ locale, dict }) {
   <div class="preview-strip-left">
     <span class="preview-strip-label">${escapeHtml(dict['strip.label'])}</span>
     <a class="mini-site-chip" href="https://www.reddit.com" target="_blank" rel="noopener noreferrer"><span class="mini-dot" style="--forum-hue: 16"></span>Reddit</a>
-    <a class="mini-site-chip" href="https://www.uscardforum.com" target="_blank" rel="noopener noreferrer"><span class="mini-dot" style="--forum-hue: 225"></span>US Card Forum 美卡论坛</a>
+    <a class="mini-site-chip" href="https://www.uscardforum.com" target="_blank" rel="noopener noreferrer"><span class="mini-dot" style="--forum-hue: 225"></span>${escapeHtml(dict['strip.uscardforum'])}</a>
     <a class="mini-site-chip" href="https://www.doctorofcredit.com" target="_blank" rel="noopener noreferrer"><span class="mini-dot" style="--forum-hue: 150"></span>Doctor of Credit</a>
-    <a class="mini-site-chip" href="https://www.uscreditcardguide.com" target="_blank" rel="noopener noreferrer"><span class="mini-dot" style="--forum-hue: 210"></span>美卡指南</a>
+    <a class="mini-site-chip" href="https://www.uscreditcardguide.com" target="_blank" rel="noopener noreferrer"><span class="mini-dot" style="--forum-hue: 210"></span>${escapeHtml(dict['strip.uscreditcardguide'])}</a>
     <a class="mini-site-chip" href="https://linux.do" target="_blank" rel="noopener noreferrer"><span class="mini-dot" style="--forum-hue: 32"></span>LINUX DO</a>
     <a class="mini-site-chip" href="https://community.openai.com" target="_blank" rel="noopener noreferrer"><span class="mini-dot" style="--forum-hue: 170"></span>OpenAI</a>
     <a class="mini-site-chip" href="https://forum.cursor.com" target="_blank" rel="noopener noreferrer"><span class="mini-dot" style="--forum-hue: 250"></span>Cursor</a>
@@ -346,7 +353,8 @@ function renderSitesMain({ locale, dict }) {
     const name = site.name[locale] || site.name.en;
     const desc = site.desc[locale] || site.desc.en;
     const cats = site.categories.join(' ');
-    const searchKeywords = [site.keywords, site.name.en, site.name['zh-CN'], site.name['zh-TW'], site.host].join(' ').toLowerCase();
+    const kwSource = typeof site.keywords === 'object' ? site.keywords[locale] || site.keywords.en : site.keywords;
+    const searchKeywords = [kwSource, name, site.host].join(' ').toLowerCase();
     const loginPill = site.requiresLogin ? `<span class="badge">${loginLabel}</span>` : '';
 
     return `<a class="site-card" data-id="${escapeHtml(site.id)}" data-categories="${escapeHtml(cats)}" data-keywords="${escapeHtml(searchKeywords)}" href="${escapeHtml(site.url)}" target="_blank" rel="noopener noreferrer" role="listitem">
@@ -391,35 +399,47 @@ function renderSitesMain({ locale, dict }) {
   <div class="usecase-grid">
     <div class="usecase-card">
       <div class="usecase-card-head">
-        <strong>${escapeHtml(dict['uc1.title'])}</strong>
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          <strong>${escapeHtml(dict['uc1.title'])}</strong>
+        </span>
         <span class="badge badge-ok">${escapeHtml(dict['uc1.badge'])}</span>
       </div>
       <p>${dict['uc1.desc']}</p>
     </div>
     <div class="usecase-card">
       <div class="usecase-card-head">
-        <strong>${escapeHtml(dict['uc2.title'])}</strong>
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <strong>${escapeHtml(dict['uc2.title'])}</strong>
+        </span>
         <span class="badge badge-warn">${escapeHtml(dict['uc2.badge'])}</span>
       </div>
       <p>${dict['uc2.desc']}</p>
     </div>
     <div class="usecase-card">
       <div class="usecase-card-head">
-        <strong>${escapeHtml(dict['uc3.title'])}</strong>
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <strong>${escapeHtml(dict['uc3.title'])}</strong>
+        </span>
         <span class="badge badge-accent">${escapeHtml(dict['uc3.badge'])}</span>
       </div>
       <p>${dict['uc3.desc']}</p>
     </div>
     <div class="usecase-card">
       <div class="usecase-card-head">
-        <strong>${escapeHtml(dict['uc4.title'])}</strong>
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          <strong>${escapeHtml(dict['uc4.title'])}</strong>
+        </span>
         <span class="badge badge-accent">${escapeHtml(dict['uc4.badge'])}</span>
       </div>
       <p>${dict['uc4.desc']}</p>
     </div>
   </div>
 
-  <div id="sitesGrid" class="sites-grid" role="list">
+  <div id="sitesGrid" class="sites-grid" role="list" data-login-label="${loginLabel}">
     ${cardsHtml}
   </div>
   <div id="sitesEmptyState" class="empty-filter-msg hidden" role="status">${escapeHtml(dict['sites.emptyState'])}</div>
@@ -427,21 +447,30 @@ function renderSitesMain({ locale, dict }) {
   <div class="platform-grid">
     <div class="platform-col">
       <div class="platform-head">
-        <span class="platform-title">${escapeHtml(dict['plat.discourse.title'])}</span>
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H9l-5 4V5Z"/></svg>
+          <span class="platform-title">${escapeHtml(dict['plat.discourse.title'])}</span>
+        </span>
         <span class="badge badge-accent">${escapeHtml(dict['plat.discourse.badge'])}</span>
       </div>
       <p class="platform-desc">${dict['plat.discourse.desc']}</p>
     </div>
     <div class="platform-col">
       <div class="platform-head">
-        <span class="platform-title">${escapeHtml(dict['plat.wp.title'])}</span>
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span class="platform-title">${escapeHtml(dict['plat.wp.title'])}</span>
+        </span>
         <span class="badge badge-ok">${escapeHtml(dict['plat.wp.badge'])}</span>
       </div>
       <p class="platform-desc">${dict['plat.wp.desc']}</p>
     </div>
     <div class="platform-col">
       <div class="platform-head">
-        <span class="platform-title">${escapeHtml(dict['plat.reddit.title'])}</span>
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c1.2 1 2.2 1.5 3.5 1.5s2.3-.5 3.5-1.5"/><circle cx="9" cy="10" r="1"/><circle cx="15" cy="10" r="1"/></svg>
+          <span class="platform-title">${escapeHtml(dict['plat.reddit.title'])}</span>
+        </span>
         <span class="badge badge-warn">${escapeHtml(dict['plat.reddit.badge'])}</span>
       </div>
       <p class="platform-desc">${dict['plat.reddit.desc']}</p>
@@ -457,7 +486,7 @@ function renderSitesMain({ locale, dict }) {
 
 function renderGuideMain({ locale, dict }) {
   const providerRows = (PROVIDERS_DATA[locale] || PROVIDERS_DATA.en)
-    .map(([name, need, note]) => `<tr><td><strong>${escapeHtml(name)}</strong></td><td>${need}</td><td>${escapeHtml(note)}</td></tr>`)
+    .map(([name, need, note]) => `<tr><td><strong>${escapeHtml(name)}</strong></td><td>${need}</td><td>${note}</td></tr>`)
     .join('\n');
 
   return `<section class="surface-card" aria-labelledby="guideHeading">
@@ -473,7 +502,10 @@ function renderGuideMain({ locale, dict }) {
     <div id="providers" class="doc-block doc-block-wide">
       <h2>
         <span>${escapeHtml(dict['prov.title'])}</span>
-        <a href="${AI_STUDIO_KEY_URL}" target="_blank" rel="noopener noreferrer" class="badge badge-accent">${escapeHtml(dict['prov.freeBadge'])}</a>
+        <span style="display: inline-flex; flex-wrap: wrap; gap: 6px;">
+          <span class="badge badge-ok">${escapeHtml(dict['prov.compatBadge'])}</span>
+          <a href="${AI_STUDIO_KEY_URL}" target="_blank" rel="noopener noreferrer" class="badge badge-accent">${escapeHtml(dict['prov.freeBadge'])}</a>
+        </span>
       </h2>
       <p>${escapeHtml(dict['prov.intro'])}</p>
       <div class="table-wrap">
@@ -490,47 +522,147 @@ function renderGuideMain({ locale, dict }) {
           </tbody>
         </table>
       </div>
-      <p>${dict['prov.ollamaNote']}</p>
+    </div>
+
+    <div id="github-install" class="doc-block">
+      <h2>
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>${escapeHtml(dict['inst.title'])}</span>
+        </span>
+      </h2>
+      <div class="install-split">
+        <div class="install-option">
+          <div class="install-option-head">
+            <strong>${escapeHtml(dict['inst.storeTitle'])}</strong>
+          </div>
+          <p>${escapeHtml(dict['inst.storeDesc'])}</p>
+          <div class="store-btn-row">
+            <a class="btn btn-primary" href="${CHROME_STORE_URL}" target="_blank" rel="noopener noreferrer">
+              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M12 8.5h7.8M8.97 13.75 5.07 7M15.03 13.75 11.13 20.5"/></svg>
+              <span>${escapeHtml(dict['hero.ctaChrome'])}</span>
+            </a>
+            <a class="btn btn-outline" href="${EDGE_ADDONS_URL}" target="_blank" rel="noopener noreferrer">
+              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Z"/><path d="M8 12h8M12 8l4 4-4 4"/></svg>
+              <span>${escapeHtml(dict['hero.ctaEdge'])}</span>
+            </a>
+          </div>
+        </div>
+        <div class="install-option">
+          <div class="install-option-head">
+            <strong>${escapeHtml(dict['inst.ghTitle'])}</strong>
+          </div>
+          <ol class="doc-list">
+            <li>${dict['inst.ghStep1']}</li>
+            <li>${dict['inst.ghStep2']}</li>
+            <li>${dict['inst.ghStep3']}</li>
+          </ol>
+        </div>
+      </div>
     </div>
 
     <div id="settings-guide" class="doc-block">
-      <h2>${escapeHtml(dict['set.title'])}</h2>
-      <ul class="doc-list">
-        <li>${dict['set.item1']}</li>
-        <li>${dict['set.item2']}</li>
-        <li>${dict['set.item3']}</li>
-        <li>${dict['set.item4']}</li>
-      </ul>
+      <h2>
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+          <span>${escapeHtml(dict['set.title'])}</span>
+        </span>
+      </h2>
+      <div class="icon-feature-list">
+        <div class="icon-feature-item">
+          <span class="feat-icon-box" aria-hidden="true"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+          <div class="feat-item-text">
+            <strong>${escapeHtml(dict['set.f1.title'])}</strong>
+            <span>${dict['set.f1.desc']}</span>
+          </div>
+        </div>
+        <div class="icon-feature-item">
+          <span class="feat-icon-box" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          <div class="feat-item-text">
+            <strong>${escapeHtml(dict['set.f2.title'])}</strong>
+            <span>${dict['set.f2.desc']}</span>
+          </div>
+        </div>
+        <div class="icon-feature-item">
+          <span class="feat-icon-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+          <div class="feat-item-text">
+            <strong>${escapeHtml(dict['set.f3.title'])}</strong>
+            <span>${dict['set.f3.desc']}</span>
+          </div>
+        </div>
+        <div class="icon-feature-item">
+          <span class="feat-icon-box" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
+          <div class="feat-item-text">
+            <strong>${escapeHtml(dict['set.f4.title'])}</strong>
+            <span>${dict['set.f4.desc']}</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="permissions" class="doc-block">
-      <h2>${escapeHtml(dict['perm.title'])}</h2>
-      <p>${dict['perm.p1']}</p>
-      <ul class="doc-list">
-        <li>${dict['perm.item1']}</li>
-        <li>${dict['perm.item2']}</li>
-      </ul>
+      <h2>
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>${escapeHtml(dict['perm.title'])}</span>
+        </span>
+      </h2>
+      <div class="icon-feature-list">
+        <div class="icon-feature-item">
+          <span class="feat-icon-box" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+          <div class="feat-item-text">
+            <strong>${escapeHtml(dict['perm.f1.title'])}</strong>
+            <span>${dict['perm.f1.desc']}</span>
+          </div>
+        </div>
+        <div class="icon-feature-item">
+          <span class="feat-icon-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span>
+          <div class="feat-item-text">
+            <strong>${escapeHtml(dict['perm.f2.title'])}</strong>
+            <span>${dict['perm.f2.desc']}</span>
+          </div>
+        </div>
+        <div class="icon-feature-item">
+          <span class="feat-icon-box" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+          <div class="feat-item-text">
+            <strong>${escapeHtml(dict['perm.f3.title'])}</strong>
+            <span>${dict['perm.f3.desc']}</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="privacy" class="doc-block">
       <h2>
-        <span>${escapeHtml(dict['priv.title'])}</span>
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          <span>${escapeHtml(dict['priv.title'])}</span>
+        </span>
         <a href="${PRIVACY_POLICY_URL}" target="_blank" rel="noopener noreferrer" class="badge">${escapeHtml(dict['priv.policyLink'])}</a>
       </h2>
-      <ul class="doc-list">
-        <li>${dict['priv.item1']}</li>
-        <li>${dict['priv.item2']}</li>
-        <li>${dict['priv.item3']}</li>
-      </ul>
-    </div>
-
-    <div id="github-install" class="doc-block">
-      <h2>${escapeHtml(dict['gh.title'])}</h2>
-      <ol class="doc-list">
-        <li>${dict['gh.step1']}</li>
-        <li>${dict['gh.step2']}</li>
-        <li>${dict['gh.step3']}</li>
-      </ol>
+      <div class="icon-feature-list">
+        <div class="icon-feature-item">
+          <span class="feat-icon-box" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span>
+          <div class="feat-item-text">
+            <strong>${escapeHtml(dict['priv.f1.title'])}</strong>
+            <span>${dict['priv.f1.desc']}</span>
+          </div>
+        </div>
+        <div class="icon-feature-item">
+          <span class="feat-icon-box" aria-hidden="true"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></span>
+          <div class="feat-item-text">
+            <strong>${escapeHtml(dict['priv.f2.title'])}</strong>
+            <span>${dict['priv.f2.desc']}</span>
+          </div>
+        </div>
+        <div class="icon-feature-item">
+          <span class="feat-icon-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span>
+          <div class="feat-item-text">
+            <strong>${escapeHtml(dict['priv.f3.title'])}</strong>
+            <span>${dict['priv.f3.desc']}</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>`;
@@ -571,6 +703,7 @@ function renderFaqMain({ locale, dict }) {
 }
 
 function renderClientScript({ locale, page }) {
+  const sitesDataHref = getAssetHref(locale, page, 'data/sites.json');
   const lines = [
     '(function () {',
     '  const root = document.documentElement;',
@@ -584,16 +717,18 @@ function renderClientScript({ locale, page }) {
     '      try { localStorage.setItem("forumind-site-theme", next); } catch {}',
     '    });',
     '  }',
-    '  document.querySelectorAll(".lang-link").forEach(link => {',
-    '    const baseHref = link.getAttribute("href");',
-    '    const syncHref = () => {',
-    '      const suffix = (window.location.search || "") + (window.location.hash || "");',
-    '      link.href = baseHref + suffix;',
-    '    };',
-    '    link.addEventListener("click", syncHref);',
-    '    link.addEventListener("auxclick", syncHref);',
-    '    link.addEventListener("contextmenu", syncHref);',
-    '  });'
+    '  const langSelect = document.getElementById("langSelect");',
+    '  if (langSelect) {',
+    '    langSelect.addEventListener("change", () => {',
+    '      const opt = langSelect.options[langSelect.selectedIndex];',
+    '      const baseHref = opt && opt.getAttribute("data-href");',
+    '      try { localStorage.setItem("forumind-site-locale", langSelect.value); } catch {}',
+    '      if (baseHref) {',
+    '        const suffix = (window.location.search || "") + (window.location.hash || "");',
+    '        window.location.href = baseHref + suffix;',
+    '      }',
+    '    });',
+    '  }'
   ];
 
   if (page === 'overview') {
@@ -643,11 +778,51 @@ function renderClientScript({ locale, page }) {
 
   if (page === 'sites') {
     lines.push(
+      `  const PAGE_LOCALE = ${JSON.stringify(locale)};`,
+      `  const SITES_DATA_URL = ${JSON.stringify(sitesDataHref)};`,
       '  let activeCategory = "all";',
       '  const filterBtns = Array.from(document.querySelectorAll("#categoryFilterGroup .filter-chip"));',
       '  const searchInput = document.getElementById("siteSearchInput");',
-      '  const cards = Array.from(document.querySelectorAll("#sitesGrid .site-card"));',
+      '  const gridEl = document.getElementById("sitesGrid");',
+      '  let cards = Array.from(document.querySelectorAll("#sitesGrid .site-card"));',
       '  const emptyEl = document.getElementById("sitesEmptyState");',
+      '  function esc(s) {',
+      '    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");',
+      '  }',
+      '  function badgeFor(p) {',
+      '    if (p === "WordPress") return \'<span class="badge badge-ok">WordPress</span>\';',
+      '    if (p === "Reddit") return \'<span class="badge badge-warn">Reddit</span>\';',
+      '    return \'<span class="badge badge-accent">Discourse</span>\';',
+      '  }',
+      '  function renderCardsFromData(list) {',
+      '    if (!gridEl || !Array.isArray(list) || !list.length) return;',
+      '    const loginLabel = gridEl.getAttribute("data-login-label") || "Login";',
+      '    gridEl.innerHTML = list.map(site => {',
+      '      const name = (site.name && (site.name[PAGE_LOCALE] || site.name.en)) || site.id;',
+      '      const desc = (site.desc && (site.desc[PAGE_LOCALE] || site.desc.en)) || "";',
+      '      const cats = Array.isArray(site.categories) ? site.categories.join(" ") : "";',
+      '      const kwObj = site.keywords && typeof site.keywords === "object" ? Object.values(site.keywords).join(" ") : (site.keywords || "");',
+      '      const namesAll = site.name && typeof site.name === "object" ? Object.values(site.name).join(" ") : name;',
+      '      const kw = [kwObj, namesAll, site.host || ""].join(" ").toLowerCase();',
+      '      const loginPill = site.requiresLogin ? \'<span class="badge">\' + esc(loginLabel) + "</span>" : "";',
+      '      return \'<a class="site-card" data-id="\' + esc(site.id) + \'" data-categories="\' + esc(cats) + \'" data-keywords="\' + esc(kw) + \'" href="\' + esc(site.url) + \'" target="_blank" rel="noopener noreferrer" role="listitem">\' +',
+      '        \'<div class="site-card-top">\' +',
+      '          \'<span class="forum-avatar" style="--forum-hue: \' + Number(site.hue || 225) + \'" aria-hidden="true">\' + esc(site.avatar || "F") + "</span>" +',
+      '          \'<div class="site-card-title-wrap">\' +',
+      '            \'<div class="site-card-title"><span>\' + esc(name) + \'</span><span class="site-card-ext" aria-hidden="true">↗</span></div>\' +',
+      '            \'<span class="site-card-host">\' + esc(site.host || "") + "</span>" +',
+      '          "</div>" +',
+      '        "</div>" +',
+      '        \'<p class="site-card-desc">\' + esc(desc) + "</p>" +',
+      '        \'<div class="site-card-meta">\' + badgeFor(site.platform) + loginPill + "</div>" +',
+      '      "</a>";',
+      '    }).join("\\n");',
+      '    cards = Array.from(gridEl.querySelectorAll(".site-card"));',
+      '    const allBtn = filterBtns.find(b => b.getAttribute("data-filter") === "all");',
+      '    if (allBtn) allBtn.textContent = allBtn.textContent.replace(/\\(\\d+\\)/, "(" + list.length + ")");',
+      '    document.querySelectorAll(".nav-count").forEach(el => { el.textContent = list.length + "+"; });',
+      '    applySitesFilter();',
+      '  }',
       '  function applySitesFilter() {',
       '    const q = ((searchInput && searchInput.value) || "").trim().toLowerCase();',
       '    let visibleCount = 0;',
@@ -680,7 +855,12 @@ function renderClientScript({ locale, page }) {
       '    }',
       '    if (initQ && searchInput) searchInput.value = initQ;',
       '    if (initCat || initQ) applySitesFilter();',
-      '  } catch {}'
+      '  } catch {}',
+      '  if (typeof fetch === "function") {',
+      '    fetch(SITES_DATA_URL).then(r => r.ok ? r.json() : null).then(data => {',
+      '      if (Array.isArray(data) && data.length) renderCardsFromData(data);',
+      '    }).catch(() => {});',
+      '  }'
     );
   }
 
@@ -760,6 +940,11 @@ export function renderSitePage({ locale = 'en', page = 'overview', version = '3.
   const enHref = getRelativeHref(locale, page, 'en', page);
   const zhCnHref = getRelativeHref(locale, page, 'zh-CN', page);
   const zhTwHref = getRelativeHref(locale, page, 'zh-TW', page);
+  const localeHrefMapJson = JSON.stringify({
+    en: enHref,
+    'zh-CN': zhCnHref,
+    'zh-TW': zhTwHref
+  });
 
   let mainContent = '';
   if (page === 'overview') {
@@ -803,6 +988,37 @@ export function renderSitePage({ locale = 'en', page = 'overview', version = '3.
       if (savedTheme === "light" || savedTheme === "dark") {
         document.documentElement.setAttribute("data-theme", savedTheme);
       }
+      const currentLocale = document.documentElement.getAttribute("lang") || "en";
+      const localeRoutes = ${localeHrefMapJson};
+      const isBot = /bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent || "");
+      const sameOriginReferrer = document.referrer && document.referrer.indexOf(window.location.origin) === 0;
+      if (!isBot && !navigator.webdriver && !sameOriginReferrer) {
+        let preferred = localStorage.getItem("forumind-site-locale");
+        if (!preferred) {
+          const langs = Array.isArray(navigator.languages) && navigator.languages.length
+            ? navigator.languages
+            : [navigator.language || ""];
+          for (const raw of langs) {
+            const tag = String(raw || "").toLowerCase();
+            if (tag.startsWith("zh-tw") || tag.startsWith("zh-hk") || tag.startsWith("zh-mo") || tag.startsWith("zh-hant")) {
+              preferred = "zh-TW";
+              break;
+            }
+            if (tag.startsWith("zh")) {
+              preferred = "zh-CN";
+              break;
+            }
+            if (tag.startsWith("en")) {
+              preferred = "en";
+              break;
+            }
+          }
+        }
+        if (preferred && localeRoutes[preferred] && preferred !== currentLocale) {
+          const suffix = (window.location.search || "") + (window.location.hash || "");
+          window.location.replace(localeRoutes[preferred] + suffix);
+        }
+      }
     } catch {}
   </script>
 
@@ -841,10 +1057,14 @@ ${SITE_CSS}
       </nav>
 
       <div class="header-controls">
-        <div class="lang-switcher" role="group" aria-label="${escapeHtml(dict['nav.langLabel'])}">
-          <a class="lang-link" href="${enHref}" lang="en" hreflang="en"${locale === 'en' ? ' aria-current="true"' : ''}>EN</a>
-          <a class="lang-link" href="${zhCnHref}" lang="zh-CN" hreflang="zh-CN"${locale === 'zh-CN' ? ' aria-current="true"' : ''}>简体</a>
-          <a class="lang-link" href="${zhTwHref}" lang="zh-TW" hreflang="zh-TW"${locale === 'zh-TW' ? ' aria-current="true"' : ''}>繁體</a>
+        <div class="lang-select-wrap">
+          <svg class="lang-globe" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14.5 14.5 0 0 1 0 18 14.5 14.5 0 0 1 0-18Z"/></svg>
+          <select id="langSelect" class="lang-select" aria-label="${escapeHtml(dict['nav.langLabel'])}">
+            <option value="en" data-href="${enHref}"${locale === 'en' ? ' selected' : ''}>English</option>
+            <option value="zh-CN" data-href="${zhCnHref}"${locale === 'zh-CN' ? ' selected' : ''}>简体中文</option>
+            <option value="zh-TW" data-href="${zhTwHref}"${locale === 'zh-TW' ? ' selected' : ''}>繁體中文</option>
+          </select>
+          <svg class="lang-caret" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <button type="button" id="themeToggleBtn" class="icon-btn" title="${escapeHtml(dict['nav.themeLabel'])}" aria-label="${escapeHtml(dict['nav.themeLabel'])}">
           <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>

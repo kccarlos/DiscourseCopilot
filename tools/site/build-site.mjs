@@ -52,6 +52,14 @@ export function buildSite({ outDir = path.join(REPO_ROOT, 'build/site') } = {}) 
     writtenFiles.push('assets/icon128.png');
   }
 
+  const dataDir = path.join(outDir, 'data');
+  fs.mkdirSync(dataDir, { recursive: true });
+  const srcSitesJson = path.join(__dirname, 'sites.json');
+  if (fs.existsSync(srcSitesJson)) {
+    fs.copyFileSync(srcSitesJson, path.join(dataDir, 'sites.json'));
+    writtenFiles.push('data/sites.json');
+  }
+
   return { outDir, version, writtenFiles };
 }
 
