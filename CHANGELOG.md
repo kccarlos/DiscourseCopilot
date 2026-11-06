@@ -4,6 +4,22 @@ Notable changes to Forumind (formerly DiscourseCopilot). The format follows [Kee
 
 ## [Unreleased]
 
+## [3.0.2] - 2026-11-05
+
+### Added
+- Post-number citations and deep links: Ask the forum answers can cite a specific post inside a topic (`[S1#42]`), and post references (`#42`, `Post #42`, `42楼`) in summaries and chat answers are clickable links that jump to that post on Discourse forums.
+- Long-topic search and follow-up relevance: `read_topic` now accepts an optional `query` filter to pull matching replies from long threads, and follow-up chat preserves high-scoring middle replies that match your question alongside the opening post and newest replies.
+
+### Changed
+- Reddit follow-up questions reuse the cached thread when the comment count has not grown, avoiding re-fetching the comment tree on every question.
+- In-page URL changes are detected through browser navigation events instead of a background polling timer.
+
+### Fixed
+- Very long Discourse topics summarized in chunks now split cleanly on Discourse's post separator instead of treating the whole thread as the opening post.
+- Rate-limit (`429`), authentication (`401`/`403`) and parameter errors no longer trigger the long-topic chunked summary fallback.
+- Reddit search results read comment and vote counts from structured attributes before falling back to English text, and validate pagination URLs strictly.
+- Nested blockquotes in forum HTML are converted to plain text from the inside out, and HTTPS custom local-model hosts match their granted origin permissions.
+
 ## [3.0.1] - 2026-10-31
 
 ### Fixed
@@ -158,7 +174,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.1...HEAD
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.2...HEAD
+[3.0.2]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.5.0...v3.0.0
 [2.5.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.4.0...v2.5.0
