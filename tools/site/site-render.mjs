@@ -979,7 +979,6 @@ function renderPrivacyMain({ dict }) {
 }
 
 function renderClientScript({ locale, page }) {
-  const sitesDataHref = getAssetHref(locale, page, 'data/sites.json');
   const lines = [
     '(function () {',
     '  const root = document.documentElement;',
@@ -1053,6 +1052,7 @@ function renderClientScript({ locale, page }) {
   }
 
   if (page === 'sites') {
+    const sitesDataHref = getAssetHref(locale, page, 'data/sites.json');
     lines.push(
       `  const PAGE_LOCALE = ${JSON.stringify(locale)};`,
       `  const SITES_DATA_URL = ${JSON.stringify(sitesDataHref)};`,
@@ -1072,6 +1072,9 @@ function renderClientScript({ locale, page }) {
       '  }',
       '  function renderCardsFromData(list) {',
       '    if (!gridEl || !Array.isArray(list) || !list.length) return;',
+      '    const sameAsSsr = list.length === cards.length && list.every((s, idx) => cards[idx] && cards[idx].getAttribute("data-id") === s.id);',
+      '    if (sameAsSsr) return;',
+      '    const focusedId = document.activeElement && gridEl.contains(document.activeElement) ? document.activeElement.getAttribute("data-id") : null;',
       '    const loginLabel = gridEl.getAttribute("data-login-label") || "Login";',
       '    gridEl.innerHTML = list.map(site => {',
       '      const name = (site.name && (site.name[PAGE_LOCALE] || site.name.en)) || site.id;',
@@ -1093,6 +1096,10 @@ function renderClientScript({ locale, page }) {
       '      "</a>";',
       '    }).join("\\n");',
       '    cards = Array.from(gridEl.querySelectorAll(".site-card"));',
+      '    if (focusedId) {',
+      '      const restored = cards.find(c => c.getAttribute("data-id") === focusedId);',
+      '      if (restored) restored.focus();',
+      '    }',
       '    const allBtn = filterBtns.find(b => b.getAttribute("data-filter") === "all");',
       '    if (allBtn) allBtn.textContent = allBtn.textContent.replace(/\\(\\d+\\)/, "(" + list.length + ")");',
       '    document.querySelectorAll(".nav-count").forEach(el => { el.textContent = list.length + "+"; });',
@@ -1195,9 +1202,13 @@ function renderClientScript({ locale, page }) {
       '  const submitBtn = document.getElementById("supSubmitBtn");',
       '  const copyBtn = document.getElementById("supCopyBtn");',
       '  const TYPE_PREFIX = { site: "[Site Request]", bug: "[Bug]", feature: "[Feature]", question: "[Question]" };',
+      '  function clearValidation() {',
+      '    if (titleEl) titleEl.removeAttribute("aria-invalid");',
+      '  }',
       '  function setSupportType(typeKey) {',
       '    if (!TYPE_PREFIX[typeKey]) return;',
       '    activeType = typeKey;',
+      '    clearValidation();',
       '    typeBtns.forEach(b => b.setAttribute("aria-pressed", String(b.getAttribute("data-type") === typeKey)));',
       '    if (titleEl) titleEl.placeholder = titleEl.getAttribute("data-ph-" + activeType) || "";',
       '    if (detailsEl) detailsEl.placeholder = detailsEl.getAttribute("data-ph-" + activeType) || "";',
@@ -1207,9 +1218,9 @@ function renderClientScript({ locale, page }) {
       '      setSupportType(btn.getAttribute("data-type") || "site");',
       '    });',
       '  });',
-      '  if (titleEl) {',
-      '    titleEl.addEventListener("input", () => titleEl.removeAttribute("aria-invalid"));',
-      '  }',
+      '  [titleEl, urlEl, detailsEl].forEach(el => {',
+      '    if (el) el.addEventListener("input", clearValidation);',
+      '  });',
       '  try {',
       '    const params = new URLSearchParams(window.location.search);',
       '    const qType = (params.get("type") || "").trim().toLowerCase();',
@@ -1218,6 +1229,11 @@ function renderClientScript({ locale, page }) {
       '    if (qTitle && titleEl) titleEl.value = qTitle;',
       '    const qUrl = (params.get("url") || "").trim();',
       '    if (qUrl && urlEl) urlEl.value = qUrl;',
+      '    const qPlat = (params.get("platform") || "").trim().toLowerCase();',
+      '    if (qPlat && platEl) {',
+      '      const matchOpt = Array.from(platEl.options).find(o => o.value.toLowerCase() === qPlat);',
+      '      if (matchOpt) platEl.value = matchOpt.value;',
+      '    }',
       '    const qEnv = (params.get("env") || "").trim();',
       '    if (qEnv && envEl) envEl.value = qEnv;',
       '    const qDetails = (params.get("details") || "").trim();',
@@ -1262,6 +1278,11 @@ function renderClientScript({ locale, page }) {
       '  if (copyBtn) {',
       '    copyBtn.addEventListener("click", () => {',
       '      const payload = buildIssuePayload();',
+      '      if (!payload.hasInput && titleEl) {',
+      '        titleEl.setAttribute("aria-invalid", "true");',
+      '        titleEl.focus();',
+      '        return;',
+      '      }',
       '      const text = "# " + payload.title + "\\n\\n" + payload.body;',
       '      if (navigator.clipboard && navigator.clipboard.writeText) {',
       '        navigator.clipboard.writeText(text).then(() => {',
@@ -1543,7 +1564,7 @@ export function renderNotFoundPage() {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Page Not Found — Forumind</title>
   <meta name="robots" content="noindex">
-  <link rel="icon" type="image/png" href="${SITE_BASE_URL}/assets/icon128.png">
+  <link rel="icon" type="image/png" href="/assets/icon128.png">
   <script>
     try {
       const savedTheme = localStorage.getItem("forumind-site-theme");
@@ -1559,7 +1580,7 @@ ${SITE_CSS}
 <body>
   <header class="site-header">
     <div class="site-header-inner">
-      <a class="brand-link" href="${SITE_BASE_URL}/">
+      <a class="brand-link" href="/">
         <span class="brand-glyph" aria-hidden="true">
           <svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 5h16v12H9l-5 4V5Z"/><path d="M8 9h8M8 13h5"/></svg>
         </span>
@@ -1567,25 +1588,34 @@ ${SITE_CSS}
       </a>
 
       <nav class="nav-links" aria-label="${escapeHtml(dict['nav.ariaLabel'])}">
-        <a class="nav-pill" href="${SITE_BASE_URL}/">
+        <a class="nav-pill" href="/">
           <span>${escapeHtml(dict['nav.overview'])}</span>
         </a>
-        <a class="nav-pill" href="${SITE_BASE_URL}/sites/">
+        <a class="nav-pill" href="/sites/">
           <span>${escapeHtml(dict['nav.sites'])}</span>
           <span class="nav-count">${COMMUNITIES.length}+</span>
         </a>
-        <a class="nav-pill" href="${SITE_BASE_URL}/guide/">
+        <a class="nav-pill" href="/guide/">
           <span>${escapeHtml(dict['nav.guide'])}</span>
         </a>
-        <a class="nav-pill" href="${SITE_BASE_URL}/faq/">
+        <a class="nav-pill" href="/faq/">
           <span>${escapeHtml(dict['nav.faq'])}</span>
         </a>
-        <a class="nav-pill" href="${SITE_BASE_URL}/support/">
+        <a class="nav-pill" href="/support/">
           <span>${escapeHtml(dict['nav.support'])}</span>
         </a>
       </nav>
 
       <div class="header-controls">
+        <div class="lang-select-wrap">
+          <svg class="lang-globe" width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14.5 14.5 0 0 1 0 18 14.5 14.5 0 0 1 0-18Z"/></svg>
+          <select id="langSelect" class="lang-select" aria-label="${escapeHtml(dict['nav.langLabel'])}">
+            <option value="en" data-href="/" selected>English</option>
+            <option value="zh-CN" data-href="/zh-CN/">简体中文</option>
+            <option value="zh-TW" data-href="/zh-TW/">繁體中文</option>
+          </select>
+          <svg class="lang-caret" width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
         <button type="button" id="themeToggleBtn" class="icon-btn" title="${escapeHtml(dict['nav.themeLabel'])}" aria-label="${escapeHtml(dict['nav.themeLabel'])}">
           <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
         </button>
@@ -1600,11 +1630,11 @@ ${SITE_CSS}
         The page you requested does not exist. Jump back to the Forumind homepage, browse supported communities, or visit Support below.
       </p>
       <div class="hero-cta-row">
-        <a class="btn btn-primary" href="${SITE_BASE_URL}/">Overview (EN)</a>
-        <a class="btn btn-outline" href="${SITE_BASE_URL}/sites/">Supported Sites</a>
-        <a class="btn btn-outline" href="${SITE_BASE_URL}/support/">Support &amp; Feedback</a>
-        <a class="btn btn-outline" href="${SITE_BASE_URL}/zh-CN/">简体中文首页</a>
-        <a class="btn btn-outline" href="${SITE_BASE_URL}/zh-TW/">繁體中文首頁</a>
+        <a class="btn btn-primary" href="/">Overview (EN)</a>
+        <a class="btn btn-outline" href="/sites/">Supported Sites</a>
+        <a class="btn btn-outline" href="/support/">Support &amp; Feedback</a>
+        <a class="btn btn-outline" href="/zh-CN/">简体中文首页</a>
+        <a class="btn btn-outline" href="/zh-TW/">繁體中文首頁</a>
       </div>
     </section>
   </main>
@@ -1614,12 +1644,12 @@ ${SITE_CSS}
       <strong>Forumind</strong> · <span>${escapeHtml(dict['footer.copy'])}</span>
     </div>
     <div class="footer-links">
-      <a class="link-btn" href="${SITE_BASE_URL}/">${escapeHtml(dict['nav.overview'])}</a>
-      <a class="link-btn" href="${SITE_BASE_URL}/sites/">${escapeHtml(dict['nav.sites'])}</a>
-      <a class="link-btn" href="${SITE_BASE_URL}/guide/">${escapeHtml(dict['nav.guide'])}</a>
-      <a class="link-btn" href="${SITE_BASE_URL}/faq/">${escapeHtml(dict['nav.faq'])}</a>
-      <a class="link-btn" href="${SITE_BASE_URL}/support/">${escapeHtml(dict['nav.support'])}</a>
-      <a class="link-btn" href="${SITE_BASE_URL}/privacy/">${escapeHtml(dict['footer.privacy'])}</a>
+      <a class="link-btn" href="/">${escapeHtml(dict['nav.overview'])}</a>
+      <a class="link-btn" href="/sites/">${escapeHtml(dict['nav.sites'])}</a>
+      <a class="link-btn" href="/guide/">${escapeHtml(dict['nav.guide'])}</a>
+      <a class="link-btn" href="/faq/">${escapeHtml(dict['nav.faq'])}</a>
+      <a class="link-btn" href="/support/">${escapeHtml(dict['nav.support'])}</a>
+      <a class="link-btn" href="/privacy/">${escapeHtml(dict['footer.privacy'])}</a>
       <a href="${GITHUB_REPO_URL}" target="_blank" rel="noopener noreferrer">GitHub</a>
     </div>
   </footer>

@@ -143,6 +143,7 @@ code {
   border: 1px solid var(--dc-line);
   font-family: var(--dc-mono);
   font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .hidden {
@@ -1493,6 +1494,7 @@ details.faq-item[open] summary .faq-chevron {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow-wrap: anywhere;
 }
 
 .markdown-prose h1 {
@@ -1574,6 +1576,24 @@ details.faq-item[open] summary .faq-chevron {
   }
   .platform-col:last-child {
     border-bottom: 0;
+  }
+  .support-section,
+  .privacy-body-wrap,
+  .faq-list,
+  .docs-grid,
+  .section-header {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .support-actions .btn,
+  .hero-cta-row .btn {
+    max-width: 100%;
+    height: auto;
+    min-height: 38px;
+    padding: 8px 14px;
+    white-space: normal;
+    text-align: center;
+    line-height: 18px;
   }
   .site-header-inner {
     height: auto;

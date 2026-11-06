@@ -286,8 +286,9 @@ test('buildSite generates all 18 localized HTML pages, data/sites.json, 404.html
     // Check 404.html, sitemap.xml, and robots.txt
     const notFound = fs.readFileSync(path.join(tmpDir, '404.html'), 'utf8');
     assert.ok(notFound.includes('forumind-site-theme'));
-    assert.ok(notFound.includes(`${SITE_BASE_URL}/assets/icon128.png`));
-    assert.ok(notFound.includes(`${SITE_BASE_URL}/support/`));
+    assert.ok(notFound.includes('href="/assets/icon128.png"'));
+    assert.ok(notFound.includes('href="/support/"'));
+    assert.match(notFound, /<select id="langSelect"/);
     const sitemap = fs.readFileSync(path.join(tmpDir, 'sitemap.xml'), 'utf8');
     for (const locale of LOCALES) {
       for (const page of PAGES) {
