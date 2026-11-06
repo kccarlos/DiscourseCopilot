@@ -1320,7 +1320,7 @@ scenario(
         && links[1].href === 'https://community.openai.com/'
         && links[2].href === 'https://www.doctorofcredit.com/'
         && links[3].href === 'https://www.reddit.com/'
-        && links[4].href === 'https://kccarlos.github.io/DiscourseCopilot/sites/',
+        && links[4].href === 'https://forumind.top/sites/',
       JSON.stringify(links)
     );
     check('no action button', !(await visible(page, '#forumAccessBtn')));

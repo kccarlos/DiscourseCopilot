@@ -12,10 +12,10 @@
 <p align="center"><a href="README.md">English</a> · <b>简体中文</b> · <a href="README.zh-TW.md">繁體中文</a></p>
 
 <p align="center">
-  <a href="https://kccarlos.github.io/DiscourseCopilot/zh-CN/"><b>🌐 项目主页</b></a> ·
-  <a href="https://kccarlos.github.io/DiscourseCopilot/zh-CN/sites/"><b>支持的网站名录 (32+)</b></a> ·
-  <a href="https://kccarlos.github.io/DiscourseCopilot/zh-CN/guide/"><b>配置指南</b></a> ·
-  <a href="https://kccarlos.github.io/DiscourseCopilot/zh-CN/faq/"><b>常见问题</b></a>
+  <a href="https://forumind.top/zh-CN/"><b>🌐 项目主页</b></a> ·
+  <a href="https://forumind.top/zh-CN/sites/"><b>支持的网站名录 (32+)</b></a> ·
+  <a href="https://forumind.top/zh-CN/guide/"><b>配置指南</b></a> ·
+  <a href="https://forumind.top/zh-CN/faq/"><b>常见问题</b></a>
 </p>
 
 <p align="center">

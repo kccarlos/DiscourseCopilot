@@ -63,7 +63,7 @@ test('a page that is not a forum explains supported sites and offers four exampl
     { label: 'community.openai.com', href: 'https://community.openai.com/' },
     { label: 'www.doctorofcredit.com', href: 'https://www.doctorofcredit.com/' },
     { label: 'www.reddit.com', href: 'https://www.reddit.com/' },
-    { label: 'All supported sites', href: 'https://kccarlos.github.io/DiscourseCopilot/sites/' }
+    { label: 'All supported sites', href: 'https://forumind.top/sites/' }
   ]);
   assert.equal(view.card.links.length, EXAMPLE_FORUMS.length + 1);
   assert.equal(view.card.button, '');

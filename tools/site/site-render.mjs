@@ -5,12 +5,16 @@ import {
   COMMUNITIES,
   EDGE_ADDONS_URL,
   FAQ_ITEMS,
+  GITHUB_ISSUES_URL,
+  GITHUB_NEW_ISSUE_URL,
   GITHUB_RELEASES_URL,
   GITHUB_REPO_URL,
   LOCALES,
   PAGE_META,
   PAGES,
+  PRIVACY_MARKDOWN,
   PRIVACY_POLICY_URL,
+  PRIVACY_RAW_URL,
   PROVIDERS_DATA,
   SIM_CONTENT,
   SITE_BASE_URL,
@@ -36,6 +40,50 @@ function stripHtml(html) {
     .replaceAll('&gt;', '>')
     .replaceAll('&quot;', '"')
     .trim();
+}
+
+export function renderMarkdownToHtml(md) {
+  const formatInline = text =>
+    escapeHtml(text)
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+  const lines = String(md || '').split(/\r?\n/);
+  const blocks = [];
+  let listItems = [];
+
+  const flushList = () => {
+    if (listItems.length) {
+      blocks.push(`<ul>\n${listItems.map(li => `  <li>${li}</li>`).join('\n')}\n</ul>`);
+      listItems = [];
+    }
+  };
+
+  for (const rawLine of lines) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) {
+      flushList();
+      continue;
+    }
+    if (trimmed.startsWith('### ')) {
+      flushList();
+      blocks.push(`<h3>${formatInline(trimmed.slice(4))}</h3>`);
+    } else if (trimmed.startsWith('## ')) {
+      flushList();
+      blocks.push(`<h2>${formatInline(trimmed.slice(3))}</h2>`);
+    } else if (trimmed.startsWith('# ')) {
+      flushList();
+      blocks.push(`<h1>${formatInline(trimmed.slice(2))}</h1>`);
+    } else if (/^\s*-\s+/.test(rawLine)) {
+      listItems.push(formatInline(rawLine.replace(/^\s*-\s+/, '')));
+    } else {
+      flushList();
+      blocks.push(`<p>${formatInline(trimmed)}</p>`);
+    }
+  }
+  flushList();
+  return blocks.join('\n');
 }
 
 export function getPageDir(locale, page) {
@@ -155,6 +203,28 @@ export function buildJsonLd({ locale, page, version = '3.0.2' }) {
         name: 'Forumind',
         softwareVersion: version
       }
+    };
+  }
+
+  if (page === 'support') {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'ContactPage',
+      name: title,
+      description,
+      url: pageUrl,
+      inLanguage: locale
+    };
+  }
+
+  if (page === 'privacy') {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: title,
+      description,
+      url: pageUrl,
+      inLanguage: locale
     };
   }
 
@@ -638,7 +708,7 @@ function renderGuideMain({ locale, dict }) {
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
           <span>${escapeHtml(dict['priv.title'])}</span>
         </span>
-        <a href="${PRIVACY_POLICY_URL}" target="_blank" rel="noopener noreferrer" class="badge">${escapeHtml(dict['priv.policyLink'])}</a>
+        <a href="${getRelativeHref(locale, 'guide', locale, 'privacy')}" class="badge">${escapeHtml(dict['priv.policyLink'])}</a>
       </h2>
       <div class="icon-feature-list">
         <div class="icon-feature-item">
@@ -698,6 +768,157 @@ function renderFaqMain({ locale, dict }) {
   <div id="faqList" class="faq-list">
     ${faqItemsHtml}
     <div id="faqEmptyState" class="empty-filter-msg hidden" role="status">${escapeHtml(dict['faq.emptyState'])}</div>
+  </div>
+</section>`;
+}
+
+function renderSupportMain({ dict }) {
+  return `<section class="surface-card" aria-labelledby="supportHeading">
+  <div class="section-header">
+    <div>
+      <span class="eyebrow">${escapeHtml(dict['sup.eyebrow'])}</span>
+      <h1 id="supportHeading" class="section-title">${escapeHtml(dict['sup.title'])}</h1>
+      <p class="section-lede">${escapeHtml(dict['sup.lede'])}</p>
+    </div>
+    <a href="${GITHUB_ISSUES_URL}" target="_blank" rel="noopener noreferrer" class="badge badge-accent">${escapeHtml(dict['sup.ghBadge'])}</a>
+  </div>
+
+  <div class="usecase-grid">
+    <div class="usecase-card">
+      <div class="usecase-card-head">
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <strong>${escapeHtml(dict['sup.q1.title'])}</strong>
+        </span>
+        <span class="badge badge-ok">${escapeHtml(dict['sup.q1.badge'])}</span>
+      </div>
+      <p>${dict['sup.q1.desc']}</p>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-card-head">
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.35 4.15L17.5 8.5l-4.15 1.35L12 14l-1.35-4.15L6.5 8.5l4.15-1.35L12 3Z"/></svg>
+          <strong>${escapeHtml(dict['sup.q2.title'])}</strong>
+        </span>
+        <span class="badge badge-accent">${escapeHtml(dict['sup.q2.badge'])}</span>
+      </div>
+      <p>${dict['sup.q2.desc']}</p>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-card-head">
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <strong>${escapeHtml(dict['sup.q3.title'])}</strong>
+        </span>
+        <span class="badge badge-warn">${escapeHtml(dict['sup.q3.badge'])}</span>
+      </div>
+      <p>${dict['sup.q3.desc']}</p>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-card-head">
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <strong>${escapeHtml(dict['sup.q4.title'])}</strong>
+        </span>
+        <span class="badge badge-accent">${escapeHtml(dict['sup.q4.badge'])}</span>
+      </div>
+      <p>${dict['sup.q4.desc']}</p>
+    </div>
+  </div>
+
+  <div class="support-section" id="supportFormCard">
+    <div class="support-head">
+      <h2>
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>${escapeHtml(dict['sup.formTitle'])}</span>
+        </span>
+      </h2>
+      <p>${escapeHtml(dict['sup.formSub'])}</p>
+    </div>
+
+    <div class="filter-pills" id="supportTypeGroup" role="group" aria-label="${escapeHtml(dict['sup.typeAria'])}">
+      <button type="button" class="filter-chip" data-type="site" aria-pressed="true">${escapeHtml(dict['sup.type.site'])}</button>
+      <button type="button" class="filter-chip" data-type="bug" aria-pressed="false">${escapeHtml(dict['sup.type.bug'])}</button>
+      <button type="button" class="filter-chip" data-type="feature" aria-pressed="false">${escapeHtml(dict['sup.type.feature'])}</button>
+      <button type="button" class="filter-chip" data-type="question" aria-pressed="false">${escapeHtml(dict['sup.type.question'])}</button>
+    </div>
+
+    <div class="support-form-grid">
+      <div class="form-field">
+        <label class="form-label" for="supTitle">${escapeHtml(dict['sup.label.title'])}</label>
+        <input type="text" id="supTitle" class="form-input" placeholder="${escapeHtml(dict['sup.ph.title.site'])}" data-ph-site="${escapeHtml(dict['sup.ph.title.site'])}" data-ph-bug="${escapeHtml(dict['sup.ph.title.bug'])}" data-ph-feature="${escapeHtml(dict['sup.ph.title.feature'])}" data-ph-question="${escapeHtml(dict['sup.ph.title.question'])}">
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="supUrl">${escapeHtml(dict['sup.label.url'])}</label>
+        <input type="url" id="supUrl" class="form-input" placeholder="${escapeHtml(dict['sup.ph.url'])}">
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="supPlatform">${escapeHtml(dict['sup.label.platform'])}</label>
+        <select id="supPlatform" class="form-select">
+          <option value="Auto-detect / Unsure">${escapeHtml(dict['sup.plat.unsure'])}</option>
+          <option value="Discourse">${escapeHtml(dict['sup.plat.discourse'])}</option>
+          <option value="WordPress">${escapeHtml(dict['sup.plat.wordpress'])}</option>
+          <option value="Reddit">${escapeHtml(dict['sup.plat.reddit'])}</option>
+          <option value="Other">${escapeHtml(dict['sup.plat.other'])}</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="supEnv">${escapeHtml(dict['sup.label.env'])}</label>
+        <input type="text" id="supEnv" class="form-input" placeholder="${escapeHtml(dict['sup.ph.env'])}">
+      </div>
+      <div class="form-field form-field-wide">
+        <label class="form-label" for="supDetails">${escapeHtml(dict['sup.label.details'])}</label>
+        <textarea id="supDetails" class="form-textarea" placeholder="${escapeHtml(dict['sup.ph.details.site'])}" data-ph-site="${escapeHtml(dict['sup.ph.details.site'])}" data-ph-bug="${escapeHtml(dict['sup.ph.details.bug'])}" data-ph-feature="${escapeHtml(dict['sup.ph.details.feature'])}" data-ph-question="${escapeHtml(dict['sup.ph.details.question'])}"></textarea>
+      </div>
+    </div>
+
+    <div class="support-actions">
+      <button type="button" id="supSubmitBtn" class="btn btn-primary">${escapeHtml(dict['sup.submitBtn'])}</button>
+      <button type="button" id="supCopyBtn" class="btn btn-outline" data-default-label="${escapeHtml(dict['sup.copyBtn'])}" data-copied-label="${escapeHtml(dict['sup.copiedBtn'])}">${escapeHtml(dict['sup.copyBtn'])}</button>
+      <a class="link-btn" href="${GITHUB_ISSUES_URL}" target="_blank" rel="noopener noreferrer">${escapeHtml(dict['sup.browseIssues'])}</a>
+    </div>
+  </div>
+</section>`;
+}
+
+function renderPrivacyMain({ dict }) {
+  const staticPrivacyHtml = renderMarkdownToHtml(PRIVACY_MARKDOWN);
+  return `<section class="surface-card" aria-labelledby="privacyHeading">
+  <div class="section-header">
+    <div>
+      <span class="eyebrow">${escapeHtml(dict['privPage.eyebrow'])}</span>
+      <h1 id="privacyHeading" class="section-title">${escapeHtml(dict['privPage.title'])}</h1>
+      <p class="section-lede">${escapeHtml(dict['privPage.lede'])}</p>
+    </div>
+    <a href="${PRIVACY_POLICY_URL}" target="_blank" rel="noopener noreferrer" class="badge badge-ok">${escapeHtml(dict['privPage.syncBadge'])}</a>
+  </div>
+
+  <div class="usecase-grid">
+    <div class="usecase-card">
+      <div class="usecase-card-head">
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          <strong>${escapeHtml(dict['priv.f1.title'])}</strong>
+        </span>
+      </div>
+      <p>${dict['priv.f1.desc']}</p>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-card-head">
+        <span class="usecase-title-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          <strong>${escapeHtml(dict['priv.f2.title'])}</strong>
+        </span>
+      </div>
+      <p>${dict['priv.f2.desc']}</p>
+    </div>
+  </div>
+
+  <div class="privacy-body-wrap">
+    <div id="privacyDocBody" class="markdown-prose">
+      ${staticPrivacyHtml}
+    </div>
   </div>
 </section>`;
 }
@@ -905,6 +1126,109 @@ function renderClientScript({ locale, page }) {
     );
   }
 
+  if (page === 'support') {
+    lines.push(
+      `  const NEW_ISSUE_URL = ${JSON.stringify(GITHUB_NEW_ISSUE_URL)};`,
+      '  let activeType = "site";',
+      '  const typeBtns = Array.from(document.querySelectorAll("#supportTypeGroup .filter-chip"));',
+      '  const titleEl = document.getElementById("supTitle");',
+      '  const urlEl = document.getElementById("supUrl");',
+      '  const platEl = document.getElementById("supPlatform");',
+      '  const envEl = document.getElementById("supEnv");',
+      '  const detailsEl = document.getElementById("supDetails");',
+      '  const submitBtn = document.getElementById("supSubmitBtn");',
+      '  const copyBtn = document.getElementById("supCopyBtn");',
+      '  const TYPE_PREFIX = { site: "[Site Request]", bug: "[Bug]", feature: "[Feature]", question: "[Question]" };',
+      '  typeBtns.forEach(btn => {',
+      '    btn.addEventListener("click", () => {',
+      '      activeType = btn.getAttribute("data-type") || "site";',
+      '      typeBtns.forEach(b => b.setAttribute("aria-pressed", String(b === btn)));',
+      '      if (titleEl) titleEl.placeholder = titleEl.getAttribute("data-ph-" + activeType) || "";',
+      '      if (detailsEl) detailsEl.placeholder = detailsEl.getAttribute("data-ph-" + activeType) || "";',
+      '    });',
+      '  });',
+      '  function buildIssuePayload() {',
+      '    const prefix = TYPE_PREFIX[activeType] || "[Feedback]";',
+      '    const rawTitle = ((titleEl && titleEl.value) || "").trim();',
+      '    const rawUrl = ((urlEl && urlEl.value) || "").trim();',
+      '    const rawPlat = ((platEl && platEl.value) || "").trim();',
+      '    const rawEnv = ((envEl && envEl.value) || "").trim();',
+      '    const rawDetails = ((detailsEl && detailsEl.value) || "").trim();',
+      '    const finalTitle = rawTitle ? prefix + " " + rawTitle : prefix + (rawUrl ? " " + rawUrl : "");',
+      '    const bodyLines = [',
+      '      "### Category",',
+      '      "- **Type:** " + prefix.replace(/[\\[\\]]/g, ""),',
+      '      "- **Platform:** " + (rawPlat || "Not specified"),',
+      '      rawUrl ? "- **URL:** " + rawUrl : null,',
+      '      rawEnv ? "- **Environment:** " + rawEnv : null,',
+      '      "",',
+      '      "### Details",',
+      '      rawDetails || "_(Add details here)_"',
+      '    ].filter(v => v !== null);',
+      '    return { title: finalTitle, body: bodyLines.join("\\n") };',
+      '  }',
+      '  if (submitBtn) {',
+      '    submitBtn.addEventListener("click", () => {',
+      '      const payload = buildIssuePayload();',
+      '      const target = NEW_ISSUE_URL + "?title=" + encodeURIComponent(payload.title) + "&body=" + encodeURIComponent(payload.body);',
+      '      window.open(target, "_blank", "noopener,noreferrer");',
+      '    });',
+      '  }',
+      '  if (copyBtn) {',
+      '    copyBtn.addEventListener("click", () => {',
+      '      const payload = buildIssuePayload();',
+      '      const text = "# " + payload.title + "\\n\\n" + payload.body;',
+      '      if (navigator.clipboard && navigator.clipboard.writeText) {',
+      '        navigator.clipboard.writeText(text).then(() => {',
+      '          copyBtn.textContent = copyBtn.getAttribute("data-copied-label") || "Copied";',
+      '          setTimeout(() => { copyBtn.textContent = copyBtn.getAttribute("data-default-label") || "Copy"; }, 2000);',
+      '        }).catch(() => {});',
+      '      }',
+      '    });',
+      '  }'
+    );
+  }
+
+  if (page === 'privacy') {
+    lines.push(
+      `  const PRIVACY_RAW = ${JSON.stringify(PRIVACY_RAW_URL)};`,
+      '  const docEl = document.getElementById("privacyDocBody");',
+      '  function escHtml(s) {',
+      '    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");',
+      '  }',
+      '  function fmtInline(t) {',
+      '    return escHtml(t)',
+      '      .replace(/\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+)\\)/g, \'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>\')',
+      '      .replace(/`([^`]+)`/g, "<code>$1</code>")',
+      '      .replace(/\\*\\*([^*]+)\\*\\*/g, "<strong>$1</strong>");',
+      '  }',
+      '  function renderMd(md) {',
+      '    const rows = String(md || "").split(/\\r?\\n/);',
+      '    const out = [];',
+      '    let ul = [];',
+      '    function flush() {',
+      '      if (ul.length) { out.push("<ul>" + ul.map(i => "<li>" + i + "</li>").join("") + "</ul>"); ul = []; }',
+      '    }',
+      '    rows.forEach(line => {',
+      '      const tr = line.trim();',
+      '      if (!tr) { flush(); return; }',
+      '      if (tr.indexOf("### ") === 0) { flush(); out.push("<h3>" + fmtInline(tr.slice(4)) + "</h3>"); }',
+      '      else if (tr.indexOf("## ") === 0) { flush(); out.push("<h2>" + fmtInline(tr.slice(3)) + "</h2>"); }',
+      '      else if (tr.indexOf("# ") === 0) { flush(); out.push("<h1>" + fmtInline(tr.slice(2)) + "</h1>"); }',
+      '      else if (/^\\s*-\\s+/.test(line)) { ul.push(fmtInline(line.replace(/^\\s*-\\s+/, ""))); }',
+      '      else { flush(); out.push("<p>" + fmtInline(tr) + "</p>"); }',
+      '    });',
+      '    flush();',
+      '    return out.join("\\n");',
+      '  }',
+      '  if (docEl && typeof fetch === "function") {',
+      '    fetch(PRIVACY_RAW).then(r => r.ok ? r.text() : "").then(md => {',
+      '      if (md && md.indexOf("# ") !== -1) docEl.innerHTML = renderMd(md);',
+      '    }).catch(() => {});',
+      '  }'
+    );
+  }
+
   lines.push('})();');
   return lines.join('\n');
 }
@@ -935,6 +1259,8 @@ export function renderSitePage({ locale = 'en', page = 'overview', version = '3.
   const sitesHref = getRelativeHref(locale, page, locale, 'sites');
   const guideHref = getRelativeHref(locale, page, locale, 'guide');
   const faqHref = getRelativeHref(locale, page, locale, 'faq');
+  const supportHref = getRelativeHref(locale, page, locale, 'support');
+  const privacyHref = getRelativeHref(locale, page, locale, 'privacy');
 
   const enHref = getRelativeHref(locale, page, 'en', page);
   const zhCnHref = getRelativeHref(locale, page, 'zh-CN', page);
@@ -952,6 +1278,10 @@ export function renderSitePage({ locale = 'en', page = 'overview', version = '3.
     mainContent = renderSitesMain({ locale, dict });
   } else if (page === 'guide') {
     mainContent = renderGuideMain({ locale, dict });
+  } else if (page === 'support') {
+    mainContent = renderSupportMain({ locale, dict });
+  } else if (page === 'privacy') {
+    mainContent = renderPrivacyMain({ locale, dict });
   } else {
     mainContent = renderFaqMain({ locale, dict });
   }
@@ -1053,6 +1383,9 @@ ${SITE_CSS}
         <a class="nav-pill" href="${faqHref}"${page === 'faq' ? ' aria-current="page"' : ''}>
           <span>${escapeHtml(dict['nav.faq'])}</span>
         </a>
+        <a class="nav-pill" href="${supportHref}"${page === 'support' ? ' aria-current="page"' : ''}>
+          <span>${escapeHtml(dict['nav.support'])}</span>
+        </a>
       </nav>
 
       <div class="header-controls">
@@ -1085,7 +1418,8 @@ ${mainContent}
       <a class="link-btn" href="${sitesHref}">${escapeHtml(dict['nav.sites'])}</a>
       <a class="link-btn" href="${guideHref}">${escapeHtml(dict['nav.guide'])}</a>
       <a class="link-btn" href="${faqHref}">${escapeHtml(dict['nav.faq'])}</a>
-      <a href="${PRIVACY_POLICY_URL}" target="_blank" rel="noopener noreferrer">${escapeHtml(dict['footer.privacy'])}</a>
+      <a class="link-btn" href="${supportHref}">${escapeHtml(dict['nav.support'])}</a>
+      <a class="link-btn" href="${privacyHref}">${escapeHtml(dict['footer.privacy'])}</a>
       <a href="${GITHUB_REPO_URL}" target="_blank" rel="noopener noreferrer">GitHub</a>
     </div>
   </footer>

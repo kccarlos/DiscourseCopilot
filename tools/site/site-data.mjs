@@ -1,17 +1,22 @@
 import fs from 'node:fs';
 
-export const SITE_BASE_URL = 'https://kccarlos.github.io/DiscourseCopilot';
+export const SITE_DOMAIN = 'forumind.top';
+export const SITE_BASE_URL = `https://${SITE_DOMAIN}`;
 export const CHROME_STORE_URL = 'https://chromewebstore.google.com/detail/discoursecopilot/dpngnaiiofobfjleabbhnfmdflddnhac';
 export const EDGE_ADDONS_URL = 'https://microsoftedge.microsoft.com/addons/detail/cjbpgigbkfdcgdmlpifklpoklpnbkhmp';
 export const GITHUB_REPO_URL = 'https://github.com/kccarlos/DiscourseCopilot';
 export const GITHUB_RELEASES_URL = 'https://github.com/kccarlos/DiscourseCopilot/releases/latest';
+export const GITHUB_ISSUES_URL = 'https://github.com/kccarlos/DiscourseCopilot/issues';
+export const GITHUB_NEW_ISSUE_URL = 'https://github.com/kccarlos/DiscourseCopilot/issues/new';
 export const PRIVACY_POLICY_URL = 'https://github.com/kccarlos/DiscourseCopilot/blob/main/PRIVACY.md';
+export const PRIVACY_RAW_URL = 'https://raw.githubusercontent.com/kccarlos/DiscourseCopilot/refs/heads/main/PRIVACY.md';
 export const AI_STUDIO_KEY_URL = 'https://aistudio.google.com/apikey';
 
 export const LOCALES = ['en', 'zh-CN', 'zh-TW'];
-export const PAGES = ['overview', 'sites', 'guide', 'faq'];
+export const PAGES = ['overview', 'sites', 'guide', 'faq', 'support', 'privacy'];
 
 export const COMMUNITIES = JSON.parse(fs.readFileSync(new URL('./sites.json', import.meta.url), 'utf8'));
+export const PRIVACY_MARKDOWN = fs.readFileSync(new URL('../../PRIVACY.md', import.meta.url), 'utf8');
 
 export const PAGE_META = {
   overview: {
@@ -72,6 +77,32 @@ export const PAGE_META = {
         'Forumind 常见问题解答：支持哪些网站、登录私有论坛（LINUX DO、水源社区、Reddit）、Cloudflare 验证拦截、API 限速切换与本地 Ollama 403 排错。',
       'zh-TW':
         'Forumind 常見問題解答：支援哪些網站、登入私有論壇（LINUX DO、水源社群、Reddit）、Cloudflare 驗證攔截、API 限速切換與本機 Ollama 403 除錯。'
+    }
+  },
+  support: {
+    slug: 'support/',
+    title: {
+      en: 'Support, Feedback & Site Requests — Forumind',
+      'zh-CN': '帮助支持、问题反馈与新网站申请 — Forumind',
+      'zh-TW': '支援服務、問題回饋與新網站申請 — Forumind'
+    },
+    description: {
+      en: 'Get quick troubleshooting help, request support for a new forum or blog, report a bug, or suggest a feature for Forumind.',
+      'zh-CN': '快速排查常见问题，申请支持新的论坛或博客网站，提交 Bug 报告或功能建议。',
+      'zh-TW': '快速排查常見問題，申請支援新的論壇或部落格網站，提交 Bug 報告或功能建議。'
+    }
+  },
+  privacy: {
+    slug: 'privacy/',
+    title: {
+      en: 'Privacy Policy — Forumind',
+      'zh-CN': '隐私政策 (Privacy Policy) — Forumind',
+      'zh-TW': '隱私權政策 (Privacy Policy) — Forumind'
+    },
+    description: {
+      en: 'Official Privacy Policy for Forumind. Zero servers, zero telemetry, per-site permissions, and 100% local storage in your browser.',
+      'zh-CN': 'Forumind 官方隐私政策：零开发者服务器、零追踪埋点、按网站逐个授权、数据 100% 存储在本地浏览器。',
+      'zh-TW': 'Forumind 官方隱私權政策：零開發者伺服器、零追蹤埋點、按網站逐一授權、資料 100% 儲存在本機瀏覽器。'
     }
   }
 };
@@ -517,6 +548,61 @@ export const UI_COPY = {
     'faq.searchPlaceholder': 'Search FAQ…',
     'faq.searchAria': 'Search FAQ',
     'faq.emptyState': 'No matching FAQ item found. Try another keyword or open an issue on GitHub.',
+    'nav.support': 'Support',
+    'sup.eyebrow': 'Help & Feedback',
+    'sup.title': 'Support, Feedback & Site Requests',
+    'sup.lede':
+      'Solve common setup issues in seconds, or generate a pre-filled GitHub issue to request a new site, report a bug, or suggest a feature.',
+    'sup.ghBadge': 'GitHub Issues ↗',
+    'sup.q1.title': 'Site Not Detected / Greyed Out',
+    'sup.q1.badge': 'Permissions',
+    'sup.q1.desc': 'Click the Forumind toolbar icon on that tab, then click <strong>Allow access</strong> in the side panel.',
+    'sup.q2.title': 'API Key or Rate Limit (401 / 429)',
+    'sup.q2.badge': 'AI Provider',
+    'sup.q2.desc': 'Run <strong>Test Connection</strong> in Settings, or switch models in 1 click from the input bar.',
+    'sup.q3.title': 'Local Ollama / LM Studio',
+    'sup.q3.badge': 'Local AI',
+    'sup.q3.desc':
+      'Keep your local server running on <code>11434</code> / <code>1234</code>, or connect any OpenAI-compatible <code>/v1</code> URL.',
+    'sup.q4.title': 'Private or Login-Only Sites',
+    'sup.q4.badge': 'Session Reuse',
+    'sup.q4.desc': 'Sign in to Reddit or your private Discourse forum in a normal tab first, then click Summarize.',
+    'sup.formTitle': 'Submit Feedback or Request a Site',
+    'sup.formSub':
+      'Select a category below. We will format your report and open GitHub Issues with all fields pre-filled—no backend tracking or spam.',
+    'sup.typeAria': 'Feedback category',
+    'sup.type.site': 'Request a Site',
+    'sup.type.bug': 'Bug Report',
+    'sup.type.feature': 'Feature Request',
+    'sup.type.question': 'Question',
+    'sup.label.title': 'Title / Summary',
+    'sup.ph.title.site': 'e.g. Support Bogleheads.org or MyBlog.com comments',
+    'sup.ph.title.bug': 'e.g. Summary stops on a 300-comment WordPress post',
+    'sup.ph.title.feature': 'e.g. Export summary as Markdown file',
+    'sup.ph.title.question': 'e.g. How to use a custom vLLM endpoint?',
+    'sup.label.url': 'Website or Thread URL',
+    'sup.ph.url': 'https://example.com/...',
+    'sup.label.platform': 'Site Platform',
+    'sup.plat.unsure': 'Not sure / Auto-detect',
+    'sup.plat.discourse': 'Discourse Forum',
+    'sup.plat.wordpress': 'WordPress Blog',
+    'sup.plat.reddit': 'Reddit',
+    'sup.plat.other': 'Other Platform',
+    'sup.label.env': 'Browser & AI Provider (Optional)',
+    'sup.ph.env': 'e.g. Chrome 134 · Gemini 2.5 Flash',
+    'sup.label.details': 'Details',
+    'sup.ph.details.site': 'Tell us about this community and whether it requires login.',
+    'sup.ph.details.bug': 'What happened vs. what you expected? Any error message shown in the side panel?',
+    'sup.ph.details.feature': 'Describe the workflow or feature you would like to see.',
+    'sup.ph.details.question': 'Share your question or setup details.',
+    'sup.submitBtn': 'Continue to GitHub Issues (Pre-filled) ↗',
+    'sup.copyBtn': 'Copy Markdown Report',
+    'sup.copiedBtn': 'Copied to Clipboard ✓',
+    'sup.browseIssues': 'View Existing Issues on GitHub ↗',
+    'privPage.eyebrow': 'Legal & Compliance · Zero Telemetry',
+    'privPage.title': 'Privacy Policy',
+    'privPage.lede': 'Forumind runs locally in your browser with zero developer servers, zero analytics, and per-site host permissions.',
+    'privPage.syncBadge': 'Live synced with main/PRIVACY.md ↗',
     'footer.copy': 'Free & open-source under Apache License 2.0. Made by kccarlos.',
     'footer.privacy': 'Privacy Policy'
   },
@@ -528,6 +614,7 @@ export const UI_COPY = {
     'nav.sites': '支持的网站',
     'nav.guide': '配置指南',
     'nav.faq': '常见问题',
+    'nav.support': '支持与反馈',
     'hero.tagline': '你的评论区 AI 助手',
     'hero.desc': '在浏览器侧边栏一键爬楼总结几百楼长帖、带 <code>#楼层号</code> 追问细节，或让 AI 帮你搜遍整个社区。',
     'hero.ctaChrome': '添加至 Chrome',
@@ -629,7 +716,7 @@ export const UI_COPY = {
     'perm.f3.title': '随时撤销站点授权',
     'perm.f3.desc': '在“设置 → 论坛访问”管理域名，历史总结不丢失。',
     'priv.title': '隐私安全承诺',
-    'priv.policyLink': 'PRIVACY.md ↗',
+    'priv.policyLink': '隐私政策 →',
     'priv.f1.title': '零服务器 · 零遥测',
     'priv.f1.desc': '无任何统计埋点，任何数据都不会发给开发者。',
     'priv.f2.title': '100% 本地浏览器存储',
@@ -641,7 +728,59 @@ export const UI_COPY = {
     'faq.lede': '关于支持网站、登录态、Cloudflare 验证、限速与本地 Ollama 的快速解答。',
     'faq.searchPlaceholder': '搜索常见问题…',
     'faq.searchAria': '搜索常见问题',
-    'faq.emptyState': '未找到匹配的常见问题，可换个关键词或在 GitHub 提交 Issue。',
+    'faq.emptyState': '未找到匹配的常见问题，可换个关键词或在支持页提交反馈。',
+    'sup.eyebrow': '帮助支持与问题反馈',
+    'sup.title': '支持服务、反馈与新网站申请',
+    'sup.lede': '10 秒快速排查常见配置问题，或使用下方表单生成结构化 GitHub Issue（申请支持新网站、反馈 Bug 或提出建议）。',
+    'sup.ghBadge': 'GitHub Issues ↗',
+    'sup.q1.title': '网站未识别或按钮灰色',
+    'sup.q1.badge': '站点授权',
+    'sup.q1.desc': '在该页面点一下工具栏上的 Forumind 图标，并在侧边栏点击 <strong>允许访问</strong>。',
+    'sup.q2.title': 'API 密钥报错或限速 (401 / 429)',
+    'sup.q2.badge': 'AI 服务商',
+    'sup.q2.desc': '在“设置”中点击 <strong>测试连接</strong>，或在底部输入框一键切换其他常用模型。',
+    'sup.q3.title': '本地 Ollama / LM Studio 连接',
+    'sup.q3.badge': '本地模型',
+    'sup.q3.desc': '确认本地服务运行在 <code>11434</code> / <code>1234</code> 端口，或接入任意 OpenAI 兼容 <code>/v1</code> 接口。',
+    'sup.q4.title': '需登录的私有社区或 Reddit',
+    'sup.q4.badge': '登录态复用',
+    'sup.q4.desc': '先在浏览器普通标签页登录 Reddit、LINUX DO 或水源社区，再点一键总结。',
+    'sup.formTitle': '提交问题反馈或申请支持新网站',
+    'sup.formSub': '选择反馈类型并填写下方信息，点击按钮即可直接跳转到已自动预填好 Markdown 内容的 GitHub Issue 页面。',
+    'sup.typeAria': '反馈类型',
+    'sup.type.site': '申请支持新网站',
+    'sup.type.bug': '问题反馈 (Bug)',
+    'sup.type.feature': '功能建议',
+    'sup.type.question': '使用咨询',
+    'sup.label.title': '标题 / 简述',
+    'sup.ph.title.site': '例如：希望支持某论坛或某 WordPress 博客评论区',
+    'sup.ph.title.bug': '例如：在某 300 楼长帖点击总结时报错',
+    'sup.ph.title.feature': '例如：支持将总结一键导出为 Markdown 文件',
+    'sup.ph.title.question': '例如：如何配置自定义 vLLM / OneAPI 接口？',
+    'sup.label.url': '相关网站或帖子链接 (URL)',
+    'sup.ph.url': 'https://example.com/...',
+    'sup.label.platform': '网站底层架构',
+    'sup.plat.unsure': '不确定 / 自动检测',
+    'sup.plat.discourse': 'Discourse 论坛',
+    'sup.plat.wordpress': 'WordPress 博客',
+    'sup.plat.reddit': 'Reddit',
+    'sup.plat.other': '其他架构',
+    'sup.label.env': '浏览器与 AI 服务商（选填）',
+    'sup.ph.env': '例如：Chrome 134 · Gemini 2.5 Flash',
+    'sup.label.details': '详细说明',
+    'sup.ph.details.site': '请告诉我们该网站的名称、是否需要登录访问等补充信息。',
+    'sup.ph.details.bug': '请描述具体表现、侧边栏报错提示或复现步骤。',
+    'sup.ph.details.feature': '请描述你希望新增的功能或使用场景。',
+    'sup.ph.details.question': '请描述你遇到的问题或配置详情。',
+    'sup.submitBtn': '前往 GitHub 提交 Issue（已自动预填）↗',
+    'sup.copyBtn': '复制 Markdown 内容',
+    'sup.copiedBtn': '已复制到剪贴板 ✓',
+    'sup.browseIssues': '查看已有 GitHub Issues ↗',
+    'privPage.eyebrow': '隐私合规 · 零追踪埋点',
+    'privPage.title': '隐私政策 (Privacy Policy)',
+    'privPage.lede':
+      'Forumind 完全运行在你的本地浏览器中：零开发者服务器、零统计遥测、按网站逐个授权。下方政策正文实时同步自 GitHub 仓库 main/PRIVACY.md。',
+    'privPage.syncBadge': '实时同步自 main/PRIVACY.md ↗',
     'footer.copy': '基于 Apache License 2.0 免费开源 · 作者 kccarlos',
     'footer.privacy': '隐私政策'
   },
@@ -653,6 +792,7 @@ export const UI_COPY = {
     'nav.sites': '支援的網站',
     'nav.guide': '設定指南',
     'nav.faq': '常見問題',
+    'nav.support': '支援與回饋',
     'hero.tagline': '你的留言區 AI 助手',
     'hero.desc': '在瀏覽器側邊欄一鍵爬文摘要數百樓長文、帶 <code>#樓層號</code> 追問細節，或讓 AI 幫你搜遍整個社群。',
     'hero.ctaChrome': '加到 Chrome',
@@ -755,7 +895,7 @@ export const UI_COPY = {
     'perm.f3.title': '隨時撤銷網站授權',
     'perm.f3.desc': '在「設定 → 論壇存取」管理網域，歷史摘要不遺失。',
     'priv.title': '隱私安全承諾',
-    'priv.policyLink': 'PRIVACY.md ↗',
+    'priv.policyLink': '隱私權政策 →',
     'priv.f1.title': '零伺服器 · 零遙測',
     'priv.f1.desc': '無任何統計埋點，任何資料都不會發給開發者。',
     'priv.f2.title': '100% 本機瀏覽器儲存',
@@ -767,7 +907,59 @@ export const UI_COPY = {
     'faq.lede': '關於支援網站、登入態、Cloudflare 驗證、限速與本機 Ollama 的快速解答。',
     'faq.searchPlaceholder': '搜尋常見問題…',
     'faq.searchAria': '搜尋常見問題',
-    'faq.emptyState': '未找到匹配的常見問題，可換個關鍵字或在 GitHub 提交 Issue。',
+    'faq.emptyState': '未找到匹配的常見問題，可換個關鍵字或在支援頁提交回饋。',
+    'sup.eyebrow': '支援服務與問題回饋',
+    'sup.title': '支援服務、回饋與新網站申請',
+    'sup.lede': '10 秒快速排查常見設定問題，或使用下方表單產生結構化 GitHub Issue（申請支援新網站、回報 Bug 或提出建議）。',
+    'sup.ghBadge': 'GitHub Issues ↗',
+    'sup.q1.title': '網站未識別或按鈕灰色',
+    'sup.q1.badge': '網站授權',
+    'sup.q1.desc': '在該頁面點一下工具列上的 Forumind 圖示，並在側邊欄點擊 <strong>允許存取</strong>。',
+    'sup.q2.title': 'API 金鑰報錯或限速 (401 / 429)',
+    'sup.q2.badge': 'AI 供應商',
+    'sup.q2.desc': '在「設定」中點擊 <strong>測試連線</strong>，或在底部輸入框一鍵切換其他常用模型。',
+    'sup.q3.title': '本機 Ollama / LM Studio 連線',
+    'sup.q3.badge': '本機模型',
+    'sup.q3.desc': '確認本機服務執行於 <code>11434</code> / <code>1234</code> 連接埠，或串接任意 OpenAI 相容 <code>/v1</code> 介面。',
+    'sup.q4.title': '需登入的私有社群或 Reddit',
+    'sup.q4.badge': '登入態重用',
+    'sup.q4.desc': '先在瀏覽器一般分頁登入 Reddit、LINUX DO 或水源社群，再點一鍵摘要。',
+    'sup.formTitle': '提交問題回饋或申請支援新網站',
+    'sup.formSub': '選擇回饋類型並填寫下方資訊，點擊按鈕即可直接跳轉至已自動預填好 Markdown 內容的 GitHub Issue 頁面。',
+    'sup.typeAria': '回饋類型',
+    'sup.type.site': '申請支援新網站',
+    'sup.type.bug': '問題回報 (Bug)',
+    'sup.type.feature': '功能建議',
+    'sup.type.question': '使用諮詢',
+    'sup.label.title': '標題 / 簡述',
+    'sup.ph.title.site': '例如：希望支援某論壇或某 WordPress 部落格留言區',
+    'sup.ph.title.bug': '例如：在某 300 樓長文點擊摘要時報錯',
+    'sup.ph.title.feature': '例如：支援將摘要一鍵匯出為 Markdown 檔案',
+    'sup.ph.title.question': '例如：如何設定自訂 vLLM / OneAPI 介面？',
+    'sup.label.url': '相關網站或貼文連結 (URL)',
+    'sup.ph.url': 'https://example.com/...',
+    'sup.label.platform': '網站底層架構',
+    'sup.plat.unsure': '不確定 / 自動檢測',
+    'sup.plat.discourse': 'Discourse 論壇',
+    'sup.plat.wordpress': 'WordPress 部落格',
+    'sup.plat.reddit': 'Reddit',
+    'sup.plat.other': '其他架構',
+    'sup.label.env': '瀏覽器與 AI 供應商（選填）',
+    'sup.ph.env': '例如：Chrome 134 · Gemini 2.5 Flash',
+    'sup.label.details': '詳細說明',
+    'sup.ph.details.site': '請告訴我們該網站的名稱、是否需要登入存取等補充資訊。',
+    'sup.ph.details.bug': '請描述具體表現、側邊欄報錯提示或重現步驟。',
+    'sup.ph.details.feature': '請描述你希望新增的功能或使用情境。',
+    'sup.ph.details.question': '請描述你遇到的問題或設定詳情。',
+    'sup.submitBtn': '前往 GitHub 提交 Issue（已自動預填）↗',
+    'sup.copyBtn': '複製 Markdown 內容',
+    'sup.copiedBtn': '已複製到剪貼簿 ✓',
+    'sup.browseIssues': '查看已有 GitHub Issues ↗',
+    'privPage.eyebrow': '隱私合規 · 零追蹤埋點',
+    'privPage.title': '隱私權政策 (Privacy Policy)',
+    'privPage.lede':
+      'Forumind 完全執行於你的本機瀏覽器中：零開發者伺服器、零統計遙測、按網站逐一授權。下方政策正文即時同步自 GitHub 儲存庫 main/PRIVACY.md。',
+    'privPage.syncBadge': '即時同步自 main/PRIVACY.md ↗',
     'footer.copy': '基於 Apache License 2.0 免費開源 · 作者 kccarlos',
     'footer.privacy': '隱私權政策'
   }

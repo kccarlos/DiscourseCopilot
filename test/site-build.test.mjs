@@ -120,6 +120,8 @@ test('buildSite generates all 12 localized HTML pages, data/sites.json, 404.html
     assert.ok(writtenFiles.includes('sitemap.xml'));
     assert.ok(writtenFiles.includes('robots.txt'));
     assert.ok(writtenFiles.includes('.nojekyll'));
+    assert.ok(writtenFiles.includes('CNAME'));
+    assert.equal(fs.readFileSync(path.join(tmpDir, 'CNAME'), 'utf8').trim(), 'forumind.top');
     assert.ok(writtenFiles.includes('assets/icon128.png'));
     assert.ok(writtenFiles.includes('data/sites.json'));
 
@@ -176,6 +178,10 @@ test('buildSite generates all 12 localized HTML pages, data/sites.json, 404.html
         } else if (page === 'faq') {
           assert.equal(ld['@type'], 'FAQPage');
           assert.equal(ld.mainEntity.length, FAQ_ITEMS.length);
+        } else if (page === 'support') {
+          assert.equal(ld['@type'], 'ContactPage');
+        } else if (page === 'privacy') {
+          assert.equal(ld['@type'], 'WebPage');
         }
 
         // 3. Relative links between all pages and locales resolve to existing index.html files
@@ -243,6 +249,15 @@ test('buildSite generates all 12 localized HTML pages, data/sites.json, 404.html
           for (const item of FAQ_ITEMS) {
             assert.ok(html.includes(`id="${item.id}"`), `missing FAQ item ${item.id} in ${relFile}`);
           }
+        } else if (page === 'support') {
+          assert.match(html, /id="supportFormCard"/);
+          assert.match(html, /id="supSubmitBtn"/);
+          assert.match(html, /id="supCopyBtn"/);
+          assert.ok(html.includes('https://github.com/kccarlos/DiscourseCopilot/issues/new'));
+        } else if (page === 'privacy') {
+          assert.match(html, /id="privacyDocBody"/);
+          assert.ok(html.includes('<h1>Privacy Policy for Forumind</h1>'));
+          assert.ok(html.includes('https://raw.githubusercontent.com/kccarlos/DiscourseCopilot/refs/heads/main/PRIVACY.md'));
         }
       }
     }

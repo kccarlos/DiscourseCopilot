@@ -210,7 +210,7 @@ export default {
   'guide.notForum.text':
     'Forumind 适用于 Discourse 论坛、WordPress 网站（比如 Doctor of Credit）和 Reddit。打开其中任意帖子即可开始，例如：',
   'guide.notForum.moreSites': '全部支持的网站',
-  'guide.notForum.moreSitesUrl': 'https://kccarlos.github.io/DiscourseCopilot/zh-CN/sites/',
+  'guide.notForum.moreSitesUrl': 'https://forumind.top/zh-CN/sites/',
   'guide.hero.eyebrow': 'Discourse 论坛',
   'guide.hero.eyebrow.wordpress': 'WordPress 网站',
   'guide.hero.eyebrow.reddit': 'Reddit',

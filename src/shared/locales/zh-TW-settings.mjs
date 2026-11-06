@@ -149,7 +149,7 @@ export default {
   'settings.reset.confirmButton': '全部重設',
   'settings.footer.text': 'Forumind 免費且開源。',
   'settings.footer.guide': '指南與常見問題',
-  'settings.footer.guideUrl': 'https://kccarlos.github.io/DiscourseCopilot/zh-TW/guide/',
+  'settings.footer.guideUrl': 'https://forumind.top/zh-TW/guide/',
   'settings.footer.star': '★ 在 GitHub 上給星',
   'settings.footer.rate': '給它評分',
   'settings.actionBar.label': '儲存設定',
