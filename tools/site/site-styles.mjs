@@ -645,7 +645,7 @@ code {
   gap: 8px;
 }
 
-.sim-panel-card h4 {
+.sim-panel-card h3 {
   margin: 0;
   font-size: 12.5px;
   font-weight: 650;

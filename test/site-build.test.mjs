@@ -30,6 +30,14 @@ test('site-data: all 3 locales define identical UI_COPY keys and non-empty strin
       assert.equal(typeof val, 'string', `${locale}.${key}`);
       assert.ok(val.trim().length > 0, `empty ${locale}.${key}`);
     }
+    assert.ok(
+      UI_COPY[locale]['filter.all'].includes(`(${COMMUNITIES.length})`),
+      `filter.all in ${locale} should reflect COMMUNITIES.length (${COMMUNITIES.length})`
+    );
+    assert.ok(
+      UI_COPY[locale]['strip.cta'].includes(`${COMMUNITIES.length}+`),
+      `strip.cta in ${locale} should reflect COMMUNITIES.length (${COMMUNITIES.length}+)`
+    );
   }
 });
 
@@ -111,6 +119,12 @@ test('buildSite generates all 12 localized HTML pages, 404.html, sitemap.xml, ro
           html.includes(`<link rel="alternate" hreflang="x-default" href="${getPageUrl('en', page)}">`),
           `missing hreflang=x-default in ${relFile}`
         );
+        assert.ok(
+          html.includes(`<meta name="twitter:image" content="${SITE_BASE_URL}/assets/icon128.png">`),
+          `missing twitter:image in ${relFile}`
+        );
+        const ogAltMatches = [...html.matchAll(/property="og:locale:alternate"/g)];
+        assert.equal(ogAltMatches.length, 2, `expected 2 og:locale:alternate tags in ${relFile}`);
 
         // 2. JSON-LD parses cleanly and matches page schema
         const ldMatch = html.match(/<script type="application\/ld\+json">\s*([\s\S]*?)\s*<\/script>/);
@@ -151,9 +165,9 @@ test('buildSite generates all 12 localized HTML pages, 404.html, sitemap.xml, ro
         // 5. Page-specific DOM assertions
         if (page === 'overview') {
           assert.match(html, /id="simStage"/);
-          assert.match(html, /id="tab-summary"/);
-          assert.match(html, /id="tab-chat"/);
-          assert.match(html, /id="tab-agent"/);
+          assert.match(html, /id="tab-summary"[^>]*aria-selected="true"[^>]*tabindex="0"/);
+          assert.match(html, /id="tab-chat"[^>]*aria-selected="false"[^>]*tabindex="-1"/);
+          assert.match(html, /id="tab-agent"[^>]*aria-selected="false"[^>]*tabindex="-1"/);
         } else if (page === 'sites') {
           const cardMatches = [...html.matchAll(/class="site-card"/g)];
           assert.equal(cardMatches.length, COMMUNITIES.length);
@@ -176,7 +190,10 @@ test('buildSite generates all 12 localized HTML pages, 404.html, sitemap.xml, ro
       }
     }
 
-    // Check sitemap.xml and robots.txt
+    // Check 404.html, sitemap.xml, and robots.txt
+    const notFound = fs.readFileSync(path.join(tmpDir, '404.html'), 'utf8');
+    assert.ok(notFound.includes('forumind-site-theme'));
+    assert.ok(notFound.includes(`${SITE_BASE_URL}/assets/icon128.png`));
     const sitemap = fs.readFileSync(path.join(tmpDir, 'sitemap.xml'), 'utf8');
     for (const locale of LOCALES) {
       for (const page of PAGES) {

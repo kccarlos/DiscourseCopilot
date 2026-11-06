@@ -261,7 +261,7 @@ function renderOverviewMain({ locale, dict }) {
 <section class="surface-card" aria-label="${escapeHtml(dict['feat.sectionLabel'])}">
   <div class="walkthrough-layout">
     <div class="walkthrough-nav" role="tablist" aria-label="${escapeHtml(dict['feat.tablistLabel'])}">
-      <button type="button" class="feature-tab-btn" role="tab" id="tab-summary" aria-controls="simStage" data-tab="summary" aria-selected="true">
+      <button type="button" class="feature-tab-btn" role="tab" id="tab-summary" aria-controls="simStage" data-tab="summary" aria-selected="true" tabindex="0">
         <span class="feature-tab-title">
           <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h8l4 4v14H7V3Z"/><path d="M15 3v5h4M10 12h6M10 16h6"/></svg>
           <span>${escapeHtml(dict['feat.tab1.title'])}</span>
@@ -269,7 +269,7 @@ function renderOverviewMain({ locale, dict }) {
         <span class="feature-tab-desc">${dict['feat.tab1.desc']}</span>
       </button>
 
-      <button type="button" class="feature-tab-btn" role="tab" id="tab-chat" aria-controls="simStage" data-tab="chat" aria-selected="false">
+      <button type="button" class="feature-tab-btn" role="tab" id="tab-chat" aria-controls="simStage" data-tab="chat" aria-selected="false" tabindex="-1">
         <span class="feature-tab-title">
           <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H9l-5 4V5Z"/><path d="M8 9h8M8 13h5"/></svg>
           <span>${escapeHtml(dict['feat.tab2.title'])}</span>
@@ -277,7 +277,7 @@ function renderOverviewMain({ locale, dict }) {
         <span class="feature-tab-desc">${dict['feat.tab2.desc']}</span>
       </button>
 
-      <button type="button" class="feature-tab-btn" role="tab" id="tab-agent" aria-controls="simStage" data-tab="agent" aria-selected="false">
+      <button type="button" class="feature-tab-btn" role="tab" id="tab-agent" aria-controls="simStage" data-tab="agent" aria-selected="false" tabindex="-1">
         <span class="feature-tab-title">
           <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
           <span>${escapeHtml(dict['feat.tab3.title'])}</span>
@@ -601,7 +601,11 @@ function renderClientScript({ locale, page }) {
       '    const key = btn.getAttribute("data-tab");',
       '    const html = SIM_HTML[key];',
       '    if (!html || !stage) return;',
-      '    tabs.forEach(b => b.setAttribute("aria-selected", String(b === btn)));',
+      '    tabs.forEach(b => {',
+      '      const selected = b === btn;',
+      '      b.setAttribute("aria-selected", String(selected));',
+      '      b.setAttribute("tabindex", selected ? "0" : "-1");',
+      '    });',
       '    stage.setAttribute("aria-labelledby", btn.id);',
       '    if (focusBtn) btn.focus();',
       '    stage.innerHTML = html;',
@@ -615,6 +619,12 @@ function renderClientScript({ locale, page }) {
       '      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {',
       '        e.preventDefault();',
       '        selectTab(tabs[(idx - 1 + tabs.length) % tabs.length], true);',
+      '      } else if (e.key === "Home") {',
+      '        e.preventDefault();',
+      '        selectTab(tabs[0], true);',
+      '      } else if (e.key === "End") {',
+      '        e.preventDefault();',
+      '        selectTab(tabs[tabs.length - 1], true);',
       '      }',
       '    });',
       '  });'
@@ -658,8 +668,12 @@ function renderClientScript({ locale, page }) {
       '  const faqSearch = document.getElementById("faqSearchInput");',
       '  const faqItems = Array.from(document.querySelectorAll("#faqList details.faq-item"));',
       '  const faqEmpty = document.getElementById("faqEmptyState");',
+      '  function getHashId() {',
+      '    return (window.location.hash || "").replace(/^#/, "");',
+      '  }',
       '  function applyFaqFilter() {',
       '    const q = ((faqSearch && faqSearch.value) || "").trim().toLowerCase();',
+      '    const hashId = getHashId();',
       '    let visibleCount = 0;',
       '    faqItems.forEach((item, idx) => {',
       '      const show = !q || item.textContent.toLowerCase().includes(q);',
@@ -667,13 +681,14 @@ function renderClientScript({ locale, page }) {
       '      if (show) {',
       '        visibleCount++;',
       '        if (q) item.open = true;',
-      '        else if (!window.location.hash) item.open = idx === 0;',
+      '        else if (hashId) item.open = item.id === hashId || idx === 0;',
+      '        else item.open = idx === 0;',
       '      }',
       '    });',
       '    if (faqEmpty) faqEmpty.classList.toggle("hidden", visibleCount > 0);',
       '  }',
       '  function openHashTarget() {',
-      '    const id = (window.location.hash || "").replace(/^#/, "");',
+      '    const id = getHashId();',
       '    if (!id) return;',
       '    const target = document.getElementById(id);',
       '    if (target && target.tagName === "DETAILS") target.open = true;',
@@ -705,6 +720,10 @@ export function renderSitePage({ locale = 'en', page = 'overview', version = '3.
     ...LOCALES.map(loc => `<link rel="alternate" hreflang="${loc}" href="${getPageUrl(loc, page)}">`),
     `<link rel="alternate" hreflang="x-default" href="${getPageUrl('en', page)}">`
   ].join('\n  ');
+
+  const ogLocaleAlternates = LOCALES.filter(loc => loc !== locale)
+    .map(loc => `<meta property="og:locale:alternate" content="${OG_LOCALE[loc]}">`)
+    .join('\n  ');
 
   const overviewHref = getRelativeHref(locale, page, locale, 'overview');
   const sitesHref = getRelativeHref(locale, page, locale, 'sites');
@@ -741,6 +760,7 @@ export function renderSitePage({ locale = 'en', page = 'overview', version = '3.
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Forumind">
   <meta property="og:locale" content="${OG_LOCALE[locale] || 'en_US'}">
+  ${ogLocaleAlternates}
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:url" content="${canonicalUrl}">
@@ -748,6 +768,7 @@ export function renderSitePage({ locale = 'en', page = 'overview', version = '3.
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(description)}">
+  <meta name="twitter:image" content="${ogImageUrl}">
 
   <script>
     try {
@@ -839,6 +860,15 @@ export function renderNotFoundPage() {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Page Not Found — Forumind</title>
   <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" href="${SITE_BASE_URL}/assets/icon128.png">
+  <script>
+    try {
+      const savedTheme = localStorage.getItem("forumind-site-theme");
+      if (savedTheme === "light" || savedTheme === "dark") {
+        document.documentElement.setAttribute("data-theme", savedTheme);
+      }
+    } catch {}
+  </script>
   <style>
 ${SITE_CSS}
   </style>
