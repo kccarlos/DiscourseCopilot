@@ -215,6 +215,59 @@ test('missing item ("No such item.") and bad inputs fail cleanly', async () => {
   await assert.rejects(fetcher('not a url', ITEM_ID), /valid site URL/);
 });
 
+test('stories and comments mentioning Cloudflare or challenge phrases on 200 OK HN pages do not trigger false-positive challenge errors, while real challenges still fail with needsUserAction', async () => {
+  const cloudflareItemHtml = renderItemHtml({
+    title: 'Show HN: Deploying Workers on Cloudflare in just a moment',
+    toptext: 'We hit a checking your browser loop behind Cloudflare and documented the fix.',
+    comments: [
+      renderCommentRow({
+        id: '201',
+        indent: 0,
+        author: 'carol',
+        body: 'Cloudflare Workers + cf-chl- bypass discussions always say "Just a moment..." when checking your browser.'
+      })
+    ]
+  });
+  const cloudflareNewestHtml = `<!DOCTYPE html><html><body><table id="hnmain">
+<tr class="athing submission" id="41234567"><td class="title"><span class="rank">1.</span></td><td class="votelinks"></td><td class="title"><span class="titleline"><a href="https://example.com/cf">Cloudflare outage: Just a moment while checking your browser</a></span></td></tr>
+<tr><td colspan="2"></td><td class="subtext"><span class="subline"><span class="score" id="score_41234567">99 points</span> by <a href="user?id=alice" class="hnuser">alice</a> <span class="age" title="2026-10-14T17:46:05 1792000000"><a href="item?id=41234567">2 hours ago</a></span> | <a href="item?id=41234567">1&nbsp;comment</a></span></td></tr>
+</table></body></html>`;
+
+  const okFetch = async url => {
+    const parsed = new URL(url);
+    const html = parsed.pathname === '/newest' ? cloudflareNewestHtml : cloudflareItemHtml;
+    return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  };
+
+  const fetcher = createHackerNewsFetcher({ fetchImpl: okFetch });
+  const topic = await fetcher(HACKERNEWS_SITE_URL, ITEM_ID);
+  assert.equal(topic.totalPosts, 2);
+  assert.match(topic.content, /Deploying Workers on Cloudflare in just a moment/);
+  assert.match(topic.content, /Cloudflare Workers \+ cf-chl- bypass discussions/);
+
+  const client = new HackerNewsToolClient({
+    siteUrl: HACKERNEWS_SITE_URL,
+    fetchImpl: okFetch,
+    governor: new ForumRequestGovernor({ minIntervalMs: 0 })
+  });
+  const latest = await client.listLatest();
+  assert.equal(latest.topics.length, 1);
+  assert.match(latest.topics[0].title, /Cloudflare outage: Just a moment while checking your browser/);
+
+  for (const status of [503, 200]) {
+    const challengeFetch = async () =>
+      new Response('<!DOCTYPE html><html><head><title>Just a moment...</title></head><body>cf-chl-</body></html>', {
+        status,
+        headers: { 'Content-Type': 'text/html' }
+      });
+    const challengeFetcher = createHackerNewsFetcher({ fetchImpl: challengeFetch });
+    await assert.rejects(
+      challengeFetcher(HACKERNEWS_SITE_URL, ITEM_ID),
+      error => error.needsUserAction === true && error.code === 'USER_ACTION_REQUIRED' && /news\.ycombinator\.com/.test(error.message)
+    );
+  }
+});
+
 test('Agent tools and prompt on Hacker News: search_forum, search_comments, list_latest, and read_topic', async () => {
   const names = agentToolsFor('hackernews').map(tool => tool.name);
   assert.deepEqual(names, ['search_forum', 'search_comments', 'list_latest', 'read_topic', 'saved_summaries', 'final_answer']);
