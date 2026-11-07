@@ -27,7 +27,7 @@ function parse(value) {
  */
 export function hackerNewsItemFromUrl(value) {
   const url = parse(value);
-  if (!url || url.pathname !== '/item') {
+  if (url?.pathname !== '/item') {
     return null;
   }
   const id = String(url.searchParams.get('id') || '').trim();

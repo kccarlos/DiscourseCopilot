@@ -12,19 +12,13 @@ import { parseCommentSearch, parsePostSearch } from '../shared/reddit-search.mjs
 import { redditIdFromTopicId, topicIdFromRedditId } from '../shared/reddit-page.mjs';
 import { fetchWithRateLimitRetry } from '../shared/rate-limit-retry.mjs';
 import { normalizeSiteUrl } from '../shared/forum-site.mjs';
-import {
-  FORUM_RESPONSE_KIND,
-  classifyForumResponse,
-  forumAccessError,
-  isChallengeBody,
-  isLoginRedirect,
-  readForumResponse
-} from '../shared/forum-response.mjs';
+import { FORUM_RESPONSE_KIND, classifyForumResponse, forumAccessError, readForumResponse } from '../shared/forum-response.mjs';
 import { t } from '../shared/i18n.mjs';
 
 const SUBREDDIT_PATTERN = /^[A-Za-z0-9_]{2,21}$/;
 const SORTS = new Set(['relevance', 'new', 'top']);
 const SEARCH_HEADERS = Object.freeze({ Accept: 'text/html', 'Cache-Control': 'no-cache' });
+const REDDIT_SEARCH_MARKER = /data-testid="search-|<(?:faceplate|shreddit)-/i;
 
 function cleanText(value, maxLength = 500) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
@@ -136,22 +130,12 @@ export class RedditToolClient {
         this.fetchImpl ? { fetchImpl: this.fetchImpl, signal: options.signal } : { signal: options.signal }
       );
       const snapshot = await readForumResponse(response);
-      const ok = snapshot.status >= 200 && snapshot.status < 300;
-      if (!ok) {
-        const kind = classifyForumResponse(snapshot, this.siteUrl, { expect: 'json' });
-        if (kind === FORUM_RESPONSE_KIND.LOGIN_REQUIRED || kind === FORUM_RESPONSE_KIND.CHALLENGE) {
-          throw forumAccessError(kind, this.siteUrl, { status: snapshot.status });
-        }
-        throw Object.assign(new Error(t('forumResponse.httpError', { status: snapshot.status })), { status: snapshot.status });
+      const kind = classifyForumResponse(snapshot, this.siteUrl, { expect: 'html', htmlMarker: REDDIT_SEARCH_MARKER });
+      if (kind === FORUM_RESPONSE_KIND.LOGIN_REQUIRED || kind === FORUM_RESPONSE_KIND.CHALLENGE) {
+        throw forumAccessError(kind, this.siteUrl, { status: snapshot.status });
       }
-      // A logged-out session can be sent to the login page or a challenge with status 200.
-      if (!snapshot.body.includes('data-testid="search-')) {
-        if (isLoginRedirect(snapshot, this.siteUrl)) {
-          throw forumAccessError(FORUM_RESPONSE_KIND.LOGIN_REQUIRED, this.siteUrl, { status: snapshot.status });
-        }
-        if (isChallengeBody(snapshot.body)) {
-          throw forumAccessError(FORUM_RESPONSE_KIND.CHALLENGE, this.siteUrl, { status: snapshot.status });
-        }
+      if (kind !== FORUM_RESPONSE_KIND.OK && kind !== FORUM_RESPONSE_KIND.EMPTY) {
+        throw Object.assign(new Error(t('forumResponse.httpError', { status: snapshot.status })), { status: snapshot.status });
       }
       return snapshot.body;
     });

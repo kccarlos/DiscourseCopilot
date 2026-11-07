@@ -347,3 +347,35 @@ test('parsePostSearch extracts scores and comment counts even when English "vote
   assert.equal(items[0].score, 85);
   assert.equal(items[0].commentCount, 23);
 });
+
+test('a 0-result Reddit search for "cloudflare" resolves to empty results instead of a false-positive challenge, while a real 200 challenge page still fails', async () => {
+  const emptyShredditClient = new RedditToolClient({
+    siteUrl: REDDIT_SITE_URL,
+    fetchImpl: async () =>
+      new Response(
+        '<shreddit-app><faceplate-tracker noun="search"><p>Hm... we couldn’t find any results for “cloudflare just a moment”</p></faceplate-tracker></shreddit-app>',
+        { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+      ),
+    governor: new ForumRequestGovernor({ minIntervalMs: 0 })
+  });
+  const emptyRes = await emptyShredditClient.searchForum({ query: 'cloudflare just a moment', subreddit: 'churning' });
+  assert.deepEqual(emptyRes.topicSummaries, []);
+  assert.equal(emptyRes.more, false);
+
+  const challengeClient = new RedditToolClient({
+    siteUrl: REDDIT_SITE_URL,
+    fetchImpl: async () =>
+      new Response(
+        '<!DOCTYPE html><html><head><title>Just a moment...</title></head><body>Checking your browser before accessing www.reddit.com (Cloudflare cf-chl-)</body></html>',
+        {
+          status: 200,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        }
+      ),
+    governor: new ForumRequestGovernor({ minIntervalMs: 0 })
+  });
+  await assert.rejects(
+    () => challengeClient.searchForum({ query: 'chase', subreddit: 'churning' }),
+    error => error.needsUserAction === true && error.code === 'USER_ACTION_REQUIRED'
+  );
+});
