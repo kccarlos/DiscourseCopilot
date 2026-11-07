@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  一鍵爬文摘要，針對整串討論追問（連是哪一樓說的都告訴你），還能讓 AI 幫你搜遍整個論壇，回答附帶原始貼文連結。支援 Discourse 論壇、WordPress 部落格留言區和 Reddit 貼文。
+  一鍵爬文摘要，針對整串討論追問（連是哪一樓說的都告訴你），還能讓 AI 幫你搜遍整個論壇，回答附帶原始貼文連結。支援 Discourse 論壇、WordPress 部落格留言區、Reddit 貼文和 Hacker News。
 </p>
 
 <p align="center">
@@ -43,7 +43,7 @@
 
 ![Forumind 示範：摘要 Discourse 貼文、追問、在全論壇搜尋並給出帶來源的回答](docs/screenshots/zh-TW/demo.gif)
 
-Forumind 是一個免費、開源的 Chrome 擴充功能。它在瀏覽器側邊欄裡開啟，配合任何以 Discourse 架設的論壇、WordPress 網站（例如 Doctor of Credit）和 Reddit 貼文使用，並且**用你自己的論壇登入狀態讀文**。AI 由你自己提供（用你自己的 API 金鑰，或者跑在你電腦上的本機模型），**擴充功能本身沒有伺服器、沒有帳號、沒有任何分析**。
+Forumind 是一個免費、開源的 Chrome 擴充功能。它在瀏覽器側邊欄裡開啟，配合任何以 Discourse 架設的論壇、WordPress 網站（例如 Doctor of Credit）、Reddit 貼文和 Hacker News 討論使用，並且**用你自己的論壇登入狀態讀文**。AI 由你自己提供（用你自己的 API 金鑰，或者跑在你電腦上的本機模型），**擴充功能本身沒有伺服器、沒有帳號、沒有任何分析**。
 
 ## 支援哪些網站
 
@@ -60,6 +60,10 @@ Forumind 是一個免費、開源的 Chrome 擴充功能。它在瀏覽器側邊
 ### Reddit
 
 在登入 Reddit 的狀態下，可以讀取貼文及其全部留言；「全站搜尋」會在某個看板（subreddit）內搜尋。
+
+### Hacker News
+
+支援 [Hacker News](https://news.ycombinator.com) 的貼文、Ask HN / Show HN 與多層巢狀留言樹；「全站搜尋」可在全站貼文與留言中檢索。
 
 不確定某個網站能不能用？開啟它，點一下 Forumind 圖示，側邊欄會告訴你。以上網站僅作舉例，Forumind 與它們沒有任何關聯。各論壇自己的規則仍然有效，機器人驗證比較嚴格的論壇可能會攔截部分請求（見[常見問題](docs/zh-TW/faq.md)）。
 

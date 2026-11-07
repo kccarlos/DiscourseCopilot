@@ -47,7 +47,13 @@ export function splitEmphasis(text) {
 
 // The wording key for a site type: Discourse has the bare key.
 const siteKey = (key, context) =>
-  context?.siteType === SITE_TYPE.WORDPRESS ? `${key}.wordpress` : context?.siteType === SITE_TYPE.REDDIT ? `${key}.reddit` : key;
+  context?.siteType === SITE_TYPE.WORDPRESS
+    ? `${key}.wordpress`
+    : context?.siteType === SITE_TYPE.REDDIT
+      ? `${key}.reddit`
+      : context?.siteType === SITE_TYPE.HACKERNEWS
+        ? `${key}.hackernews`
+        : key;
 
 function pageState(context) {
   if (!context) return GUIDANCE_STATE.LOADING;

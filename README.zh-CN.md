@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  一键爬楼总结，针对整栋楼追问（连是哪一层楼说的都告诉你），还能让 AI 帮你搜遍整个论坛，回答附带原帖链接。支持 Discourse 论坛、WordPress 博客评论区和 Reddit 帖子。
+  一键爬楼总结，针对整栋楼追问（连是哪一层楼说的都告诉你），还能让 AI 帮你搜遍整个论坛，回答附带原帖链接。支持 Discourse 论坛、WordPress 博客评论区、Reddit 帖子和 Hacker News。
 </p>
 
 <p align="center">
@@ -43,7 +43,7 @@
 
 ![Forumind 演示：总结 Discourse 帖子、追问、在全论坛搜索并给出带来源的回答](docs/screenshots/zh-CN/demo.gif)
 
-Forumind 是一个免费、开源的 Chrome 扩展。它在浏览器侧边栏里打开，配合任何基于 Discourse 搭建的论坛、WordPress 网站（比如 Doctor of Credit）和 Reddit 帖子使用，并且**用你自己的论坛登录状态读帖**。AI 由你自己提供（用你自己的 API key，或者跑在你电脑上的本地模型），**扩展本身没有服务器、没有账号、没有任何统计**。
+Forumind 是一个免费、开源的 Chrome 扩展。它在浏览器侧边栏里打开，配合任何基于 Discourse 搭建的论坛、WordPress 网站（比如 Doctor of Credit）、Reddit 帖子和 Hacker News 讨论使用，并且**用你自己的论坛登录状态读帖**。AI 由你自己提供（用你自己的 API key，或者跑在你电脑上的本地模型），**扩展本身没有服务器、没有账号、没有任何统计**。
 
 ## 支持哪些网站
 
@@ -60,6 +60,10 @@ Forumind 是一个免费、开源的 Chrome 扩展。它在浏览器侧边栏里
 ### Reddit
 
 在登录 Reddit 的状态下，可以读取帖子及其全部评论；“全站搜索”会在某个版块（subreddit）内搜索。
+
+### Hacker News
+
+支持 [Hacker News](https://news.ycombinator.com) 的帖子、Ask HN / Show HN 与多层嵌套评论树；“全站搜索”可在全站帖子和评论中检索。
 
 不确定某个网站能不能用？打开它，点一下 Forumind 图标，侧边栏会告诉你。以上网站仅作举例，Forumind 与它们没有任何关联。各论坛自己的规则仍然有效，人机验证比较严格的论坛可能会拦截部分请求（见[常见问题](docs/zh-CN/faq.md)）。
 

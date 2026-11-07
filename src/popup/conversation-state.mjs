@@ -9,7 +9,8 @@ import {
   siteUrlFromPageUrl
 } from '../shared/forum-site.mjs';
 import { SITE_TYPE, normalizeSiteType, siteTypeSupportsAgent } from '../shared/site-types.mjs';
-import { redditPostFromUrl } from '../shared/reddit-page.mjs';
+import { redditPageFromUrl } from '../shared/reddit-page.mjs';
+import { hackerNewsItemFromUrl, hackerNewsPageFromUrl, isHackerNewsHostname } from '../shared/hackernews-page.mjs';
 import { t } from '../shared/i18n.mjs';
 
 function pageOrigin(value) {
@@ -35,11 +36,15 @@ function describesTab(pageState, tabUrl) {
   if (!tabUrl || typeof pageState.url !== 'string' || !pageState.url) {
     return true;
   }
-  if (normalizeSiteType(pageState.siteType) === SITE_TYPE.REDDIT && pageState.isSupportedSite === true) {
+  const siteType = normalizeSiteType(pageState.siteType);
+  if (siteType === SITE_TYPE.REDDIT && pageState.isSupportedSite === true) {
     // A Reddit post is the same post whatever host or comment permalink shows it.
-    return redditPostFromUrl(tabUrl)?.topicId === (pageState.topicId ? String(pageState.topicId) : undefined);
+    return redditPageFromUrl(tabUrl)?.postId === (pageState.topicId ? String(pageState.topicId) : null);
   }
-  if (pageState.isSupportedSite !== true || normalizeSiteType(pageState.siteType) === SITE_TYPE.WORDPRESS) {
+  if (siteType === SITE_TYPE.HACKERNEWS && pageState.isSupportedSite === true) {
+    return hackerNewsPageFromUrl(tabUrl)?.postId === (pageState.topicId ? String(pageState.topicId) : null);
+  }
+  if (pageState.isSupportedSite !== true || siteType === SITE_TYPE.WORDPRESS) {
     // A WordPress post has one fixed address.
     return pageLocation(pageState.url) === pageLocation(tabUrl);
   }
@@ -148,7 +153,9 @@ export function topicKeyFromUrl(url, siteUrl) {
   if (!site || !isSameForumUrl(url, siteUrl)) {
     return '';
   }
-  const topicId = extractForumTopicId(url, site.basePath);
+  const topicId = isHackerNewsHostname(new URL(site.origin).hostname)
+    ? hackerNewsItemFromUrl(url)?.topicId
+    : extractForumTopicId(url, site.basePath);
   return topicId ? buildTopicKey(siteUrl, topicId) : '';
 }
 

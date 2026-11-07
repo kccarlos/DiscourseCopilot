@@ -190,6 +190,7 @@ export default {
   'guide.foundEyebrow': '發現 Discourse 論壇',
   'guide.foundEyebrow.wordpress': '發現 WordPress 網站',
   'guide.foundEyebrow.reddit': '發現 Reddit',
+  'guide.foundEyebrow.hackernews': '發現 Hacker News',
   'guide.maybeTitle': '這是 Discourse 論壇嗎？',
   'guide.allowTitle': '在 {forum} 上啟用 Forumind',
   'guide.maybeText':
@@ -197,6 +198,7 @@ export default {
   'guide.allowText': '這樣它就能以你目前的登入身份閱讀話題並搜尋此論壇。',
   'guide.allowText.wordpress': '這樣它就能讀取文章與留言並搜尋此網站。',
   'guide.allowText.reddit': '這樣它就能以你目前的登入身份讀取貼文與留言並搜尋 Reddit。',
+  'guide.allowText.hackernews': '這樣它就能讀取貼文與留言並搜尋 Hacker News。',
   'guide.access.step1': '點選下方的「**允許存取**」。',
   'guide.access.step2': 'Chrome 會請求授權，請選擇「**允許**」。',
   'guide.access.maybeTopic': '如果這是 Discourse 論壇，點選「**產生摘要**」。',
@@ -214,6 +216,7 @@ export default {
   'guide.hero.eyebrow': 'Discourse 論壇',
   'guide.hero.eyebrow.wordpress': 'WordPress 網站',
   'guide.hero.eyebrow.reddit': 'Reddit',
+  'guide.hero.eyebrow.hackernews': 'Hacker News',
   'guide.hero.title': '你正在瀏覽 {forum}',
   'guide.checklist.step2': '第 2 步，共 2 步：允許存取此論壇',
   'guide.checklist.step1': '第 1 步，共 2 步：連線 AI 供應商',
