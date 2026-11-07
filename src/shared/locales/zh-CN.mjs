@@ -190,6 +190,7 @@ export default {
   'guide.foundEyebrow': '发现 Discourse 论坛',
   'guide.foundEyebrow.wordpress': '发现 WordPress 网站',
   'guide.foundEyebrow.reddit': '发现 Reddit',
+  'guide.foundEyebrow.hackernews': '发现 Hacker News',
   'guide.maybeTitle': '这是 Discourse 论坛吗？',
   'guide.allowTitle': '在 {forum} 上启用 Forumind',
   'guide.maybeText':
@@ -197,6 +198,7 @@ export default {
   'guide.allowText': '这样它就能以你当前的登录身份阅读话题并搜索此论坛。',
   'guide.allowText.wordpress': '这样它就能读取文章与评论并搜索此网站。',
   'guide.allowText.reddit': '这样它就能以你当前的登录身份读取帖子与评论并搜索 Reddit。',
+  'guide.allowText.hackernews': '这样它就能读取帖子与评论并搜索 Hacker News。',
   'guide.access.step1': '点击下方的“**允许访问**”。',
   'guide.access.step2': 'Chrome 会请求授权，请选择“**允许**”。',
   'guide.access.maybeTopic': '如果这是 Discourse 论坛，点击“**总结贴文**”。',
@@ -214,6 +216,7 @@ export default {
   'guide.hero.eyebrow': 'Discourse 论坛',
   'guide.hero.eyebrow.wordpress': 'WordPress 网站',
   'guide.hero.eyebrow.reddit': 'Reddit',
+  'guide.hero.eyebrow.hackernews': 'Hacker News',
   'guide.hero.title': '你正在浏览 {forum}',
   'guide.checklist.step2': '第 2 步，共 2 步：允许访问此论坛',
   'guide.checklist.step1': '第 1 步，共 2 步：连接 AI 服务商',

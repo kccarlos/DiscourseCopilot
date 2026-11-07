@@ -10,6 +10,7 @@ import { buildTopicKey, forumDisplayName, normalizeBasePath, siteUrlFromPageUrl 
 import { SITE_TYPE } from '../shared/site-types.mjs';
 import { collectWordPressFacts, wordPressPageFromFacts } from '../shared/wordpress-page.mjs';
 import { REDDIT_SITE_URL, redditPageFromUrl, redditPostFromUrl } from '../shared/reddit-page.mjs';
+import { HACKERNEWS_SITE_URL, hackerNewsItemFromUrl, hackerNewsPageFromUrl } from '../shared/hackernews-page.mjs';
 
 const { MESSAGES, STORAGE_KEYS } = DiscourseCopilotConstants;
 // The launcher's few labels come from _locales through chrome.i18n, so this
@@ -78,12 +79,12 @@ class DiscourseCopilotContent {
   }
 
   detect() {
-    // Reddit is recognized by its address alone.
-    const reddit = redditPageFromUrl(window.location.href);
-    if (reddit) {
-      this.siteType = SITE_TYPE.REDDIT;
+    // Reddit and Hacker News are recognized by their address alone.
+    const urlPage = redditPageFromUrl(window.location.href) || hackerNewsPageFromUrl(window.location.href);
+    if (urlPage) {
+      this.siteType = urlPage.siteType;
       this.basePath = '';
-      this.forumName = reddit.forumName;
+      this.forumName = urlPage.forumName;
       this.wordPressPostId = null;
       this.isSupportedSite = true;
       return true;
@@ -233,14 +234,21 @@ class DiscourseCopilotContent {
         this.forumName = wordpress.forumName;
       }
     }
-    this.siteUrl = this.siteType === SITE_TYPE.REDDIT ? REDDIT_SITE_URL : siteUrlFromPageUrl(nextUrl, this.basePath);
+    this.siteUrl =
+      this.siteType === SITE_TYPE.REDDIT
+        ? REDDIT_SITE_URL
+        : this.siteType === SITE_TYPE.HACKERNEWS
+          ? HACKERNEWS_SITE_URL
+          : siteUrlFromPageUrl(nextUrl, this.basePath);
     const topicId = !this.siteUrl
       ? null
       : this.siteType === SITE_TYPE.REDDIT
         ? redditPostFromUrl(nextUrl)?.topicId || null
-        : this.siteType === SITE_TYPE.WORDPRESS
-          ? this.wordPressPostId
-          : extractForumTopicId(nextUrl, this.basePath);
+        : this.siteType === SITE_TYPE.HACKERNEWS
+          ? hackerNewsItemFromUrl(nextUrl)?.topicId || null
+          : this.siteType === SITE_TYPE.WORDPRESS
+            ? this.wordPressPostId
+            : extractForumTopicId(nextUrl, this.basePath);
     this.postId = buildTopicKey(this.siteUrl, topicId) ? topicId : null;
     this.syncLauncher();
 

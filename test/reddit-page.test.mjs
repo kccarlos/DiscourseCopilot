@@ -97,6 +97,7 @@ test('the probe turns a Reddit tab into page state, post or listing', () => {
   assert.equal(listing.isSupportedSite, true);
   assert.equal(listing.isForumTopic, false);
   assert.equal(listing.topicKey, '');
+  assert.equal(getTopicContext({ id: 7, url: 'https://example.com/' }, listing).isSupportedSite, false);
 });
 
 test('the panel context for a Reddit post, with and without access', () => {

@@ -12,6 +12,7 @@ import { DEFAULT_SITE_TYPE } from '../../shared/site-types.mjs';
 import { createDiscourseAdapter } from './discourse.mjs';
 import { createWordPressSiteAdapter } from './wordpress.mjs';
 import { createRedditSiteAdapter } from './reddit.mjs';
+import { createHackerNewsSiteAdapter } from './hackernews.mjs';
 
 export { DEFAULT_SITE_TYPE };
 
@@ -48,5 +49,10 @@ export function createSiteRegistry(adapters) {
 }
 
 export function createDefaultSiteRegistry(options) {
-  return createSiteRegistry([createDiscourseAdapter(options), createWordPressSiteAdapter(options), createRedditSiteAdapter(options)]);
+  return createSiteRegistry([
+    createDiscourseAdapter(options),
+    createWordPressSiteAdapter(options),
+    createRedditSiteAdapter(options),
+    createHackerNewsSiteAdapter(options)
+  ]);
 }

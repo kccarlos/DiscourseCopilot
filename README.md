@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  Summarize long discussions, ask follow-up questions, and let AI search the whole forum for you, with links to the posts it used. Works on Discourse forums, WordPress blog comments and Reddit threads.
+  Summarize long discussions, ask follow-up questions, and let AI search the whole forum for you, with links to the posts it used. Works on Discourse forums, WordPress blog comments, Reddit threads and Hacker News.
 </p>
 
 <p align="center">
@@ -43,7 +43,7 @@
 
 ![Forumind in action: summarizing a Discourse topic, asking a follow-up, and asking the whole forum for an answer with sources](docs/screenshots/demo.gif)
 
-Forumind is a free, open-source Chrome extension. It opens in your browser's side panel next to a forum built on Discourse, a WordPress site (like Doctor of Credit) or a Reddit post and reads it with your own login. You bring your own AI (a provider's API key, or a model on your own computer), and **it has no servers, accounts, or analytics of its own**.
+Forumind is a free, open-source Chrome extension. It opens in your browser's side panel next to a forum built on Discourse, a WordPress site (like Doctor of Credit), a Reddit post or a Hacker News thread and reads it with your own login. You bring your own AI (a provider's API key, or a model on your own computer), and **it has no servers, accounts, or analytics of its own**.
 
 ## Works with
 
@@ -60,6 +60,10 @@ WordPress sites that use WordPress's native comments and leave the public REST A
 ### Reddit
 
 Reddit posts with all their comments, while you're signed in to Reddit. Ask the forum searches within a subreddit.
+
+### Hacker News
+
+[Hacker News](https://news.ycombinator.com) stories, Ask HN / Show HN posts and nested comment trees. Ask the forum searches stories and comments across Hacker News.
 
 Not sure whether a site is supported? Open it and click the Forumind icon: the side panel tells you. The sites above are listed only as examples; Forumind is not affiliated with them. Each forum's own rules still apply, and a forum with strict bot checks can block some requests (see the [FAQ](docs/faq.md#does-it-work-on-every-discourse-forum-including-ones-where-i-have-to-log-in)).
 

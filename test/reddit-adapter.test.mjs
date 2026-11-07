@@ -258,7 +258,7 @@ test('the comment tree keeps each comment once and lists its ids', () => {
 
 test('the registry and task flow carry Reddit alongside the other sites', () => {
   const registry = createDefaultSiteRegistry();
-  assert.deepEqual(registry.types, ['discourse', 'wordpress', 'reddit']);
+  assert.deepEqual(registry.types, ['discourse', 'wordpress', 'reddit', 'hackernews']);
   assert.equal(registry.get('reddit').label, 'Reddit');
   assert.equal(registry.forTask({ siteType: 'reddit' }).type, 'reddit');
   assert.equal(registry.forTask({}).type, 'discourse', 'tasks without a site type still read as Discourse');

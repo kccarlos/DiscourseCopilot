@@ -169,10 +169,49 @@ const REDDIT_AGENT_TOOLS = Object.freeze(
   ].map(tool => Object.freeze(tool))
 );
 
+// The same tools on Hacker News, where a story is the "topic" and its
+// comment tree is the replies; search uses the public Algolia HN Search API.
+const HACKERNEWS_AGENT_TOOLS = Object.freeze(
+  [
+    {
+      name: 'search_forum',
+      description:
+        'Search Hacker News stories (submissions, Ask HN, Show HN) by keyword. Returns up to 20 stories per page with id, title, comment count, date and an excerpt. Example: {"tool": "search_forum", "arguments": {"query": "sqlite production", "sort": "relevance"}}.',
+      parameters: [
+        { name: 'query', description: 'Plain words to search for', required: true },
+        { name: 'sort', description: 'Optional: relevance (default) or new', required: false },
+        { name: 'page', description: 'Result page, 1 to 3 (default 1)', required: false }
+      ],
+      requiresApproval: false
+    },
+    {
+      name: 'search_comments',
+      description:
+        'Search Hacker News comments across all stories by keyword. Returns 10 comments per page, each with the story id and title, author, date and a text excerpt. Use it to find specific experiences or technical details; then read_topic the story to get a citable source. Example: {"tool": "search_comments", "arguments": {"query": "pg_bouncer latency"}}.',
+      parameters: [
+        { name: 'query', description: 'Plain words to search for in comment text', required: true },
+        { name: 'sort', description: 'Optional: relevance (default) or new', required: false },
+        { name: 'page', description: 'Result page, 1 to 3 (default 1)', required: false }
+      ],
+      requiresApproval: false
+    },
+    {
+      name: 'list_latest',
+      description: 'List the newest stories on Hacker News (about 30). Example: {"tool": "list_latest", "arguments": {}}.',
+      parameters: [],
+      requiresApproval: false
+    },
+    REDDIT_AGENT_TOOLS.find(tool => tool.name === 'read_topic'),
+    AGENT_TOOLS.find(tool => tool.name === 'saved_summaries'),
+    AGENT_TOOLS.find(tool => tool.name === FINAL_ANSWER_TOOL)
+  ].map(tool => Object.freeze(tool))
+);
+
 /** The tools the agent has on a kind of site. */
 export function agentToolsFor(siteType) {
   const type = normalizeSiteType(siteType);
   if (type === SITE_TYPE.REDDIT) return REDDIT_AGENT_TOOLS;
+  if (type === SITE_TYPE.HACKERNEWS) return HACKERNEWS_AGENT_TOOLS;
   return type === SITE_TYPE.WORDPRESS ? WORDPRESS_AGENT_TOOLS : AGENT_TOOLS;
 }
 
@@ -197,7 +236,7 @@ function dateText(now) {
  * @param {string} options.forumName
  * @param {string} options.siteUrl
  * @param {{maxSteps: number, maxTopicReads: number, maxCharsPerRead: number}} options.budget
- * @param {string} [options.siteType] 'discourse' (default), 'wordpress' or 'reddit'
+ * @param {string} [options.siteType] 'discourse' (default), 'wordpress', 'reddit' or 'hackernews'
  * @param {string} [options.responseLanguage]
  * @param {string} [options.customInstructions] the user's own system prompt
  */
@@ -210,13 +249,23 @@ export function buildAgentSystemPrompt({
   customInstructions = '',
   now = Date.now()
 }) {
-  const reddit = normalizeSiteType(siteType) === SITE_TYPE.REDDIT;
-  // Reddit reads like WordPress: posts with comments, ids in digits.
-  const wordpress = reddit || normalizeSiteType(siteType) === SITE_TYPE.WORDPRESS;
+  const type = normalizeSiteType(siteType);
+  const reddit = type === SITE_TYPE.REDDIT;
+  const hackernews = type === SITE_TYPE.HACKERNEWS;
+  // Reddit and Hacker News read like WordPress: posts with comments, ids in digits.
+  const wordpress = reddit || hackernews || type === SITE_TYPE.WORDPRESS;
+  const defaultName = reddit ? 'Reddit' : hackernews ? 'Hacker News' : wordpress ? 'a WordPress site' : 'a Discourse forum';
+  const kindDesc = reddit
+    ? 'subreddit communities of posts with comment threads'
+    : hackernews
+      ? 'Hacker News stories and nested comment threads'
+      : wordpress
+        ? 'a WordPress site: articles (posts) with reader comments'
+        : 'a Discourse forum';
   const custom = String(customInstructions || '')
     .trim()
     .slice(0, AGENT_CONTEXT_LIMITS.maxSystemPromptChars);
-  return `You are a research agent for ${forumName || (reddit ? 'Reddit' : wordpress ? 'a WordPress site' : 'a Discourse forum')} (${siteUrl}), ${reddit ? 'subreddit communities of posts with comment threads' : wordpress ? 'a WordPress site: articles (posts) with reader comments' : 'a Discourse forum'}.
+  return `You are a research agent for ${forumName || defaultName} (${siteUrl}), ${kindDesc}.
 Today is ${dateText(now)}. Work toward the user's goal by calling tools one at a time, then finish with ${FINAL_ANSWER_TOOL}. Every tool works on this ${wordpress ? 'site' : 'forum'} only.
 
 Rules:

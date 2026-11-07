@@ -4,15 +4,15 @@
 
 ## Overview
 
-Forumind (formerly DiscourseCopilot) is a browser extension that summarizes and answers questions about discussions you visit, using an AI provider you configure. It works on three kinds of sites: Discourse forums (for example community.openai.com or meta.discourse.org), WordPress sites that leave their public REST API open (for example doctorofcredit.com), and Reddit (www.reddit.com, while you are signed in). This policy explains what data the extension handles and where it goes. In this policy, "forum" or "site" means any of these.
+Forumind (formerly DiscourseCopilot) is a browser extension that summarizes and answers questions about discussions you visit, using an AI provider you configure. It works on four kinds of sites: Discourse forums (for example community.openai.com or meta.discourse.org), WordPress sites that leave their public REST API open (for example doctorofcredit.com), Reddit (www.reddit.com, while you are signed in), and Hacker News (news.ycombinator.com). This policy explains what data the extension handles and where it goes. In this policy, "forum" or "site" means any of these.
 
 ## Permissions and site access
 
-Discourse forums and WordPress sites are hosted on arbitrary domains, so the extension cannot list them in advance. Instead of asking for access to all websites, it asks for access **one site at a time** (Reddit too: access to `www.reddit.com` is requested the same way), when you choose **Allow access** in the side panel. Chrome shows its own prompt, and nothing is read from a forum before you allow it.
+Discourse forums and WordPress sites are hosted on arbitrary domains, so the extension cannot list them in advance. Instead of asking for access to all websites, it asks for access **one site at a time** (Reddit and Hacker News too: access to `www.reddit.com` and `news.ycombinator.com` is requested the same way), when you choose **Allow access** in the side panel. Chrome shows its own prompt, and nothing is read from a forum before you allow it.
 
 - **Forums you enable** (optional host permission, per forum): the extension reads topics, posts, comments and search results from that site, using your existing browser session there (so login-required forums work when you are logged in, and Reddit works only while you are signed in to Reddit). A small content script runs on that site's pages to detect the topic or post you are viewing and show the in-page Forumind button. You can see and remove every enabled forum under **Settings → Forum access**; removing access keeps your saved summaries and answers.
 - **AI provider hosts** (requested at install): the API addresses of the supported providers (OpenRouter, OpenAI, Anthropic, Groq, Google Gemini, xAI, DeepSeek) and `localhost` / `127.0.0.1` for Ollama and LM Studio. They are used only to send your requests to the provider you configured, and to read that provider's list of available models. A local model server on another computer is added (optional host permission for that one address) only when you enter its address and allow it.
-- **Checking the current page** (`activeTab` and `scripting`): when you click the Forumind toolbar icon, the extension may look once at that tab to see whether it is a supported site and read its address and title. For Discourse it looks for the `generator` meta tag, the `discourse-base-uri` meta tag or Discourse's setup element; for WordPress, the page's WordPress REST API link (`link rel="https://api.w.org/"`), its shortlink, the `body` class and the `og:site_name` tag; Reddit is recognized from the address alone. This happens only after your click and only for that tab. The result is not sent anywhere; the only thing remembered is that you clicked in that tab, kept in session storage (cleared when the browser closes).
+- **Checking the current page** (`activeTab` and `scripting`): when you click the Forumind toolbar icon, the extension may look once at that tab to see whether it is a supported site and read its address and title. For Discourse it looks for the `generator` meta tag, the `discourse-base-uri` meta tag or Discourse's setup element; for WordPress, the page's WordPress REST API link (`link rel="https://api.w.org/"`), its shortlink, the `body` class and the `og:site_name` tag; Reddit and Hacker News are recognized from the address alone. This happens only after your click and only for that tab. The result is not sent anywhere; the only thing remembered is that you clicked in that tab, kept in session storage (cleared when the browser closes).
 - **Local model servers and request headers** (`declarativeNetRequestWithHostAccess`): Ollama refuses requests that carry a browser extension's `Origin` header. The extension therefore removes that one header from its own requests to `localhost`, `127.0.0.1` and a local model server address you entered and allowed. It changes nothing else, never touches requests from web pages or to any other address, and sends no additional data anywhere.
 - **Other permissions**: `storage` (settings on your device), `sidePanel` (the side panel), `alarms` (keeps background tasks running while you browse).
 - The extension does not read forums you have not enabled, and it cannot see which websites you visit. Two small things involve the page you are on: the one-time check described above (after you click the toolbar icon), and the side panel's forum bar, which loads that forum's own icon (`/favicon.ico`) directly from the forum, as any web page would; it is requested without a referrer and can happen before you allow access. Links to AI provider sites (for example "Get a key") open only when you click them.
@@ -41,6 +41,10 @@ Only from sites you enabled, and only the site of the current page or task. Text
 **Reddit** (`www.reddit.com`, with your signed-in session)
 - The post you are reading with its comments (`/comments/{id}.json`, or `/comments/{id}/_/{comment}.json` for a "continue this thread" branch), and comments hidden behind "more replies" (`/api/morechildren.json`)
 - Post and comment search results, within a subreddit or across Reddit (`/svc/shreddit/r/{subreddit}/search/`, `/svc/shreddit/search/`), and the newest posts of a subreddit or the front page (`/r/{subreddit}/new.json`, `/new.json`), for **Ask the forum** only
+
+**Hacker News** (`news.ycombinator.com`)
+- The story or item you are reading and its comment pages (`/item?id={id}`)
+- Story and comment search results from the public Algolia HN Search API (`https://hn.algolia.com/api/v1/search`, `https://hn.algolia.com/api/v1/search_by_date`), and the newest stories (`/newest`), for **Ask the forum** only
 
 ### What the extension does NOT collect
 - **Personal information**: No names, email addresses, or other personal identifiers are collected by the developer.
@@ -90,7 +94,7 @@ You can:
 
 ## Third-Party Services
 
-### Discourse forums, WordPress sites and Reddit
+### Discourse forums, WordPress sites, Reddit and Hacker News
 - Content is read from the site you are viewing, subject to that site's own terms and privacy policy (for Reddit, [Reddit's User Agreement](https://redditinc.com/policies/user-agreement) and [Privacy Policy](https://www.reddit.com/policies/privacy-policy)).
 - Requests carry your existing session for that site, exactly as your browser would when you view the pages yourself, so the site can see these requests in its logs like any other visit.
 - Site content is cached only in your browser.
@@ -108,4 +112,4 @@ For questions about this policy or data handling, open an issue on the project's
 
 ## Summary
 
-**In simple terms**: Forumind only works on the Discourse forums, WordPress sites and Reddit that you enable, reads posts and comments from the site you are on using your own session, stores everything locally, and sends forum content only to the AI provider you choose. It collects no personal data and does no tracking.
+**In simple terms**: Forumind only works on the Discourse forums, WordPress sites, Reddit and Hacker News that you enable, reads posts and comments from the site you are on using your own session, stores everything locally, and sends forum content only to the AI provider you choose. It collects no personal data and does no tracking.

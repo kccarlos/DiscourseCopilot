@@ -4,6 +4,9 @@ Notable changes to Forumind (formerly DiscourseCopilot). The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+- Hacker News (`news.ycombinator.com`): summarize stories, Ask HN / Show HN posts and nested comment trees, ask follow-up questions in Chat, and use Ask the forum to search stories and comments across Hacker News.
+
 ## [3.0.3] - 2026-11-06
 
 ### Added

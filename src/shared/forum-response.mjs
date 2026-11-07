@@ -97,6 +97,9 @@ export function classifyForumResponse(
   if (!String(body || '').trim()) {
     return FORUM_RESPONSE_KIND.EMPTY;
   }
+  if (expect === 'html') {
+    return isChallengeBody(body) ? FORUM_RESPONSE_KIND.CHALLENGE : FORUM_RESPONSE_KIND.OK;
+  }
   if (expect === 'text' ? looksLikeHtml(body, contentType) : looksLikeHtml(body)) {
     return isChallengeBody(body) ? FORUM_RESPONSE_KIND.CHALLENGE : FORUM_RESPONSE_KIND.LOGIN_REQUIRED;
   }

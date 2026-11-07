@@ -10,6 +10,7 @@ import { buildTopicKey, forumDisplayName, normalizeBasePath, siteUrlFromPageUrl 
 import { SITE_TYPE } from '../shared/site-types.mjs';
 import { wordPressPageFromFacts } from '../shared/wordpress-page.mjs';
 import { redditPageFromUrl } from '../shared/reddit-page.mjs';
+import { hackerNewsPageFromUrl } from '../shared/hackernews-page.mjs';
 
 /**
  * Runs in the page (serialized by executeScript): must not reference
@@ -46,20 +47,20 @@ export function pageStateFromProbe(result) {
   if (!result || typeof result !== 'object' || typeof result.url !== 'string') {
     return null;
   }
-  const reddit = redditPageFromUrl(result.url);
-  if (reddit) {
+  const urlPage = redditPageFromUrl(result.url) || hackerNewsPageFromUrl(result.url);
+  if (urlPage) {
     return {
       url: result.url,
       isSupportedSite: true,
-      siteType: reddit.siteType,
+      siteType: urlPage.siteType,
       isForumPage: true,
-      isForumTopic: Boolean(reddit.postId),
-      postId: reddit.postId,
-      topicId: reddit.postId,
-      siteUrl: reddit.siteUrl,
+      isForumTopic: Boolean(urlPage.postId),
+      postId: urlPage.postId,
+      topicId: urlPage.postId,
+      siteUrl: urlPage.siteUrl,
       basePath: '',
-      forumName: forumDisplayName(reddit.siteUrl, reddit.forumName),
-      topicKey: reddit.postId ? buildTopicKey(reddit.siteUrl, reddit.postId) : '',
+      forumName: forumDisplayName(urlPage.siteUrl, urlPage.forumName),
+      topicKey: urlPage.postId ? buildTopicKey(urlPage.siteUrl, urlPage.postId) : '',
       detectedBy: 'probe'
     };
   }
