@@ -3591,6 +3591,24 @@ scenario('popup-clamp', 'src/popup/popup.html', { store: configuredStore }, asyn
     (await text(page, toggle)) === 'Show less' && (await page.getAttribute(toggle, 'aria-expanded')) === 'true'
   );
   await shot('summary-expanded');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.locator('#chatInput').click();
+  await page.keyboard.type('Does typing scroll the summary?');
+  await page.keyboard.press('Shift+Enter');
+  await page.keyboard.type('Second line in the composer');
+  check(
+    'typing in chat input does not scroll the summary page',
+    (await page.evaluate(() => document.scrollingElement.scrollTop)) === 0,
+    String(await page.evaluate(() => document.scrollingElement.scrollTop))
+  );
+  await page.evaluate(() => window.scrollTo(0, 120));
+  await page.keyboard.type(' and more');
+  check(
+    'typing in chat input while scrolled preserves scrollTop',
+    (await page.evaluate(() => document.scrollingElement.scrollTop)) === 120,
+    String(await page.evaluate(() => document.scrollingElement.scrollTop))
+  );
+  await page.fill('#chatInput', '');
   await page.click(toggle);
   check('Show less clamps again', await isClamped(page, '#summaryDisplay'));
   // A short summary is never clamped.

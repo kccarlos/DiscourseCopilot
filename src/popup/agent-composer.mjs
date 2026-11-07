@@ -7,6 +7,7 @@ import { normalizeAgentQuestion } from '../services/agent-context.mjs';
 import { t } from '../shared/i18n.mjs';
 
 const $ = id => document.getElementById(id);
+const MAX_INPUT_HEIGHT_PX = 144;
 
 export class AgentComposer {
   /**
@@ -46,17 +47,24 @@ export class AgentComposer {
       event.preventDefault();
       void this.send();
     });
-    $('agentInput').addEventListener('input', () => {
+    $('agentInput').addEventListener('input', event => {
+      this.resizeInput(event.currentTarget);
       this.hooks.updateControls();
     });
     for (const suggestion of document.querySelectorAll('[data-agent-question]')) {
       suggestion.addEventListener('click', () => {
         const input = $('agentInput');
         input.value = suggestion.dataset.agentQuestion || '';
-        input.focus();
+        this.resizeInput(input);
         this.hooks.updateControls();
+        input.focus();
       });
     }
+  }
+
+  resizeInput(input = $('agentInput')) {
+    input.style.height = 'auto';
+    input.style.height = `${Math.min(input.scrollHeight, MAX_INPUT_HEIGHT_PX)}px`;
   }
 
   searchLabel(forumName = this.forums.currentLabel()) {
@@ -84,8 +92,9 @@ export class AgentComposer {
     if (question) {
       input.value = question;
     }
-    input.focus();
     this.hooks.updateControls();
+    this.resizeInput(input);
+    input.focus();
   }
 
   hide() {
@@ -135,6 +144,7 @@ export class AgentComposer {
         return;
       }
       $('agentInput').value = '';
+      this.resizeInput();
       this.status.hide();
       this.onQueued(task);
     } catch (error) {

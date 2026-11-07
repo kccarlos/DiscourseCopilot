@@ -130,8 +130,13 @@ body {
 
 html {
     background: var(--dc-bg);
-    /* Set from the composer's height (composer-dock.mjs). */
-    scroll-padding-bottom: var(--composer-height, 0px);
+}
+
+/* Content in the topic view stops above the sticky composer when scrolled
+   into view; the composer itself sits in that bottom band and must not
+   scroll the page when focused or typed in. */
+:where(#topicView) :where(:not(#composerDock, #composerDock *)) {
+    scroll-margin-bottom: var(--composer-height, 0px);
 }
 
 body {
@@ -2390,6 +2395,10 @@ select.model-switcher:hover:not(:disabled) {
     border-bottom: 1px solid var(--dc-line);
     scroll-margin: 16px;
     transition: background-color 160ms ease;
+}
+
+#topicView .agent-source-card {
+    scroll-margin-bottom: calc(var(--composer-height, 0px) + 16px);
 }
 
 .agent-source-summary {
