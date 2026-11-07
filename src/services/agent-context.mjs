@@ -1,5 +1,6 @@
 // Small helpers shared by the Ask-the-forum composer, the agent prompt and
 // the answer view: the question's bounds and citation extraction.
+import { CITATION_PATTERN, parseCitationToken } from '../shared/agent-activity.mjs';
 
 export const AGENT_CONTEXT_LIMITS = Object.freeze({
   maxQuestionChars: 4000,
@@ -17,11 +18,11 @@ export function normalizeAgentQuestion(value) {
 export function extractCitationIds(answer, sourceRefs = []) {
   const available = new Set(sourceRefs.map(source => text(source?.sourceId, 20)).filter(Boolean));
   const ids = [];
-  for (const match of String(answer || '').matchAll(/\[(S\d+(?:#\d+)?(?:\s*[,;]\s*S\d+(?:#\d+)?)*)\]/g)) {
+  for (const match of String(answer || '').matchAll(CITATION_PATTERN)) {
     for (const token of match[1].split(/\s*[,;]\s*/)) {
-      const id = token.split('#')[0].trim();
-      if (available.has(id)) {
-        ids.push(id);
+      const parsed = parseCitationToken(token);
+      if (parsed && available.has(parsed.id)) {
+        ids.push(parsed.id);
       }
     }
   }

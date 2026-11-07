@@ -7,6 +7,7 @@ import { buildTopicUrl, FORUM_TOOL_LIMITS, ForumToolError, isAllowedForumUrl } f
 import { FINAL_ANSWER_TOOL, agentToolsFor } from '../services/agent-prompt.mjs';
 import { parseForumContent } from '../services/ai-errors.mjs';
 import { buildTopicKey, normalizeSiteUrl } from '../shared/forum-site.mjs';
+import { normalizePostTarget, resolveSourceHref } from '../shared/agent-activity.mjs';
 import { SITE_TYPE } from '../shared/site-types.mjs';
 import { redditIdFromTopicId } from '../shared/reddit-page.mjs';
 import { POSTS_PER_RAW_PAGE } from '../shared/preferences.mjs';
@@ -111,6 +112,11 @@ function filterBlocksByQuery(content, query) {
   });
 }
 
+function matchedCommentNumber(block) {
+  const match = /^Comment\s+([a-z0-9]{1,10})\b/im.exec(block) || /^[^\n]*\|\s*#(\d+)\s*$/m.exec(block);
+  return match ? normalizePostTarget(match[1]) : null;
+}
+
 function formatFetchedPosts(posts) {
   return posts
     .map(post => {
@@ -160,9 +166,10 @@ function nextSourceId(sources) {
 
 // Registers (or finds) the source card for a topic the agent read.
 function registerSource(ctx, { topicId, title, slug, url = '', postNumber = null, excerpt, evidenceType }) {
+  const rawPostTarget = normalizePostTarget(postNumber);
   // A site that has its own permalinks (WordPress) supplies them; they are
   // checked against the run's site like every other link.
-  const link = isAllowedForumUrl(url, ctx.siteUrl)
+  const baseLink = isAllowedForumUrl(url, ctx.siteUrl)
     ? url
     : ctx.siteType === SITE_TYPE.WORDPRESS
       ? `${ctx.siteUrl}/?p=${topicId}`
@@ -170,14 +177,18 @@ function registerSource(ctx, { topicId, title, slug, url = '', postNumber = null
         ? `${ctx.siteUrl}/comments/${redditIdFromTopicId(topicId)}/`
         : ctx.siteType === SITE_TYPE.HACKERNEWS
           ? `${ctx.siteUrl}/item?id=${topicId}`
-          : buildTopicUrl({ siteUrl: ctx.siteUrl, topicId, slug, postNumber });
+          : buildTopicUrl({ siteUrl: ctx.siteUrl, topicId, slug });
+  const resolvedLink = rawPostTarget ? resolveSourceHref(baseLink, rawPostTarget) : baseLink;
+  const validPostNumber = rawPostTarget && resolvedLink && resolvedLink !== baseLink ? rawPostTarget : null;
+  const link = validPostNumber ? resolvedLink : baseLink;
   const existing = ctx.sources.find(source => source.topicId === topicId);
   if (existing) {
     if (excerpt && !existing.excerpt) existing.excerpt = excerpt;
-    if (Number.isInteger(postNumber) && postNumber > 0 && !existing.postNumber) {
-      existing.postNumber = postNumber;
-      if (ctx.siteType !== SITE_TYPE.WORDPRESS && ctx.siteType !== SITE_TYPE.REDDIT && ctx.siteType !== SITE_TYPE.HACKERNEWS) {
-        existing.url = buildTopicUrl({ siteUrl: ctx.siteUrl, topicId, slug, postNumber });
+    if (validPostNumber && !existing.postNumber) {
+      const nextUrl = resolveSourceHref(existing.url, validPostNumber);
+      if (nextUrl && nextUrl !== existing.url) {
+        existing.postNumber = validPostNumber;
+        existing.url = nextUrl;
       }
     }
     // Reading the topic itself after its saved summary makes it a page source.
@@ -194,7 +205,7 @@ function registerSource(ctx, { topicId, title, slug, url = '', postNumber = null
     topicKey: buildTopicKey(ctx.siteUrl, topicId),
     title: text(title, 300) || `Topic ${topicId}`,
     url: link,
-    postNumber: Number.isInteger(postNumber) && postNumber > 0 ? postNumber : null,
+    postNumber: validPostNumber,
     excerpt: text(excerpt, SOURCE_EXCERPT_CHARS),
     evidenceType,
     retrievedAt: Date.now()
@@ -302,10 +313,21 @@ async function readTopic(args, ctx) {
       }
       allContent = pagesContent.join('\n\n\n');
     }
-    const matches = filterBlocksByQuery(allContent, query);
+    const opBlock = parseForumContent(first.content).op;
+    let matches = filterBlocksByQuery(allContent, query);
+    if (!matches.length && !explicitPage && totalPages > 1 && typeof ctx.toolClient.searchPostComments === 'function') {
+      const searchedContent = await ctx.toolClient.searchPostComments({ topicId, query });
+      if (searchedContent) {
+        const fullSearched = `${opBlock}\n\n\n${searchedContent}`;
+        matches = filterBlocksByQuery(fullSearched, query);
+        if (!matches.length) {
+          matches = parseForumContent(fullSearched).comments;
+        }
+      }
+    }
     if (matches.length > 0) {
+      matchedPostNumber = matchedCommentNumber(matches[0]);
       const joiner = /\n-{5,}[ \t]*(?:\n|$)/.test(allContent) ? '\n\n-------------------------\n\n' : '\n\n\n';
-      const opBlock = parseForumContent(first.content).op;
       const combined = [opBlock, ...matches.filter(b => b !== opBlock)].filter(Boolean).join(joiner);
       const trimmed = trimHeadTail(combined, budget, { headShare: 0.7 });
       body = trimmed.text;

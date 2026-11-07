@@ -1724,8 +1724,8 @@ scenario('popup-agent-activity', 'src/popup/popup.html', { store: configuredStor
     id: 'a1',
     question: RATE_LIMIT_QUESTION,
     steps: RATE_LIMIT_STEPS,
-    sources: RATE_LIMIT_SOURCES,
-    answer: 'Back off using the `Retry-After` header [S2], and batch tool calls where you can [S3].',
+    sources: RATE_LIMIT_SOURCES.map((source, index) => (index === 1 ? { ...source, postNumber: null } : source)),
+    answer: 'Back off using the `Retry-After` header [S2#14] (see also [S2]), and batch tool calls where you can [S3].',
     followUps: [
       {
         question: 'Does it differ for the Responses API?',
@@ -1809,6 +1809,24 @@ scenario('popup-agent-activity', 'src/popup/popup.html', { store: configuredStor
   check(
     'thread holds the first answer',
     (await text(page, '#agentDetailView .agent-turn:first-child [data-part="answer"]')).includes('Retry-After')
+  );
+  await page.click('#agentDetailView .agent-citation[data-citation="S2"][data-post-number="14"]');
+  await page.waitForTimeout(150);
+  check(
+    'post citation rewrites source link href and title to that post',
+    await page.$eval(
+      '#agentDetailView [data-source-id="S2"] a.agent-source-open',
+      a => a.href.endsWith('/1071920/14') && a.title === 'Open post 14'
+    )
+  );
+  await page.click('#agentDetailView .agent-citation[data-citation="S2"]:not([data-post-number])');
+  await page.waitForTimeout(150);
+  check(
+    'plain citation resets source link href and title to base topic',
+    await page.$eval(
+      '#agentDetailView [data-source-id="S2"] a.agent-source-open',
+      a => a.href.endsWith('/1071920') && a.title === 'Open topic'
+    )
   );
   check(
     'detail toolbar is named',

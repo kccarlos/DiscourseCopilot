@@ -247,6 +247,7 @@ test('the Reddit tool set and prompt', () => {
   });
   assert.match(prompt, /subreddit communities of posts with comment threads/);
   assert.match(prompt, /subreddit \(optional\):/);
+  assert.match(prompt, /\[S1#k9abc12\] for a specific comment id such as Comment k9abc12/);
   assert.doesNotMatch(prompt, /Discourse/);
 });
 
@@ -284,9 +285,15 @@ test('search_forum lists posts with ids, counts and absolute links, then read_to
   const read = await run('read_topic', { topic_id: String(topicIdFromRedditId('1xbi2hl')) }, ctx);
   assert.match(read.observation, /^\[S1\] Topic \d+: Question Thread - October 21, 2026/);
   assert.match(read.observation, /First comment/);
+  assert.equal(ctx.sources[0].postNumber, null);
   assert.equal(ctx.sources[0].url, `${REDDIT_SITE_URL}/r/churning/comments/1xbi2hl/question_thread_october_21_2026/`);
   assert.equal(ctx.sources[0].topicKey, `www.reddit.com/t/${topicIdFromRedditId('1xbi2hl')}`);
   assert.match(ctx.sources[0].excerpt, /^Ask your questions here\./);
+
+  const queried = await run('read_topic', { topic_id: String(topicIdFromRedditId('1xbi2hl')), query: 'First' }, ctx);
+  assert.match(queried.observation, /Showing: 1 matching post for "First"/);
+  assert.equal(ctx.sources[0].postNumber, 'c1');
+  assert.equal(ctx.sources[0].url, `${REDDIT_SITE_URL}/r/churning/comments/1xbi2hl/question_thread_october_21_2026/c1/`);
 });
 
 test("list_latest lists a subreddit's newest posts from /new.json", async () => {

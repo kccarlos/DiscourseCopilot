@@ -9,7 +9,7 @@ import {
   siteUrlFromPageUrl
 } from '../shared/forum-site.mjs';
 import { SITE_TYPE, normalizeSiteType, siteTypeSupportsAgent } from '../shared/site-types.mjs';
-import { redditPageFromUrl } from '../shared/reddit-page.mjs';
+import { isRedditHostname, redditPageFromUrl, redditPostFromUrl } from '../shared/reddit-page.mjs';
 import { hackerNewsItemFromUrl, hackerNewsPageFromUrl, isHackerNewsHostname } from '../shared/hackernews-page.mjs';
 import { t } from '../shared/i18n.mjs';
 
@@ -153,9 +153,12 @@ export function topicKeyFromUrl(url, siteUrl) {
   if (!site || !isSameForumUrl(url, siteUrl)) {
     return '';
   }
-  const topicId = isHackerNewsHostname(new URL(site.origin).hostname)
+  const hostname = new URL(site.origin).hostname;
+  const topicId = isHackerNewsHostname(hostname)
     ? hackerNewsItemFromUrl(url)?.topicId
-    : extractForumTopicId(url, site.basePath);
+    : isRedditHostname(hostname)
+      ? redditPostFromUrl(url)?.topicId
+      : extractForumTopicId(url, site.basePath);
   return topicId ? buildTopicKey(siteUrl, topicId) : '';
 }
 

@@ -211,3 +211,22 @@ test('a plain-permalink WordPress target is matched by its query, not just the h
     2
   );
 });
+
+test('a Reddit post tab is matched by its post id when navigating to a cited comment permalink', () => {
+  const site = 'https://www.reddit.com';
+  const key = topicKeyFromUrl(`${site}/r/churning/comments/1xbi2hl/question_thread_october_21_2026/`, site);
+  assert.match(key, /^www\.reddit\.com\/t\/\d+$/);
+  assert.equal(topicKeyFromUrl(`${site}/r/churning/comments/1xbi2hl/question_thread_october_21_2026/k9abc12/`, site), key);
+  const tabs = [
+    { id: 1, url: `${site}/r/churning/`, active: true },
+    { id: 2, url: `${site}/r/churning/comments/1xbi2hl/question_thread_october_21_2026/` }
+  ];
+  assert.equal(
+    findTabForForumTarget(tabs, {
+      siteUrl: site,
+      topicKey: key,
+      url: `${site}/r/churning/comments/1xbi2hl/question_thread_october_21_2026/k9abc12/`
+    }).id,
+    2
+  );
+});

@@ -8,7 +8,8 @@ import {
   agentTurnsOf,
   currentAgentTurnIndex,
   describeAgentStep,
-  isAgentActivityTerminal
+  isAgentActivityTerminal,
+  resolveSourceHref
 } from '../shared/agent-activity.mjs';
 import { isTerminalTaskStatus } from '../shared/task-record.mjs';
 import { isSameForumUrl } from '../shared/forum-site.mjs';
@@ -22,6 +23,8 @@ import { ANSWER_CLAMP_PX, clearClamp, setClamp } from './clamp.mjs';
 import { openForumTarget } from './forum-tabs.mjs';
 import { createIcon, setButtonLabel, setIconButton } from './icons.mjs';
 import { t, tn } from '../shared/i18n.mjs';
+
+export { resolveSourceHref };
 
 // "Step 3 of 15 · Searching “rate limit”…": where the agent is in this
 // turn's budget, and what it is doing.
@@ -691,8 +694,8 @@ export class AgentAnswerView {
     if (link) {
       const titleText = card.querySelector('.agent-source-title')?.textContent || '';
       const baseHref = link.dataset.baseHref || link.getAttribute('href') || '';
-      if (postNumber && /^\d+$/.test(String(postNumber)) && /\/t\/(?:[^/]+\/)?\d+(?:\/\d+)?$/.test(baseHref)) {
-        const nextHref = baseHref.replace(/(\/t\/(?:[^/]+\/)?\d+)(?:\/\d+)?$/, `$1/${postNumber}`);
+      const nextHref = postNumber ? resolveSourceHref(baseHref, postNumber) : '';
+      if (nextHref && (nextHref !== baseHref || String(postNumber) === link.dataset.basePostNumber)) {
         link.setAttribute('href', nextHref);
         const label = t('answer.openPost', { number: postNumber });
         link.title = label;

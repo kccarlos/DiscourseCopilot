@@ -279,6 +279,7 @@ test('Agent tools and prompt on Hacker News: search_forum, search_comments, list
     budget: { maxSteps: 8, maxTopicReads: 3, maxCharsPerRead: 6000 }
   });
   assert.match(prompt, /Hacker News stories and nested comment threads/);
+  assert.match(prompt, /\[S1#47769262\] for a specific comment id such as Comment 47769262/);
   assert.doesNotMatch(prompt, /Discourse/);
 
   const requests = [];
@@ -379,11 +380,17 @@ test('Agent tools and prompt on Hacker News: search_forum, search_comments, list
   assert.match(latestRes.observation, /- id 41234500: Ask HN: Best local LLM setup\? — 1 post/);
   assert.equal(parseStoryList(NEWEST_HTML).stories.length, 2);
 
+  const plainRead = await run('read_topic', { topic_id: ITEM_ID });
+  assert.equal(plainRead.sourceId, 'S1');
+  assert.equal(ctx.sources[0].postNumber, null);
+  assert.equal(ctx.sources[0].url, `${HACKERNEWS_SITE_URL}/item?id=${ITEM_ID}`);
+
   const readRes = await run('read_topic', { topic_id: ITEM_ID, query: 'Redis' });
   assert.equal(readRes.sourceId, 'S1');
   assert.match(readRes.observation, /Showing: 1 matching post for "Redis"/);
   assert.match(readRes.observation, /We switched from Redis to SQLite WAL\./);
-  assert.equal(ctx.sources[0].url, `${HACKERNEWS_SITE_URL}/item?id=${ITEM_ID}`);
+  assert.equal(ctx.sources[0].postNumber, 41234999);
+  assert.equal(ctx.sources[0].url, `${HACKERNEWS_SITE_URL}/item?id=${ITEM_ID}#41234999`);
   assert.equal(ctx.sources[0].topicKey, `news.ycombinator.com/t/${ITEM_ID}`);
   assert.equal(ctx.sources[0].excerpt, 'We built a zero-dependency queue on SQLite WAL.');
 });
