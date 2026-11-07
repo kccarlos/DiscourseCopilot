@@ -26,6 +26,7 @@ export const MAX_ITEM_PAGES = 10;
 const ALGOLIA_BASE_URL = 'https://hn.algolia.com/api/v1';
 const ITEM_ID_PATTERN = /^[1-9]\d{0,11}$/;
 const EXPECTED_COMMENTS_LINE = /\b(\d+) comments\b/;
+const HN_PAGE_MARKER = /\bid=["']?hnmain["']?|\bclass=["'][^"']*\bathing\b|No such item\./i;
 const SORTS = new Set(['relevance', 'new']);
 
 export const HACKERNEWS_FETCH_CONFIG = Object.freeze({
@@ -264,7 +265,7 @@ export function createHackerNewsApi({ fetchImpl, config = HACKERNEWS_FETCH_CONFI
       retryOptions({ signal, onRetry })
     );
     const snapshot = await readForumResponse(response);
-    const kind = classifyForumResponse(snapshot, siteUrl, { expect: 'html' });
+    const kind = classifyForumResponse(snapshot, siteUrl, { expect: 'html', htmlMarker: HN_PAGE_MARKER });
     if (kind === FORUM_RESPONSE_KIND.LOGIN_REQUIRED || kind === FORUM_RESPONSE_KIND.CHALLENGE || kind === FORUM_RESPONSE_KIND.NOT_FOUND) {
       throw forumAccessError(kind, siteUrl, { status: snapshot.status });
     }

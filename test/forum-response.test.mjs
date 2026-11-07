@@ -75,6 +75,24 @@ test('classifies Discourse login_required and private-topic responses', () => {
   assert.equal(classify({ status: 404, body: '' }), FORUM_RESPONSE_KIND.NOT_FOUND);
   assert.equal(classify({ status: 403, body: 'Just a moment... cf-chl-' }), FORUM_RESPONSE_KIND.CHALLENGE);
   assert.equal(classify({ status: 500, body: 'oops' }), FORUM_RESPONSE_KIND.HTTP_ERROR);
+
+  // Expected HTML pages with a page-structure marker ignore challenge words in post/search content.
+  assert.equal(
+    classifyForumResponse(
+      { status: 200, contentType: 'text/html', body: '<table id="hnmain"><tr><td>Cloudflare — Just a moment</td></tr></table>' },
+      SITE,
+      { expect: 'html', htmlMarker: /\bid=["']?hnmain["']?/i }
+    ),
+    FORUM_RESPONSE_KIND.OK
+  );
+  assert.equal(
+    classifyForumResponse(
+      { status: 200, contentType: 'text/html', body: '<!DOCTYPE html><html><title>Just a moment...</title><body>cf-chl-</body></html>' },
+      SITE,
+      { expect: 'html', htmlMarker: /\bid=["']?hnmain["']?/i }
+    ),
+    FORUM_RESPONSE_KIND.CHALLENGE
+  );
 });
 
 test('turns raw responses into content or actionable errors', () => {

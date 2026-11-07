@@ -71,12 +71,14 @@ function isNotLoggedInJson(body) {
   }
 }
 
-// Classifies a forum response. `expect` is 'json' or 'text'; a successful
-// text response (e.g. /raw/) that is HTML is never forum content.
+// Classifies a forum response. `expect` is 'json', 'text', or 'html'; a
+// successful text/json response that is HTML is never forum content, while
+// an 'html' response with `htmlMarker` trusts matching page markup before
+// checking challenge heuristics.
 export function classifyForumResponse(
   { status = 0, redirected = false, url = '', contentType = '', body = '' } = {},
   siteUrl = '',
-  { expect = 'text' } = {}
+  { expect = 'text', htmlMarker = null } = {}
 ) {
   const ok = status >= 200 && status < 300;
   if (isLoginRedirect({ redirected, url }, siteUrl)) {
@@ -94,14 +96,16 @@ export function classifyForumResponse(
     }
     return FORUM_RESPONSE_KIND.HTTP_ERROR;
   }
-  if (!String(body || '').trim()) {
+  const text = String(body || '');
+  if (!text.trim()) {
     return FORUM_RESPONSE_KIND.EMPTY;
   }
   if (expect === 'html') {
-    return isChallengeBody(body) ? FORUM_RESPONSE_KIND.CHALLENGE : FORUM_RESPONSE_KIND.OK;
+    const matched = htmlMarker instanceof RegExp ? htmlMarker.test(text) : Boolean(htmlMarker && text.includes(htmlMarker));
+    return !matched && isChallengeBody(text) ? FORUM_RESPONSE_KIND.CHALLENGE : FORUM_RESPONSE_KIND.OK;
   }
-  if (expect === 'text' ? looksLikeHtml(body, contentType) : looksLikeHtml(body)) {
-    return isChallengeBody(body) ? FORUM_RESPONSE_KIND.CHALLENGE : FORUM_RESPONSE_KIND.LOGIN_REQUIRED;
+  if (expect === 'text' ? looksLikeHtml(text, contentType) : looksLikeHtml(text)) {
+    return isChallengeBody(text) ? FORUM_RESPONSE_KIND.CHALLENGE : FORUM_RESPONSE_KIND.LOGIN_REQUIRED;
   }
   return FORUM_RESPONSE_KIND.OK;
 }
