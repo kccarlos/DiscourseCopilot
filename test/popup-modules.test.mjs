@@ -8,6 +8,8 @@ import { openForumTarget } from '../src/popup/forum-tabs.mjs';
 import { ForumDirectory } from '../src/popup/forum-ui.mjs';
 import { formatRelativeTime } from '../src/popup/ui-state.mjs';
 import { answerExcerpt } from '../src/popup/activity-cards.mjs';
+import { resolveSourceHref } from '../src/popup/agent-answer-view.mjs';
+import { normalizeAgentActivity, normalizePostTarget } from '../src/shared/agent-activity.mjs';
 import { exportHostLabel } from '../src/popup/summary-view.mjs';
 
 // ---------- topic controls ----------
@@ -377,4 +379,99 @@ test('exportHostLabel makes a file-name-safe forum label', () => {
   assert.equal(exportHostLabel('https://meta.discourse.org'), 'meta.discourse.org');
   assert.equal(exportHostLabel('https://forum.example.com/community'), 'forum.example.com');
   assert.equal(exportHostLabel(''), 'forum');
+});
+
+test('resolveSourceHref rewrites Discourse, Hacker News, WordPress, and Reddit source URLs for comment citations', () => {
+  assert.equal(resolveSourceHref('https://forum.example.com/t/short-topic/11', 42), 'https://forum.example.com/t/short-topic/11/42');
+  assert.equal(resolveSourceHref('https://forum.example.com/t/short-topic/11/', 42), 'https://forum.example.com/t/short-topic/11/42');
+  assert.equal(resolveSourceHref('https://forum.example.com/t/short-topic/11/2', '42'), 'https://forum.example.com/t/short-topic/11/42');
+  assert.equal(resolveSourceHref('https://forum.example.com/t/short-topic/11/2', null), 'https://forum.example.com/t/short-topic/11/2');
+  assert.equal(
+    resolveSourceHref('https://news.ycombinator.com/item?id=41234567', '47769262'),
+    'https://news.ycombinator.com/item?id=41234567#47769262'
+  );
+  assert.equal(
+    resolveSourceHref('https://news.ycombinator.com/item?id=41234567#41234999', 47769262),
+    'https://news.ycombinator.com/item?id=41234567#47769262'
+  );
+  assert.equal(
+    resolveSourceHref('https://news.ycombinator.com/item?id=41234567#41234999', null),
+    'https://news.ycombinator.com/item?id=41234567#41234999'
+  );
+  assert.equal(resolveSourceHref('https://news.ycombinator.com/item?id=41234567', 0), 'https://news.ycombinator.com/item?id=41234567');
+  assert.equal(
+    resolveSourceHref('https://www.doctorofcredit.com/chase-10x/', 5001),
+    'https://www.doctorofcredit.com/chase-10x/#comment-5001'
+  );
+  assert.equal(
+    resolveSourceHref('https://www.doctorofcredit.com/chase-10x/#comment-5000', '5001'),
+    'https://www.doctorofcredit.com/chase-10x/#comment-5001'
+  );
+  assert.equal(resolveSourceHref('https://www.doctorofcredit.com/?p=101', 5001), 'https://www.doctorofcredit.com/?p=101#comment-5001');
+  assert.equal(
+    resolveSourceHref('https://www.reddit.com/r/churning/comments/1xbi2hl/thread/', 'K9abc12'),
+    'https://www.reddit.com/r/churning/comments/1xbi2hl/thread/k9abc12/'
+  );
+  assert.equal(
+    resolveSourceHref('https://www.reddit.com/r/churning/comments/1xbi2hl/thread/old123/', 'k9abc12'),
+    'https://www.reddit.com/r/churning/comments/1xbi2hl/thread/k9abc12/'
+  );
+  assert.equal(
+    resolveSourceHref('https://www.reddit.com/comments/1xbi2hl/', 'k9abc12'),
+    'https://www.reddit.com/comments/1xbi2hl/comment/k9abc12/'
+  );
+  assert.equal(
+    resolveSourceHref('https://www.reddit.com/comments/1xbi2hl/comment/old123/', 'k9abc12'),
+    'https://www.reddit.com/comments/1xbi2hl/comment/k9abc12/'
+  );
+  assert.equal(
+    resolveSourceHref('https://www.reddit.com/r/churning/comments/1xbi2hl/thread/', '0'),
+    'https://www.reddit.com/r/churning/comments/1xbi2hl/thread/'
+  );
+  assert.equal(normalizePostTarget('0'), null);
+  assert.equal(normalizePostTarget('00'), null);
+  assert.equal(normalizePostTarget(42), 42);
+  assert.equal(normalizePostTarget('47769262'), 47769262);
+  assert.equal(normalizePostTarget('K9abc12'), 'k9abc12');
+
+  const redditActivity = normalizeAgentActivity({
+    activityId: 'r1',
+    taskId: 't1',
+    agentRunId: 'r1',
+    question: 'q',
+    siteUrl: 'https://www.reddit.com',
+    sourceRefs: [
+      {
+        sourceId: 'S1',
+        topicId: '12345',
+        url: 'https://www.reddit.com/r/churning/comments/1xbi2hl/thread/k9abc12/',
+        postNumber: 'K9abc12'
+      }
+    ]
+  });
+  assert.equal(redditActivity.sourceRefs[0].postNumber, 'k9abc12');
+
+  const discourseActivity = normalizeAgentActivity({
+    activityId: 'd1',
+    taskId: 't2',
+    agentRunId: 'd1',
+    question: 'q',
+    siteUrl: 'https://forum.example.com',
+    sourceRefs: [
+      {
+        sourceId: 'S1',
+        topicId: '11',
+        url: 'https://forum.example.com/t/short-topic/11',
+        postNumber: 'k9abc12'
+      },
+      {
+        sourceId: 'S2',
+        topicId: '12',
+        url: 'https://forum.example.com/t/long-topic/12/42',
+        postNumber: 42
+      }
+    ]
+  });
+  assert.equal(discourseActivity.sourceRefs[0].postNumber, null);
+  assert.equal(discourseActivity.sourceRefs[1].postNumber, 42);
 });

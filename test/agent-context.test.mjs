@@ -27,7 +27,7 @@ test('normalizes the question to a bounded string', () => {
 
 test('extracts the cited source IDs that exist', () => {
   const sources = [{ sourceId: 'S1' }, { sourceId: 'S2' }];
-  assert.deepEqual(extractCitationIds('Yes [S2#42] and [S1, S2#10], again [S2], but not [S9#3].', sources), ['S2', 'S1']);
+  assert.deepEqual(extractCitationIds('Yes [S2#42] and [S1#k9abc12, S2#10], again [S2], but not [S9#3].', sources), ['S2', 'S1']);
   assert.deepEqual(extractCitationIds('', sources), []);
 });
 

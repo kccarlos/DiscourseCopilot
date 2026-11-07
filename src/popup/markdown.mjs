@@ -2,30 +2,19 @@
 // citations ([S1]) turned into links to their source cards. Streaming
 // updates are batched to one render per animation frame.
 import { marked } from 'marked';
+import { CITATION_PATTERN, parseCitationToken } from '../shared/agent-activity.mjs';
 import { t } from '../shared/i18n.mjs';
 
-const CITATION_PATTERN = /\[(S\d+(?:#\d+)?(?:\s*[,;]\s*S\d+(?:#\d+)?)*)\]/g;
-
 const CITATION_SKIP_TAG = /^<(\/?)(a|code|pre)\b/i;
-
-function parseCitationToken(token) {
-  const [id, postNumber = ''] = String(token || '')
-    .trim()
-    .split('#');
-  return {
-    id,
-    postNumber: /^\d+$/.test(postNumber) ? postNumber : ''
-  };
-}
 
 // The source IDs an answer cites ([S1], [S1#42], [S1, S2]), in order of first use.
 export function citedSourceIds(markdown) {
   const ids = new Set();
   for (const match of String(markdown || '').matchAll(CITATION_PATTERN)) {
     for (const token of match[1].split(/\s*[,;]\s*/)) {
-      const { id } = parseCitationToken(token);
-      if (id) {
-        ids.add(id);
+      const parsed = parseCitationToken(token);
+      if (parsed) {
+        ids.add(parsed.id);
       }
     }
   }
@@ -55,18 +44,18 @@ export function linkifyCitations(html, sourceIds = []) {
       }
       return chunk.replace(CITATION_PATTERN, (match, ids) => {
         const list = ids.split(/\s*[,;]\s*/);
-        if (!list.some(token => known.has(parseCitationToken(token).id))) {
+        if (!list.some(token => known.has(parseCitationToken(token)?.id))) {
           return match;
         }
         // Known sources become chips; an unknown ID keeps its brackets as text.
         return list
           .map(token => {
-            const { id, postNumber } = parseCitationToken(token);
-            if (!known.has(id)) {
+            const parsed = parseCitationToken(token);
+            if (!parsed || !known.has(parsed.id)) {
               return `[${token}]`;
             }
-            const postAttr = postNumber ? ` data-post-number="${postNumber}"` : '';
-            return `<a href="#" class="agent-citation" data-citation="${id}"${postAttr} aria-label="${t('answer.sourceAria', { id })}">${token}</a>`;
+            const postAttr = parsed.postNumber ? ` data-post-number="${parsed.postNumber}"` : '';
+            return `<a href="#" class="agent-citation" data-citation="${parsed.id}"${postAttr} aria-label="${t('answer.sourceAria', { id: parsed.id })}">${token}</a>`;
           })
           .join(' ');
       });

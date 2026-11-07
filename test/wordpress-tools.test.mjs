@@ -77,6 +77,12 @@ function fakeSite({ commentCount = 230 } = {}) {
         : json({ code: 'rest_post_invalid_id' }, {}, 404);
     }
     if (pathname === '/wp-json/wp/v2/comments' && q.get('search')) {
+      if (q.get('post') === '101' && q.get('search') === 'user9149') {
+        return json([comment(9149, 101, 'Comment text 150')], {
+          'X-WP-Total': '1',
+          'X-WP-TotalPages': '1'
+        });
+      }
       return json([comment(5001, 101, 'Got <b>approved</b> instantly &#8211; no DP'), comment(5002, 102, 'Approved after a week')], {
         'X-WP-Total': '41',
         'X-WP-TotalPages': '5'
@@ -138,6 +144,7 @@ test('the WordPress system prompt talks about posts and comments, not Discourse'
   });
   assert.match(prompt, /a WordPress site: articles \(posts\) with reader comments/);
   assert.match(prompt, /search_comments:/);
+  assert.match(prompt, /\[S1#47769262\] for a specific comment id such as Comment 47769262/);
   assert.doesNotMatch(prompt, /Discourse/);
   const discourse = buildAgentSystemPrompt({
     forumName: 'F',
@@ -201,7 +208,7 @@ test('list_latest lists the newest posts', async () => {
 });
 
 test('read_topic reads the article and the opening and newest comments of a long thread, and registers the post link', async () => {
-  const { ctx } = setup({ commentCount: 230 });
+  const { site, ctx } = setup({ commentCount: 230 });
   const result = await run('read_topic', { topic_id: '101' }, ctx);
   assert.match(result.observation, /^\[S1\] Topic 101: Chase 10x & Paze/);
   assert.match(result.observation, /231 posts/);
@@ -212,11 +219,21 @@ test('read_topic reads the article and the opening and newest comments of a long
   assert.equal(ctx.sources[0].url, `${SITE}/chase-10x/`);
   assert.equal(ctx.sources[0].topicKey, 'www.doctorofcredit.com/t/101');
   assert.match(ctx.sources[0].excerpt, /Chase is offering 10x\./);
+  assert.equal(
+    site.requests.filter(r => r.includes('per_page=100&page=1')).length,
+    1,
+    'page 1 comments are fetched once and reused between getTopic and getRawPage'
+  );
 
   const second = await run('read_topic', { topic_id: '101', page: '2' }, ctx);
   assert.match(second.observation, /Showing: page 2 of 3/);
   assert.match(second.observation, /Comment text 101/);
   assert.doesNotMatch(second.observation, /Article:/);
+
+  const queried = await run('read_topic', { topic_id: '101', query: 'user9149' }, ctx);
+  assert.match(queried.observation, /Showing: 1 matching post for "user9149"/);
+  assert.equal(ctx.sources[0].postNumber, 9149);
+  assert.equal(ctx.sources[0].url, `${SITE}/chase-10x/#comment-9149`);
 });
 
 test('a post with few comments is read whole; a missing post is an error the model can recover from', async () => {

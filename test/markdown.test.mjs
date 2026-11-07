@@ -85,13 +85,15 @@ test('isAllowedHref rejects script-like and relative URLs', () => {
   }
 });
 
-test('Agent citations are linked in text (including [S1#42] post deep-links) but not inside code', () => {
-  const md = 'Enable caching [S1#42]. See [S2, S9#10] and `[S1#42]`.\n\n```\n[S1#42] in code\n```';
+test('Agent citations are linked in text (including [S1#42] and [S2#k9abc12] comment deep-links) but not inside code', () => {
+  const md =
+    'Enable caching [S1#42]. See [S2#K9abc12, S9#10], invalid [S1#0] [S1#abcdefghijk], and `[S1#42]`.\n\n```\n[S1#42] in code\n```';
   assert.deepEqual(citedSourceIds(md), ['S1', 'S2', 'S9']);
   const html = linkifyCitations(markdownToHtml(md), ['S1', 'S2']);
   assert.equal((html.match(/class="agent-citation"/g) || []).length, 2);
   assert.match(html, /data-citation="S1" data-post-number="42"[^>]*>S1#42<\/a>/);
-  assert.match(html, /data-citation="S2"[^>]*>S2<\/a> \[S9#10\]/);
+  assert.match(html, /data-citation="S2" data-post-number="k9abc12"[^>]*>S2#K9abc12<\/a> \[S9#10\]/);
+  assert.match(html, /invalid \[S1#0\] \[S1#abcdefghijk\]/);
   assert.match(html, /<code>\[S1#42\]<\/code>/);
   assert.match(html, /<pre><code>\[S1#42\] in code/);
 });

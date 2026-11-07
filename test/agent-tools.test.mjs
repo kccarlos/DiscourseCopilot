@@ -297,6 +297,8 @@ test('read_topic can filter a topic by query using Discourse post search or loca
   const shortHit = await run('read_topic', { topic_id: '11', query: 'CDN' }, ctx);
   assert.match(shortHit.observation, /Showing: 1 matching post for "CDN"/);
   assert.match(shortHit.observation, /Use the CDN\./);
+  assert.equal(ctx.sources[1].postNumber, 2);
+  assert.equal(ctx.sources[1].url, 'https://forum.example.com/t/short-topic/11/2');
 
   // When a query only appears in the OP and no replies match, read_topic falls back to normal display instead of dropping all replies.
   const opOnly = await run('read_topic', { topic_id: '11', query: 'How do I' }, ctx);

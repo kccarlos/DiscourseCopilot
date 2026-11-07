@@ -1,7 +1,11 @@
 import { TASK_STATUS, isTerminalTaskStatus } from './task-record.mjs';
 import { normalizeSiteType } from './site-types.mjs';
 import { buildTopicKey, forumDisplayName, isSameForumUrl, normalizeSiteUrl, siteUrlFromPageUrl } from './forum-site.mjs';
+import { hackerNewsItemFromUrl } from './hackernews-page.mjs';
+import { isRedditHostname, redditPostFromUrl, topicIdFromRedditId } from './reddit-page.mjs';
 import { t, tn } from './i18n.mjs';
+
+export const CITATION_PATTERN = /\[(S\d+(?:#[A-Za-z0-9]{1,12})?(?:\s*[,;]\s*S\d+(?:#[A-Za-z0-9]{1,12})?)*)\]/g;
 
 // Default retention (the "1 day" history setting); the effective value comes
 // from resolveRetention(preferences).agentMs.
@@ -45,6 +49,42 @@ function timestamp(value, fallback = 0) {
 function positiveInteger(value) {
   const number = Number(value);
   return Number.isInteger(number) && number > 0 ? String(number) : '';
+}
+
+export function normalizePostTarget(value) {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+  const raw = String(value ?? '').trim();
+  if (/^\d+$/.test(raw)) {
+    if (!/^[1-9]\d{0,11}$/.test(raw)) {
+      return null;
+    }
+    const number = Number.parseInt(raw, 10);
+    return Number.isSafeInteger(number) && number > 0 ? number : null;
+  }
+  if (/^[a-z0-9]{1,10}$/i.test(raw) && topicIdFromRedditId(raw)) {
+    return raw.toLowerCase();
+  }
+  return null;
+}
+
+export function parseCitationToken(token) {
+  const [rawId, rawPostNumber] = String(token || '')
+    .trim()
+    .split('#');
+  const id = /^S\d+$/.test(rawId) ? rawId : '';
+  if (!id) {
+    return null;
+  }
+  if (rawPostNumber !== undefined && rawPostNumber !== '') {
+    const postTarget = normalizePostTarget(rawPostNumber);
+    if (!postTarget) {
+      return null;
+    }
+    return { id, postNumber: String(postTarget) };
+  }
+  return { id, postNumber: '' };
 }
 
 function normalizeProgress(value) {
@@ -248,6 +288,15 @@ function normalizeSource(value, index, activitySiteUrl = '') {
   // Older sources had no site URL; their stored link was built for a root
   // install, so it identifies the forum.
   const siteUrl = normalizeSiteUrl(value.siteUrl) || activitySiteUrl || siteUrlFromPageUrl(url);
+  const validUrl = siteUrl && isSameForumUrl(url, siteUrl) ? url : '';
+  const postTarget = normalizePostTarget(value.postNumber);
+  let isReddit = false;
+  try {
+    isReddit = validUrl ? Boolean(redditPostFromUrl(validUrl)) : Boolean(siteUrl && isRedditHostname(new URL(siteUrl).hostname));
+  } catch {
+    isReddit = false;
+  }
+  const postNumber = typeof postTarget === 'number' || (typeof postTarget === 'string' && isReddit) ? postTarget : null;
   const source = {
     sourceId,
     topicId,
@@ -255,8 +304,8 @@ function normalizeSource(value, index, activitySiteUrl = '') {
     topicKey: buildTopicKey(siteUrl, topicId),
     title: text(value.title, 500) || t('common.topicFallback', { id: topicId }),
     // Links are only kept when they point at the source's own forum.
-    url: siteUrl && isSameForumUrl(url, siteUrl) ? url : '',
-    postNumber: Number.isInteger(value.postNumber) && value.postNumber > 0 ? value.postNumber : null,
+    url: validUrl,
+    postNumber,
     excerpt: text(value.excerpt, 5000),
     evidenceType: text(value.evidenceType, 40) || 'post',
     retrievedAt: timestamp(value.retrievedAt)
@@ -673,4 +722,53 @@ export function compactAgentTranscript(transcript, maxChars = MAX_AGENT_TRANSCRI
     }
   }
   return messages;
+}
+
+export function resolveSourceHref(baseHref, postNumber = null) {
+  const href = String(baseHref || '');
+  const target = normalizePostTarget(postNumber);
+  if (!href || target === null) {
+    return href;
+  }
+  const cleanHref = href.split('#')[0];
+  const isPositiveInt = Number.isInteger(target) && target > 0;
+  if (/\/t\/(?:[^/]+\/)?\d+(?:\/\d+)?\/?$/.test(cleanHref)) {
+    return isPositiveInt ? cleanHref.replace(/(\/t\/(?:[^/]+\/)?\d+)(?:\/\d+)?\/?$/, `$1/${target}`) : href;
+  }
+  if (hackerNewsItemFromUrl(cleanHref)) {
+    return isPositiveInt ? `${cleanHref}#${target}` : href;
+  }
+  try {
+    const parsed = new URL(cleanHref);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      return href;
+    }
+    if (isRedditHostname(parsed.hostname)) {
+      if (!redditPostFromUrl(cleanHref) || !/^[a-z0-9]{1,10}$/.test(String(target))) {
+        return href;
+      }
+      const segments = parsed.pathname.split('/').filter(Boolean);
+      const at =
+        segments[0]?.toLowerCase() === 'comments'
+          ? 0
+          : ['r', 'u', 'user'].includes(segments[0]?.toLowerCase()) && segments[2]?.toLowerCase() === 'comments'
+            ? 2
+            : -1;
+      if (at >= 0) {
+        if (segments.length > at + 2 && segments[at + 2].toLowerCase() !== 'comment') {
+          parsed.pathname = `/${[...segments.slice(0, at + 3), String(target)].join('/')}/`;
+        } else {
+          parsed.pathname = `/${[...segments.slice(0, at + 2), 'comment', String(target)].join('/')}/`;
+        }
+        return parsed.toString();
+      }
+      return href;
+    }
+    if (isPositiveInt) {
+      return `${cleanHref}#comment-${target}`;
+    }
+  } catch {
+    return href;
+  }
+  return href;
 }

@@ -80,8 +80,9 @@ export class WordPressToolClient {
     this.governor = governor;
     this.onEvent = onEvent;
     this.api = createWordPressApi({ fetchImpl });
-    // Articles read for getTopic, reused by the page-1 read that follows.
+    // Articles and comment pages read for getTopic, reused by getRawPage.
     this.articles = new Map();
+    this.commentPages = new Map();
   }
 
   // Paces the request, reports it, and turns failures into the errors the
@@ -252,13 +253,44 @@ export class WordPressToolClient {
   // Some sites close the comments endpoint (a security plugin, a 403) while
   // the posts stay readable; that reads as a post without comments.
   async commentPage(toolName, id, page) {
+    const key = `${id}:${page}`;
+    if (this.commentPages.has(key)) {
+      return this.commentPages.get(key);
+    }
     try {
-      return await this.call(toolName, options => this.api.fetchCommentPage(this.siteUrl, id, page, options));
+      const result = await this.call(toolName, options => this.api.fetchCommentPage(this.siteUrl, id, page, options));
+      this.commentPages.set(key, result);
+      return result;
     } catch (error) {
       const blocked = error instanceof ForumToolError && (error.needsUserAction || error.code === 'NOT_FOUND');
       // WordPress answers 400 for a page past the last one.
       if (blocked || (page > 1 && error?.status === 400)) {
-        return { comments: [], total: 0, totalPages: 1 };
+        const empty = { comments: [], total: 0, totalPages: 1 };
+        this.commentPages.set(key, empty);
+        return empty;
+      }
+      throw error;
+    }
+  }
+
+  async searchPostComments({ topicId, query } = {}) {
+    const id = positiveId(topicId, 'topicId');
+    const text = cleanText(query, FORUM_TOOL_LIMITS.maxQueryChars);
+    if (!text) return '';
+    try {
+      const { data } = await this.get('readTopic', '/wp/v2/comments', {
+        post: id,
+        search: text,
+        per_page: 20,
+        orderby: 'date_gmt',
+        order: 'asc',
+        _fields: 'id,parent,author_name,date_gmt,content'
+      });
+      const comments = (Array.isArray(data) ? data : []).filter(comment => Number.isInteger(comment?.id));
+      return comments.length ? joinBlocks(comments.map(formatComment)) : '';
+    } catch (error) {
+      if (error instanceof ForumToolError && (error.needsUserAction || error.code === 'NOT_FOUND')) {
+        return '';
       }
       throw error;
     }
