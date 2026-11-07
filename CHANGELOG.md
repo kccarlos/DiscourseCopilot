@@ -4,6 +4,15 @@ Notable changes to Forumind (formerly DiscourseCopilot). The format follows [Kee
 
 ## [Unreleased]
 
+## [3.0.3] - 2026-11-06
+
+### Added
+- Official website at [forumind.top](https://forumind.top/) (English, Simplified Chinese and Traditional Chinese) with an interactive feature walkthrough, searchable supported-sites directory (`data/sites.json`), provider & setup guide, FAQ, support request builder (`/support/`) and privacy policy (`/privacy/`).
+- Direct links from the extension side panel ("All supported sites") and Settings footer ("Guide & FAQ") to the corresponding localized pages on `forumind.top`.
+
+### Changed
+- Updated side-panel and Settings guidance copy across English, Simplified Chinese and Traditional Chinese to consistently cover Discourse forums, WordPress sites (such as Doctor of Credit) and Reddit.
+
 ## [3.0.2] - 2026-11-05
 
 ### Added
@@ -174,7 +183,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.2...HEAD
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.3...HEAD
+[3.0.3]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/kccarlos/DiscourseCopilot/compare/v2.5.0...v3.0.0
