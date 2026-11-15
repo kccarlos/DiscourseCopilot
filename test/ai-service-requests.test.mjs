@@ -406,29 +406,106 @@ test('rate-limit, quota, and generic bad-request errors do not trigger hierarchi
   assert.equal(isTokenLimitError(Object.assign(new Error('Rate limit exceeded: 60 requests per minute'), { statusCode: 429 })), false);
   assert.equal(isTokenLimitError(new Error('You exceeded your current quota, please check your plan and billing details')), false);
   assert.equal(isTokenLimitError(new Error('Bad Request: temperature is not supported for this model')), false);
+  for (const paramError of [
+    "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.",
+    "Invalid 'max_output_tokens': integer below minimum value. Expected a value >= 16, but got 1.",
+    "Unknown parameter: 'max_completion_tokens'.",
+    'This model does not support the max_tokens parameter.',
+    'Model gpt-5 does not support max_tokens.',
+    'max_tokens is not supported for reasoning models',
+    'max_tokens is deprecated for this model. Use max_completion_tokens instead.',
+    'Invalid parameter: max_tokens'
+  ]) {
+    assert.equal(isTokenLimitError(new Error(paramError)), false, `should not classify as token limit: ${paramError}`);
+  }
   assert.equal(isTokenLimitError(Object.assign(new Error('Invalid API token'), { status: 401 })), false);
-  assert.equal(isTokenLimitError(new Error('This model maximum context length is 8192 tokens')), true);
-  assert.equal(isTokenLimitError(new Error('Channel Error')), true);
+  for (const contextError of [
+    'This model maximum context length is 8192 tokens',
+    'Invalid argument: The input token count (1200000) exceeds the maximum number of tokens allowed (1048576).',
+    'Invalid value: maximum context length is 8192 tokens, however you requested 12000 tokens',
+    'This model only supports a maximum context length of 8192 tokens',
+    'This model does not support prompts longer than 8192 tokens',
+    'This model does not support context lengths over 8192 tokens',
+    'Context length of 20000 tokens is not supported by this model',
+    'Input length 50000 is not allowed, maximum context length is 32768 tokens',
+    'Channel Error'
+  ]) {
+    assert.equal(isTokenLimitError(new Error(contextError)), true, `should classify as token limit: ${contextError}`);
+  }
+  assert.equal(
+    isTokenLimitError({
+      message: 'Failed to generate summary',
+      originalError: { lastError: { data: { error: { code: 'unsupported_parameter' } } } }
+    }),
+    false
+  );
+  assert.equal(
+    isTokenLimitError({
+      message: 'Failed to generate summary',
+      originalError: { lastError: { data: { error: { code: 'context_length_exceeded' } } } }
+    }),
+    true
+  );
 
   for (const [status, message] of [
     [400, 'Rate limit exceeded: 60 requests per minute'],
     [400, 'You exceeded your current quota, please check your plan and billing details'],
     [400, 'Bad Request: temperature is not supported for this model'],
+    [400, "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead."],
+    [400, "Invalid 'max_output_tokens': integer below minimum value. Expected a value >= 16, but got 1."],
     [401, 'Invalid API token']
   ]) {
-    const { fetch, requests } = mockFetch(() => jsonResponse({ error: { message } }, status));
-    const service = new AIService({ fetch });
-    const progress = [];
-    await assert.rejects(
-      service.generateSummary(
-        'openai',
-        'Original post text.\n\n\n\nFirst reply.\n\n\n\nSecond reply.',
-        { apiKey: 'k', model: 'gpt-5' },
-        { onProgress: step => progress.push(step.step) }
-      ),
-      error => error.message.includes(message)
-    );
-    assert.equal(requests.length, 1, `should not retry or split on: ${message}`);
-    assert.equal(progress.includes('hierarchical'), false);
+    for (const withStream of [false, true]) {
+      const { fetch, requests } = mockFetch(() => jsonResponse({ error: { message } }, status));
+      const service = new AIService({ fetch });
+      const progress = [];
+      const chunks = [];
+      await assert.rejects(
+        service.generateSummary(
+          'openai',
+          'Original post text.\n\n\n\nFirst reply.\n\n\n\nSecond reply.',
+          { apiKey: 'k', model: 'gpt-5' },
+          {
+            onProgress: step => progress.push(step.step),
+            ...(withStream ? { onStream: chunk => chunks.push(chunk) } : {})
+          }
+        ),
+        error => error.message.includes(message)
+      );
+      assert.equal(requests.length, 1, `should not retry or split (withStream=${withStream}) on: ${message}`);
+      assert.equal(progress.includes('hierarchical'), false, `should not enter hierarchical (withStream=${withStream}) on: ${message}`);
+      assert.equal(chunks.length, 0);
+    }
   }
+
+  // Whitespace-only stream chunks are treated as empty output rather than a valid summary.
+  const { fetch: wsFetch } = mockFetch((request, count) => {
+    if (count === 1) {
+      return sseResponse(anthropicSse(['   ', '\n']));
+    }
+    if (request.body.stream) {
+      return sseResponse(anthropicSse(['Recovered summary.']));
+    }
+    return jsonResponse(anthropicMessage(`Partial ${count}`));
+  });
+  const wsService = new AIService({ fetch: wsFetch });
+  const wsSummary = await wsService.generateSummary(
+    'anthropic',
+    'Original post text.\n\n\n\nFirst reply.\n\n\n\nSecond reply.',
+    { apiKey: 'k', model: 'claude-sonnet-5' },
+    { onStream: () => {} }
+  );
+  assert.match(wsSummary, /Recovered summary\./);
+});
+
+test('OpenRouter requests for OpenAI reasoning models omit temperature', async () => {
+  const { fetch, requests } = mockFetch(() => sseResponse(chatCompletionsSse(['Summary ', 'done.'])));
+  const service = new AIService({ fetch });
+
+  const answer = await service.streamFollowUp('openrouter', followUpContext, { apiKey: 'sk-or-test', model: 'openai/gpt-6-luna' }, {});
+
+  assert.equal(answer, 'Summary done.');
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].body.model, 'openai/gpt-6-luna');
+  assert.equal('temperature' in requests[0].body, false);
 });

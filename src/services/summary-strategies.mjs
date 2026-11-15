@@ -43,19 +43,21 @@ export async function singlePassSummary(
 
   try {
     if (onStream) {
+      let lastStreamError = null;
       const result = streamText({
         model,
         instructions: systemPrompt,
         messages: [{ role: 'user', content: userContent }],
         ...samplingOptions(model, 0.7),
         abortSignal,
-        onError: error => {
-          console.error('AI Service: Stream onError callback:', error);
+        onError: event => {
+          const streamErr = event?.error instanceof Error ? event.error : new Error(String(event?.error ?? event));
+          lastStreamError = streamErr;
+          console.error('AI Service: Stream onError callback:', streamErr);
         }
       });
 
       let fullText = '';
-      let lastStreamError = null;
       try {
         for await (const chunk of result.textStream) {
           fullText += chunk;
@@ -65,7 +67,7 @@ export async function singlePassSummary(
         console.error('AI Service: Stream error:', streamError.message);
         lastStreamError = streamError;
         throwIfAborted(abortSignal);
-        if (fullText.length === 0) {
+        if (fullText.trim().length === 0) {
           // No content received, throw the original error (preserves token limit info)
           throw streamError;
         }
@@ -78,15 +80,19 @@ export async function singlePassSummary(
         const finalResult = await result;
         if (finalResult.error) {
           console.error('AI Service: Stream finished with error:', finalResult.error);
-          lastStreamError = new Error(finalResult.error.message || String(finalResult.error));
+          lastStreamError =
+            finalResult.error instanceof Error ? finalResult.error : new Error(finalResult.error.message || String(finalResult.error));
         }
       } catch (finishError) {
         console.error('AI Service: Error checking stream result:', finishError.message);
         lastStreamError = finishError;
       }
 
-      if (fullText.length === 0) {
-        const errorToThrow = lastStreamError || new Error('No content generated - model may have context limit issues');
+      if (lastStreamError) {
+        throw lastStreamError;
+      }
+      if (fullText.trim().length === 0) {
+        const errorToThrow = new Error('No content generated - model may have context limit issues');
         // Add hint about token limits
         errorToThrow.possibleTokenLimit = true;
         throw errorToThrow;
@@ -110,6 +116,12 @@ export async function singlePassSummary(
     const wrappedError = new Error(`Failed to generate summary: ${error.message}`);
     wrappedError.originalError = error;
     wrappedError.message = error.message; // Keep original message for detection
+    if (error.status !== undefined) wrappedError.status = error.status;
+    if (error.statusCode !== undefined) wrappedError.statusCode = error.statusCode;
+    if (error.responseBody !== undefined) wrappedError.responseBody = error.responseBody;
+    if (error.data !== undefined) wrappedError.data = error.data;
+    if (error.code !== undefined) wrappedError.code = error.code;
+    if (error.possibleTokenLimit) wrappedError.possibleTokenLimit = true;
     throw wrappedError;
   }
 }
@@ -387,12 +399,17 @@ export async function assembleFinalSummary(
 
   try {
     if (onStream) {
+      let lastStreamError = null;
       const result = streamText({
         model,
         instructions: finalPrompt,
         messages: [{ role: 'user', content: combinedInput }],
         ...samplingOptions(model, 0.7),
-        abortSignal
+        abortSignal,
+        onError: event => {
+          lastStreamError = event?.error instanceof Error ? event.error : new Error(String(event?.error ?? event));
+          console.error('AI Service: Final assembly stream onError:', lastStreamError);
+        }
       });
 
       let fullText = '';
@@ -404,13 +421,16 @@ export async function assembleFinalSummary(
       } catch (streamError) {
         console.error('AI Service: Final assembly stream error:', streamError.message);
         throwIfAborted(abortSignal);
-        if (fullText.length === 0) {
+        if (fullText.trim().length === 0) {
           throw streamError;
         }
         // Got partial content, use what we have
       }
 
-      if (fullText.length === 0) {
+      if (lastStreamError) {
+        throw lastStreamError;
+      }
+      if (fullText.trim().length === 0) {
         throw new Error('No content generated');
       }
       throwIfAborted(abortSignal);

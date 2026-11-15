@@ -88,9 +88,35 @@ test('every provider’s default is the first of its curated models, cheap/fast 
   }
 });
 
-test('Anthropic requests leave sampling parameters to the model', () => {
+test('Anthropic and OpenAI reasoning requests leave sampling parameters to the model', () => {
   assert.deepEqual(samplingOptions({ provider: 'anthropic.messages', modelId: 'claude-sonnet-5' }, 0.7), { maxOutputTokens: 16000 });
+  assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'gpt-6-luna' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'gpt-5.6-luna' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'gpt-5.4-mini' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'o3' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'o4-mini' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'o1' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'openai/gpt-6-luna' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'openai/gpt-6-luna:free' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'openai/o3-mini' }, 0.3), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'openai/o3-mini:high' }, 0.3), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'anthropic/claude-sonnet-5' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'anthropic/claude-sonnet-5.5' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'anthropic/claude-opus-5-5:beta' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'anthropic/claude-opus-4.7' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'anthropic/claude-opus-4.8:beta' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'deepseek/deepseek-r1:free' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'deepseek.chat', modelId: 'deepseek-reasoner' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'xai.chat', modelId: 'grok-3-mini' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'x-ai/grok-3-mini-beta' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'xai.chat', modelId: 'grok-4.3' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'x-ai/grok-4.3:free' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'xai.chat', modelId: 'grok-4.20-0309-non-reasoning' }, 0.7), { temperature: 0.7 });
+  assert.deepEqual(samplingOptions({ provider: 'xai.chat', modelId: 'grok-3' }, 0.7), { temperature: 0.7 });
   assert.deepEqual(samplingOptions({ provider: 'openai.chat', modelId: 'gpt-4o-mini' }, 0.7), { temperature: 0.7 });
+  assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'gpt-5-chat-latest' }, 0.7), { temperature: 0.7 });
+  assert.deepEqual(samplingOptions({ provider: 'groq.chat', modelId: 'openai/gpt-oss-20b' }, 0.5), { temperature: 0.5 });
+  assert.deepEqual(samplingOptions({ provider: 'deepseek.chat', modelId: 'deepseek-flash' }, 0.5), { temperature: 0.5 });
   assert.deepEqual(samplingOptions({ provider: 'openrouter' }, 0.3), { temperature: 0.3 });
   assert.deepEqual(samplingOptions(null, 0.5), { temperature: 0.5 });
 });
@@ -101,6 +127,14 @@ test('connection tests use each provider’s cheapest request shape', () => {
   assert.equal(openrouter.options.headers.Authorization, 'Bearer k');
   assert.equal(openrouter.options.headers['X-Title'], 'Forumind');
   assert.equal('HTTP-Referer' in openrouter.options.headers, false, 'no "undefined" referer header');
+  assert.equal(JSON.parse(openrouter.options.body).max_tokens, 1);
+
+  const openai = buildConnectionTest('openai', { apiKey: 'k', model: 'gpt-6-luna' }, configs);
+  assert.equal(openai.url, 'https://api.openai.com/v1/chat/completions');
+  assert.equal(openai.options.headers.Authorization, 'Bearer k');
+  const openaiBody = JSON.parse(openai.options.body);
+  assert.equal(openaiBody.max_completion_tokens, 16);
+  assert.equal('max_tokens' in openaiBody, false, 'OpenAI reasoning models reject max_tokens');
 
   const anthropic = buildConnectionTest('anthropic', { apiKey: 'k', model: 'claude' }, configs);
   assert.equal(anthropic.options.headers['x-api-key'], 'k');
@@ -119,7 +153,7 @@ test('connection tests use each provider’s cheapest request shape', () => {
   assert.match(gemini.url, /models\/gemini-x:generateContent\?key=a%20b$/);
 });
 
-test('runConnectionTest resolves on success and reports status and body on failure', async () => {
+test('runConnectionTest resolves on success, retries token-limit parameter mismatches, and reports status and body on failure', async () => {
   const calls = [];
   const ok = async (url, options) => {
     calls.push([url, options.method]);
@@ -128,10 +162,98 @@ test('runConnectionTest resolves on success and reports status and body on failu
   assert.equal(await runConnectionTest('openai', { apiKey: 'k', model: 'm' }, configs, { fetchImpl: ok }), true);
   assert.deepEqual(calls, [['https://api.openai.com/v1/chat/completions', 'POST']]);
 
+  // If a /chat/completions provider rejects max_tokens: 1 in favor of max_completion_tokens, retry once with max_completion_tokens: 16.
+  const retryPayloads = [];
+  const needsCompletionTokens = async (_url, options) => {
+    const parsed = JSON.parse(options.body);
+    retryPayloads.push(parsed);
+    if ('max_tokens' in parsed) {
+      return {
+        ok: false,
+        status: 400,
+        text: async () =>
+          '{"error":{"message":"Unsupported parameter: \'max_tokens\' is not supported with this model. Use \'max_completion_tokens\' instead."}}'
+      };
+    }
+    return { ok: true, status: 200, text: async () => '{}' };
+  };
+  assert.equal(
+    await runConnectionTest('openrouter', { apiKey: 'k', model: 'openai/o3' }, configs, { fetchImpl: needsCompletionTokens }),
+    true
+  );
+  assert.equal(retryPayloads.length, 2);
+  assert.equal(retryPayloads[0].max_tokens, 1);
+  assert.equal(retryPayloads[1].max_completion_tokens, 16);
+  assert.equal('max_tokens' in retryPayloads[1], false);
+
+  // If a /chat/completions provider requires max_tokens >= 16 (minimum value error), retry with max_tokens: 16.
+  const minTokensPayloads = [];
+  const needsMinMaxTokens = async (_url, options) => {
+    const parsed = JSON.parse(options.body);
+    minTokensPayloads.push(parsed);
+    if (parsed.max_tokens < 16) {
+      return {
+        ok: false,
+        status: 400,
+        text: async () => '{"error":{"message":"Invalid \'max_tokens\': integer below minimum value. Expected a value >= 16, but got 1."}}'
+      };
+    }
+    return { ok: true, status: 200, text: async () => '{}' };
+  };
+  assert.equal(
+    await runConnectionTest('openrouter', { apiKey: 'k', model: 'openai/gpt-5' }, configs, { fetchImpl: needsMinMaxTokens }),
+    true
+  );
+  assert.equal(minTokensPayloads.length, 2);
+  assert.equal(minTokensPayloads[0].max_tokens, 1);
+  assert.equal(minTokensPayloads[1].max_tokens, 16);
+  assert.equal('max_completion_tokens' in minTokensPayloads[1], false);
+
+  // If OpenAI rejects max_completion_tokens: 16 due to a higher minimum (e.g. >= 64), bump max_completion_tokens instead of switching back to max_tokens.
+  const minCompletionTokensPayloads = [];
+  const needsMinCompletionTokens = async (_url, options) => {
+    const parsed = JSON.parse(options.body);
+    minCompletionTokensPayloads.push(parsed);
+    if (parsed.max_completion_tokens < 64) {
+      return {
+        ok: false,
+        status: 400,
+        text: async () =>
+          '{"error":{"message":"Invalid \'max_completion_tokens\': integer below minimum value. Expected a value >= 64, but got 16."}}'
+      };
+    }
+    return { ok: true, status: 200, text: async () => '{}' };
+  };
+  assert.equal(await runConnectionTest('openai', { apiKey: 'k', model: 'o3-pro' }, configs, { fetchImpl: needsMinCompletionTokens }), true);
+  assert.equal(minCompletionTokensPayloads.length, 2);
+  assert.equal(minCompletionTokensPayloads[0].max_completion_tokens, 16);
+  assert.equal(minCompletionTokensPayloads[1].max_completion_tokens, 64);
+  assert.equal('max_tokens' in minCompletionTokensPayloads[1], false);
+
   const unauthorized = async () => ({ ok: false, status: 401, text: async () => '{"error":{"message":"Invalid API key"}}' });
   await assert.rejects(
     runConnectionTest('openai', { apiKey: 'k', model: 'm' }, configs, { fetchImpl: unauthorized }),
     error => error.status === 401 && /Invalid API key/.test(error.body) && /^HTTP 401/.test(error.message)
+  );
+
+  // Preserves >300-char JSON error bodies so structured fields at the end are not truncated.
+  const longJsonBody = JSON.stringify({
+    error: {
+      message: `Unsupported parameter: 'max_tokens' is not supported with this model. ${'x'.repeat(280)}`,
+      type: 'invalid_request_error',
+      param: 'max_tokens',
+      code: 'unsupported_parameter'
+    }
+  });
+  assert.ok(longJsonBody.length > 350);
+  await assert.rejects(
+    runConnectionTest('openai', { apiKey: 'k', model: 'm' }, configs, {
+      fetchImpl: async () => ({ ok: false, status: 400, text: async () => longJsonBody })
+    }),
+    error => {
+      const classified = classifyConnectionFailure('openai', error, configs);
+      return error.status === 400 && classified.field === null;
+    }
   );
 
   const offline = async () => {
@@ -157,6 +279,99 @@ test('connection failures map to the field the user should fix', () => {
     classifyConnectionFailure('anthropic', { status: 400, body: '{"error":{"message":"model: claude-x"}}' }, configs).field,
     'model'
   );
+  assert.equal(
+    classifyConnectionFailure('openrouter', { status: 400, body: '{"error":{"message":"foo/bar is not a valid model ID"}}' }, configs)
+      .field,
+    'model'
+  );
+  assert.equal(
+    classifyConnectionFailure(
+      'openai',
+      { status: 400, body: '{"error":{"message":"The model `gpt-foo` does not exist","code":"model_not_found"}}' },
+      configs
+    ).field,
+    'model'
+  );
+  for (const modelErrorBody of [
+    '{"error":{"message":"The model \'llama-3.1-8b-instant\' is deprecated"}}',
+    '{"error":{"message":"Model \'xyz\' is not supported for chat completions"}}',
+    '{"error":{"message":"models/gemini-x is not found for API version v1beta, or is not supported for generateContent"}}'
+  ]) {
+    assert.equal(
+      classifyConnectionFailure('openai', { status: 400, body: modelErrorBody }, configs).field,
+      'model',
+      `should mark model field invalid for: ${modelErrorBody}`
+    );
+  }
+
+  // Parameter and capability errors that mention "model" must not blame the model name.
+  for (const body of [
+    '{"error":{"message":"Unsupported parameter: \'max_tokens\' is not supported with this model. Use \'max_completion_tokens\' instead.","type":"invalid_request_error","param":"max_tokens","code":"unsupported_parameter"}}',
+    'Unsupported parameter: ‘max_tokens’ is not supported with this model. Use ‘max_completion_tokens’ instead.',
+    '{"error":{"message":"Unsupported value: \'temperature\' does not support 0.7 with this model. Only the default (1) value is supported."}}',
+    '{"error":{"message":"This model does not support the max_tokens parameter."}}',
+    '{"error":{"message":"Model gpt-5 does not support temperature."}}',
+    '{"error":{"message":"Reasoning models do not support temperature."}}',
+    '{"error":{"message":"This model only supports the default temperature value of 1."}}',
+    '{"error":{"message":"temperature is not supported for reasoning models"}}',
+    '{"error":{"message":"max_tokens is not supported for model gpt-6-luna"}}',
+    '{"error":{"message":"max_tokens is deprecated for this model"}}'
+  ]) {
+    const classified = classifyConnectionFailure('openai', { status: 400, body }, configs);
+    assert.equal(classified.field, null, `should not mark model field invalid for: ${body}`);
+  }
+
+  // OpenRouter metadata.raw upstream errors unwrap the inner message and code even when outer message is "Upstream error".
+  const openrouterWrappedParam = classifyConnectionFailure(
+    'openrouter',
+    {
+      status: 400,
+      body: JSON.stringify({
+        error: {
+          message: 'Upstream error',
+          code: 400,
+          metadata: {
+            raw: JSON.stringify({
+              error: {
+                message: "Unsupported parameter: 'max_tokens' is not supported with this model.",
+                param: 'max_tokens',
+                code: 'unsupported_parameter'
+              }
+            })
+          }
+        }
+      })
+    },
+    configs
+  );
+  assert.equal(openrouterWrappedParam.field, null);
+  assert.match(openrouterWrappedParam.message, /Unsupported parameter: 'max_tokens'/);
+
+  const openrouterWrappedModel = classifyConnectionFailure(
+    'openrouter',
+    {
+      status: 400,
+      body: JSON.stringify({
+        error: {
+          message: 'Provider returned error',
+          code: 400,
+          metadata: {
+            raw: JSON.stringify({
+              error: {
+                message: 'The model `gpt-nope` does not exist',
+                param: 'model',
+                code: 'model_not_found'
+              }
+            })
+          }
+        }
+      })
+    },
+    configs
+  );
+  assert.equal(openrouterWrappedModel.field, 'model');
+  assert.match(openrouterWrappedModel.message, /gpt-nope/);
+
   assert.equal(classifyConnectionFailure('openai', { status: 400, body: 'bad request' }, configs).field, null);
   assert.equal(classifyConnectionFailure('openai', { status: 402, body: '' }, configs).field, 'apiKey');
   assert.equal(classifyConnectionFailure('openai', { status: 500, body: '' }, configs).message, 'OpenAI returned an error (HTTP 500).');
