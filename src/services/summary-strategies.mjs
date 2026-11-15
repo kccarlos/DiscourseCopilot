@@ -88,10 +88,10 @@ export async function singlePassSummary(
         lastStreamError = finishError;
       }
 
+      if (lastStreamError) {
+        throw lastStreamError;
+      }
       if (fullText.trim().length === 0) {
-        if (lastStreamError) {
-          throw lastStreamError;
-        }
         const errorToThrow = new Error('No content generated - model may have context limit issues');
         // Add hint about token limits
         errorToThrow.possibleTokenLimit = true;
@@ -120,6 +120,7 @@ export async function singlePassSummary(
     if (error.statusCode !== undefined) wrappedError.statusCode = error.statusCode;
     if (error.responseBody !== undefined) wrappedError.responseBody = error.responseBody;
     if (error.data !== undefined) wrappedError.data = error.data;
+    if (error.code !== undefined) wrappedError.code = error.code;
     if (error.possibleTokenLimit) wrappedError.possibleTokenLimit = true;
     throw wrappedError;
   }
@@ -426,8 +427,11 @@ export async function assembleFinalSummary(
         // Got partial content, use what we have
       }
 
+      if (lastStreamError) {
+        throw lastStreamError;
+      }
       if (fullText.trim().length === 0) {
-        throw lastStreamError || new Error('No content generated');
+        throw new Error('No content generated');
       }
       throwIfAborted(abortSignal);
       return fullText;

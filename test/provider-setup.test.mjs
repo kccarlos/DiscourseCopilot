@@ -107,6 +107,12 @@ test('Anthropic and OpenAI reasoning requests leave sampling parameters to the m
   assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'anthropic/claude-opus-4.8:beta' }, 0.7), {});
   assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'deepseek/deepseek-r1:free' }, 0.7), {});
   assert.deepEqual(samplingOptions({ provider: 'deepseek.chat', modelId: 'deepseek-reasoner' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'xai.chat', modelId: 'grok-3-mini' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'x-ai/grok-3-mini-beta' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'xai.chat', modelId: 'grok-4.3' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'x-ai/grok-4.3:free' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'xai.chat', modelId: 'grok-4.20-0309-non-reasoning' }, 0.7), { temperature: 0.7 });
+  assert.deepEqual(samplingOptions({ provider: 'xai.chat', modelId: 'grok-3' }, 0.7), { temperature: 0.7 });
   assert.deepEqual(samplingOptions({ provider: 'openai.chat', modelId: 'gpt-4o-mini' }, 0.7), { temperature: 0.7 });
   assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'gpt-5-chat-latest' }, 0.7), { temperature: 0.7 });
   assert.deepEqual(samplingOptions({ provider: 'groq.chat', modelId: 'openai/gpt-oss-20b' }, 0.5), { temperature: 0.5 });
@@ -203,6 +209,27 @@ test('runConnectionTest resolves on success, retries token-limit parameter misma
   assert.equal(minTokensPayloads[1].max_tokens, 16);
   assert.equal('max_completion_tokens' in minTokensPayloads[1], false);
 
+  // If OpenAI rejects max_completion_tokens: 16 due to a higher minimum (e.g. >= 64), bump max_completion_tokens instead of switching back to max_tokens.
+  const minCompletionTokensPayloads = [];
+  const needsMinCompletionTokens = async (_url, options) => {
+    const parsed = JSON.parse(options.body);
+    minCompletionTokensPayloads.push(parsed);
+    if (parsed.max_completion_tokens < 64) {
+      return {
+        ok: false,
+        status: 400,
+        text: async () =>
+          '{"error":{"message":"Invalid \'max_completion_tokens\': integer below minimum value. Expected a value >= 64, but got 16."}}'
+      };
+    }
+    return { ok: true, status: 200, text: async () => '{}' };
+  };
+  assert.equal(await runConnectionTest('openai', { apiKey: 'k', model: 'o3-pro' }, configs, { fetchImpl: needsMinCompletionTokens }), true);
+  assert.equal(minCompletionTokensPayloads.length, 2);
+  assert.equal(minCompletionTokensPayloads[0].max_completion_tokens, 16);
+  assert.equal(minCompletionTokensPayloads[1].max_completion_tokens, 64);
+  assert.equal('max_tokens' in minCompletionTokensPayloads[1], false);
+
   const unauthorized = async () => ({ ok: false, status: 401, text: async () => '{"error":{"message":"Invalid API key"}}' });
   await assert.rejects(
     runConnectionTest('openai', { apiKey: 'k', model: 'm' }, configs, { fetchImpl: unauthorized }),
@@ -294,14 +321,14 @@ test('connection failures map to the field the user should fix', () => {
     assert.equal(classified.field, null, `should not mark model field invalid for: ${body}`);
   }
 
-  // OpenRouter metadata.raw upstream errors unwrap the inner message and code.
+  // OpenRouter metadata.raw upstream errors unwrap the inner message and code even when outer message is "Upstream error".
   const openrouterWrappedParam = classifyConnectionFailure(
     'openrouter',
     {
       status: 400,
       body: JSON.stringify({
         error: {
-          message: 'Provider returned error',
+          message: 'Upstream error',
           code: 400,
           metadata: {
             raw: JSON.stringify({

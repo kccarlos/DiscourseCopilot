@@ -216,34 +216,43 @@ function buildTokenLimitFallbackBody(requestUrl, requestOptions, status, errorBo
   if (!/\b(?:max_tokens|max_completion_tokens|max_output_tokens|minimum value|expected a value\s*>=|must be at least)\b/i.test(errorBody)) {
     return null;
   }
+  const minMatch = /(?:>=\s*|at least\s+|minimum(?:\s+value)?(?:\s+of|\s+is)?\s+)(\d+)/i.exec(errorBody);
+  const parsedMin = minMatch ? Number(minMatch[1]) : 16;
+  const requestedMin = Number.isFinite(parsedMin) ? Math.min(Math.max(parsedMin, 16), 1024) : 16;
+  const isMinError = /\b(?:minimum value|expected a value\s*>=|must be at least)\b/i.test(errorBody);
+  const rejectsTokenParam =
+    /\b(?:unsupported|unknown|unrecognized|deprecated)\b|\b(?:does not|doesn't|do not|don't|cannot|can't) support\b|\bnot (?:supported|allowed|permitted)\b/i.test(
+      errorBody
+    );
+
   try {
     const payload = JSON.parse(requestOptions.body);
     if ('max_tokens' in payload) {
-      if (
-        /\bmax_completion_tokens\b/i.test(errorBody)
-        || /\b(?:unsupported|unknown|unrecognized|deprecated)\b|\b(?:does not|doesn't|do not|don't|cannot|can't) support\b|\bnot (?:supported|allowed|permitted)\b/i.test(
-          errorBody
-        )
-      ) {
+      if (/\bmax_completion_tokens\b/i.test(errorBody) || rejectsTokenParam) {
         delete payload.max_tokens;
-        payload.max_completion_tokens = 16;
+        payload.max_completion_tokens = requestedMin;
         return JSON.stringify(payload);
       }
-      if (
-        typeof payload.max_tokens === 'number'
-        && payload.max_tokens < 16
-        && /\b(?:minimum value|expected a value\s*>=|must be at least)\b/i.test(errorBody)
-      ) {
-        payload.max_tokens = 16;
+      if (isMinError && Number(payload.max_tokens || 0) < requestedMin) {
+        payload.max_tokens = requestedMin;
         return JSON.stringify(payload);
       }
       delete payload.max_tokens;
-      payload.max_completion_tokens = 16;
+      payload.max_completion_tokens = requestedMin;
       return JSON.stringify(payload);
     }
     if ('max_completion_tokens' in payload) {
+      if (isMinError && !rejectsTokenParam) {
+        const current = Number(payload.max_completion_tokens || 16);
+        const target = Math.max(requestedMin, current < 64 ? 64 : requestedMin);
+        if (current < target) {
+          payload.max_completion_tokens = target;
+          return JSON.stringify(payload);
+        }
+        return null;
+      }
       delete payload.max_completion_tokens;
-      payload.max_tokens = 16;
+      payload.max_tokens = requestedMin;
       return JSON.stringify(payload);
     }
   } catch {
@@ -308,12 +317,20 @@ function providerErrorInfo(body) {
         const rawParsed = JSON.parse(errObj.metadata.raw);
         const rawErr = Array.isArray(rawParsed?.error) ? rawParsed.error[0] : (rawParsed?.error ?? rawParsed);
         if (rawErr && typeof rawErr === 'object') {
-          if (
+          const rawMessage =
             typeof rawErr.message === 'string'
-            && rawErr.message.trim()
-            && (!message || /^provider returned error$/i.test(message.trim()))
+              ? rawErr.message.trim()
+              : typeof rawParsed?.message === 'string'
+                ? rawParsed.message.trim()
+                : '';
+          const trimmedMessage = message.trim();
+          if (
+            rawMessage
+            && (!trimmedMessage
+              || /^(?:provider returned error|upstream error|bad request|invalid request|request failed)\b/i.test(trimmedMessage)
+              || (rawMessage.length > trimmedMessage.length && !trimmedMessage.includes(rawMessage)))
           ) {
-            message = rawErr.message;
+            message = rawMessage;
           }
           if (rawErr.code != null && (!code || typeof code === 'number')) code = rawErr.code;
           if (!param && typeof rawErr.param === 'string') param = rawErr.param;
@@ -461,18 +478,24 @@ const ANTHROPIC_MAX_OUTPUT_TOKENS = 16000;
 
 // Reasoning and fixed-temperature models (OpenAI o-series, codex, search-preview,
 // GPT-5+ except explicit `gpt-*-chat*` variants, Claude adaptive-thinking models
-// via OpenRouter, and DeepSeek R1/reasoner) reject or ignore custom `temperature`.
+// via OpenRouter, DeepSeek R1/reasoner, and xAI Grok reasoning models) reject or
+// ignore custom `temperature`.
 function isReasoningOrFixedTempModel(modelId) {
   if (typeof modelId !== 'string' || !modelId) return false;
   const bare = modelId
     .trim()
     .replace(/:.*$/, '')
-    .replace(/^(?:openai|anthropic|deepseek)\//i, '')
+    .replace(/^(?:openai|anthropic|deepseek|x-?ai)\//i, '')
     .toLowerCase();
   if (/^o\d+(?:-|$)/.test(bare) || /^codex(?:-|$)/.test(bare)) return true;
   if (bare.startsWith('gpt-4o-search-preview') || bare.startsWith('gpt-4o-mini-search-preview')) return true;
   if (/^claude-(?:sonnet-5|opus-5|fable-5|opus-4[.-][78])(?:[.-]|$)/.test(bare)) return true;
   if (/^deepseek-(?:r1|reasoner)(?:-|$)/.test(bare)) return true;
+  if (/^grok-3-mini(?:-|$)/.test(bare)) return true;
+  const grokMatch = /^grok-(\d+)(?:[.-]|$)/.exec(bare);
+  if (grokMatch) {
+    return Number(grokMatch[1]) >= 4 && !/non-reasoning/.test(bare);
+  }
   const gptMatch = /^gpt-(\d+)(?:\.(\d+))?(?:-(.+))?$/.exec(bare);
   if (!gptMatch) return false;
   const major = Number(gptMatch[1]);
