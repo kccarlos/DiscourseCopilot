@@ -212,12 +212,31 @@ export class ConnectionTestError extends Error {
 function buildTokenLimitFallbackBody(requestUrl, requestOptions, status, errorBody) {
   if (requestOptions?.method !== 'POST' || !String(requestUrl).endsWith('/chat/completions')) return null;
   if (status !== 400 && status !== 422) return null;
-  if (!/\b(?:max_tokens|max_completion_tokens|max_output_tokens|minimum value|expected a value\s*>=)\b/i.test(errorBody)) {
+  if (isUnknownModelFailure(status, providerErrorInfo(errorBody))) return null;
+  if (!/\b(?:max_tokens|max_completion_tokens|max_output_tokens|minimum value|expected a value\s*>=|must be at least)\b/i.test(errorBody)) {
     return null;
   }
   try {
     const payload = JSON.parse(requestOptions.body);
     if ('max_tokens' in payload) {
+      if (
+        /\bmax_completion_tokens\b/i.test(errorBody)
+        || /\b(?:unsupported|unknown|unrecognized|deprecated)\b|\b(?:does not|doesn't|do not|don't|cannot|can't) support\b|\bnot (?:supported|allowed|permitted)\b/i.test(
+          errorBody
+        )
+      ) {
+        delete payload.max_tokens;
+        payload.max_completion_tokens = 16;
+        return JSON.stringify(payload);
+      }
+      if (
+        typeof payload.max_tokens === 'number'
+        && payload.max_tokens < 16
+        && /\b(?:minimum value|expected a value\s*>=|must be at least)\b/i.test(errorBody)
+      ) {
+        payload.max_tokens = 16;
+        return JSON.stringify(payload);
+      }
       delete payload.max_tokens;
       payload.max_completion_tokens = 16;
       return JSON.stringify(payload);
@@ -327,7 +346,7 @@ function providerErrorInfo(body) {
 // 400/422 errors that mention "model" while rejecting a request parameter,
 // model capability, or context size rather than the model ID itself.
 const NON_MODEL_PARAMETER_ERROR =
-  /\b(?:(?:unsupported|unknown|unrecognized|invalid|unexpected|deprecated) (?:request )?(?:parameter|argument|value|field|option)|(?:parameter|argument|value|field|option)\b[^.!?\n]*?\b(?:not (?:supported|allowed|permitted|valid|recognized)|is deprecated|is invalid)|(?:model|models)\b[^.!?\n]*?\b(?:does not|doesn't|do not|don't|cannot|can't) support\b|(?:does not|doesn't|do not|don't|cannot|can't) support\b[^.!?\n]*?\b(?:with|for|by|on) (?:this |reasoning )?models?\b|\bonly supports\b|\bnot (?:supported|allowed|permitted) (?:with|for|by|on|in)\b|\bis deprecated\b|\bbelow minimum value\b|\bexpected a value\s*>=|\b(?:temperature|top_p|top_k|max_tokens|max_completion_tokens|max_output_tokens|frequency_penalty|presence_penalty|reasoning_effort)\b|\bmaximum context length\b|\bcontext length exceeded\b|\btoo many tokens\b)/i;
+  /\b(?:(?:unsupported|unknown|unrecognized|invalid|unexpected|deprecated) (?:request )?(?:parameter|argument|value|field|option)|(?:parameter|argument|value|field|option)\b[^.!?\n]*?\b(?:not (?:supported|allowed|permitted|valid|recognized)|is deprecated|is invalid)|(?:model|models)\b[^.!?\n]*?\b(?:does not|doesn't|do not|don't|cannot|can't) support\b|(?:does not|doesn't|do not|don't|cannot|can't) support\b[^.!?\n]*?\b(?:with|for|by|on) (?:this |the |reasoning )?models?\b|\bonly supports\b|\bnot (?:supported|allowed|permitted) (?:with|for|by|on|in) (?:this |the |reasoning )?models?\b|\bis deprecated (?:with|for|by|on|in) (?:this |the |reasoning )?models?\b|\bbelow minimum value\b|\bexpected a value\s*>=|\b(?:temperature|top_p|top_k|max_tokens|max_completion_tokens|max_output_tokens|frequency_penalty|presence_penalty|reasoning_effort)\b|\bmaximum context length\b|\bcontext length exceeded\b|\btoo many tokens\b)/i;
 
 const NON_MODEL_ERROR_CODES = new Set([
   'unsupported_parameter',
@@ -452,7 +471,7 @@ function isReasoningOrFixedTempModel(modelId) {
     .toLowerCase();
   if (/^o\d+(?:-|$)/.test(bare) || /^codex(?:-|$)/.test(bare)) return true;
   if (bare.startsWith('gpt-4o-search-preview') || bare.startsWith('gpt-4o-mini-search-preview')) return true;
-  if (/^claude-(?:sonnet-5|opus-5|fable-5|opus-4-[78])(?:-|$)/.test(bare)) return true;
+  if (/^claude-(?:sonnet-5|opus-5|fable-5|opus-4[.-][78])(?:[.-]|$)/.test(bare)) return true;
   if (/^deepseek-(?:r1|reasoner)(?:-|$)/.test(bare)) return true;
   const gptMatch = /^gpt-(\d+)(?:\.(\d+))?(?:-(.+))?$/.exec(bare);
   if (!gptMatch) return false;

@@ -67,7 +67,7 @@ export async function singlePassSummary(
         console.error('AI Service: Stream error:', streamError.message);
         lastStreamError = streamError;
         throwIfAborted(abortSignal);
-        if (fullText.length === 0) {
+        if (fullText.trim().length === 0) {
           // No content received, throw the original error (preserves token limit info)
           throw streamError;
         }
@@ -88,7 +88,7 @@ export async function singlePassSummary(
         lastStreamError = finishError;
       }
 
-      if (fullText.length === 0) {
+      if (fullText.trim().length === 0) {
         if (lastStreamError) {
           throw lastStreamError;
         }
@@ -420,13 +420,13 @@ export async function assembleFinalSummary(
       } catch (streamError) {
         console.error('AI Service: Final assembly stream error:', streamError.message);
         throwIfAborted(abortSignal);
-        if (fullText.length === 0) {
+        if (fullText.trim().length === 0) {
           throw streamError;
         }
         // Got partial content, use what we have
       }
 
-      if (fullText.length === 0) {
+      if (fullText.trim().length === 0) {
         throw lastStreamError || new Error('No content generated');
       }
       throwIfAborted(abortSignal);

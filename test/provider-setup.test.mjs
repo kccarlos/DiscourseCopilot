@@ -101,7 +101,10 @@ test('Anthropic and OpenAI reasoning requests leave sampling parameters to the m
   assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'openai/o3-mini' }, 0.3), {});
   assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'openai/o3-mini:high' }, 0.3), {});
   assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'anthropic/claude-sonnet-5' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'anthropic/claude-sonnet-5.5' }, 0.7), {});
   assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'anthropic/claude-opus-5-5:beta' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'anthropic/claude-opus-4.7' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'anthropic/claude-opus-4.8:beta' }, 0.7), {});
   assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'deepseek/deepseek-r1:free' }, 0.7), {});
   assert.deepEqual(samplingOptions({ provider: 'deepseek.chat', modelId: 'deepseek-reasoner' }, 0.7), {});
   assert.deepEqual(samplingOptions({ provider: 'openai.chat', modelId: 'gpt-4o-mini' }, 0.7), { temperature: 0.7 });
@@ -177,6 +180,29 @@ test('runConnectionTest resolves on success, retries token-limit parameter misma
   assert.equal(retryPayloads[1].max_completion_tokens, 16);
   assert.equal('max_tokens' in retryPayloads[1], false);
 
+  // If a /chat/completions provider requires max_tokens >= 16 (minimum value error), retry with max_tokens: 16.
+  const minTokensPayloads = [];
+  const needsMinMaxTokens = async (_url, options) => {
+    const parsed = JSON.parse(options.body);
+    minTokensPayloads.push(parsed);
+    if (parsed.max_tokens < 16) {
+      return {
+        ok: false,
+        status: 400,
+        text: async () => '{"error":{"message":"Invalid \'max_tokens\': integer below minimum value. Expected a value >= 16, but got 1."}}'
+      };
+    }
+    return { ok: true, status: 200, text: async () => '{}' };
+  };
+  assert.equal(
+    await runConnectionTest('openrouter', { apiKey: 'k', model: 'openai/gpt-5' }, configs, { fetchImpl: needsMinMaxTokens }),
+    true
+  );
+  assert.equal(minTokensPayloads.length, 2);
+  assert.equal(minTokensPayloads[0].max_tokens, 1);
+  assert.equal(minTokensPayloads[1].max_tokens, 16);
+  assert.equal('max_completion_tokens' in minTokensPayloads[1], false);
+
   const unauthorized = async () => ({ ok: false, status: 401, text: async () => '{"error":{"message":"Invalid API key"}}' });
   await assert.rejects(
     runConnectionTest('openai', { apiKey: 'k', model: 'm' }, configs, { fetchImpl: unauthorized }),
@@ -239,6 +265,17 @@ test('connection failures map to the field the user should fix', () => {
     ).field,
     'model'
   );
+  for (const modelErrorBody of [
+    '{"error":{"message":"The model \'llama-3.1-8b-instant\' is deprecated"}}',
+    '{"error":{"message":"Model \'xyz\' is not supported for chat completions"}}',
+    '{"error":{"message":"models/gemini-x is not found for API version v1beta, or is not supported for generateContent"}}'
+  ]) {
+    assert.equal(
+      classifyConnectionFailure('openai', { status: 400, body: modelErrorBody }, configs).field,
+      'model',
+      `should mark model field invalid for: ${modelErrorBody}`
+    );
+  }
 
   // Parameter and capability errors that mention "model" must not blame the model name.
   for (const body of [
