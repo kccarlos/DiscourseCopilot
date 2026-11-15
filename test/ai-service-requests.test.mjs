@@ -406,12 +406,18 @@ test('rate-limit, quota, and generic bad-request errors do not trigger hierarchi
   assert.equal(isTokenLimitError(Object.assign(new Error('Rate limit exceeded: 60 requests per minute'), { statusCode: 429 })), false);
   assert.equal(isTokenLimitError(new Error('You exceeded your current quota, please check your plan and billing details')), false);
   assert.equal(isTokenLimitError(new Error('Bad Request: temperature is not supported for this model')), false);
-  assert.equal(
-    isTokenLimitError(
-      new Error("Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.")
-    ),
-    false
-  );
+  for (const paramError of [
+    "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.",
+    "Invalid 'max_output_tokens': integer below minimum value. Expected a value >= 16, but got 1.",
+    "Unknown parameter: 'max_completion_tokens'.",
+    'This model does not support the max_tokens parameter.',
+    'Model gpt-5 does not support max_tokens.',
+    'max_tokens is not supported for reasoning models',
+    'max_tokens is deprecated for this model. Use max_completion_tokens instead.',
+    'Invalid parameter: max_tokens'
+  ]) {
+    assert.equal(isTokenLimitError(new Error(paramError)), false, `should not classify as token limit: ${paramError}`);
+  }
   assert.equal(isTokenLimitError(Object.assign(new Error('Invalid API token'), { status: 401 })), false);
   assert.equal(isTokenLimitError(new Error('This model maximum context length is 8192 tokens')), true);
   assert.equal(isTokenLimitError(new Error('Channel Error')), true);
@@ -421,22 +427,30 @@ test('rate-limit, quota, and generic bad-request errors do not trigger hierarchi
     [400, 'You exceeded your current quota, please check your plan and billing details'],
     [400, 'Bad Request: temperature is not supported for this model'],
     [400, "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead."],
+    [400, "Invalid 'max_output_tokens': integer below minimum value. Expected a value >= 16, but got 1."],
     [401, 'Invalid API token']
   ]) {
-    const { fetch, requests } = mockFetch(() => jsonResponse({ error: { message } }, status));
-    const service = new AIService({ fetch });
-    const progress = [];
-    await assert.rejects(
-      service.generateSummary(
-        'openai',
-        'Original post text.\n\n\n\nFirst reply.\n\n\n\nSecond reply.',
-        { apiKey: 'k', model: 'gpt-5' },
-        { onProgress: step => progress.push(step.step) }
-      ),
-      error => error.message.includes(message)
-    );
-    assert.equal(requests.length, 1, `should not retry or split on: ${message}`);
-    assert.equal(progress.includes('hierarchical'), false);
+    for (const withStream of [false, true]) {
+      const { fetch, requests } = mockFetch(() => jsonResponse({ error: { message } }, status));
+      const service = new AIService({ fetch });
+      const progress = [];
+      const chunks = [];
+      await assert.rejects(
+        service.generateSummary(
+          'openai',
+          'Original post text.\n\n\n\nFirst reply.\n\n\n\nSecond reply.',
+          { apiKey: 'k', model: 'gpt-5' },
+          {
+            onProgress: step => progress.push(step.step),
+            ...(withStream ? { onStream: chunk => chunks.push(chunk) } : {})
+          }
+        ),
+        error => error.message.includes(message)
+      );
+      assert.equal(requests.length, 1, `should not retry or split (withStream=${withStream}) on: ${message}`);
+      assert.equal(progress.includes('hierarchical'), false, `should not enter hierarchical (withStream=${withStream}) on: ${message}`);
+      assert.equal(chunks.length, 0);
+    }
   }
 });
 

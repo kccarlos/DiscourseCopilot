@@ -97,10 +97,17 @@ test('Anthropic and OpenAI reasoning requests leave sampling parameters to the m
   assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'o4-mini' }, 0.7), {});
   assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'o1' }, 0.7), {});
   assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'openai/gpt-6-luna' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'openai/gpt-6-luna:free' }, 0.7), {});
   assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'openai/o3-mini' }, 0.3), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'openai/o3-mini:high' }, 0.3), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'anthropic/claude-sonnet-5' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'anthropic/claude-opus-5-5:beta' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'deepseek/deepseek-r1:free' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'deepseek.chat', modelId: 'deepseek-reasoner' }, 0.7), {});
   assert.deepEqual(samplingOptions({ provider: 'openai.chat', modelId: 'gpt-4o-mini' }, 0.7), { temperature: 0.7 });
   assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'gpt-5-chat-latest' }, 0.7), { temperature: 0.7 });
   assert.deepEqual(samplingOptions({ provider: 'groq.chat', modelId: 'openai/gpt-oss-20b' }, 0.5), { temperature: 0.5 });
+  assert.deepEqual(samplingOptions({ provider: 'deepseek.chat', modelId: 'deepseek-flash' }, 0.5), { temperature: 0.5 });
   assert.deepEqual(samplingOptions({ provider: 'openrouter' }, 0.3), { temperature: 0.3 });
   assert.deepEqual(samplingOptions(null, 0.5), { temperature: 0.5 });
 });
@@ -137,7 +144,7 @@ test('connection tests use each provider’s cheapest request shape', () => {
   assert.match(gemini.url, /models\/gemini-x:generateContent\?key=a%20b$/);
 });
 
-test('runConnectionTest resolves on success and reports status and body on failure', async () => {
+test('runConnectionTest resolves on success, retries token-limit parameter mismatches, and reports status and body on failure', async () => {
   const calls = [];
   const ok = async (url, options) => {
     calls.push([url, options.method]);
@@ -146,10 +153,54 @@ test('runConnectionTest resolves on success and reports status and body on failu
   assert.equal(await runConnectionTest('openai', { apiKey: 'k', model: 'm' }, configs, { fetchImpl: ok }), true);
   assert.deepEqual(calls, [['https://api.openai.com/v1/chat/completions', 'POST']]);
 
+  // If a /chat/completions provider rejects max_tokens: 1 in favor of max_completion_tokens, retry once with max_completion_tokens: 16.
+  const retryPayloads = [];
+  const needsCompletionTokens = async (_url, options) => {
+    const parsed = JSON.parse(options.body);
+    retryPayloads.push(parsed);
+    if ('max_tokens' in parsed) {
+      return {
+        ok: false,
+        status: 400,
+        text: async () =>
+          '{"error":{"message":"Unsupported parameter: \'max_tokens\' is not supported with this model. Use \'max_completion_tokens\' instead."}}'
+      };
+    }
+    return { ok: true, status: 200, text: async () => '{}' };
+  };
+  assert.equal(
+    await runConnectionTest('openrouter', { apiKey: 'k', model: 'openai/o3' }, configs, { fetchImpl: needsCompletionTokens }),
+    true
+  );
+  assert.equal(retryPayloads.length, 2);
+  assert.equal(retryPayloads[0].max_tokens, 1);
+  assert.equal(retryPayloads[1].max_completion_tokens, 16);
+  assert.equal('max_tokens' in retryPayloads[1], false);
+
   const unauthorized = async () => ({ ok: false, status: 401, text: async () => '{"error":{"message":"Invalid API key"}}' });
   await assert.rejects(
     runConnectionTest('openai', { apiKey: 'k', model: 'm' }, configs, { fetchImpl: unauthorized }),
     error => error.status === 401 && /Invalid API key/.test(error.body) && /^HTTP 401/.test(error.message)
+  );
+
+  // Preserves >300-char JSON error bodies so structured fields at the end are not truncated.
+  const longJsonBody = JSON.stringify({
+    error: {
+      message: `Unsupported parameter: 'max_tokens' is not supported with this model. ${'x'.repeat(280)}`,
+      type: 'invalid_request_error',
+      param: 'max_tokens',
+      code: 'unsupported_parameter'
+    }
+  });
+  assert.ok(longJsonBody.length > 350);
+  await assert.rejects(
+    runConnectionTest('openai', { apiKey: 'k', model: 'm' }, configs, {
+      fetchImpl: async () => ({ ok: false, status: 400, text: async () => longJsonBody })
+    }),
+    error => {
+      const classified = classifyConnectionFailure('openai', error, configs);
+      return error.status === 400 && classified.field === null;
+    }
   );
 
   const offline = async () => {
@@ -189,37 +240,73 @@ test('connection failures map to the field the user should fix', () => {
     'model'
   );
 
-  // Parameter and capability errors that mention "with this model" must not blame the model name.
-  const unsupportedMaxTokens = classifyConnectionFailure(
-    'openai',
-    {
-      status: 400,
-      body: '{"error":{"message":"Unsupported parameter: \'max_tokens\' is not supported with this model. Use \'max_completion_tokens\' instead.","type":"invalid_request_error","param":"max_tokens","code":"unsupported_parameter"}}'
-    },
-    configs
-  );
-  assert.equal(unsupportedMaxTokens.field, null);
-  assert.match(unsupportedMaxTokens.message, /OpenAI returned an error \(HTTP 400\).*max_completion_tokens/);
+  // Parameter and capability errors that mention "model" must not blame the model name.
+  for (const body of [
+    '{"error":{"message":"Unsupported parameter: \'max_tokens\' is not supported with this model. Use \'max_completion_tokens\' instead.","type":"invalid_request_error","param":"max_tokens","code":"unsupported_parameter"}}',
+    'Unsupported parameter: ‘max_tokens’ is not supported with this model. Use ‘max_completion_tokens’ instead.',
+    '{"error":{"message":"Unsupported value: \'temperature\' does not support 0.7 with this model. Only the default (1) value is supported."}}',
+    '{"error":{"message":"This model does not support the max_tokens parameter."}}',
+    '{"error":{"message":"Model gpt-5 does not support temperature."}}',
+    '{"error":{"message":"Reasoning models do not support temperature."}}',
+    '{"error":{"message":"This model only supports the default temperature value of 1."}}',
+    '{"error":{"message":"temperature is not supported for reasoning models"}}',
+    '{"error":{"message":"max_tokens is not supported for model gpt-6-luna"}}',
+    '{"error":{"message":"max_tokens is deprecated for this model"}}'
+  ]) {
+    const classified = classifyConnectionFailure('openai', { status: 400, body }, configs);
+    assert.equal(classified.field, null, `should not mark model field invalid for: ${body}`);
+  }
 
-  const unsupportedCurlyQuotes = classifyConnectionFailure(
-    'openai',
+  // OpenRouter metadata.raw upstream errors unwrap the inner message and code.
+  const openrouterWrappedParam = classifyConnectionFailure(
+    'openrouter',
     {
       status: 400,
-      body: 'Unsupported parameter: ‘max_tokens’ is not supported with this model. Use ‘max_completion_tokens’ instead.'
+      body: JSON.stringify({
+        error: {
+          message: 'Provider returned error',
+          code: 400,
+          metadata: {
+            raw: JSON.stringify({
+              error: {
+                message: "Unsupported parameter: 'max_tokens' is not supported with this model.",
+                param: 'max_tokens',
+                code: 'unsupported_parameter'
+              }
+            })
+          }
+        }
+      })
     },
     configs
   );
-  assert.equal(unsupportedCurlyQuotes.field, null);
+  assert.equal(openrouterWrappedParam.field, null);
+  assert.match(openrouterWrappedParam.message, /Unsupported parameter: 'max_tokens'/);
 
-  const unsupportedTemp = classifyConnectionFailure(
-    'openai',
+  const openrouterWrappedModel = classifyConnectionFailure(
+    'openrouter',
     {
       status: 400,
-      body: '{"error":{"message":"Unsupported value: \'temperature\' does not support 0.7 with this model. Only the default (1) value is supported."}}'
+      body: JSON.stringify({
+        error: {
+          message: 'Provider returned error',
+          code: 400,
+          metadata: {
+            raw: JSON.stringify({
+              error: {
+                message: 'The model `gpt-nope` does not exist',
+                param: 'model',
+                code: 'model_not_found'
+              }
+            })
+          }
+        }
+      })
     },
     configs
   );
-  assert.equal(unsupportedTemp.field, null);
+  assert.equal(openrouterWrappedModel.field, 'model');
+  assert.match(openrouterWrappedModel.message, /gpt-nope/);
 
   assert.equal(classifyConnectionFailure('openai', { status: 400, body: 'bad request' }, configs).field, null);
   assert.equal(classifyConnectionFailure('openai', { status: 402, body: '' }, configs).field, 'apiKey');

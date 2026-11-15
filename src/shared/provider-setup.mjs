@@ -209,8 +209,32 @@ export class ConnectionTestError extends Error {
   }
 }
 
+function buildTokenLimitFallbackBody(requestUrl, requestOptions, status, errorBody) {
+  if (requestOptions?.method !== 'POST' || !String(requestUrl).endsWith('/chat/completions')) return null;
+  if (status !== 400 && status !== 422) return null;
+  if (!/\b(?:max_tokens|max_completion_tokens|max_output_tokens|minimum value|expected a value\s*>=)\b/i.test(errorBody)) {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(requestOptions.body);
+    if ('max_tokens' in payload) {
+      delete payload.max_tokens;
+      payload.max_completion_tokens = 16;
+      return JSON.stringify(payload);
+    }
+    if ('max_completion_tokens' in payload) {
+      delete payload.max_completion_tokens;
+      payload.max_tokens = 16;
+      return JSON.stringify(payload);
+    }
+  } catch {
+    // Request body was not JSON.
+  }
+  return null;
+}
+
 // Sends one tiny request with the given settings. Throws ConnectionTestError
-// with the HTTP status (0 for network failures) and the start of the body.
+// with the HTTP status (0 for network failures) and the response body.
 export async function runConnectionTest(provider, settings, providerConfigs, { apiHeaders = {}, fetchImpl } = {}) {
   const request = buildConnectionTest(provider, settings, providerConfigs, apiHeaders);
   // Resolved per call so tests and the screenshot harness can replace fetch.
@@ -222,49 +246,105 @@ export async function runConnectionTest(provider, settings, providerConfigs, { a
     throw new ConnectionTestError(error?.message || 'Network request failed', { cause: error });
   }
   if (!response.ok) {
-    const detail = (await response.text().catch(() => '')).slice(0, 300).trim();
-    throw new ConnectionTestError(`HTTP ${response.status}${detail ? `: ${detail}` : ''}`, { status: response.status, body: detail });
+    let rawBody = (await response.text().catch(() => '')).slice(0, 4096).trim();
+    const fallbackBody = buildTokenLimitFallbackBody(request.url, request.options, response.status, rawBody);
+    if (fallbackBody) {
+      try {
+        const retryResponse = await doFetch(request.url, { ...request.options, body: fallbackBody });
+        if (retryResponse.ok) return true;
+        response = retryResponse;
+        rawBody = (await retryResponse.text().catch(() => '')).slice(0, 4096).trim();
+      } catch {
+        // Keep the original HTTP error if the fallback attempt fails at the network layer.
+      }
+    }
+    const { detail } = providerErrorInfo(rawBody);
+    throw new ConnectionTestError(`HTTP ${response.status}${detail ? `: ${detail}` : ''}`, {
+      status: response.status,
+      body: rawBody
+    });
   }
   return true;
 }
 
-function providerErrorDetail(body) {
-  if (!body) return '';
+function providerErrorInfo(body) {
+  if (!body) return { detail: '', code: '', param: '', type: '' };
   try {
     const parsed = JSON.parse(body);
-    const message = parsed?.error?.message ?? parsed?.message ?? parsed?.error;
-    if (typeof message === 'string') return message.trim();
+    const errObj = Array.isArray(parsed?.error) ? parsed.error[0] : parsed?.error;
+    let message =
+      typeof errObj?.message === 'string'
+        ? errObj.message
+        : typeof parsed?.message === 'string'
+          ? parsed.message
+          : typeof parsed?.error === 'string'
+            ? parsed.error
+            : '';
+    let code = errObj?.code ?? parsed?.code ?? '';
+    let param = typeof errObj?.param === 'string' ? errObj.param : typeof parsed?.param === 'string' ? parsed.param : '';
+    let type = errObj?.type ?? parsed?.type ?? '';
+
+    if (typeof errObj?.metadata?.raw === 'string') {
+      try {
+        const rawParsed = JSON.parse(errObj.metadata.raw);
+        const rawErr = Array.isArray(rawParsed?.error) ? rawParsed.error[0] : (rawParsed?.error ?? rawParsed);
+        if (rawErr && typeof rawErr === 'object') {
+          if (
+            typeof rawErr.message === 'string'
+            && rawErr.message.trim()
+            && (!message || /^provider returned error$/i.test(message.trim()))
+          ) {
+            message = rawErr.message;
+          }
+          if (rawErr.code != null && (!code || typeof code === 'number')) code = rawErr.code;
+          if (!param && typeof rawErr.param === 'string') param = rawErr.param;
+          if (!type && typeof rawErr.type === 'string') type = rawErr.type;
+        }
+      } catch {
+        // Ignore non-JSON metadata.raw.
+      }
+    }
+
+    if (typeof message === 'string' && message.trim()) {
+      return {
+        detail: message.replace(/\s+/g, ' ').trim().slice(0, 200),
+        code: String(code ?? ''),
+        param,
+        type: String(type ?? '')
+      };
+    }
   } catch {
     // Not JSON; fall through to the raw text.
   }
-  return String(body).replace(/\s+/g, ' ').trim().slice(0, 160);
+  return {
+    detail: String(body).replace(/\s+/g, ' ').trim().slice(0, 200),
+    code: '',
+    param: '',
+    type: ''
+  };
 }
 
-// 400/422 errors that mention "with this model" or "for this model" while
-// rejecting a request parameter or context size, not the model ID itself.
+// 400/422 errors that mention "model" while rejecting a request parameter,
+// model capability, or context size rather than the model ID itself.
 const NON_MODEL_PARAMETER_ERROR =
-  /\b(?:unsupported (?:parameter|value)|unrecognized request argument|(?:does not|doesn't|cannot) support\b.*?\b(?:with|for|on) this model|not support(?:ed)? (?:with|for|by|on) this model|maximum context length|context length exceeded|too many tokens)\b/i;
+  /\b(?:(?:unsupported|unknown|unrecognized|invalid|unexpected|deprecated) (?:request )?(?:parameter|argument|value|field|option)|(?:parameter|argument|value|field|option)\b[^.!?\n]*?\b(?:not (?:supported|allowed|permitted|valid|recognized)|is deprecated|is invalid)|(?:model|models)\b[^.!?\n]*?\b(?:does not|doesn't|do not|don't|cannot|can't) support\b|(?:does not|doesn't|do not|don't|cannot|can't) support\b[^.!?\n]*?\b(?:with|for|by|on) (?:this |reasoning )?models?\b|\bonly supports\b|\bnot (?:supported|allowed|permitted) (?:with|for|by|on|in)\b|\bis deprecated\b|\bbelow minimum value\b|\bexpected a value\s*>=|\b(?:temperature|top_p|top_k|max_tokens|max_completion_tokens|max_output_tokens|frequency_penalty|presence_penalty|reasoning_effort)\b|\bmaximum context length\b|\bcontext length exceeded\b|\btoo many tokens\b)/i;
 
-function isUnknownModelFailure(status, body, detail) {
+const NON_MODEL_ERROR_CODES = new Set([
+  'unsupported_parameter',
+  'unsupported_value',
+  'unknown_parameter',
+  'invalid_value',
+  'invalid_type',
+  'context_length_exceeded'
+]);
+
+function isUnknownModelFailure(status, info) {
   if (status === 404) return true;
   if (status !== 400 && status !== 422) return false;
-  if (body) {
-    try {
-      const parsed = JSON.parse(body);
-      const code = parsed?.error?.code ?? parsed?.code;
-      const param = parsed?.error?.param ?? parsed?.param;
-      if (code === 'model_not_found' || param === 'model') return true;
-      if (
-        code === 'unsupported_parameter'
-        || code === 'unsupported_value'
-        || code === 'context_length_exceeded'
-        || (typeof param === 'string' && param.length > 0 && param !== 'model')
-      ) {
-        return false;
-      }
-    } catch {
-      // Not JSON; fall through to message inspection.
-    }
+  const { detail, code, param } = info;
+  if (code === 'model_not_found' || param === 'model') return true;
+  if (NON_MODEL_ERROR_CODES.has(code) || (param && param !== 'model')) {
+    return false;
   }
   if (!detail || NON_MODEL_PARAMETER_ERROR.test(detail)) return false;
   return /model/i.test(detail);
@@ -274,7 +354,8 @@ function isUnknownModelFailure(status, body, detail) {
 export function classifyConnectionFailure(provider, error, providerConfigs = {}) {
   const name = providerConfigs[provider]?.name || provider || t('providerSetup.theProvider');
   const status = Number(error?.status) || 0;
-  const detail = providerErrorDetail(error?.body);
+  const info = providerErrorInfo(error?.body);
+  const { detail } = info;
   const withDetail = message => (detail ? `${message} (${detail})` : message);
 
   if (!status) {
@@ -304,7 +385,7 @@ export function classifyConnectionFailure(provider, error, providerConfigs = {})
       )
     };
   }
-  if (isUnknownModelFailure(status, error?.body, detail)) {
+  if (isUnknownModelFailure(status, info)) {
     return {
       field: 'model',
       message: withDetail(t('providerSetup.modelUnknown', { name }))
@@ -359,17 +440,20 @@ export function setupSuccessMessage(pageContext = {}) {
 
 const ANTHROPIC_MAX_OUTPUT_TOKENS = 16000;
 
-// OpenAI o-series, codex, search-preview, and GPT-5+ models (except explicit
-// `gpt-*-chat*` variants) reject custom `temperature` values when reasoning is
-// active, both on OpenAI directly and through OpenRouter (`openai/...`).
-function isOpenAIReasoningOrFixedTempModel(modelId) {
+// Reasoning and fixed-temperature models (OpenAI o-series, codex, search-preview,
+// GPT-5+ except explicit `gpt-*-chat*` variants, Claude adaptive-thinking models
+// via OpenRouter, and DeepSeek R1/reasoner) reject or ignore custom `temperature`.
+function isReasoningOrFixedTempModel(modelId) {
   if (typeof modelId !== 'string' || !modelId) return false;
   const bare = modelId
     .trim()
-    .replace(/^openai\//i, '')
+    .replace(/:.*$/, '')
+    .replace(/^(?:openai|anthropic|deepseek)\//i, '')
     .toLowerCase();
   if (/^o\d+(?:-|$)/.test(bare) || /^codex(?:-|$)/.test(bare)) return true;
   if (bare.startsWith('gpt-4o-search-preview') || bare.startsWith('gpt-4o-mini-search-preview')) return true;
+  if (/^claude-(?:sonnet-5|opus-5|fable-5|opus-4-[78])(?:-|$)/.test(bare)) return true;
+  if (/^deepseek-(?:r1|reasoner)(?:-|$)/.test(bare)) return true;
   const gptMatch = /^gpt-(\d+)(?:\.(\d+))?(?:-(.+))?$/.exec(bare);
   if (!gptMatch) return false;
   const major = Number(gptMatch[1]);
@@ -386,7 +470,7 @@ export function samplingOptions(model, temperature) {
   if (providerId === 'anthropic' || providerId.startsWith('anthropic.')) {
     return { maxOutputTokens: ANTHROPIC_MAX_OUTPUT_TOKENS };
   }
-  if (isOpenAIReasoningOrFixedTempModel(model?.modelId)) {
+  if (isReasoningOrFixedTempModel(model?.modelId)) {
     return {};
   }
   return { temperature };
