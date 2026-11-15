@@ -406,6 +406,12 @@ test('rate-limit, quota, and generic bad-request errors do not trigger hierarchi
   assert.equal(isTokenLimitError(Object.assign(new Error('Rate limit exceeded: 60 requests per minute'), { statusCode: 429 })), false);
   assert.equal(isTokenLimitError(new Error('You exceeded your current quota, please check your plan and billing details')), false);
   assert.equal(isTokenLimitError(new Error('Bad Request: temperature is not supported for this model')), false);
+  assert.equal(
+    isTokenLimitError(
+      new Error("Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.")
+    ),
+    false
+  );
   assert.equal(isTokenLimitError(Object.assign(new Error('Invalid API token'), { status: 401 })), false);
   assert.equal(isTokenLimitError(new Error('This model maximum context length is 8192 tokens')), true);
   assert.equal(isTokenLimitError(new Error('Channel Error')), true);
@@ -414,6 +420,7 @@ test('rate-limit, quota, and generic bad-request errors do not trigger hierarchi
     [400, 'Rate limit exceeded: 60 requests per minute'],
     [400, 'You exceeded your current quota, please check your plan and billing details'],
     [400, 'Bad Request: temperature is not supported for this model'],
+    [400, "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead."],
     [401, 'Invalid API token']
   ]) {
     const { fetch, requests } = mockFetch(() => jsonResponse({ error: { message } }, status));
@@ -431,4 +438,16 @@ test('rate-limit, quota, and generic bad-request errors do not trigger hierarchi
     assert.equal(requests.length, 1, `should not retry or split on: ${message}`);
     assert.equal(progress.includes('hierarchical'), false);
   }
+});
+
+test('OpenRouter requests for OpenAI reasoning models omit temperature', async () => {
+  const { fetch, requests } = mockFetch(() => sseResponse(chatCompletionsSse(['Summary ', 'done.'])));
+  const service = new AIService({ fetch });
+
+  const answer = await service.streamFollowUp('openrouter', followUpContext, { apiKey: 'sk-or-test', model: 'openai/gpt-6-luna' }, {});
+
+  assert.equal(answer, 'Summary done.');
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].body.model, 'openai/gpt-6-luna');
+  assert.equal('temperature' in requests[0].body, false);
 });

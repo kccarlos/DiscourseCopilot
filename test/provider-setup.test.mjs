@@ -88,9 +88,19 @@ test('every provider’s default is the first of its curated models, cheap/fast 
   }
 });
 
-test('Anthropic requests leave sampling parameters to the model', () => {
+test('Anthropic and OpenAI reasoning requests leave sampling parameters to the model', () => {
   assert.deepEqual(samplingOptions({ provider: 'anthropic.messages', modelId: 'claude-sonnet-5' }, 0.7), { maxOutputTokens: 16000 });
+  assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'gpt-6-luna' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'gpt-5.6-luna' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'gpt-5.4-mini' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'o3' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'o4-mini' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'o1' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'openai/gpt-6-luna' }, 0.7), {});
+  assert.deepEqual(samplingOptions({ provider: 'openrouter', modelId: 'openai/o3-mini' }, 0.3), {});
   assert.deepEqual(samplingOptions({ provider: 'openai.chat', modelId: 'gpt-4o-mini' }, 0.7), { temperature: 0.7 });
+  assert.deepEqual(samplingOptions({ provider: 'openai.responses', modelId: 'gpt-5-chat-latest' }, 0.7), { temperature: 0.7 });
+  assert.deepEqual(samplingOptions({ provider: 'groq.chat', modelId: 'openai/gpt-oss-20b' }, 0.5), { temperature: 0.5 });
   assert.deepEqual(samplingOptions({ provider: 'openrouter' }, 0.3), { temperature: 0.3 });
   assert.deepEqual(samplingOptions(null, 0.5), { temperature: 0.5 });
 });
@@ -101,6 +111,14 @@ test('connection tests use each provider’s cheapest request shape', () => {
   assert.equal(openrouter.options.headers.Authorization, 'Bearer k');
   assert.equal(openrouter.options.headers['X-Title'], 'Forumind');
   assert.equal('HTTP-Referer' in openrouter.options.headers, false, 'no "undefined" referer header');
+  assert.equal(JSON.parse(openrouter.options.body).max_tokens, 1);
+
+  const openai = buildConnectionTest('openai', { apiKey: 'k', model: 'gpt-6-luna' }, configs);
+  assert.equal(openai.url, 'https://api.openai.com/v1/chat/completions');
+  assert.equal(openai.options.headers.Authorization, 'Bearer k');
+  const openaiBody = JSON.parse(openai.options.body);
+  assert.equal(openaiBody.max_completion_tokens, 16);
+  assert.equal('max_tokens' in openaiBody, false, 'OpenAI reasoning models reject max_tokens');
 
   const anthropic = buildConnectionTest('anthropic', { apiKey: 'k', model: 'claude' }, configs);
   assert.equal(anthropic.options.headers['x-api-key'], 'k');
@@ -157,6 +175,52 @@ test('connection failures map to the field the user should fix', () => {
     classifyConnectionFailure('anthropic', { status: 400, body: '{"error":{"message":"model: claude-x"}}' }, configs).field,
     'model'
   );
+  assert.equal(
+    classifyConnectionFailure('openrouter', { status: 400, body: '{"error":{"message":"foo/bar is not a valid model ID"}}' }, configs)
+      .field,
+    'model'
+  );
+  assert.equal(
+    classifyConnectionFailure(
+      'openai',
+      { status: 400, body: '{"error":{"message":"The model `gpt-foo` does not exist","code":"model_not_found"}}' },
+      configs
+    ).field,
+    'model'
+  );
+
+  // Parameter and capability errors that mention "with this model" must not blame the model name.
+  const unsupportedMaxTokens = classifyConnectionFailure(
+    'openai',
+    {
+      status: 400,
+      body: '{"error":{"message":"Unsupported parameter: \'max_tokens\' is not supported with this model. Use \'max_completion_tokens\' instead.","type":"invalid_request_error","param":"max_tokens","code":"unsupported_parameter"}}'
+    },
+    configs
+  );
+  assert.equal(unsupportedMaxTokens.field, null);
+  assert.match(unsupportedMaxTokens.message, /OpenAI returned an error \(HTTP 400\).*max_completion_tokens/);
+
+  const unsupportedCurlyQuotes = classifyConnectionFailure(
+    'openai',
+    {
+      status: 400,
+      body: 'Unsupported parameter: ‘max_tokens’ is not supported with this model. Use ‘max_completion_tokens’ instead.'
+    },
+    configs
+  );
+  assert.equal(unsupportedCurlyQuotes.field, null);
+
+  const unsupportedTemp = classifyConnectionFailure(
+    'openai',
+    {
+      status: 400,
+      body: '{"error":{"message":"Unsupported value: \'temperature\' does not support 0.7 with this model. Only the default (1) value is supported."}}'
+    },
+    configs
+  );
+  assert.equal(unsupportedTemp.field, null);
+
   assert.equal(classifyConnectionFailure('openai', { status: 400, body: 'bad request' }, configs).field, null);
   assert.equal(classifyConnectionFailure('openai', { status: 402, body: '' }, configs).field, 'apiKey');
   assert.equal(classifyConnectionFailure('openai', { status: 500, body: '' }, configs).message, 'OpenAI returned an error (HTTP 500).');

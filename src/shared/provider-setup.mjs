@@ -192,7 +192,7 @@ export function buildConnectionTest(provider, settings, providerConfigs, apiHead
     }
     body = JSON.stringify({
       model: settings.model,
-      max_tokens: 1,
+      ...(provider === 'openai' ? { max_completion_tokens: 16 } : { max_tokens: 1 }),
       messages: [{ role: 'user', content: 'Test' }]
     });
   }
@@ -240,6 +240,36 @@ function providerErrorDetail(body) {
   return String(body).replace(/\s+/g, ' ').trim().slice(0, 160);
 }
 
+// 400/422 errors that mention "with this model" or "for this model" while
+// rejecting a request parameter or context size, not the model ID itself.
+const NON_MODEL_PARAMETER_ERROR =
+  /\b(?:unsupported (?:parameter|value)|unrecognized request argument|(?:does not|doesn't|cannot) support\b.*?\b(?:with|for|on) this model|not support(?:ed)? (?:with|for|by|on) this model|maximum context length|context length exceeded|too many tokens)\b/i;
+
+function isUnknownModelFailure(status, body, detail) {
+  if (status === 404) return true;
+  if (status !== 400 && status !== 422) return false;
+  if (body) {
+    try {
+      const parsed = JSON.parse(body);
+      const code = parsed?.error?.code ?? parsed?.code;
+      const param = parsed?.error?.param ?? parsed?.param;
+      if (code === 'model_not_found' || param === 'model') return true;
+      if (
+        code === 'unsupported_parameter'
+        || code === 'unsupported_value'
+        || code === 'context_length_exceeded'
+        || (typeof param === 'string' && param.length > 0 && param !== 'model')
+      ) {
+        return false;
+      }
+    } catch {
+      // Not JSON; fall through to message inspection.
+    }
+  }
+  if (!detail || NON_MODEL_PARAMETER_ERROR.test(detail)) return false;
+  return /model/i.test(detail);
+}
+
 // Maps a failed connection test to the field the user should fix.
 export function classifyConnectionFailure(provider, error, providerConfigs = {}) {
   const name = providerConfigs[provider]?.name || provider || t('providerSetup.theProvider');
@@ -274,7 +304,7 @@ export function classifyConnectionFailure(provider, error, providerConfigs = {})
       )
     };
   }
-  if (status === 404 || ((status === 400 || status === 422) && /model/i.test(detail))) {
+  if (isUnknownModelFailure(status, error?.body, detail)) {
     return {
       field: 'model',
       message: withDetail(t('providerSetup.modelUnknown', { name }))
@@ -329,11 +359,35 @@ export function setupSuccessMessage(pageContext = {}) {
 
 const ANTHROPIC_MAX_OUTPUT_TOKENS = 16000;
 
+// OpenAI o-series, codex, search-preview, and GPT-5+ models (except explicit
+// `gpt-*-chat*` variants) reject custom `temperature` values when reasoning is
+// active, both on OpenAI directly and through OpenRouter (`openai/...`).
+function isOpenAIReasoningOrFixedTempModel(modelId) {
+  if (typeof modelId !== 'string' || !modelId) return false;
+  const bare = modelId
+    .trim()
+    .replace(/^openai\//i, '')
+    .toLowerCase();
+  if (/^o\d+(?:-|$)/.test(bare) || /^codex(?:-|$)/.test(bare)) return true;
+  if (bare.startsWith('gpt-4o-search-preview') || bare.startsWith('gpt-4o-mini-search-preview')) return true;
+  const gptMatch = /^gpt-(\d+)(?:\.(\d+))?(?:-(.+))?$/.exec(bare);
+  if (!gptMatch) return false;
+  const major = Number(gptMatch[1]);
+  const minor = gptMatch[2] == null ? undefined : Number(gptMatch[2]);
+  const variant = gptMatch[3] || '';
+  const isChatVariant = minor == null && variant.startsWith('chat');
+  return major >= 5 && !isChatVariant;
+}
+
 export function samplingOptions(model, temperature) {
   const providerId = typeof model?.provider === 'string' ? model.provider : '';
   // Current Claude models reject sampling parameters and think adaptively by
   // default; thinking counts toward max_tokens, so lift the SDK's 4096 default.
-  return providerId === 'anthropic' || providerId.startsWith('anthropic.')
-    ? { maxOutputTokens: ANTHROPIC_MAX_OUTPUT_TOKENS }
-    : { temperature };
+  if (providerId === 'anthropic' || providerId.startsWith('anthropic.')) {
+    return { maxOutputTokens: ANTHROPIC_MAX_OUTPUT_TOKENS };
+  }
+  if (isOpenAIReasoningOrFixedTempModel(model?.modelId)) {
+    return {};
+  }
+  return { temperature };
 }
