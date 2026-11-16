@@ -4,8 +4,16 @@ Notable changes to Forumind (formerly DiscourseCopilot). The format follows [Kee
 
 ## [Unreleased]
 
+## [3.0.4] - 2026-11-15
+
 ### Added
 - Hacker News (`news.ycombinator.com`): summarize stories, Ask HN / Show HN posts and nested comment trees, ask follow-up questions in Chat, and use Ask the forum to search stories and comments across Hacker News.
+- Comment-level reference deep-linking (`[S1#42]`, `#42`, `Post #42`, `Comment #42`, `42楼`) across all supported site types (Discourse, WordPress, Reddit and Hacker News), jumping directly to the cited post or comment.
+
+### Fixed
+- OpenAI connection tests now send `max_completion_tokens` instead of the deprecated `max_tokens` parameter (with automatic token-parameter fallback retry), parameter validation errors containing `"with this model"` are no longer misclassified as unknown-model errors, and reasoning models omit unsupported `temperature` settings.
+- Streaming single-pass summaries now propagate `onError` failures instead of mistaking empty failed streams for token-limit errors.
+- Typing in the follow-up chat box no longer scrolls the summary back to the top.
 
 ## [3.0.3] - 2026-11-06
 
@@ -186,7 +194,8 @@ First public release.
 - Login-required forums work with your existing login; Ask the forum pauses until you log in.
 - Light and dark mode, new logo, and Chrome Web Store listing images.
 
-[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.3...HEAD
+[Unreleased]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.4...HEAD
+[3.0.4]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.3...v3.0.4
 [3.0.3]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/kccarlos/DiscourseCopilot/compare/v3.0.0...v3.0.1
